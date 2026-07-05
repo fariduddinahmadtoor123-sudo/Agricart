@@ -26,7 +26,7 @@
         x-on:click.stop="open = ! open"
         x-bind:aria-expanded="open.toString()"
     >
-        Columns
+        {{ __('agricart.toolbar.columns') }}
     </x-filament::button>
 
     <div
@@ -39,7 +39,7 @@
     >
         <div class="agricart-toolbar-dropdown__panel-search">
             <label class="fi-sr-only" for="agricart-columns-search-{{ $toolbar['resourceSlug'] }}">
-                Search columns
+                {{ __('agricart.toolbar.search_columns') }}
             </label>
 
             <x-filament::input.wrapper
@@ -50,7 +50,7 @@
                     id="agricart-columns-search-{{ $toolbar['resourceSlug'] }}"
                     type="search"
                     autocomplete="off"
-                    placeholder="Search columns..."
+                    placeholder="{{ __('agricart.toolbar.search_columns') }}..."
                     class="fi-input fi-input-has-inline-prefix"
                     x-model="query"
                     x-on:keydown.escape.stop="open = false"
@@ -60,7 +60,7 @@
 
         <div class="agricart-toolbar-dropdown__panel-body">
             @if (filled($columns))
-                <ul class="agricart-toolbar-dropdown__list agricart-toolbar-dropdown__list--columns" role="listbox" aria-label="Columns">
+                <ul class="agricart-toolbar-dropdown__list agricart-toolbar-dropdown__list--columns" role="listbox" aria-label="{{ __('agricart.toolbar.columns') }}">
                     @foreach ($columns as $column)
                         <li
                             role="option"
@@ -84,10 +84,10 @@
                     x-show="query.trim() !== '' && ! @js(collect($columns)->pluck('label')->values()->all()).some((label) => matches(label))"
                     x-cloak
                 >
-                    No columns match your search.
+                    {{ __('agricart.toolbar.no_columns_match') }}
                 </p>
             @else
-                <p class="agricart-toolbar-dropdown__empty">No columns available.</p>
+                <p class="agricart-toolbar-dropdown__empty">{{ __('agricart.toolbar.no_columns') }}</p>
             @endif
         </div>
     </div>

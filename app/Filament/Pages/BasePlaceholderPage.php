@@ -2,11 +2,14 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Concerns\HasTranslatedNavigationLabel;
 use Filament\Pages\Page;
 use Illuminate\Contracts\Support\Htmlable;
 
 abstract class BasePlaceholderPage extends Page
 {
+    use HasTranslatedNavigationLabel;
+
     protected string $view = 'filament.pages.placeholder';
 
     protected static bool $shouldRegisterNavigation = false;
@@ -39,6 +42,6 @@ abstract class BasePlaceholderPage extends Page
 
     public function getPlaceholderMessage(): string
     {
-        return 'This section is a placeholder. Content will be added in a future phase.';
+        return __('agricart.placeholder.message');
     }
 }

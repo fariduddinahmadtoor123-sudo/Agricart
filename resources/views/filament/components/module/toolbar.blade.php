@@ -38,10 +38,10 @@
                     tag="button"
                     type="button"
                     class="agricart-catalog-toolbar__action"
-                    x-on:click="$dispatch('open-form-panel', {
-                        title: @js($toolbar['addLabel']),
-                        resource: @js($toolbar['resourceLabel']),
-                    })"
+                    data-agricart-open-form-panel
+                    data-form-title="{{ $toolbar['addLabel'] }}"
+                    data-form-resource="{{ $toolbar['resourceLabel'] }}"
+                    data-form-key="{{ $toolbar['formKey'] ?? '' }}"
                 >
                     {{ $toolbar['addLabel'] }}
                 </x-filament::button>

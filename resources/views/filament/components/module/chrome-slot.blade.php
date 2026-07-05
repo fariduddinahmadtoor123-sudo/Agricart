@@ -34,6 +34,10 @@
 
             if (source && source.innerHTML.trim() !== '') {
                 slot.innerHTML = source.innerHTML;
+
+                if (window.Alpine) {
+                    window.Alpine.initTree(slot);
+                }
             }
         },
     }"

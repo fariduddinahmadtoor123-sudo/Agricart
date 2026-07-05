@@ -2,12 +2,20 @@
 
 namespace App\Filament\Clusters;
 
+use App\Support\AgricartTranslator;
 use Filament\Clusters\Cluster;
 use Illuminate\Contracts\Support\Htmlable;
 
 abstract class BaseAgricartCluster extends Cluster
 {
     protected static bool $shouldRegisterSubNavigation = false;
+
+    public static function getNavigationLabel(): string
+    {
+        $slug = static::$slug ?? 'app';
+
+        return AgricartTranslator::module($slug);
+    }
 
     public function getHeading(): string|Htmlable|null
     {

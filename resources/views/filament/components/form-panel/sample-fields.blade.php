@@ -1,11 +1,11 @@
 @php
     use Filament\Support\Icons\Heroicon;
 
-    $fields = \App\Filament\Layout\ModuleFormPanel::sampleFields('Item');
+    $fields = \App\Filament\Layout\ModuleFormPanel::sampleFields(__('agricart.form_panel.record'));
 @endphp
 
 <section class="agricart-form-panel__section">
-    <h3 class="agricart-form-panel__section-title">General</h3>
+    <h3 class="agricart-form-panel__section-title">{{ __('agricart.form_panel.sections.general') }}</h3>
 
     <div class="agricart-form-panel__fields">
         @foreach ($fields as $field)
@@ -29,7 +29,7 @@
                             id="agricart-form-{{ $field['name'] }}"
                             rows="4"
                             class="fi-input agricart-form-panel__textarea"
-                            placeholder="Enter {{ strtolower($field['label']) }}..."
+                            placeholder="{{ __('agricart.form_panel.fields.enter', ['field' => $field['label']]) }}"
                         ></textarea>
                     </x-filament::input.wrapper>
                 @elseif ($field['type'] === 'select')
@@ -38,7 +38,7 @@
                             id="agricart-form-{{ $field['name'] }}"
                             class="fi-select-input"
                         >
-                            <option value="">Select status</option>
+                            <option value="">{{ __('agricart.form_panel.fields.select_status') }}</option>
                             @foreach ($field['options'] ?? [] as $option)
                                 <option value="{{ $option }}">{{ $option }}</option>
                             @endforeach
@@ -50,7 +50,7 @@
                             id="agricart-form-{{ $field['name'] }}"
                             type="text"
                             class="fi-input"
-                            placeholder="Enter {{ strtolower($field['label']) }}..."
+                            placeholder="{{ __('agricart.form_panel.fields.enter', ['field' => $field['label']]) }}"
                             @required($field['required'])
                         />
                     </x-filament::input.wrapper>
@@ -61,8 +61,8 @@
 </section>
 
 <section class="agricart-form-panel__section">
-    <h3 class="agricart-form-panel__section-title">Notes</h3>
+    <h3 class="agricart-form-panel__section-title">{{ __('agricart.form_panel.sections.notes') }}</h3>
     <p class="agricart-form-panel__hint">
-        Sample form layout — module-specific fields will replace this placeholder.
+        {{ __('agricart.form_panel.sample_hint') }}
     </p>
 </section>

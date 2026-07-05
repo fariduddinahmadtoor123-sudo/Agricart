@@ -1,6 +1,6 @@
 @include('filament.components.module.sub-navigation', [
     'subNavigationClass' => $subNavigationClass,
-    'navLabel' => $navLabel,
+    'moduleKey' => $moduleKey,
 ])
 @include('filament.components.module.toolbar', [
     'toolbarClass' => $toolbarClass,

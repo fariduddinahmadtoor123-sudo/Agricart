@@ -80,6 +80,7 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                \App\Http\Middleware\SetAgricartLocale::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

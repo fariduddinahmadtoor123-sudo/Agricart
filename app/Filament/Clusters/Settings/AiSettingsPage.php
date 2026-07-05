@@ -3,12 +3,15 @@
 namespace App\Filament\Clusters\Settings;
 
 use App\Filament\Clusters\SettingsCluster;
-use App\Filament\Pages\BasePlaceholderPage;
+use App\Filament\Concerns\HasTranslatedNavigationLabel;
 use BackedEnum;
+use Filament\Pages\Page;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Contracts\Support\Htmlable;
 
-class AiSettingsPage extends BasePlaceholderPage
+class AiSettingsPage extends Page
 {
+    use HasTranslatedNavigationLabel;
     protected static ?string $cluster = SettingsCluster::class;
 
     protected static ?string $navigationLabel = 'AI';
@@ -18,4 +21,28 @@ class AiSettingsPage extends BasePlaceholderPage
     protected static ?string $slug = 'ai-settings';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSparkles;
+
+    protected static bool $shouldRegisterNavigation = false;
+
+    protected string $view = 'filament.pages.settings.ai-settings';
+
+    public function getHeading(): string|Htmlable|null
+    {
+        return null;
+    }
+
+    public function getSubheading(): string|Htmlable|null
+    {
+        return null;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getBreadcrumbs(): array
+    {
+        return SettingsCluster::unshiftClusterBreadcrumbs([
+            static::getUrl() => static::getNavigationLabel(),
+        ]);
+    }
 }

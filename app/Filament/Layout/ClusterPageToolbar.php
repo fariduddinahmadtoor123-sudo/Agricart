@@ -26,6 +26,7 @@ abstract class ClusterPageToolbar
      *     searchPlaceholder: string,
      *     resourceLabel: string,
      *     resourceSlug: string,
+     *     formKey: string|null,
      *     filters: list<array{label: string, value: string}>,
      *     columns: list<array{label: string, value: string, visible: bool}>,
      * }|null
@@ -45,16 +46,25 @@ abstract class ClusterPageToolbar
 
         return [
             'addLabel' => (! $isOverview && $pageClass)
-                ? 'Add ' . Str::singular($resourceLabel)
+                ? __('agricart.toolbar.add', ['item' => $resourceLabel])
                 : null,
             'searchPlaceholder' => $isOverview
-                ? 'Search...'
-                : 'Search ' . strtolower($resourceLabel) . '...',
+                ? __('agricart.toolbar.search')
+                : __('agricart.toolbar.search_resource', ['resource' => mb_strtolower($resourceLabel)]),
             'resourceLabel' => $resourceLabel,
             'resourceSlug' => $resourceSlug,
+            'formKey' => static::formKeyFor($resourceSlug),
             'filters' => static::filtersFor($resourceLabel),
             'columns' => static::columnsFor($resourceLabel),
         ];
+    }
+
+    protected static function formKeyFor(string $resourceSlug): ?string
+    {
+        return match ($resourceSlug) {
+            'ai-settings' => 'ai-settings',
+            default => null,
+        };
     }
 
     /**
@@ -62,15 +72,13 @@ abstract class ClusterPageToolbar
      */
     public static function filtersFor(string $resourceLabel): array
     {
-        $resource = strtolower($resourceLabel);
-
         return [
-            ['label' => 'Active ' . $resource, 'value' => 'active'],
-            ['label' => 'Inactive ' . $resource, 'value' => 'inactive'],
-            ['label' => 'Pending', 'value' => 'pending'],
-            ['label' => 'Approved', 'value' => 'approved'],
-            ['label' => 'Rejected', 'value' => 'rejected'],
-            ['label' => 'Created today', 'value' => 'created_today'],
+            ['label' => __('agricart.toolbar.filter_active', ['resource' => $resourceLabel]), 'value' => 'active'],
+            ['label' => __('agricart.toolbar.filter_inactive', ['resource' => $resourceLabel]), 'value' => 'inactive'],
+            ['label' => __('agricart.toolbar.filter_pending'), 'value' => 'pending'],
+            ['label' => __('agricart.toolbar.filter_approved'), 'value' => 'approved'],
+            ['label' => __('agricart.toolbar.filter_rejected'), 'value' => 'rejected'],
+            ['label' => __('agricart.toolbar.filter_created_today'), 'value' => 'created_today'],
         ];
     }
 
@@ -79,14 +87,12 @@ abstract class ClusterPageToolbar
      */
     public static function columnsFor(string $resourceLabel): array
     {
-        $nameColumn = Str::singular($resourceLabel) . ' name';
-
         return [
-            ['label' => 'ID', 'value' => 'id', 'visible' => true],
-            ['label' => $nameColumn, 'value' => 'name', 'visible' => true],
-            ['label' => 'Status', 'value' => 'status', 'visible' => true],
-            ['label' => 'Created', 'value' => 'created_at', 'visible' => true],
-            ['label' => 'Updated', 'value' => 'updated_at', 'visible' => false],
+            ['label' => __('agricart.toolbar.col_id'), 'value' => 'id', 'visible' => true],
+            ['label' => __('agricart.toolbar.col_name', ['item' => $resourceLabel]), 'value' => 'name', 'visible' => true],
+            ['label' => __('agricart.toolbar.col_status'), 'value' => 'status', 'visible' => true],
+            ['label' => __('agricart.toolbar.col_created'), 'value' => 'created_at', 'visible' => true],
+            ['label' => __('agricart.toolbar.col_updated'), 'value' => 'updated_at', 'visible' => false],
         ];
     }
 }

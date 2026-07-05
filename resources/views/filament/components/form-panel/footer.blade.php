@@ -16,7 +16,7 @@
         <div class="agricart-form-panel__progress-meta">
             <span
                 class="agricart-form-panel__progress-label"
-                x-text="'Step ' + currentStep + ' of ' + totalSteps"
+                x-text="@js(__('agricart.form_panel.step')).replace(':current', currentStep).replace(':total', totalSteps)"
             ></span>
             <span
                 class="agricart-form-panel__progress-step-name"

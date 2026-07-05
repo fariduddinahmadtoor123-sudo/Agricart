@@ -3,58 +3,137 @@
     use Filament\Support\Icons\Heroicon;
 
     $user = TopbarActions::user();
-    $timezone = TopbarActions::timezone();
+    $serverLocale = app()->getLocale();
+    $aiState = TopbarActions::aiConnectionState();
 @endphp
 
 <script>
     (function () {
-        const locale = localStorage.getItem('agricart-locale') || 'en';
+        const serverLocale = @js($serverLocale);
+        const stored = localStorage.getItem('agricart-locale');
 
-        document.documentElement.lang = locale === 'ur' ? 'ur' : 'en';
-        document.documentElement.dir = locale === 'ur' ? 'rtl' : 'ltr';
+        if (stored !== serverLocale) {
+            localStorage.setItem('agricart-locale', serverLocale);
+        }
+
+        document.documentElement.lang = serverLocale === 'ur' ? 'ur' : 'en';
+        document.documentElement.dir = serverLocale === 'ur' ? 'rtl' : 'ltr';
     })();
 </script>
 
 <div
     class="agricart-topbar-actions"
     x-data="{
-        clock: '',
-        locale: localStorage.getItem('agricart-locale') || 'en',
+        clockDate: '',
+        clockTime: '',
+        clockIso: '',
+        locale: @js($serverLocale),
         searchQuery: '',
         listening: false,
         voiceSupported: 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window,
-        timezone: @js($timezone),
         recognition: null,
+        aiConnected: @js($aiState['connected']),
+        aiStatus: @js($aiState['status']),
+        aiModel: @js($aiState['model'] ?? ''),
+        aiLabels: {
+            connected: @js(__('agricart.topbar.ai_connected')),
+            disconnected: @js(__('agricart.topbar.ai_disconnected')),
+            failed: @js(__('agricart.topbar.ai_failed')),
+            paused: @js(__('agricart.topbar.ai_paused')),
+        },
         init() {
-            this.applyLocale();
             this.tick();
             window.setInterval(() => this.tick(), 1000);
+            window.addEventListener('ai-settings-saved', () => this.refreshAiStatus());
+        },
+        async refreshAiStatus() {
+            try {
+                const response = await fetch(@js(route('agricart.ai.status')), {
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                });
+
+                if (! response.ok) {
+                    return;
+                }
+
+                const data = await response.json();
+
+                this.aiConnected = data.connected;
+                this.aiStatus = data.status;
+                this.aiModel = data.model ?? '';
+            } catch (error) {
+                //
+            }
+        },
+        aiBtnClass() {
+            if (this.aiConnected) {
+                return 'is-connected';
+            }
+
+            if (this.aiStatus === 'paused') {
+                return 'is-disconnected';
+            }
+
+            if (this.aiStatus === 'failed') {
+                return 'is-failed';
+            }
+
+            return 'is-disconnected';
+        },
+        aiBtnTitle() {
+            if (this.aiConnected) {
+                return this.aiLabels.connected.replace(':model', this.aiModel || '');
+            }
+
+            if (this.aiStatus === 'paused') {
+                return this.aiLabels.paused;
+            }
+
+            if (this.aiStatus === 'failed') {
+                return this.aiLabels.failed;
+            }
+
+            return this.aiLabels.disconnected;
+        },
+        localeTag() {
+            return this.locale === 'ur' ? 'ur-PK' : 'en-GB';
         },
         tick() {
             const now = new Date();
 
-            this.clock = now.toLocaleString('en-GB', {
-                timeZone: this.timezone,
+            this.clockDate = now.toLocaleDateString(this.localeTag(), {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+            });
+
+            this.clockTime = now.toLocaleTimeString(this.localeTag(), {
                 hour: '2-digit',
                 minute: '2-digit',
                 second: '2-digit',
                 hour12: true,
             });
+
+            this.clockIso = now.toISOString();
         },
         setLocale(code) {
-            this.locale = code;
-            localStorage.setItem('agricart-locale', code);
-            this.applyLocale();
-        },
-        applyLocale() {
-            document.documentElement.lang = this.locale === 'ur' ? 'ur' : 'en';
-            document.documentElement.dir = this.locale === 'ur' ? 'rtl' : 'ltr';
+            if (this.locale === code) {
+                return;
+            }
+
+            const redirect = encodeURIComponent(window.location.pathname + window.location.search);
+
+            window.location.href = `/locale/${code}?redirect=${redirect}`;
         },
         openAi() {
             window.dispatchEvent(new CustomEvent('open-form-panel', {
                 detail: {
-                    title: 'AI Assistant',
-                    resource: 'Ask anything about Agricart',
+                    title: @js(__('agricart.topbar.ai_assistant')),
+                    resource: @js(__('agricart.topbar.ai_panel_resource')),
                 },
             }));
         },
@@ -118,9 +197,9 @@
         <input
             type="search"
             class="agricart-topbar-actions__search-input"
-            placeholder="Search anything..."
+            placeholder="{{ __('agricart.topbar.search_placeholder') }}"
             x-model="searchQuery"
-            aria-label="Global search"
+            aria-label="{{ __('agricart.topbar.search_aria') }}"
         />
 
         <div class="agricart-topbar-actions__search-tools">
@@ -129,17 +208,17 @@
                 class="agricart-topbar-actions__search-tool"
                 :class="{ 'is-active': listening }"
                 x-on:click="toggleVoice()"
-                :title="voiceSupported ? (listening ? 'Stop voice search' : 'Voice search') : 'Voice search not supported'"
+                :title="voiceSupported ? (listening ? @js(__('agricart.topbar.voice_stop')) : @js(__('agricart.topbar.voice_search'))) : @js(__('agricart.topbar.voice_unsupported'))"
                 :disabled="! voiceSupported"
-                aria-label="Voice search"
+                aria-label="{{ __('agricart.topbar.voice_search') }}"
             >
                 <x-filament::icon :icon="Heroicon::OutlinedMicrophone" class="agricart-topbar-actions__search-tool-icon" />
             </button>
 
             <label
                 class="agricart-topbar-actions__search-tool"
-                title="Search by image"
-                aria-label="Upload image for search"
+                title="{{ __('agricart.topbar.image_search') }}"
+                aria-label="{{ __('agricart.topbar.image_upload_aria') }}"
             >
                 <input
                     type="file"
@@ -153,13 +232,18 @@
     </div>
 
     <div class="agricart-topbar-actions__cluster">
-        <time
-            class="agricart-topbar-actions__clock"
-            :datetime="clock"
-            x-text="clock"
-            title="{{ $timezone }}"
-            aria-live="polite"
-        ></time>
+        <div class="agricart-topbar-actions__clock" aria-live="polite">
+            <time
+                class="agricart-topbar-actions__clock-date"
+                :datetime="clockIso"
+                x-text="clockDate"
+            ></time>
+            <time
+                class="agricart-topbar-actions__clock-time"
+                :datetime="clockIso"
+                x-text="clockTime"
+            ></time>
+        </div>
 
         <a
             href="{{ TopbarActions::purchaseUrl() }}"
@@ -167,7 +251,7 @@
             class="agricart-topbar-actions__quick-btn agricart-topbar-actions__quick-btn--purchase"
         >
             <x-filament::icon :icon="Heroicon::OutlinedShoppingCart" class="agricart-topbar-actions__quick-icon" />
-            <span>Purchase</span>
+            <span>{{ __('agricart.topbar.purchase') }}</span>
         </a>
 
         <a
@@ -176,10 +260,10 @@
             class="agricart-topbar-actions__quick-btn agricart-topbar-actions__quick-btn--pos"
         >
             <x-filament::icon :icon="Heroicon::OutlinedCreditCard" class="agricart-topbar-actions__quick-icon" />
-            <span>POS</span>
+            <span>{{ __('agricart.topbar.pos') }}</span>
         </a>
 
-        <div class="agricart-topbar-actions__lang" role="group" aria-label="Language">
+        <div class="agricart-topbar-actions__lang" role="group" aria-label="{{ __('agricart.topbar.language') }}">
             <button
                 type="button"
                 class="agricart-topbar-actions__lang-btn"
@@ -201,11 +285,13 @@
         <button
             type="button"
             class="agricart-topbar-actions__ai-btn"
+            x-bind:class="aiBtnClass()"
             x-on:click="openAi()"
-            aria-label="AI Assistant"
-            title="AI Assistant"
+            x-bind:title="aiBtnTitle()"
+            x-bind:aria-label="aiBtnTitle()"
         >
             <x-filament::icon :icon="Heroicon::OutlinedSparkles" class="agricart-topbar-actions__ai-icon" />
+            <span class="agricart-topbar-actions__ai-signal" x-show="aiConnected" x-cloak aria-hidden="true"></span>
         </button>
 
         @if (filament()->hasDatabaseNotifications() && filament()->getDatabaseNotificationsPosition() === \Filament\Enums\DatabaseNotificationsPosition::Topbar)
@@ -218,8 +304,8 @@
             <button
                 type="button"
                 class="agricart-topbar-actions__icon-btn"
-                aria-label="Notifications"
-                title="Notifications"
+                aria-label="{{ __('agricart.topbar.notifications') }}"
+                title="{{ __('agricart.topbar.notifications') }}"
             >
                 <x-filament::icon :icon="Heroicon::OutlinedBell" class="agricart-topbar-actions__icon-btn-icon" />
             </button>

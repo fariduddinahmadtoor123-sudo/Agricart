@@ -26,7 +26,7 @@
         x-on:click.stop="open = ! open"
         x-bind:aria-expanded="open.toString()"
     >
-        Filter
+        {{ __('agricart.toolbar.filter') }}
     </x-filament::button>
 
     <div
@@ -39,7 +39,7 @@
     >
         <div class="agricart-toolbar-dropdown__panel-search">
             <label class="fi-sr-only" for="agricart-filter-search-{{ $toolbar['resourceSlug'] }}">
-                Search filters
+                {{ __('agricart.toolbar.search_filters') }}
             </label>
 
             <x-filament::input.wrapper
@@ -50,7 +50,7 @@
                     id="agricart-filter-search-{{ $toolbar['resourceSlug'] }}"
                     type="search"
                     autocomplete="off"
-                    placeholder="Search filters..."
+                    placeholder="{{ __('agricart.toolbar.search_filters') }}..."
                     class="fi-input fi-input-has-inline-prefix"
                     x-model="query"
                     x-on:keydown.escape.stop="open = false"
@@ -60,7 +60,7 @@
 
         <div class="agricart-toolbar-dropdown__panel-body">
             @if (filled($filters))
-                <ul class="agricart-toolbar-dropdown__list" role="listbox" aria-label="Filters">
+                <ul class="agricart-toolbar-dropdown__list" role="listbox" aria-label="{{ __('agricart.toolbar.filter') }}">
                     @foreach ($filters as $filter)
                         <li
                             role="option"
@@ -82,10 +82,10 @@
                     x-show="query.trim() !== '' && ! @js(collect($filters)->pluck('label')->values()->all()).some((label) => matches(label))"
                     x-cloak
                 >
-                    No filters match your search.
+                    {{ __('agricart.toolbar.no_filters_match') }}
                 </p>
             @else
-                <p class="agricart-toolbar-dropdown__empty">No filters available.</p>
+                <p class="agricart-toolbar-dropdown__empty">{{ __('agricart.toolbar.no_filters') }}</p>
             @endif
         </div>
     </div>

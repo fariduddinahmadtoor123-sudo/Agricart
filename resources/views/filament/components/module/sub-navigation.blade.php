@@ -4,7 +4,7 @@
 @endphp
 
 @if (filled($items))
-    <nav class="agricart-catalog-subnav" aria-label="{{ $navLabel }}">
+    <nav class="agricart-catalog-subnav" aria-label="{{ \App\Support\AgricartTranslator::module($moduleKey ?? 'app') }}">
         <ul class="agricart-catalog-subnav__list">
             @foreach ($items as $item)
                 <li class="agricart-catalog-subnav__list-item">

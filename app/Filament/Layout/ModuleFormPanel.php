@@ -7,43 +7,35 @@ use Illuminate\Support\Str;
 class ModuleFormPanel
 {
     /**
-     * Standard footer actions — same on every module form panel.
-     *
-     * @return list<array{
-     *     key: string,
-     *     label: string,
-     *     color: string|null,
-     *     outlined: bool,
-     *     icon: string|null,
-     * }>
+     * @return list<array{key: string, label: string, color: string|null, outlined: bool, icon: string|null}>
      */
     public static function footerActions(): array
     {
         return [
             [
                 'key' => 'ai',
-                'label' => 'AI',
+                'label' => __('agricart.form_panel.actions.ai'),
                 'color' => 'warning',
                 'outlined' => false,
                 'icon' => 'sparkles',
             ],
             [
                 'key' => 'save_next',
-                'label' => 'Save & Add Next',
+                'label' => __('agricart.form_panel.actions.save_next'),
                 'color' => 'gray',
                 'outlined' => true,
                 'icon' => 'arrow-right',
             ],
             [
                 'key' => 'save_close',
-                'label' => 'Save & Close',
+                'label' => __('agricart.form_panel.actions.save_close'),
                 'color' => 'primary',
                 'outlined' => false,
                 'icon' => 'check',
             ],
             [
                 'key' => 'cancel',
-                'label' => 'Cancel',
+                'label' => __('agricart.form_panel.actions.cancel'),
                 'color' => 'gray',
                 'outlined' => true,
                 'icon' => 'x-mark',
@@ -56,53 +48,43 @@ class ModuleFormPanel
      */
     public static function progressSteps(): array
     {
-        return [
-            'Basic Information',
-            'Additional Details',
-            'Review & Save',
-        ];
+        return trans('agricart.form_panel.steps');
     }
 
     /**
-     * Sample placeholder fields until module-specific forms are built.
-     *
-     * @return list<array{
-     *     name: string,
-     *     label: string,
-     *     type: string,
-     *     required: bool,
-     *     options: list<string>|null,
-     * }>
+     * @return list<array{name: string, label: string, type: string, required: bool, options: list<string>|null}>
      */
     public static function sampleFields(string $resourceLabel): array
     {
-        $singular = Str::singular($resourceLabel);
-
         return [
             [
                 'name' => 'name',
-                'label' => $singular . ' Name',
+                'label' => __('agricart.form_panel.fields.name', ['item' => Str::singular($resourceLabel)]),
                 'type' => 'text',
                 'required' => true,
                 'options' => null,
             ],
             [
                 'name' => 'code',
-                'label' => 'Code / Reference',
+                'label' => __('agricart.form_panel.fields.code'),
                 'type' => 'text',
                 'required' => false,
                 'options' => null,
             ],
             [
                 'name' => 'status',
-                'label' => 'Status',
+                'label' => __('agricart.form_panel.fields.status'),
                 'type' => 'select',
                 'required' => false,
-                'options' => ['Active', 'Inactive', 'Draft'],
+                'options' => [
+                    __('agricart.form_panel.statuses.active'),
+                    __('agricart.form_panel.statuses.inactive'),
+                    __('agricart.form_panel.statuses.draft'),
+                ],
             ],
             [
                 'name' => 'description',
-                'label' => 'Description',
+                'label' => __('agricart.form_panel.fields.description'),
                 'type' => 'textarea',
                 'required' => false,
                 'options' => null,
