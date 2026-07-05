@@ -29,6 +29,8 @@
         </div>
     </main>
 
+    @include('store.components.whatsapp-float')
+
     @stack('scripts')
 </body>
 </html>

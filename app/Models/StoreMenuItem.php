@@ -15,6 +15,7 @@ class StoreMenuItem extends Model
         'label_ur',
         'url',
         'category_id',
+        'store_page_id',
         'sort_order',
         'is_active',
         'opens_in_new_tab',
@@ -37,6 +38,11 @@ class StoreMenuItem extends Model
         return $this->belongsTo(Category::class);
     }
 
+    public function storePage(): BelongsTo
+    {
+        return $this->belongsTo(StorePage::class);
+    }
+
     public function localizedLabel(): string
     {
         if (app()->getLocale() === 'ur' && filled($this->label_ur)) {
@@ -48,6 +54,10 @@ class StoreMenuItem extends Model
 
     public function resolvedUrl(): string
     {
+        if ($this->storePage !== null) {
+            return $this->storePage->publicUrl();
+        }
+
         if ($this->category !== null) {
             return route('store.category', $this->category->slug);
         }

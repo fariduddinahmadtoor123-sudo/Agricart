@@ -25,21 +25,10 @@
 
             <div class="ag-store-header__actions">
                 @if ($settings->show_social)
-                    <div class="ag-store-header__social">
-                        @foreach ([
-                            'facebook' => $settings->social_facebook,
-                            'instagram' => $settings->social_instagram,
-                            'whatsapp' => $settings->social_whatsapp,
-                            'youtube' => $settings->social_youtube,
-                            'twitter' => $settings->social_twitter,
-                        ] as $network => $url)
-                            @if (filled($url))
-                                <a href="{{ $url }}" class="ag-store-header__social-link" target="_blank" rel="noopener noreferrer" title="{{ ucfirst($network) }}">
-                                    @include('store.components.icons.' . $network)
-                                </a>
-                            @endif
-                        @endforeach
-                    </div>
+                    @include('store.components.social-links', [
+                        'wrapperClass' => 'ag-store-header__social',
+                        'linkClass' => 'ag-store-header__social-link',
+                    ])
                 @endif
 
                 <div class="ag-store-header__locale">

@@ -2876,6 +2876,17 @@ body.agricart-form-panel-open {
     color: var(--agricart-muted);
 }
 
+.agricart-store-admin__url-preview {
+    margin: 0.25rem 0 0;
+    font-size: 0.875rem;
+}
+
+.agricart-store-admin__url-preview code {
+    padding: 0.25rem 0.5rem;
+    background: color-mix(in oklab, var(--agricart-primary) 8%, white);
+    border: 1px solid var(--agricart-border);
+}
+
 .agricart-store-admin__form {
     display: flex;
     flex-direction: column;

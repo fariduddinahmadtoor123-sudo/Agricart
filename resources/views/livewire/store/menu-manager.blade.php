@@ -57,6 +57,15 @@
                         @endforeach
                     </select>
                 </div>
+                <div class="agricart-store-admin__field">
+                    <label>{{ __('agricart.store.admin.menu.page') }}</label>
+                    <select wire:model="store_page_id" class="agricart-store-admin__input">
+                        <option value="">{{ __('agricart.store.admin.menu.no_page') }}</option>
+                        @foreach ($pages as $page)
+                            <option value="{{ $page->id }}">{{ $page->title_en }}</option>
+                        @endforeach
+                    </select>
+                </div>
             </div>
             <label class="agricart-store-admin__checkbox">
                 <input type="checkbox" wire:model="opens_in_new_tab" />
@@ -86,7 +95,15 @@
                     @forelse ($items as $item)
                         <tr wire:key="menu-{{ $item->id }}">
                             <td>{{ $item->label_en }}</td>
-                            <td>{{ $item->category ? $item->category->name_en : ($item->url ?? '—') }}</td>
+                            <td>
+                                @if ($item->storePage)
+                                    {{ $item->storePage->title_en }}
+                                @elseif ($item->category)
+                                    {{ $item->category->name_en }}
+                                @else
+                                    {{ $item->url ?? '—' }}
+                                @endif
+                            </td>
                             <td>{{ $item->is_active ? __('agricart.store.admin.active') : __('agricart.store.admin.inactive') }}</td>
                             <td class="agricart-store-admin__row-actions">
                                 <button type="button" wire:click="editItem({{ $item->id }})" class="agricart-store-admin__link-btn">{{ __('agricart.store.admin.edit') }}</button>

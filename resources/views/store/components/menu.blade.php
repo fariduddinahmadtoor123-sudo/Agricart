@@ -13,6 +13,18 @@
                 </li>
             @endif
 
+            @foreach ($auto_menu_pages ?? [] as $page)
+                @php
+                    $pagePath = ltrim(parse_url($page->publicUrl(), PHP_URL_PATH) ?? '', '/');
+                    $isActive = $currentPath === $pagePath;
+                @endphp
+                <li>
+                    <a href="{{ $page->publicUrl() }}" @class(['ag-store-menu__link', 'is-active' => $isActive])>
+                        {{ $page->localizedTitle() }}
+                    </a>
+                </li>
+            @endforeach
+
             @foreach ($menu_items as $item)
                 @php
                     $itemPath = ltrim(parse_url($item->resolvedUrl(), PHP_URL_PATH) ?? '', '/');

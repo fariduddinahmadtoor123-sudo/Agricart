@@ -44,6 +44,14 @@ class HeaderSettings extends BaseStoreSettings
 
     public bool $show_cart = true;
 
+    public string $whatsapp_number = '';
+
+    public bool $whatsapp_enabled = true;
+
+    public string $whatsapp_message_en = '';
+
+    public string $whatsapp_message_ur = '';
+
     public function mount(): void
     {
         $settings = $this->settings();
@@ -66,6 +74,10 @@ class HeaderSettings extends BaseStoreSettings
         $this->login_url = $settings->login_url ?? '/admin/login';
         $this->register_url = $settings->register_url ?? '';
         $this->show_cart = $settings->show_cart;
+        $this->whatsapp_number = $settings->whatsapp_number ?? '';
+        $this->whatsapp_enabled = $settings->whatsapp_enabled;
+        $this->whatsapp_message_en = $settings->whatsapp_message_en ?? '';
+        $this->whatsapp_message_ur = $settings->whatsapp_message_ur ?? '';
     }
 
     public function updatedLogoUpload(): void
@@ -118,6 +130,9 @@ class HeaderSettings extends BaseStoreSettings
             'social_twitter' => ['nullable', 'string', 'max:500'],
             'login_url' => ['nullable', 'string', 'max:500'],
             'register_url' => ['nullable', 'string', 'max:500'],
+            'whatsapp_number' => ['nullable', 'string', 'max:30'],
+            'whatsapp_message_en' => ['nullable', 'string', 'max:500'],
+            'whatsapp_message_ur' => ['nullable', 'string', 'max:500'],
         ]);
 
         $settings = $this->settings();
@@ -137,6 +152,10 @@ class HeaderSettings extends BaseStoreSettings
             'login_url' => filled($this->login_url) ? $this->login_url : '/admin/login',
             'register_url' => filled($this->register_url) ? $this->register_url : null,
             'show_cart' => $this->show_cart,
+            'whatsapp_number' => filled($this->whatsapp_number) ? $this->whatsapp_number : null,
+            'whatsapp_enabled' => $this->whatsapp_enabled,
+            'whatsapp_message_en' => filled($this->whatsapp_message_en) ? $this->whatsapp_message_en : null,
+            'whatsapp_message_ur' => filled($this->whatsapp_message_ur) ? $this->whatsapp_message_ur : null,
         ]);
         $settings->save();
 

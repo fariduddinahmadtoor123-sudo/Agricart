@@ -24,6 +24,8 @@ class MenuManager extends BaseStoreSettings
 
     public ?int $category_id = null;
 
+    public ?int $store_page_id = null;
+
     public bool $opens_in_new_tab = false;
 
     public ?int $editingId = null;
@@ -64,10 +66,11 @@ class MenuManager extends BaseStoreSettings
             'label_ur' => ['nullable', 'string', 'max:255'],
             'url' => ['nullable', 'string', 'max:500'],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
+            'store_page_id' => ['nullable', 'integer', 'exists:store_pages,id'],
         ]);
 
-        if (! filled($this->url) && ! filled($this->category_id)) {
-            $this->addError('url', __('agricart.store.admin.menu.url_or_category'));
+        if (! filled($this->url) && ! filled($this->category_id) && ! filled($this->store_page_id)) {
+            $this->addError('url', __('agricart.store.admin.menu.url_or_target'));
 
             return;
         }
@@ -77,6 +80,7 @@ class MenuManager extends BaseStoreSettings
             'label_ur' => filled($this->label_ur) ? $this->label_ur : null,
             'url' => filled($this->url) ? $this->url : null,
             'category_id' => $this->category_id,
+            'store_page_id' => $this->store_page_id,
             'opens_in_new_tab' => $this->opens_in_new_tab,
         ];
 
@@ -104,6 +108,7 @@ class MenuManager extends BaseStoreSettings
         $this->label_ur = $item->label_ur ?? '';
         $this->url = $item->url ?? '';
         $this->category_id = $item->category_id;
+        $this->store_page_id = $item->store_page_id;
         $this->opens_in_new_tab = $item->opens_in_new_tab;
     }
 
@@ -132,14 +137,16 @@ class MenuManager extends BaseStoreSettings
         $this->label_ur = '';
         $this->url = '';
         $this->category_id = null;
+        $this->store_page_id = null;
         $this->opens_in_new_tab = false;
     }
 
     public function render(): View
     {
         return view('livewire.store.menu-manager', [
-            'items' => StoreMenuItem::query()->with('category:id,name_en,slug')->orderBy('sort_order')->orderBy('id')->get(),
+            'items' => StoreMenuItem::query()->with(['category:id,name_en,slug', 'storePage:id,title_en,slug'])->orderBy('sort_order')->orderBy('id')->get(),
             'categories' => Category::query()->where('status', 'active')->orderBy('name_en')->limit(200)->get(['id', 'name_en', 'slug']),
+            'pages' => \App\Models\StorePage::query()->where('is_active', true)->orderBy('title_en')->get(['id', 'title_en', 'slug']),
         ]);
     }
 }

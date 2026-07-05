@@ -34,7 +34,18 @@
                 <label>{{ __('agricart.store.admin.top_bar.right_ur') }}</label>
                 <input type="text" wire:model="top_bar_right_ur" class="agricart-store-admin__input" dir="rtl" />
             </div>
+            <div class="agricart-store-admin__field">
+                <label>{{ __('agricart.store.admin.top_bar.phone') }}</label>
+                <input type="text" wire:model="top_bar_phone" class="agricart-store-admin__input" placeholder="+92 300 1234567" />
+                <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.top_bar.phone_hint') }}</p>
+            </div>
         </div>
+
+        <label class="agricart-store-admin__checkbox">
+            <input type="checkbox" wire:model="show_social_top_bar" />
+            <span>{{ __('agricart.store.admin.top_bar.show_social') }}</span>
+        </label>
+        <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.top_bar.social_hint') }}</p>
 
         <button type="submit" class="agricart-store-admin__btn">{{ __('agricart.store.admin.save') }}</button>
     </form>

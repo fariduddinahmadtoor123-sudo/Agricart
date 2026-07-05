@@ -20,6 +20,10 @@ class TopBarSettings extends BaseStoreSettings
 
     public string $top_bar_right_ur = '';
 
+    public string $top_bar_phone = '';
+
+    public bool $show_social_top_bar = true;
+
     public function mount(): void
     {
         $settings = $this->settings();
@@ -31,6 +35,8 @@ class TopBarSettings extends BaseStoreSettings
         $this->top_bar_center_ur = $settings->top_bar_center_ur ?? '';
         $this->top_bar_right_en = $settings->top_bar_right_en ?? '';
         $this->top_bar_right_ur = $settings->top_bar_right_ur ?? '';
+        $this->top_bar_phone = $settings->top_bar_phone ?? '';
+        $this->show_social_top_bar = $settings->show_social_top_bar;
     }
 
     public function save(): void
@@ -42,6 +48,7 @@ class TopBarSettings extends BaseStoreSettings
             'top_bar_center_ur' => ['nullable', 'string', 'max:500'],
             'top_bar_right_en' => ['nullable', 'string', 'max:500'],
             'top_bar_right_ur' => ['nullable', 'string', 'max:500'],
+            'top_bar_phone' => ['nullable', 'string', 'max:50'],
         ]);
 
         $settings = $this->settings();
@@ -53,6 +60,8 @@ class TopBarSettings extends BaseStoreSettings
             'top_bar_center_ur' => $this->top_bar_center_ur,
             'top_bar_right_en' => $this->top_bar_right_en,
             'top_bar_right_ur' => $this->top_bar_right_ur,
+            'top_bar_phone' => filled($this->top_bar_phone) ? $this->top_bar_phone : null,
+            'show_social_top_bar' => $this->show_social_top_bar,
         ]);
         $settings->save();
 

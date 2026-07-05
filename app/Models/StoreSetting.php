@@ -17,6 +17,8 @@ class StoreSetting extends Model
         'top_bar_center_ur',
         'top_bar_right_en',
         'top_bar_right_ur',
+        'top_bar_phone',
+        'show_social_top_bar',
         'ticker_enabled',
         'ticker_speed',
         'header_enabled',
@@ -35,6 +37,10 @@ class StoreSetting extends Model
         'login_url',
         'register_url',
         'show_cart',
+        'whatsapp_number',
+        'whatsapp_enabled',
+        'whatsapp_message_en',
+        'whatsapp_message_ur',
         'menu_enabled',
         'menu_show_home',
         'menu_home_label_en',
@@ -52,11 +58,13 @@ class StoreSetting extends Model
     {
         return [
             'top_bar_enabled' => 'boolean',
+            'show_social_top_bar' => 'boolean',
             'ticker_enabled' => 'boolean',
             'header_enabled' => 'boolean',
             'show_social' => 'boolean',
             'show_auth_links' => 'boolean',
             'show_cart' => 'boolean',
+            'whatsapp_enabled' => 'boolean',
             'menu_enabled' => 'boolean',
             'menu_show_home' => 'boolean',
             'category_grid_enabled' => 'boolean',
@@ -82,5 +90,51 @@ class StoreSetting extends Model
         $englishKey = $field . '_en';
 
         return $this->{$englishKey};
+    }
+
+    /**
+     * @return array<string, string|null>
+     */
+    public function socialNetworks(): array
+    {
+        return [
+            'facebook' => $this->social_facebook,
+            'instagram' => $this->social_instagram,
+            'whatsapp' => $this->social_whatsapp,
+            'youtube' => $this->social_youtube,
+            'twitter' => $this->social_twitter,
+        ];
+    }
+
+    public function hasSocialLinks(): bool
+    {
+        foreach ($this->socialNetworks() as $url) {
+            if (filled($url)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public function whatsappChatUrl(): ?string
+    {
+        if (! filled($this->whatsapp_number)) {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $this->whatsapp_number);
+
+        if ($digits === '') {
+            return null;
+        }
+
+        $message = $this->localized('whatsapp_message');
+
+        if (! filled($message)) {
+            return 'https://wa.me/' . $digits;
+        }
+
+        return 'https://wa.me/' . $digits . '?text=' . rawurlencode($message);
     }
 }

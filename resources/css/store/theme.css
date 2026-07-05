@@ -66,6 +66,51 @@
     text-align: end;
 }
 
+.ag-store-topbar__contact {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.ag-store-topbar__phone {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.ag-store-topbar__phone:hover,
+.ag-store-topbar__phone:focus-visible {
+    text-decoration: underline;
+}
+
+.ag-store-topbar__social {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.ag-store-topbar__social-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.375rem;
+    height: 1.375rem;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    color: #fff;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.ag-store-topbar__social-link:hover,
+.ag-store-topbar__social-link:focus-visible {
+    background: rgba(255, 255, 255, 0.28);
+}
+
+.ag-store-topbar__social-link svg {
+    width: 0.75rem;
+    height: 0.75rem;
+}
+
 @media (max-width: 48rem) {
     .ag-store-topbar__inner {
         grid-template-columns: 1fr;
@@ -568,4 +613,53 @@
     border: 1px solid var(--agricart-border);
     background: color-mix(in oklab, var(--agricart-accent) 15%, white);
     font-size: 0.875rem;
+}
+
+.ag-store-social__link:hover,
+.ag-store-social__link:focus-visible {
+    border-color: var(--agricart-primary);
+    color: var(--agricart-primary);
+}
+
+.ag-store-whatsapp-float {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 50;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.25rem;
+    height: 3.25rem;
+    background: #25d366;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+.ag-store-whatsapp-float:hover,
+.ag-store-whatsapp-float:focus-visible {
+    background: #1ebe57;
+    color: #fff;
+}
+
+.ag-store-whatsapp-float svg {
+    width: 1.75rem;
+    height: 1.75rem;
+}
+
+html[dir='rtl'] .ag-store-whatsapp-float {
+    right: auto;
+    left: 1rem;
+}
+
+.ag-store-page {
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-surface);
+    padding: 1.25rem 1.5rem;
+}
+
+.ag-store-page__body {
+    font-size: 0.875rem;
+    line-height: 1.7;
+    color: var(--agricart-text);
 }
