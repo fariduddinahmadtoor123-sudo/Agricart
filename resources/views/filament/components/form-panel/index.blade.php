@@ -1,4 +1,5 @@
 @php
+    use App\Filament\Forms\CategoryForm;
     use Filament\Support\Icons\Heroicon;
 
     $progressSteps = \App\Filament\Layout\ModuleFormPanel::progressSteps();
@@ -24,6 +25,23 @@
         currentStep: 1,
         progressSteps: @js($progressSteps),
         defaults: @js($formPanelDefaults),
+        categoryVisualMapping: { slots: [null, null, null, null, null], selected: null },
+        categoryFaqs: [],
+        categoryAiEnriching: false,
+        categorySaving: false,
+        selectCategoryVisualIcon(index) {
+            this.categoryVisualMapping.selected = index;
+        },
+        addCategoryFaq() {
+            this.categoryFaqs.push({ question_en: '', question_ur: '', answer_en: '', answer_ur: '' });
+        },
+        removeCategoryFaq(index) {
+            this.categoryFaqs.splice(index, 1);
+        },
+        resetCategoryForm() {
+            this.categoryVisualMapping = { slots: [null, null, null, null, null], selected: null };
+            this.categoryFaqs = [];
+        },
         get totalSteps() {
             return this.progressSteps.length;
         },
@@ -35,9 +53,21 @@
             this.resourceLabel = detail.resource ?? this.defaults.record;
             this.formKey = detail.formKey ?? null;
             this.currentStep = 1;
+
+            if (this.formKey === 'categories') {
+                this.resetCategoryForm();
+                window.dispatchEvent(new CustomEvent('category-form-open', {
+                    detail: {
+                        categoryId: detail.categoryId ?? null,
+                        mode: detail.mode ?? 'create',
+                    },
+                    bubbles: true,
+                }));
+            }
+
             this.isOpen = true;
             this.minimized = false;
-            this.size = ['ai-settings', 'ai-log-detail'].includes(this.formKey) ? 'stretched' : 'normal';
+            this.size = ['ai-settings', 'ai-log-detail', 'categories'].includes(this.formKey) ? 'stretched' : 'normal';
             document.body.classList.add('agricart-form-panel-open');
 
             if (this.formKey === 'ai-log-detail' && detail.logId) {
@@ -49,6 +79,8 @@
             this.minimized = false;
             this.size = 'normal';
             this.formKey = null;
+            this.categoryAiEnriching = false;
+            this.categorySaving = false;
             document.body.classList.remove('agricart-form-panel-open');
         },
         minimize() {
@@ -67,10 +99,59 @@
         },
         goToStep(step) {
             this.currentStep = Math.min(Math.max(step, 1), this.totalSteps);
+
+            if (this.formKey === 'categories') {
+                this.$nextTick(() => this.scrollToCategorySection(this.currentStep));
+            }
+        },
+        scrollToCategorySection(step) {
+            const anchors = @js(CategoryForm::stepScrollAnchors());
+            const anchor = anchors[step] ?? 'hero';
+            const target = document.getElementById('agricart-cat-section-' + anchor);
+
+            if (! target) {
+                return;
+            }
+
+            const body = target.closest('.agricart-form-panel__body');
+
+            if (body) {
+                body.scrollTo({
+                    top: target.offsetTop - body.offsetTop - 8,
+                    behavior: 'smooth',
+                });
+
+                return;
+            }
+
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
         },
         handleAction(key) {
+            if (this.formKey === 'categories') {
+                if (key === 'cancel') {
+                    this.close();
+                    return;
+                }
+
+                if (key === 'ai') {
+                    this.categoryAiEnriching = true;
+                }
+
+                window.dispatchEvent(new CustomEvent('category-form-action', {
+                    detail: { action: key },
+                    bubbles: true,
+                }));
+
+                return;
+            }
+
             if (key === 'save_next' && this.currentStep < this.totalSteps) {
                 this.currentStep += 1;
+
+                if (this.formKey === 'categories') {
+                    this.$nextTick(() => this.scrollToCategorySection(this.currentStep));
+                }
+
                 return;
             }
 
@@ -85,12 +166,13 @@
                 'agricart-form-panel--normal': this.size === 'normal',
                 'agricart-form-panel--stretched': this.size === 'stretched',
                 'agricart-form-panel--maximized': this.size === 'maximized',
-                'agricart-form-panel--wide': this.formKey === 'ai-settings' || this.formKey === 'ai-log-detail',
+                'agricart-form-panel--wide': this.formKey === 'ai-settings' || this.formKey === 'ai-log-detail' || this.formKey === 'categories',
             };
         },
     }"
     x-on:open-form-panel.window="open($event.detail)"
     x-on:close-form-panel.window="close()"
+    x-on:category-form-busy.window="categoryAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); categorySaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:keydown.escape.window="if (isOpen && !minimized) close()"
 >
     {{-- Backdrop + panel --}}
@@ -173,7 +255,11 @@
                         <livewire:ai-logs.detail />
                     </div>
 
-                    <div x-show="formKey !== 'ai-settings' && formKey !== 'ai-log-detail'">
+                    <div x-show="formKey === 'categories'" x-cloak>
+                        <livewire:categories.form />
+                    </div>
+
+                    <div x-show="formKey !== 'ai-settings' && formKey !== 'ai-log-detail' && formKey !== 'categories'">
                         @include('filament.components.form-panel.sample-fields')
                     </div>
                 </div>
@@ -243,8 +329,21 @@
                     title: trigger.getAttribute('data-form-title') || @js($formPanelDefaults['addRecord']),
                     resource: trigger.getAttribute('data-form-resource') || @js($formPanelDefaults['record']),
                     formKey: formKey && formKey !== '' ? formKey : null,
+                    categoryId: trigger.getAttribute('data-category-id') ? Number(trigger.getAttribute('data-category-id')) : null,
+                    mode: trigger.getAttribute('data-form-mode') || 'create',
                 },
             }));
         });
     }
+
+    document.addEventListener('livewire:init', () => {
+        Livewire.on('category-form-busy', (payload) => {
+            const detail = payload?.enriching !== undefined ? payload : (Array.isArray(payload) ? payload[0] : {});
+
+            window.dispatchEvent(new CustomEvent('category-form-busy', {
+                detail,
+                bubbles: true,
+            }));
+        });
+    });
 </script>

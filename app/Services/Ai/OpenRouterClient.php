@@ -89,18 +89,27 @@ class OpenRouterClient implements AiProviderClient
 
     public function chat(string $apiKey, string $modelId, string $prompt): array
     {
+        return $this->sendChat($apiKey, $modelId, [
+            [
+                'role' => 'user',
+                'content' => $prompt,
+            ],
+        ], 300);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $messages
+     * @return array{success: bool, message: string, response: string|null, http_status?: int|null}
+     */
+    public function sendChat(string $apiKey, string $modelId, array $messages, int $maxTokens = 300): array
+    {
         try {
             $response = Http::withHeaders($this->headers($apiKey))
-                ->timeout(45)
+                ->timeout(90)
                 ->post(self::BASE_URL . '/chat/completions', [
                     'model' => $modelId,
-                    'messages' => [
-                        [
-                            'role' => 'user',
-                            'content' => $prompt,
-                        ],
-                    ],
-                    'max_tokens' => 300,
+                    'messages' => $messages,
+                    'max_tokens' => $maxTokens,
                     'temperature' => 0.4,
                 ]);
 
@@ -148,6 +157,30 @@ class OpenRouterClient implements AiProviderClient
                 'http_status' => null,
             ];
         }
+    }
+
+    /**
+     * @return array{success: bool, message: string, response: string|null, http_status?: int|null}
+     */
+    public function chatWithImage(string $apiKey, string $modelId, string $prompt, string $imageBase64, string $mimeType = 'image/jpeg'): array
+    {
+        return $this->sendChat($apiKey, $modelId, [
+            [
+                'role' => 'user',
+                'content' => [
+                    [
+                        'type' => 'text',
+                        'text' => $prompt,
+                    ],
+                    [
+                        'type' => 'image_url',
+                        'image_url' => [
+                            'url' => 'data:' . $mimeType . ';base64,' . $imageBase64,
+                        ],
+                    ],
+                ],
+            ],
+        ], 4096);
     }
 
     /**

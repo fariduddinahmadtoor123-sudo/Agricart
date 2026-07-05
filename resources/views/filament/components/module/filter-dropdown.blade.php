@@ -5,6 +5,7 @@
     $filterGroups = $toolbar['filterGroups'] ?? [];
     $moduleKey = $moduleKey ?? 'module';
     $interactive = ($toolbar['interactive'] ?? false) === true;
+    $livewirePrefix = $toolbar['livewirePrefix'] ?? 'ai-logs';
 @endphp
 
 <div
@@ -17,13 +18,13 @@
         },
         applyFilter(value) {
             @if ($interactive)
-                window.Livewire.dispatch('ai-logs-filter', { filter: value });
+                window.Livewire.dispatch(@js($livewirePrefix . '-filter'), { filter: value });
             @endif
             this.open = false;
         },
         clearFilters() {
             @if ($interactive)
-                window.Livewire.dispatch('ai-logs-clear-filters');
+                window.Livewire.dispatch(@js($livewirePrefix . '-clear-filters'));
             @endif
             this.open = false;
         },
@@ -119,6 +120,9 @@
                             <button
                                 type="button"
                                 class="agricart-toolbar-dropdown__option"
+                                @if ($interactive)
+                                    x-on:click="applyFilter(@js($filter['value']))"
+                                @endif
                             >
                                 {{ $filter['label'] }}
                             </button>

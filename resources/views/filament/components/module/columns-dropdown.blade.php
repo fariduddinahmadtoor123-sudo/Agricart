@@ -4,6 +4,8 @@
     $columns = $toolbar['columns'] ?? [];
     $moduleKey = $moduleKey ?? 'module';
     $interactive = ($toolbar['interactive'] ?? false) === true;
+    $livewirePrefix = $toolbar['livewirePrefix'] ?? 'ai-logs';
+    $columnDataAttr = $toolbar['columnDataAttr'] ?? 'data-ai-log-column';
 @endphp
 
 <div
@@ -16,7 +18,7 @@
         },
         toggleColumn(column, visible) {
             @if ($interactive)
-                window.Livewire.dispatch('ai-logs-column-toggle', { column, visible });
+                window.Livewire.dispatch(@js($livewirePrefix . '-column-toggle'), { column, visible });
             @endif
         },
     }"
@@ -79,7 +81,11 @@
                                     type="checkbox"
                                     value="{{ $column['value'] }}"
                                     @if ($interactive)
-                                        data-ai-log-column="{{ $column['value'] }}"
+                                        @if ($columnDataAttr === 'data-category-column')
+                                            data-category-column="{{ $column['value'] }}"
+                                        @else
+                                            data-ai-log-column="{{ $column['value'] }}"
+                                        @endif
                                         x-on:change="toggleColumn(@js($column['value']), $event.target.checked)"
                                     @endif
                                     @checked($column['visible'])

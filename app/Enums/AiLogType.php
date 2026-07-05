@@ -7,6 +7,7 @@ enum AiLogType: string
     case ConnectionTest = 'connection_test';
     case Prompt = 'prompt';
     case ModelFetch = 'model_fetch';
+    case CategoryEnrichment = 'category_enrichment';
 
     public function label(): string
     {
@@ -14,6 +15,7 @@ enum AiLogType: string
             self::ConnectionTest => __('agricart.ai.logs.types.connection_test'),
             self::Prompt => __('agricart.ai.logs.types.prompt'),
             self::ModelFetch => __('agricart.ai.logs.types.model_fetch'),
+            self::CategoryEnrichment => __('agricart.ai.logs.types.category_enrichment'),
         };
     }
 }

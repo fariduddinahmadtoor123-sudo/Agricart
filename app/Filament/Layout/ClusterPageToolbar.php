@@ -63,6 +63,7 @@ abstract class ClusterPageToolbar
     {
         return match ($resourceSlug) {
             'ai-settings' => 'ai-settings',
+            'categories' => 'categories',
             default => null,
         };
     }

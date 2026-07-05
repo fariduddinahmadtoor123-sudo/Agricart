@@ -51,6 +51,7 @@ class SettingsPageToolbar extends ClusterPageToolbar
                 'addLabel' => null,
                 'formKey' => null,
                 'searchPlaceholder' => __('agricart.ai.logs.search'),
+                'livewirePrefix' => 'ai-logs',
                 'filters' => [],
                 'filterGroups' => static::aiLogsFilterGroups(),
                 'columns' => static::aiLogsColumns(),

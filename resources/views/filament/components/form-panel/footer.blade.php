@@ -12,7 +12,7 @@
 @endphp
 
 <div class="agricart-form-panel__footer-inner">
-    <div class="agricart-form-panel__progress">
+    <div class="agricart-form-panel__progress" x-show="formKey !== 'categories'" x-cloak>
         <div class="agricart-form-panel__progress-meta">
             <span
                 class="agricart-form-panel__progress-label"
@@ -72,6 +72,24 @@
                     x-on:click="close()"
                 >
                     {{ $action['label'] }}
+                </x-filament::button>
+            @elseif ($actionKey === 'ai')
+                <x-filament::button
+                    color="warning"
+                    :icon="$iconMap['sparkles']"
+                    tag="button"
+                    type="button"
+                    class="agricart-form-panel__action-btn agricart-form-panel__action-btn--ai"
+                    x-bind:class="{ 'is-loading': formKey === 'categories' && categoryAiEnriching }"
+                    x-bind:disabled="formKey === 'categories' && categoryAiEnriching"
+                    x-bind:aria-busy="formKey === 'categories' && categoryAiEnriching ? 'true' : 'false'"
+                    x-on:click="handleAction('ai')"
+                >
+                    <span class="agricart-form-panel__action-ai-inner">
+                        <span class="agricart-form-panel__action-spinner" aria-hidden="true"></span>
+                        <span class="agricart-form-panel__action-ai-label">{{ $action['label'] }}</span>
+                        <span class="agricart-form-panel__action-ai-label agricart-form-panel__action-ai-label--busy">{{ __('agricart.categories.ai.enriching_short') }}</span>
+                    </span>
                 </x-filament::button>
             @else
                 <x-filament::button
