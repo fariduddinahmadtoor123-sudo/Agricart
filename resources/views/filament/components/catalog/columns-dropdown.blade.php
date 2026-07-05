@@ -1,0 +1,94 @@
+@php
+    use Filament\Support\Icons\Heroicon;
+
+    $columns = $toolbar['columns'] ?? [];
+@endphp
+
+<div
+    class="agricart-toolbar-dropdown"
+    x-data="{
+        open: false,
+        query: '',
+        matches(label) {
+            return this.query.trim() === '' || label.toLowerCase().includes(this.query.trim().toLowerCase());
+        },
+    }"
+    x-on:click.outside="open = false"
+    x-on:keydown.escape.window="open = false"
+>
+    <x-filament::button
+        color="gray"
+        outlined
+        :icon="Heroicon::OutlinedViewColumns"
+        tag="button"
+        type="button"
+        class="agricart-catalog-toolbar__action"
+        x-on:click.stop="open = ! open"
+        x-bind:aria-expanded="open.toString()"
+    >
+        Columns
+    </x-filament::button>
+
+    <div
+        x-cloak
+        x-show="open"
+        x-transition:enter-start="agricart-toolbar-dropdown__panel--enter-start"
+        x-transition:leave-end="agricart-toolbar-dropdown__panel--leave-end"
+        class="agricart-toolbar-dropdown__panel agricart-toolbar-dropdown__panel--columns"
+        x-on:click.stop
+    >
+        <div class="agricart-toolbar-dropdown__panel-search">
+            <label class="fi-sr-only" for="agricart-columns-search-{{ $toolbar['resourceSlug'] }}">
+                Search columns
+            </label>
+
+            <x-filament::input.wrapper
+                :prefix-icon="Heroicon::OutlinedMagnifyingGlass"
+                inline-prefix
+            >
+                <input
+                    id="agricart-columns-search-{{ $toolbar['resourceSlug'] }}"
+                    type="search"
+                    autocomplete="off"
+                    placeholder="Search columns..."
+                    class="fi-input fi-input-has-inline-prefix"
+                    x-model="query"
+                    x-on:keydown.escape.stop="open = false"
+                />
+            </x-filament::input.wrapper>
+        </div>
+
+        <div class="agricart-toolbar-dropdown__panel-body">
+            @if (filled($columns))
+                <ul class="agricart-toolbar-dropdown__list agricart-toolbar-dropdown__list--columns" role="listbox" aria-label="Columns">
+                    @foreach ($columns as $column)
+                        <li
+                            role="option"
+                            x-show="matches(@js($column['label']))"
+                            x-cloak
+                        >
+                            <label class="agricart-toolbar-dropdown__column-option">
+                                <input
+                                    type="checkbox"
+                                    value="{{ $column['value'] }}"
+                                    @checked($column['visible'])
+                                />
+                                <span>{{ $column['label'] }}</span>
+                            </label>
+                        </li>
+                    @endforeach
+                </ul>
+
+                <p
+                    class="agricart-toolbar-dropdown__empty"
+                    x-show="query.trim() !== '' && ! @js(collect($columns)->pluck('label')->values()->all()).some((label) => matches(label))"
+                    x-cloak
+                >
+                    No columns match your search.
+                </p>
+            @else
+                <p class="agricart-toolbar-dropdown__empty">No columns available.</p>
+            @endif
+        </div>
+    </div>
+</div>

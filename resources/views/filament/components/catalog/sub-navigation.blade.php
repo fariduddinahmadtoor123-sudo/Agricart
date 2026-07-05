@@ -1,0 +1,31 @@
+@php
+    $items = \App\Filament\Layout\CatalogSubNavigation::items();
+@endphp
+
+@if (filled($items))
+    <nav class="agricart-catalog-subnav" aria-label="Catalog">
+        <ul class="agricart-catalog-subnav__list">
+            @foreach ($items as $item)
+                <li class="agricart-catalog-subnav__list-item">
+                    <a
+                        href="{{ $item['url'] }}"
+                        wire:navigate
+                        @class([
+                            'agricart-catalog-subnav__item',
+                            'is-active' => $item['active'],
+                        ])
+                    >
+                        @if (filled($item['icon']))
+                            <x-filament::icon
+                                :icon="$item['icon']"
+                                class="agricart-catalog-subnav__icon"
+                            />
+                        @endif
+
+                        <span class="agricart-catalog-subnav__label">{{ $item['label'] }}</span>
+                    </a>
+                </li>
+            @endforeach
+        </ul>
+    </nav>
+@endif

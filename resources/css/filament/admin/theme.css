@@ -1,0 +1,1390 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/**/*.php';
+@source '../../../../resources/views/filament/**/*.blade.php';
+
+@theme inline {
+    --font-sans: Arial, sans-serif;
+    --font-serif: Arial, sans-serif;
+    --font-mono: Arial, sans-serif;
+
+    /* Sharp / square design — zero radius across Tailwind + Filament */
+    --radius: 0;
+    --radius-xs: 0;
+    --radius-sm: 0;
+    --radius-md: 0;
+    --radius-lg: 0;
+    --radius-xl: 0;
+    --radius-2xl: 0;
+    --radius-3xl: 0;
+    --radius-4xl: 0;
+
+    --color-accent-50: oklch(0.98 0.04 95);
+    --color-accent-100: oklch(0.95 0.08 95);
+    --color-accent-200: oklch(0.9 0.12 95);
+    --color-accent-300: oklch(0.85 0.14 95);
+    --color-accent-400: oklch(0.82 0.15 95);
+    --color-accent-500: #fbbc34;
+    --color-accent-600: oklch(0.72 0.14 95);
+    --color-accent-700: oklch(0.62 0.12 95);
+    --color-accent-800: oklch(0.52 0.1 95);
+    --color-accent-900: oklch(0.42 0.08 95);
+    --color-accent-950: oklch(0.32 0.06 95);
+}
+
+/* ── Typography: Arial only (global, non-negotiable) ── */
+html.fi,
+html.fi body,
+html.fi .fi-body {
+    --font-family: Arial, sans-serif;
+    --mono-font-family: Arial, sans-serif;
+    --serif-font-family: Arial, sans-serif;
+    font-family: Arial, sans-serif;
+}
+
+html.fi .fi-body :where(
+    :not(svg, svg *, img, video, canvas, iframe)
+) {
+    font-family: Arial, sans-serif !important;
+}
+
+html.fi .fi-ta-header-cell,
+html.fi .fi-ta-cell,
+html.fi .fi-ta-text,
+html.fi .fi-ta-col-wrp,
+html.fi .fi-wi-stats-overview-stat-value,
+html.fi .fi-wi-stats-overview-stat-label,
+html.fi .fi-dropdown-list-item-label,
+html.fi .fi-pagination-item,
+html.fi .fi-notification-title,
+html.fi .fi-notification-body,
+html.fi h1,
+html.fi h2,
+html.fi h3,
+html.fi h4,
+html.fi h5,
+html.fi h6,
+html.fi p,
+html.fi span,
+html.fi a,
+html.fi input,
+html.fi select,
+html.fi textarea,
+html.fi button,
+html.fi label,
+html.fi .fi-btn,
+html.fi .fi-input,
+html.fi .fi-select-input,
+html.fi .fi-section-header-heading,
+html.fi .fi-header-heading,
+html.fi .fi-sidebar-item-label,
+html.fi .fi-tabs-item-label,
+html.fi .fi-breadcrumbs-item-label,
+html.fi .fi-modal-heading,
+html.fi .fi-field-wrp-label {
+    font-family: Arial, sans-serif !important;
+}
+
+/* ── Agricart design tokens ── */
+.fi-body {
+    --agricart-bg: #f4f5f7;
+    --agricart-surface: #ffffff;
+    --agricart-border: #ebedf0;
+    --agricart-muted: #64748b;
+    --agricart-text: #0f172a;
+    --agricart-primary: #83b735;
+    --agricart-primary-hover: #74a32f;
+    --agricart-accent: #fbbc34;
+    --agricart-danger: #dc2626;
+    --agricart-radius: 0;
+}
+
+.dark .fi-body {
+    --agricart-bg: #0f1115;
+    --agricart-surface: #171a21;
+    --agricart-border: #262b36;
+    --agricart-muted: #94a3b8;
+    --agricart-text: #f8fafc;
+    --agricart-primary-hover: #74a32f;
+}
+
+.fi-body {
+    background-color: var(--agricart-bg);
+    color: var(--agricart-text);
+}
+
+.fi-main {
+    background-color: var(--agricart-bg);
+}
+
+.fi-body-has-topbar .fi-main-ctn {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    opacity: 1 !important;
+}
+
+.fi-main-ctn {
+    padding: 0.5rem;
+}
+
+.fi-page-content {
+    padding-block: 0.5rem 2rem;
+}
+
+/* ── Sharp corners: enforce square edges on all Filament UI ── */
+html.fi .fi-body :where(
+    :not(svg, svg *, img[src*='.svg'])
+) {
+    border-radius: 0 !important;
+}
+
+/* ── Sidebar ── */
+.fi-sidebar {
+    background-color: var(--agricart-surface);
+    border-inline-end: 1px solid var(--agricart-border);
+}
+
+.fi-sidebar-nav {
+    padding-block: 0.75rem;
+    gap: 0.25rem;
+    /* Hide native scrollbar — wheel/touch scrolling still works */
+    scrollbar-gutter: auto !important;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.fi-sidebar-nav::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.fi-sidebar-item-btn {
+    border-radius: var(--agricart-radius);
+    padding-block: 0.625rem;
+}
+
+.fi-sidebar-item-btn:hover {
+    background-color: color-mix(in oklab, var(--primary-500) 6%, transparent);
+    color: var(--agricart-primary-hover);
+}
+
+.fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+    background-color: color-mix(in oklab, var(--primary-500) 10%, transparent);
+}
+
+/* ── Topbar ── */
+.fi-topbar {
+    background-color: color-mix(in oklab, var(--agricart-surface) 92%, var(--agricart-bg));
+    border-block-end: 1px solid var(--agricart-border);
+    backdrop-filter: blur(10px);
+    min-height: 4rem;
+    gap: 0.625rem;
+    padding-inline: 0.75rem;
+}
+
+.fi-topbar-end {
+    display: flex !important;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    margin-inline-start: 0.5rem !important;
+    gap: 0.5rem;
+}
+
+.fi-topbar-end > :not(.agricart-topbar-actions) {
+    display: none !important;
+}
+
+.fi-topbar-start {
+    display: flex !important;
+    align-items: center;
+    flex: 0 1 auto;
+    min-width: 0;
+    max-width: 42%;
+    gap: 0.75rem;
+    margin-inline-end: 0 !important;
+}
+
+/* ── Topbar actions (search, clock, quick links, AI, user) ── */
+.agricart-topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.agricart-topbar-actions__search {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+    max-width: 26rem;
+    height: 2.25rem;
+    padding-inline: 0.625rem;
+    background-color: var(--agricart-bg);
+    border: 1px solid var(--agricart-border);
+}
+
+.agricart-topbar-actions__search-icon {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+    color: var(--agricart-muted);
+}
+
+.agricart-topbar-actions__search-input {
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    color: var(--agricart-text);
+    outline: none;
+}
+
+.agricart-topbar-actions__search-input::placeholder {
+    color: var(--agricart-muted);
+}
+
+.agricart-topbar-actions__search-tools {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.125rem;
+    flex-shrink: 0;
+    padding-inline-start: 0.25rem;
+    border-inline-start: 1px solid var(--agricart-border);
+}
+
+.agricart-topbar-actions__search-tool {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--agricart-muted);
+    cursor: pointer;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.agricart-topbar-actions__search-tool:hover:not(:disabled),
+.agricart-topbar-actions__search-tool.is-active {
+    color: var(--agricart-primary);
+    background-color: color-mix(in oklab, var(--agricart-primary) 10%, transparent);
+}
+
+.agricart-topbar-actions__search-tool:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.agricart-topbar-actions__search-tool-icon {
+    width: 1rem;
+    height: 1rem;
+}
+
+.agricart-topbar-actions__cluster {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex-shrink: 0;
+    margin-inline-start: auto;
+}
+
+.agricart-topbar-actions__clock {
+    display: inline-flex;
+    align-items: center;
+    min-width: 5.75rem;
+    padding-inline: 0.5rem;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--agricart-text);
+    white-space: nowrap;
+    border-inline-end: 1px solid var(--agricart-border);
+    margin-inline-end: 0.125rem;
+}
+
+.agricart-topbar-actions__quick-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3125rem;
+    height: 2rem;
+    padding-inline: 0.625rem;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    text-decoration: none;
+    white-space: nowrap;
+    border: 1px solid transparent;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.agricart-topbar-actions__quick-icon {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+.agricart-topbar-actions__quick-btn--purchase {
+    color: var(--agricart-primary);
+    background-color: color-mix(in oklab, var(--agricart-primary) 8%, white);
+    border-color: color-mix(in oklab, var(--agricart-primary) 35%, var(--agricart-border));
+}
+
+.agricart-topbar-actions__quick-btn--purchase:hover {
+    color: #fff;
+    background-color: var(--agricart-primary);
+    border-color: var(--agricart-primary);
+}
+
+.agricart-topbar-actions__quick-btn--pos {
+    color: #7a5a00;
+    background-color: color-mix(in oklab, var(--agricart-accent) 55%, white);
+    border-color: color-mix(in oklab, var(--agricart-accent) 70%, #d4a017);
+}
+
+.agricart-topbar-actions__quick-btn--pos:hover {
+    color: #0f172a;
+    background-color: var(--agricart-accent);
+    border-color: var(--agricart-accent);
+}
+
+.agricart-topbar-actions__lang {
+    display: inline-flex;
+    align-items: stretch;
+    height: 2rem;
+    border: 1px solid var(--agricart-border);
+    background-color: var(--agricart-surface);
+}
+
+.agricart-topbar-actions__lang-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2rem;
+    padding-inline: 0.4375rem;
+    border: 0;
+    background: transparent;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: var(--agricart-muted);
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.agricart-topbar-actions__lang-btn + .agricart-topbar-actions__lang-btn {
+    border-inline-start: 1px solid var(--agricart-border);
+}
+
+.agricart-topbar-actions__lang-btn.is-active {
+    color: #fff;
+    background-color: var(--agricart-primary);
+}
+
+.agricart-topbar-actions__lang-btn:not(.is-active):hover {
+    color: var(--agricart-primary);
+    background-color: color-mix(in oklab, var(--agricart-primary) 8%, transparent);
+}
+
+.agricart-topbar-actions__ai-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.125rem;
+    height: 2.125rem;
+    padding: 0;
+    border: 1px solid color-mix(in oklab, var(--agricart-primary) 45%, var(--agricart-border));
+    background: linear-gradient(
+        135deg,
+        color-mix(in oklab, var(--agricart-primary) 18%, white),
+        color-mix(in oklab, var(--agricart-accent) 22%, white)
+    );
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--agricart-primary) 12%, transparent);
+}
+
+.agricart-topbar-actions__ai-btn:hover {
+    border-color: var(--agricart-primary);
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--agricart-primary) 20%, transparent);
+    transform: translateY(-1px);
+}
+
+.agricart-topbar-actions__ai-icon {
+    width: 1.125rem;
+    height: 1.125rem;
+    color: var(--agricart-primary);
+}
+
+.agricart-topbar-actions__notifications .fi-topbar-database-notifications-btn,
+.agricart-topbar-actions__icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.125rem;
+    height: 2.125rem;
+    padding: 0;
+    border: 1px solid var(--agricart-border);
+    background-color: var(--agricart-surface);
+    color: var(--agricart-muted);
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.agricart-topbar-actions__notifications .fi-topbar-database-notifications-btn:hover,
+.agricart-topbar-actions__icon-btn:hover {
+    color: var(--agricart-primary);
+    border-color: color-mix(in oklab, var(--agricart-primary) 35%, var(--agricart-border));
+    background-color: color-mix(in oklab, var(--agricart-primary) 6%, white);
+}
+
+.agricart-topbar-actions__icon-btn-icon {
+    width: 1.125rem;
+    height: 1.125rem;
+}
+
+.agricart-topbar-actions__user .fi-user-menu-trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.125rem;
+    height: 2.125rem;
+    padding: 0;
+    border: 2px solid color-mix(in oklab, var(--agricart-primary) 35%, var(--agricart-border));
+    background-color: var(--agricart-surface);
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.agricart-topbar-actions__user .fi-user-menu-trigger:hover {
+    border-color: var(--agricart-primary);
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--agricart-primary) 15%, transparent);
+}
+
+.agricart-topbar-actions__user .fi-user-menu-trigger .fi-avatar {
+    width: 100%;
+    height: 100%;
+}
+
+@media (max-width: 1279px) {
+    .fi-topbar-start {
+        max-width: 34%;
+    }
+
+    .agricart-topbar-actions__search {
+        max-width: 18rem;
+    }
+
+    .agricart-topbar-actions__quick-btn span {
+        display: none;
+    }
+
+    .agricart-topbar-actions__quick-btn {
+        width: 2rem;
+        padding-inline: 0;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 1023px) {
+    .fi-topbar-start {
+        display: none !important;
+    }
+
+    .agricart-topbar-actions__clock {
+        display: none;
+    }
+
+    .agricart-topbar-actions__search {
+        max-width: none;
+    }
+}
+
+@media (max-width: 639px) {
+    .agricart-topbar-actions__lang {
+        display: none;
+    }
+}
+
+/* Hide page-level headings — navigation context lives in topbar breadcrumbs only */
+.fi-page .fi-header {
+    display: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+}
+
+.fi-page-header-main-ctn {
+    padding-block-start: 0.5rem;
+}
+
+.fi-page-content {
+    padding-block-start: 0.75rem;
+}
+
+.agricart-topbar-breadcrumbs-ctn {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    flex: 1;
+}
+
+/* Breadcrumbs — top header only, immediately after Agricart logo */
+.agricart-topbar-breadcrumbs {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    flex: 1;
+    padding-inline-start: 1rem;
+    border-inline-start: 1px solid var(--agricart-border);
+}
+
+.agricart-topbar-breadcrumbs .fi-breadcrumbs {
+    margin-block-end: 0;
+}
+
+.agricart-topbar-breadcrumbs .fi-breadcrumbs-item,
+.agricart-topbar-breadcrumbs .fi-breadcrumbs-item-label,
+.agricart-topbar-breadcrumbs .fi-breadcrumbs-item-separator {
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    font-weight: 400;
+    color: var(--agricart-muted);
+    border-radius: 0;
+}
+
+.agricart-topbar-breadcrumbs .fi-breadcrumbs-item:last-child .fi-breadcrumbs-item-label {
+    color: var(--agricart-text);
+    font-weight: 600;
+}
+
+/* Hide breadcrumbs everywhere except the top header */
+.fi-header .fi-breadcrumbs,
+.fi-sidebar .fi-breadcrumbs {
+    display: none !important;
+}
+
+/* ── Catalog chrome: sub-navigation + toolbar (sticky below topbar) ── */
+.agricart-catalog-chrome-ctn {
+    position: sticky;
+    top: 4rem;
+    z-index: 20;
+    flex-shrink: 0;
+    width: 100%;
+    min-width: 0;
+    background-color: var(--agricart-surface);
+    border-block-end: 1px solid var(--agricart-border);
+}
+
+.agricart-catalog-chrome-ctn.hidden {
+    display: none !important;
+}
+
+.agricart-catalog-subnav {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    border-block-end: 1px solid var(--agricart-border);
+}
+
+.agricart-catalog-subnav::-webkit-scrollbar {
+    display: none;
+    width: 0;
+    height: 0;
+}
+
+.agricart-catalog-subnav__list {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.125rem;
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    list-style: none;
+    flex-wrap: nowrap;
+    min-width: max-content;
+}
+
+.agricart-catalog-subnav__list-item {
+    flex-shrink: 0;
+}
+
+.agricart-catalog-subnav__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3125rem;
+    padding: 0.4375rem 0.625rem;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.75rem;
+    font-weight: 500;
+    line-height: 1.25;
+    color: var(--agricart-muted);
+    text-decoration: none;
+    border-radius: 0;
+    white-space: nowrap;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.agricart-catalog-subnav__item:hover {
+    color: var(--agricart-primary);
+    background-color: color-mix(in oklab, var(--agricart-primary) 6%, transparent);
+}
+
+.agricart-catalog-subnav__item.is-active {
+    color: var(--agricart-primary);
+    background-color: color-mix(in oklab, var(--agricart-primary) 12%, transparent);
+    font-weight: 600;
+}
+
+.agricart-catalog-subnav__icon {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+}
+
+.agricart-catalog-subnav__item.is-active .agricart-catalog-subnav__icon {
+    color: var(--agricart-primary);
+}
+
+.agricart-catalog-toolbar {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    min-height: 3.25rem;
+    width: 100%;
+}
+
+.agricart-catalog-toolbar__search {
+    flex: 1 1 0%;
+    min-width: 0;
+    width: auto;
+}
+
+.agricart-catalog-toolbar__search .fi-input-wrp {
+    width: 100%;
+}
+
+.agricart-catalog-toolbar__search-input {
+    width: 100%;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+}
+
+.agricart-catalog-toolbar__actions {
+    display: inline-flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+    width: auto;
+}
+
+.agricart-catalog-toolbar__actions > .fi-btn,
+.agricart-catalog-toolbar__action {
+    display: inline-flex;
+    width: auto;
+    flex: 0 0 auto;
+    white-space: nowrap;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+/* Toolbar dropdown panels (filter / columns) */
+.agricart-toolbar-dropdown {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    width: auto;
+}
+
+.agricart-toolbar-dropdown > .fi-btn {
+    display: inline-flex;
+    width: auto;
+    flex: 0 0 auto;
+}
+
+.agricart-toolbar-dropdown__panel {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    inset-inline-end: 0;
+    z-index: 30;
+    width: min(20rem, calc(100vw - 2rem));
+    background-color: var(--agricart-surface);
+    border: 1px solid var(--agricart-border);
+    box-shadow: 0 12px 24px rgb(15 23 42 / 0.08);
+}
+
+.agricart-toolbar-dropdown__panel--enter-start,
+.agricart-toolbar-dropdown__panel--leave-end {
+    opacity: 0;
+}
+
+.agricart-toolbar-dropdown__panel-search {
+    padding: 0.75rem;
+    border-block-end: 1px solid var(--agricart-border);
+}
+
+.agricart-toolbar-dropdown__panel-search .fi-input-wrp {
+    width: 100%;
+}
+
+.agricart-toolbar-dropdown__panel-body {
+    max-height: 16rem;
+    overflow: auto;
+}
+
+.agricart-toolbar-dropdown__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.agricart-toolbar-dropdown__option {
+    display: block;
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    border: 0;
+    background: transparent;
+    color: var(--agricart-text);
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-align: start;
+    cursor: pointer;
+}
+
+.agricart-toolbar-dropdown__option:hover,
+.agricart-toolbar-dropdown__option:focus-visible {
+    background-color: color-mix(in oklab, var(--agricart-primary) 8%, transparent);
+    color: var(--agricart-primary);
+    outline: none;
+}
+
+.agricart-toolbar-dropdown__list--columns .agricart-toolbar-dropdown__column-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    color: var(--agricart-text);
+    cursor: pointer;
+}
+
+.agricart-toolbar-dropdown__list--columns .agricart-toolbar-dropdown__column-option:hover {
+    background-color: color-mix(in oklab, var(--agricart-primary) 6%, transparent);
+}
+
+.agricart-toolbar-dropdown__column-option input[type='checkbox'] {
+    width: 0.875rem;
+    height: 0.875rem;
+    margin: 0;
+    accent-color: var(--agricart-primary);
+}
+
+.agricart-toolbar-dropdown__empty {
+    margin: 0;
+    padding: 0.75rem;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    color: var(--agricart-muted);
+}
+
+@media (max-width: 767px) {
+    .agricart-catalog-toolbar {
+        flex-wrap: wrap;
+    }
+
+    .agricart-catalog-toolbar__search {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+    .agricart-catalog-toolbar__actions {
+        flex: 1 1 100%;
+        width: 100%;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+        overflow-x: auto;
+        scrollbar-width: thin;
+    }
+
+    .agricart-toolbar-dropdown__panel {
+        inset-inline: 0 auto;
+        width: min(20rem, 100%);
+    }
+}
+
+/* Flat navigation — no Filament sub-menus in page content */
+.fi-page-sub-navigation-tabs,
+.fi-page-sub-navigation-sidebar-ctn,
+.fi-page-sub-navigation-dropdown,
+.fi-page-main-sub-navigation-mobile-menu-render-hook-ctn {
+    display: none !important;
+}
+
+.fi-page-has-sub-navigation .fi-page-main {
+    grid-template-columns: minmax(0, 1fr) !important;
+}
+
+/* ── Page header ── */
+.fi-header {
+    margin-block-end: 1.25rem;
+    padding-block-start: 0.5rem;
+}
+
+.fi-header-heading {
+    font-weight: 600;
+}
+
+.fi-breadcrumbs {
+    margin-block-end: 0.625rem;
+}
+
+/* ── Buttons ── */
+.fi-btn {
+    border-radius: var(--agricart-radius);
+    font-weight: 600;
+}
+
+.fi-btn.fi-color-primary:not(.fi-disabled):not([disabled]):hover {
+    --bg: var(--agricart-primary-hover);
+}
+
+.fi-btn.fi-size-md {
+    padding-inline: 1rem;
+    padding-block: 0.625rem;
+}
+
+.fi-btn.fi-outlined {
+    border-color: var(--agricart-border);
+}
+
+.fi-icon-btn {
+    border-radius: var(--agricart-radius);
+}
+
+/* ── Form fields ── */
+.fi-input-wrp,
+.fi-select-input,
+.fi-textarea,
+.fi-fo-checkbox-list-option,
+.fi-fo-radio,
+.fi-fo-toggle .fi-toggle-track,
+.fi-fo-toggle .fi-toggle-knob {
+    border-radius: var(--agricart-radius);
+    border-color: var(--agricart-border);
+    background-color: var(--agricart-surface);
+}
+
+.fi-input-wrp:focus-within {
+    border-color: var(--agricart-primary);
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--agricart-primary) 35%, transparent);
+}
+
+.fi-field-wrp-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--agricart-text);
+}
+
+.fi-fo-field-wrp-helper-text {
+    color: var(--agricart-muted);
+    font-size: 0.75rem;
+}
+
+/* ── Sections (form groups) ── */
+.fi-section,
+.fi-fieldset {
+    border-radius: var(--agricart-radius);
+    border-color: var(--agricart-border);
+    background-color: var(--agricart-surface);
+    box-shadow: 0 0 0 1px rgb(15 23 42 / 0.05);
+}
+
+.fi-section-header {
+    padding-block: 0.375rem;
+    border-block-end: 1px solid var(--agricart-border);
+}
+
+.fi-section-header-heading {
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.fi-section-content {
+    padding: 0.5rem 0.75rem;
+}
+
+/* ── Toggle / switch (square track + knob) ── */
+.fi-fo-toggle,
+.fi-toggle {
+    --color-600: var(--agricart-primary);
+}
+
+.fi-toggle.fi-color-primary:not(.fi-disabled) .fi-toggle-track {
+    background-color: color-mix(in oklab, var(--agricart-primary) 85%, white);
+    border-radius: var(--agricart-radius);
+}
+
+.fi-toggle .fi-toggle-knob {
+    border-radius: var(--agricart-radius);
+}
+
+/* ── Modal ── */
+.fi-modal-window {
+    border-radius: var(--agricart-radius);
+    border-color: var(--agricart-border);
+}
+
+.fi-modal-header {
+    border-block-end: 1px solid var(--agricart-border);
+}
+
+/* ── Tabs, dropdowns, badges ── */
+.fi-tabs,
+.fi-tabs-item,
+.fi-dropdown-panel,
+.fi-badge,
+.fi-dropdown-list-item {
+    border-radius: var(--agricart-radius);
+}
+
+/* ── Tables ── */
+.fi-ta-ctn,
+.fi-ta-header-cell,
+.fi-ta-cell,
+.fi-ta-row {
+    border-radius: var(--agricart-radius);
+}
+
+/* ── Dashboard widgets ── */
+.fi-wi-widget,
+.fi-wi-stats-overview-stat,
+.fi-wi-chart {
+    border-radius: var(--agricart-radius);
+    border-color: var(--agricart-border);
+    box-shadow: none;
+}
+
+/* ── Logo accent mark (square dot) ── */
+.fi-logo {
+    font-weight: 700;
+}
+
+.fi-logo::after {
+    content: '';
+    display: inline-block;
+    width: 0.375rem;
+    height: 0.375rem;
+    border-radius: 0;
+    background-color: var(--color-accent-500);
+    margin-inline-start: 0.125rem;
+    vertical-align: super;
+}
+
+/* ── Login page ── */
+.fi-simple-layout {
+    background-color: var(--agricart-bg);
+}
+
+.fi-simple-main-ctn {
+    background-color: var(--agricart-surface);
+    border: 1px solid var(--agricart-border);
+    border-radius: var(--agricart-radius);
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.08);
+}
+
+/* ── Avatars & file upload previews (square, not circular) ── */
+.fi-avatar,
+.fi-fo-file-upload-panel,
+.fi-fo-file-upload-panel-image {
+    border-radius: var(--agricart-radius);
+}
+
+/* ── Placeholder pages ── */
+.agricart-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 12rem;
+    padding: 2rem;
+    background-color: var(--agricart-surface);
+    border: 1px solid var(--agricart-border);
+    border-radius: var(--agricart-radius);
+}
+
+.agricart-placeholder__message {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--agricart-muted);
+    text-align: center;
+    line-height: 1.6;
+}
+
+/* ── Module form panel (Add button — all modules) ── */
+body.agricart-form-panel-open {
+    overflow: hidden;
+}
+
+.agricart-form-panel-overlay {
+    position: fixed;
+    inset: 4rem 0 0 0;
+    z-index: 45;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background-color: rgb(15 23 42 / 0.4);
+}
+
+.agricart-form-panel {
+    display: flex;
+    flex-direction: column;
+    width: min(42rem, 100%);
+    max-height: calc(100dvh - 5.5rem);
+    background-color: var(--agricart-surface);
+    border: 1px solid var(--agricart-border);
+    box-shadow: 0 24px 48px rgb(15 23 42 / 0.16);
+}
+
+.agricart-form-panel--stretched {
+    width: min(64rem, 96vw);
+    max-height: calc(100dvh - 5rem);
+}
+
+.agricart-form-panel--maximized {
+    width: calc(100vw - 2rem);
+    height: calc(100dvh - 5rem);
+    max-width: none;
+    max-height: none;
+}
+
+.agricart-form-panel__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.875rem 1rem;
+    border-block-end: 1px solid var(--agricart-border);
+    background-color: color-mix(in oklab, var(--agricart-bg) 35%, var(--agricart-surface));
+}
+
+.agricart-form-panel__header-main {
+    min-width: 0;
+}
+
+.agricart-form-panel__title {
+    margin: 0;
+    font-family: Arial, sans-serif !important;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--agricart-text);
+    line-height: 1.3;
+}
+
+.agricart-form-panel__subtitle {
+    margin: 0.125rem 0 0;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.75rem;
+    color: var(--agricart-muted);
+}
+
+.agricart-form-panel__window-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-shrink: 0;
+}
+
+.agricart-form-panel__window-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: 1px solid var(--agricart-border);
+    background-color: var(--agricart-surface);
+    color: var(--agricart-muted);
+    cursor: pointer;
+}
+
+.agricart-form-panel__window-btn:hover,
+.agricart-form-panel__window-btn.is-active {
+    color: var(--agricart-primary);
+    border-color: color-mix(in oklab, var(--agricart-primary) 35%, var(--agricart-border));
+    background-color: color-mix(in oklab, var(--agricart-primary) 8%, var(--agricart-surface));
+}
+
+.agricart-form-panel__window-btn--close:hover {
+    color: var(--agricart-danger);
+    border-color: color-mix(in oklab, var(--agricart-danger) 35%, var(--agricart-border));
+    background-color: color-mix(in oklab, var(--agricart-danger) 8%, var(--agricart-surface));
+}
+
+.agricart-form-panel__window-icon {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+.agricart-form-panel__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    padding: 1rem;
+}
+
+.agricart-form-panel__section + .agricart-form-panel__section {
+    margin-block-start: 1.25rem;
+    padding-block-start: 1.25rem;
+    border-block-start: 1px solid var(--agricart-border);
+}
+
+.agricart-form-panel__section-title {
+    margin: 0 0 0.75rem;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--agricart-text);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.agricart-form-panel__fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem 1rem;
+}
+
+.agricart-form-panel__field--full {
+    grid-column: 1 / -1;
+}
+
+.agricart-form-panel__label {
+    display: block;
+    margin-block-end: 0.375rem;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--agricart-text);
+}
+
+.agricart-form-panel__required {
+    color: var(--agricart-danger);
+}
+
+.agricart-form-panel__textarea {
+    min-height: 6rem;
+    resize: vertical;
+}
+
+.agricart-form-panel__hint {
+    margin: 0;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    color: var(--agricart-muted);
+    line-height: 1.5;
+}
+
+.agricart-form-panel__footer {
+    border-block-start: 1px solid var(--agricart-border);
+    background-color: color-mix(in oklab, var(--agricart-bg) 25%, var(--agricart-surface));
+}
+
+.agricart-form-panel__footer-inner {
+    padding: 0.75rem 1rem 1rem;
+}
+
+.agricart-form-panel__progress {
+    margin-block-end: 0.875rem;
+}
+
+.agricart-form-panel__progress-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-block-end: 0.5rem;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.75rem;
+}
+
+.agricart-form-panel__progress-label {
+    font-weight: 700;
+    color: var(--agricart-text);
+}
+
+.agricart-form-panel__progress-step-name {
+    flex: 1;
+    color: var(--agricart-muted);
+}
+
+.agricart-form-panel__progress-percent {
+    font-weight: 700;
+    color: var(--agricart-primary);
+}
+
+.agricart-form-panel__progress-track {
+    height: 0.375rem;
+    background-color: color-mix(in oklab, var(--agricart-border) 80%, white);
+    border: 1px solid var(--agricart-border);
+    overflow: hidden;
+}
+
+.agricart-form-panel__progress-fill {
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        var(--agricart-primary) 0%,
+        color-mix(in oklab, var(--agricart-primary) 75%, var(--color-accent-500)) 100%
+    );
+    transition: width 0.35s ease;
+}
+
+.agricart-form-panel__progress-dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-block-start: 0.625rem;
+}
+
+.agricart-form-panel__progress-dot {
+    width: 0.625rem;
+    height: 0.625rem;
+    padding: 0;
+    border: 1px solid var(--agricart-border);
+    background-color: var(--agricart-surface);
+    cursor: pointer;
+}
+
+.agricart-form-panel__progress-dot.is-active {
+    background-color: var(--agricart-primary);
+    border-color: var(--agricart-primary);
+}
+
+.agricart-form-panel__progress-dot.is-complete {
+    background-color: color-mix(in oklab, var(--agricart-primary) 55%, white);
+    border-color: var(--agricart-primary);
+}
+
+.agricart-form-panel__actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.agricart-form-panel__actions > .fi-btn {
+    display: inline-flex;
+    flex: 0 0 auto;
+    white-space: nowrap;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.agricart-form-panel-minimized {
+    position: fixed;
+    inset-inline: 1rem;
+    bottom: 1rem;
+    z-index: 46;
+    max-width: 28rem;
+    margin-inline: auto;
+}
+
+.agricart-form-panel-minimized__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+    background-color: var(--agricart-surface);
+    border: 1px solid var(--agricart-border);
+    box-shadow: 0 12px 32px rgb(15 23 42 / 0.14);
+}
+
+.agricart-form-panel-minimized__restore {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--agricart-text);
+    cursor: pointer;
+}
+
+.agricart-form-panel-minimized__restore:hover {
+    color: var(--agricart-primary);
+}
+
+.agricart-form-panel-minimized__controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+@media (max-width: 767px) {
+    .agricart-form-panel-overlay {
+        padding: 0.5rem;
+    }
+
+    .agricart-form-panel,
+    .agricart-form-panel--stretched,
+    .agricart-form-panel--maximized {
+        width: 100%;
+        height: calc(100dvh - 4.5rem);
+        max-height: none;
+    }
+
+    .agricart-form-panel__fields {
+        grid-template-columns: 1fr;
+    }
+
+    .agricart-form-panel__actions {
+        justify-content: flex-start;
+    }
+}
+
+@media (min-width: 1024px) {
+    .fi-main {
+        padding-inline: 1rem;
+    }
+
+    .fi-page-header-main-ctn {
+        padding-inline: 0.5rem;
+    }
+}

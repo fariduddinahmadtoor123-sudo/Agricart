@@ -1,0 +1,91 @@
+<?php
+
+namespace App\Filament\Layout;
+
+use Filament\Pages\Page;
+
+abstract class ClusterSubNavigation
+{
+    /**
+     * @return class-string<\Filament\Clusters\Cluster>
+     */
+    abstract protected static function clusterClass(): string;
+
+    abstract protected static function pathPrefix(): string;
+
+    public static function isModulePath(?string $path = null): bool
+    {
+        $path ??= request()->path();
+
+        return str_starts_with($path, static::pathPrefix());
+    }
+
+    /**
+     * @return list<array{label: string, url: string, icon: string|\BackedEnum|\Illuminate\Contracts\Support\Htmlable|null, active: bool}>
+     */
+    public static function items(): array
+    {
+        if (! static::isModulePath()) {
+            return [];
+        }
+
+        $items = [];
+
+        foreach (static::clusterClass()::getClusteredComponents() as $component) {
+            if (! is_subclass_of($component, Page::class) || ! $component::canAccess()) {
+                continue;
+            }
+
+            $items[] = [
+                'label' => $component::getNavigationLabel(),
+                'url' => $component::getUrl(),
+                'icon' => $component::getNavigationIcon(),
+                'active' => static::isActivePage($component),
+                'sort' => $component::getNavigationSort() ?? 0,
+            ];
+        }
+
+        usort($items, fn (array $a, array $b): int => $a['sort'] <=> $b['sort']);
+
+        return array_map(
+            fn (array $item): array => [
+                'label' => $item['label'],
+                'url' => $item['url'],
+                'icon' => $item['icon'],
+                'active' => $item['active'],
+            ],
+            $items,
+        );
+    }
+
+    /**
+     * @return class-string<Page>|null
+     */
+    public static function resolveActivePageClass(): ?string
+    {
+        foreach (static::clusterClass()::getClusteredComponents() as $component) {
+            if (is_subclass_of($component, Page::class) && static::isActivePage($component)) {
+                return $component;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  class-string<Page>  $pageClass
+     */
+    public static function isActivePage(string $pageClass): bool
+    {
+        $currentPath = '/' . trim(request()->path(), '/');
+        $pagePath = parse_url($pageClass::getUrl(), PHP_URL_PATH) ?? '';
+
+        if (! is_string($pagePath) || $pagePath === '') {
+            return false;
+        }
+
+        $pagePath = '/' . trim($pagePath, '/');
+
+        return $currentPath === $pagePath;
+    }
+}
