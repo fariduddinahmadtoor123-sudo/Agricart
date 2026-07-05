@@ -1,54 +1,4 @@
 <div class="agricart-ai-logs">
-    <div class="agricart-ai-logs__filters">
-        <div class="agricart-ai-logs__filter-group">
-            <span class="agricart-ai-logs__filter-label">{{ __('agricart.ai.logs.filter_status') }}</span>
-            <div class="agricart-ai-logs__chips">
-                <button
-                    type="button"
-                    class="agricart-ai-logs__chip"
-                    wire:click="$set('statusFilter', '')"
-                    @class(['is-active' => $statusFilter === ''])
-                >
-                    {{ __('agricart.ai.logs.all') }}
-                </button>
-                @foreach ($statuses as $status)
-                    <button
-                        type="button"
-                        class="agricart-ai-logs__chip"
-                        wire:click="$set('statusFilter', '{{ $status->value }}')"
-                        @class(['is-active' => $statusFilter === $status->value, 'is-success' => $status->value === 'success', 'is-error' => $status->value === 'error'])
-                    >
-                        {{ $status->label() }}
-                    </button>
-                @endforeach
-            </div>
-        </div>
-
-        <div class="agricart-ai-logs__filter-group">
-            <span class="agricart-ai-logs__filter-label">{{ __('agricart.ai.logs.filter_type') }}</span>
-            <div class="agricart-ai-logs__chips">
-                <button
-                    type="button"
-                    class="agricart-ai-logs__chip"
-                    wire:click="$set('typeFilter', '')"
-                    @class(['is-active' => $typeFilter === ''])
-                >
-                    {{ __('agricart.ai.logs.all') }}
-                </button>
-                @foreach ($types as $type)
-                    <button
-                        type="button"
-                        class="agricart-ai-logs__chip"
-                        wire:click="$set('typeFilter', '{{ $type->value }}')"
-                        @class(['is-active' => $typeFilter === $type->value])
-                    >
-                        {{ $type->label() }}
-                    </button>
-                @endforeach
-            </div>
-        </div>
-    </div>
-
     @if ($logs->isEmpty())
         <div class="agricart-ai-logs__empty">
             <p>{{ __('agricart.ai.logs.empty') }}</p>
@@ -58,12 +8,24 @@
             <table class="agricart-ai-logs__table">
                 <thead>
                     <tr>
-                        <th>{{ __('agricart.ai.logs.col_id') }}</th>
-                        <th>{{ __('agricart.ai.logs.col_type') }}</th>
-                        <th>{{ __('agricart.ai.logs.col_status') }}</th>
-                        <th>{{ __('agricart.ai.logs.col_model') }}</th>
-                        <th>{{ __('agricart.ai.logs.col_duration') }}</th>
-                        <th>{{ __('agricart.ai.logs.col_created') }}</th>
+                        @if (in_array('id', $visibleColumns, true))
+                            <th>{{ __('agricart.ai.logs.col_id') }}</th>
+                        @endif
+                        @if (in_array('type', $visibleColumns, true))
+                            <th>{{ __('agricart.ai.logs.col_type') }}</th>
+                        @endif
+                        @if (in_array('status', $visibleColumns, true))
+                            <th>{{ __('agricart.ai.logs.col_status') }}</th>
+                        @endif
+                        @if (in_array('model', $visibleColumns, true))
+                            <th>{{ __('agricart.ai.logs.col_model') }}</th>
+                        @endif
+                        @if (in_array('duration_ms', $visibleColumns, true))
+                            <th>{{ __('agricart.ai.logs.col_duration') }}</th>
+                        @endif
+                        @if (in_array('created_at', $visibleColumns, true))
+                            <th>{{ __('agricart.ai.logs.col_created') }}</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -75,26 +37,38 @@
                             role="button"
                             class="agricart-ai-logs__row"
                         >
-                            <td>#{{ $log->id }}</td>
-                            <td>{{ $log->type->label() }}</td>
-                            <td>
-                                <span @class([
-                                    'agricart-ai-logs__status',
-                                    'is-success' => $log->isSuccess(),
-                                    'is-error' => ! $log->isSuccess(),
-                                ])>
-                                    {{ $log->status->label() }}
-                                </span>
-                            </td>
-                            <td>{{ $log->modelLabel() }}</td>
-                            <td>
-                                @if ($log->duration_ms !== null)
-                                    {{ $log->duration_ms }} ms
-                                @else
-                                    —
-                                @endif
-                            </td>
-                            <td>{{ $log->created_at?->format('M j, Y g:i A') }}</td>
+                            @if (in_array('id', $visibleColumns, true))
+                                <td>#{{ $log->id }}</td>
+                            @endif
+                            @if (in_array('type', $visibleColumns, true))
+                                <td>{{ $log->type->label() }}</td>
+                            @endif
+                            @if (in_array('status', $visibleColumns, true))
+                                <td>
+                                    <span @class([
+                                        'agricart-ai-logs__status',
+                                        'is-success' => $log->isSuccess(),
+                                        'is-error' => ! $log->isSuccess(),
+                                    ])>
+                                        {{ $log->status->label() }}
+                                    </span>
+                                </td>
+                            @endif
+                            @if (in_array('model', $visibleColumns, true))
+                                <td>{{ $log->modelLabel() }}</td>
+                            @endif
+                            @if (in_array('duration_ms', $visibleColumns, true))
+                                <td>
+                                    @if ($log->duration_ms !== null)
+                                        {{ $log->duration_ms }} ms
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+                            @endif
+                            @if (in_array('created_at', $visibleColumns, true))
+                                <td>{{ $log->created_at?->format('M j, Y g:i A') }}</td>
+                            @endif
                         </tr>
                     @endforeach
                 </tbody>

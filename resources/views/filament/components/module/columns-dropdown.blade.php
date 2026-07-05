@@ -3,6 +3,7 @@
 
     $columns = $toolbar['columns'] ?? [];
     $moduleKey = $moduleKey ?? 'module';
+    $interactive = ($toolbar['interactive'] ?? false) === true;
 @endphp
 
 <div
@@ -12,6 +13,11 @@
         query: '',
         matches(label) {
             return this.query.trim() === '' || label.toLowerCase().includes(this.query.trim().toLowerCase());
+        },
+        toggleColumn(column, visible) {
+            @if ($interactive)
+                window.Livewire.dispatch('ai-logs-column-toggle', { column, visible });
+            @endif
         },
     }"
     x-on:click.outside="open = false"
@@ -72,6 +78,10 @@
                                 <input
                                     type="checkbox"
                                     value="{{ $column['value'] }}"
+                                    @if ($interactive)
+                                        data-ai-log-column="{{ $column['value'] }}"
+                                        x-on:change="toggleColumn(@js($column['value']), $event.target.checked)"
+                                    @endif
                                     @checked($column['visible'])
                                 />
                                 <span>{{ $column['label'] }}</span>

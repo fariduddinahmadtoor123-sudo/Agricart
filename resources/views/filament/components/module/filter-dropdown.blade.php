@@ -2,7 +2,9 @@
     use Filament\Support\Icons\Heroicon;
 
     $filters = $toolbar['filters'] ?? [];
+    $filterGroups = $toolbar['filterGroups'] ?? [];
     $moduleKey = $moduleKey ?? 'module';
+    $interactive = ($toolbar['interactive'] ?? false) === true;
 @endphp
 
 <div
@@ -12,6 +14,18 @@
         query: '',
         matches(label) {
             return this.query.trim() === '' || label.toLowerCase().includes(this.query.trim().toLowerCase());
+        },
+        applyFilter(value) {
+            @if ($interactive)
+                window.Livewire.dispatch('ai-logs-filter', { filter: value });
+            @endif
+            this.open = false;
+        },
+        clearFilters() {
+            @if ($interactive)
+                window.Livewire.dispatch('ai-logs-clear-filters');
+            @endif
+            this.open = false;
         },
     }"
     x-on:click.outside="open = false"
@@ -60,7 +74,41 @@
         </div>
 
         <div class="agricart-toolbar-dropdown__panel-body">
-            @if (filled($filters))
+            @if ($interactive)
+                <button
+                    type="button"
+                    class="agricart-toolbar-dropdown__option agricart-toolbar-dropdown__option--clear"
+                    x-on:click="clearFilters()"
+                >
+                    {{ __('agricart.ai.logs.clear_filters') }}
+                </button>
+            @endif
+
+            @if (filled($filterGroups))
+                @foreach ($filterGroups as $group)
+                    <p class="agricart-toolbar-dropdown__group-label">{{ $group['label'] }}</p>
+
+                    <ul class="agricart-toolbar-dropdown__list" role="listbox" aria-label="{{ $group['label'] }}">
+                        @foreach ($group['filters'] as $filter)
+                            <li
+                                role="option"
+                                x-show="matches(@js($filter['label']))"
+                                x-cloak
+                            >
+                                <button
+                                    type="button"
+                                    class="agricart-toolbar-dropdown__option"
+                                    @if ($interactive)
+                                        x-on:click="applyFilter(@js($filter['value']))"
+                                    @endif
+                                >
+                                    {{ $filter['label'] }}
+                                </button>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endforeach
+            @elseif (filled($filters))
                 <ul class="agricart-toolbar-dropdown__list" role="listbox" aria-label="{{ __('agricart.toolbar.filter') }}">
                     @foreach ($filters as $filter)
                         <li
@@ -77,14 +125,6 @@
                         </li>
                     @endforeach
                 </ul>
-
-                <p
-                    class="agricart-toolbar-dropdown__empty"
-                    x-show="query.trim() !== '' && ! @js(collect($filters)->pluck('label')->values()->all()).some((label) => matches(label))"
-                    x-cloak
-                >
-                    {{ __('agricart.toolbar.no_filters_match') }}
-                </p>
             @else
                 <p class="agricart-toolbar-dropdown__empty">{{ __('agricart.toolbar.no_filters') }}</p>
             @endif

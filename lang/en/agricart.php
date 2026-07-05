@@ -230,6 +230,7 @@ return [
             'paused_notice' => 'AI paused by user.',
         ],
         'logs' => [
+            'clear_filters' => 'Clear all filters',
             'search' => 'Search logs...',
             'empty' => 'No AI activity logged yet. Connect AI and run a test or prompt.',
             'all' => 'All',

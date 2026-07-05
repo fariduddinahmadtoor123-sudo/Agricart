@@ -51,8 +51,10 @@ class SettingsPageToolbar extends ClusterPageToolbar
                 'addLabel' => null,
                 'formKey' => null,
                 'searchPlaceholder' => __('agricart.ai.logs.search'),
-                'filters' => static::aiLogsFilters(),
+                'filters' => [],
+                'filterGroups' => static::aiLogsFilterGroups(),
                 'columns' => static::aiLogsColumns(),
+                'interactive' => true,
             ],
             'ai-settings' => [
                 ...$config,
@@ -64,16 +66,26 @@ class SettingsPageToolbar extends ClusterPageToolbar
     }
 
     /**
-     * @return list<array{label: string, value: string}>
+     * @return list<array{label: string, filters: list<array{label: string, value: string}>}>
      */
-    protected static function aiLogsFilters(): array
+    protected static function aiLogsFilterGroups(): array
     {
         return [
-            ['label' => __('agricart.ai.logs.statuses.success'), 'value' => 'status:success'],
-            ['label' => __('agricart.ai.logs.statuses.error'), 'value' => 'status:error'],
-            ['label' => __('agricart.ai.logs.types.connection_test'), 'value' => 'type:connection_test'],
-            ['label' => __('agricart.ai.logs.types.prompt'), 'value' => 'type:prompt'],
-            ['label' => __('agricart.ai.logs.types.model_fetch'), 'value' => 'type:model_fetch'],
+            [
+                'label' => __('agricart.ai.logs.filter_status'),
+                'filters' => [
+                    ['label' => __('agricart.ai.logs.statuses.success'), 'value' => 'status:success'],
+                    ['label' => __('agricart.ai.logs.statuses.error'), 'value' => 'status:error'],
+                ],
+            ],
+            [
+                'label' => __('agricart.ai.logs.filter_type'),
+                'filters' => [
+                    ['label' => __('agricart.ai.logs.types.connection_test'), 'value' => 'type:connection_test'],
+                    ['label' => __('agricart.ai.logs.types.prompt'), 'value' => 'type:prompt'],
+                    ['label' => __('agricart.ai.logs.types.model_fetch'), 'value' => 'type:model_fetch'],
+                ],
+            ],
         ];
     }
 

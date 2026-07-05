@@ -1,6 +1,12 @@
 <x-filament-panels::page>
     @script
         <script>
+            const syncAiLogColumnCheckboxes = (columns) => {
+                document.querySelectorAll('[data-ai-log-column]').forEach((input) => {
+                    input.checked = columns.includes(input.value);
+                });
+            };
+
             const bindAiLogsToolbarSearch = () => {
                 const input = document.getElementById('agricart-settings-search-ai-logs');
 
@@ -19,6 +25,12 @@
 
             bindAiLogsToolbarSearch();
             document.addEventListener('livewire:navigated', bindAiLogsToolbarSearch);
+
+            Livewire.on('ai-logs-columns-sync', (payload) => {
+                const columns = payload?.columns ?? [];
+
+                syncAiLogColumnCheckboxes(columns);
+            });
         </script>
     @endscript
 

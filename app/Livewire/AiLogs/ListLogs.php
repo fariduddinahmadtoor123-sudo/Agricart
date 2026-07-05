@@ -2,8 +2,6 @@
 
 namespace App\Livewire\AiLogs;
 
-use App\Enums\AiLogStatus;
-use App\Enums\AiLogType;
 use App\Models\AiLog;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
@@ -14,11 +12,26 @@ class ListLogs extends Component
 {
     use WithPagination;
 
+    /** @var list<string> */
+    public array $visibleColumns = [
+        'id',
+        'type',
+        'status',
+        'model',
+        'duration_ms',
+        'created_at',
+    ];
+
     public string $search = '';
 
     public string $statusFilter = '';
 
     public string $typeFilter = '';
+
+    public function mount(): void
+    {
+        $this->syncColumnCheckboxes();
+    }
 
     #[On('ai-logs-search')]
     public function updateSearch(string $query): void
@@ -28,8 +41,14 @@ class ListLogs extends Component
     }
 
     #[On('ai-logs-filter')]
-    public function applyFilter(string $field, string $value): void
+    public function applyFilter(string $filter): void
     {
+        if (! str_contains($filter, ':')) {
+            return;
+        }
+
+        [$field, $value] = explode(':', $filter, 2);
+
         if ($field === 'status') {
             $this->statusFilter = $value;
         }
@@ -39,6 +58,35 @@ class ListLogs extends Component
         }
 
         $this->resetPage();
+    }
+
+    #[On('ai-logs-clear-filters')]
+    public function clearFilters(): void
+    {
+        $this->statusFilter = '';
+        $this->typeFilter = '';
+        $this->resetPage();
+    }
+
+    #[On('ai-logs-column-toggle')]
+    public function toggleColumn(string $column, bool $visible): void
+    {
+        if ($visible && ! in_array($column, $this->visibleColumns, true)) {
+            $this->visibleColumns[] = $column;
+        }
+
+        if (! $visible) {
+            $this->visibleColumns = array_values(array_filter(
+                $this->visibleColumns,
+                fn (string $col): bool => $col !== $column,
+            ));
+        }
+
+        if ($this->visibleColumns === []) {
+            $this->visibleColumns = ['id'];
+        }
+
+        $this->syncColumnCheckboxes();
     }
 
     public function openLog(int $logId): void
@@ -79,8 +127,11 @@ class ListLogs extends Component
 
         return view('livewire.ai-logs.list', [
             'logs' => $logs,
-            'statuses' => AiLogStatus::cases(),
-            'types' => AiLogType::cases(),
         ]);
+    }
+
+    private function syncColumnCheckboxes(): void
+    {
+        $this->dispatch('ai-logs-columns-sync', columns: $this->visibleColumns);
     }
 }
