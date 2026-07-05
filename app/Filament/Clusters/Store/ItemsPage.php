@@ -13,7 +13,7 @@ class ItemsPage extends BasePlaceholderPage
 
     protected static ?string $navigationLabel = 'Items';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 6;
 
     protected static ?string $slug = 'items';
 

@@ -2842,3 +2842,195 @@ body.agricart-form-panel-open {
         padding-inline: 0.5rem;
     }
 }
+
+/* ── Store admin settings (Online Store module) ── */
+.agricart-store-admin {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.agricart-store-admin__card {
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-surface);
+    padding: 1rem;
+}
+
+.agricart-store-admin__title {
+    margin: 0 0 0.75rem;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--agricart-text);
+}
+
+.agricart-store-admin__subtitle {
+    margin: 1rem 0 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--agricart-muted);
+}
+
+.agricart-store-admin__hint {
+    margin: 0.25rem 0 0;
+    font-size: 0.75rem;
+    color: var(--agricart-muted);
+}
+
+.agricart-store-admin__form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.agricart-store-admin__grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+@media (max-width: 48rem) {
+    .agricart-store-admin__grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+
+.agricart-store-admin__field label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--agricart-muted);
+}
+
+.agricart-store-admin__input,
+.agricart-store-admin__file {
+    width: 100%;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-bg);
+    padding: 0.5rem 0.625rem;
+    font: inherit;
+    font-size: 0.8125rem;
+}
+
+.agricart-store-admin__input:focus,
+.agricart-store-admin__file:focus {
+    outline: 2px solid color-mix(in oklab, var(--agricart-primary) 35%, transparent);
+    outline-offset: 0;
+}
+
+.agricart-store-admin__range {
+    width: 100%;
+}
+
+.agricart-store-admin__checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.agricart-store-admin__btn {
+    align-self: flex-start;
+    border: 1px solid var(--agricart-primary);
+    background: var(--agricart-primary);
+    color: #fff;
+    padding: 0.5rem 1rem;
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.agricart-store-admin__btn--muted {
+    background: var(--agricart-surface);
+    color: var(--agricart-text);
+    border-color: var(--agricart-border);
+}
+
+.agricart-store-admin__link-btn {
+    border: 0;
+    background: transparent;
+    color: var(--agricart-primary);
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.agricart-store-admin__link-btn.is-danger {
+    color: var(--agricart-danger);
+}
+
+.agricart-store-admin__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.agricart-store-admin__alert {
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--agricart-border);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.agricart-store-admin__alert.is-success {
+    border-color: color-mix(in oklab, var(--agricart-primary) 40%, var(--agricart-border));
+    background: color-mix(in oklab, var(--agricart-primary) 10%, white);
+}
+
+.agricart-store-admin__alert.is-danger {
+    border-color: color-mix(in oklab, var(--agricart-danger) 40%, var(--agricart-border));
+    background: color-mix(in oklab, var(--agricart-danger) 8%, white);
+}
+
+.agricart-store-admin__table-wrap {
+    overflow: auto;
+    border: 1px solid var(--agricart-border);
+    margin-top: 1rem;
+}
+
+.agricart-store-admin__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.agricart-store-admin__table th,
+.agricart-store-admin__table td {
+    padding: 0.5rem 0.625rem;
+    border-bottom: 1px solid var(--agricart-border);
+    text-align: left;
+}
+
+.agricart-store-admin__row-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+    justify-content: flex-end;
+}
+
+.agricart-store-admin__logo-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+.agricart-store-admin__logo-preview img {
+    width: 4rem;
+    height: 4rem;
+    object-fit: contain;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-bg);
+}
+
+.agricart-store-admin__error {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--agricart-danger);
+}
+

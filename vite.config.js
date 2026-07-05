@@ -8,6 +8,8 @@ export default defineConfig({
             input: [
                 'resources/css/app.css',
                 'resources/js/app.js',
+                'resources/js/store.js',
+                'resources/css/store/theme.css',
                 'resources/css/filament/admin/theme.css',
             ],
             refresh: true,

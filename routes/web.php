@@ -1,10 +1,14 @@
 <?php
 
+use App\Http\Controllers\Store\CategoryController;
+use App\Http\Controllers\Store\HomeController;
+use App\Http\Middleware\SetAgricartLocale;
 use App\Filament\Layout\TopbarActions;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
+Route::middleware([SetAgricartLocale::class])->group(function (): void {
+    Route::get('/', [HomeController::class, 'index'])->name('store.home');
+    Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('store.category');
 });
 
 Route::get('/locale/{locale}', function (string $locale) {
@@ -12,10 +16,10 @@ Route::get('/locale/{locale}', function (string $locale) {
         abort(404);
     }
 
-    $redirect = request()->query('redirect', '/admin');
+    $redirect = request()->query('redirect', '/');
 
     if (! is_string($redirect) || ! str_starts_with($redirect, '/')) {
-        $redirect = '/admin';
+        $redirect = '/';
     }
 
     return redirect($redirect)
