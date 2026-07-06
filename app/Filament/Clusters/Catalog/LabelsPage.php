@@ -13,7 +13,7 @@ class LabelsPage extends BasePlaceholderPage
 
     protected static ?string $navigationLabel = 'Labels';
 
-    protected static ?int $navigationSort = 8;
+    protected static ?int $navigationSort = 9;
 
     protected static ?string $slug = 'labels';
 

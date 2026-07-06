@@ -8,6 +8,11 @@ enum AiLogType: string
     case Prompt = 'prompt';
     case ModelFetch = 'model_fetch';
     case CategoryEnrichment = 'category_enrichment';
+    case BrandEnrichment = 'brand_enrichment';
+    case UnitEnrichment = 'unit_enrichment';
+    case PackingUnitEnrichment = 'packing_unit_enrichment';
+    case AttributeEnrichment = 'attribute_enrichment';
+    case ControlEnrichment = 'control_enrichment';
 
     public function label(): string
     {
@@ -16,6 +21,11 @@ enum AiLogType: string
             self::Prompt => __('agricart.ai.logs.types.prompt'),
             self::ModelFetch => __('agricart.ai.logs.types.model_fetch'),
             self::CategoryEnrichment => __('agricart.ai.logs.types.category_enrichment'),
+            self::BrandEnrichment => __('agricart.ai.logs.types.brand_enrichment'),
+            self::UnitEnrichment => __('agricart.ai.logs.types.unit_enrichment'),
+            self::PackingUnitEnrichment => __('agricart.ai.logs.types.packing_unit_enrichment'),
+            self::AttributeEnrichment => __('agricart.ai.logs.types.attribute_enrichment'),
+            self::ControlEnrichment => __('agricart.ai.logs.types.control_enrichment'),
         };
     }
 }

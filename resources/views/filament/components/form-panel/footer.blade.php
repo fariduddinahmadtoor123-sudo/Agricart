@@ -12,7 +12,7 @@
 @endphp
 
 <div class="agricart-form-panel__footer-inner">
-    <div class="agricart-form-panel__progress" x-show="formKey !== 'categories'" x-cloak>
+    <div class="agricart-form-panel__progress" x-show="formKey !== 'categories' && formKey !== 'brands' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls'" x-cloak>
         <div class="agricart-form-panel__progress-meta">
             <span
                 class="agricart-form-panel__progress-label"
@@ -80,9 +80,9 @@
                     tag="button"
                     type="button"
                     class="agricart-form-panel__action-btn agricart-form-panel__action-btn--ai"
-                    x-bind:class="{ 'is-loading': formKey === 'categories' && categoryAiEnriching }"
-                    x-bind:disabled="formKey === 'categories' && categoryAiEnriching"
-                    x-bind:aria-busy="formKey === 'categories' && categoryAiEnriching ? 'true' : 'false'"
+                    x-bind:class="{ 'is-loading': (formKey === 'categories' && categoryAiEnriching) || (formKey === 'brands' && brandAiEnriching) || (formKey === 'units' && unitAiEnriching) || (formKey === 'packing-units' && packingUnitAiEnriching) || (formKey === 'attributes' && attributeAiEnriching) || (formKey === 'controls' && controlAiEnriching) }"
+                    x-bind:disabled="(formKey === 'categories' && categoryAiEnriching) || (formKey === 'brands' && brandAiEnriching) || (formKey === 'units' && unitAiEnriching) || (formKey === 'packing-units' && packingUnitAiEnriching) || (formKey === 'attributes' && attributeAiEnriching) || (formKey === 'controls' && controlAiEnriching)"
+                    x-bind:aria-busy="(formKey === 'categories' && categoryAiEnriching) || (formKey === 'brands' && brandAiEnriching) || (formKey === 'units' && unitAiEnriching) || (formKey === 'packing-units' && packingUnitAiEnriching) || (formKey === 'attributes' && attributeAiEnriching) || (formKey === 'controls' && controlAiEnriching) ? 'true' : 'false'"
                     x-on:click="handleAction('ai')"
                 >
                     <span class="agricart-form-panel__action-ai-inner">

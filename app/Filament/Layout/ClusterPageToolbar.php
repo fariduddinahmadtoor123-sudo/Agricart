@@ -64,6 +64,11 @@ abstract class ClusterPageToolbar
         return match ($resourceSlug) {
             'ai-settings' => 'ai-settings',
             'categories' => 'categories',
+            'brands' => 'brands',
+            'units' => 'units',
+            'packing-units' => 'packing-units',
+            'attributes' => 'attributes',
+            'controls' => 'controls',
             default => null,
         };
     }

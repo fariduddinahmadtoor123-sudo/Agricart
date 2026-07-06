@@ -29,6 +29,16 @@
         categoryFaqs: [],
         categoryAiEnriching: false,
         categorySaving: false,
+        brandAiEnriching: false,
+        brandSaving: false,
+        unitAiEnriching: false,
+        unitSaving: false,
+        packingUnitAiEnriching: false,
+        packingUnitSaving: false,
+        attributeAiEnriching: false,
+        attributeSaving: false,
+        controlAiEnriching: false,
+        controlSaving: false,
         selectCategoryVisualIcon(index) {
             this.categoryVisualMapping.selected = index;
         },
@@ -65,9 +75,59 @@
                 }));
             }
 
+            if (this.formKey === 'brands') {
+                window.dispatchEvent(new CustomEvent('brand-form-open', {
+                    detail: {
+                        brandId: detail.brandId ?? null,
+                        mode: detail.mode ?? 'create',
+                    },
+                    bubbles: true,
+                }));
+            }
+
+            if (this.formKey === 'units') {
+                window.dispatchEvent(new CustomEvent('unit-form-open', {
+                    detail: {
+                        unitId: detail.unitId ?? null,
+                        mode: detail.mode ?? 'create',
+                    },
+                    bubbles: true,
+                }));
+            }
+
+            if (this.formKey === 'packing-units') {
+                window.dispatchEvent(new CustomEvent('packing-unit-form-open', {
+                    detail: {
+                        packingUnitId: detail.packingUnitId ?? null,
+                        mode: detail.mode ?? 'create',
+                    },
+                    bubbles: true,
+                }));
+            }
+
+            if (this.formKey === 'attributes') {
+                window.dispatchEvent(new CustomEvent('attribute-form-open', {
+                    detail: {
+                        attributeId: detail.attributeId ?? null,
+                        mode: detail.mode ?? 'create',
+                    },
+                    bubbles: true,
+                }));
+            }
+
+            if (this.formKey === 'controls') {
+                window.dispatchEvent(new CustomEvent('control-form-open', {
+                    detail: {
+                        controlId: detail.controlId ?? null,
+                        mode: detail.mode ?? 'create',
+                    },
+                    bubbles: true,
+                }));
+            }
+
             this.isOpen = true;
             this.minimized = false;
-            this.size = ['ai-settings', 'ai-log-detail', 'categories'].includes(this.formKey) ? 'stretched' : 'normal';
+            this.size = ['ai-settings', 'ai-log-detail', 'categories', 'brands', 'units', 'packing-units', 'attributes', 'controls'].includes(this.formKey) ? 'stretched' : 'normal';
             document.body.classList.add('agricart-form-panel-open');
 
             if (this.formKey === 'ai-log-detail' && detail.logId) {
@@ -81,6 +141,16 @@
             this.formKey = null;
             this.categoryAiEnriching = false;
             this.categorySaving = false;
+            this.brandAiEnriching = false;
+            this.brandSaving = false;
+            this.unitAiEnriching = false;
+            this.unitSaving = false;
+            this.packingUnitAiEnriching = false;
+            this.packingUnitSaving = false;
+            this.attributeAiEnriching = false;
+            this.attributeSaving = false;
+            this.controlAiEnriching = false;
+            this.controlSaving = false;
             document.body.classList.remove('agricart-form-panel-open');
         },
         minimize() {
@@ -145,6 +215,96 @@
                 return;
             }
 
+            if (this.formKey === 'brands') {
+                if (key === 'cancel') {
+                    this.close();
+                    return;
+                }
+
+                if (key === 'ai') {
+                    this.brandAiEnriching = true;
+                }
+
+                window.dispatchEvent(new CustomEvent('brand-form-action', {
+                    detail: { action: key },
+                    bubbles: true,
+                }));
+
+                return;
+            }
+
+            if (this.formKey === 'units') {
+                if (key === 'cancel') {
+                    this.close();
+                    return;
+                }
+
+                if (key === 'ai') {
+                    this.unitAiEnriching = true;
+                }
+
+                window.dispatchEvent(new CustomEvent('unit-form-action', {
+                    detail: { action: key },
+                    bubbles: true,
+                }));
+
+                return;
+            }
+
+            if (this.formKey === 'packing-units') {
+                if (key === 'cancel') {
+                    this.close();
+                    return;
+                }
+
+                if (key === 'ai') {
+                    this.packingUnitAiEnriching = true;
+                }
+
+                window.dispatchEvent(new CustomEvent('packing-unit-form-action', {
+                    detail: { action: key },
+                    bubbles: true,
+                }));
+
+                return;
+            }
+
+            if (this.formKey === 'attributes') {
+                if (key === 'cancel') {
+                    this.close();
+                    return;
+                }
+
+                if (key === 'ai') {
+                    this.attributeAiEnriching = true;
+                }
+
+                window.dispatchEvent(new CustomEvent('attribute-form-action', {
+                    detail: { action: key },
+                    bubbles: true,
+                }));
+
+                return;
+            }
+
+            if (this.formKey === 'controls') {
+                if (key === 'cancel') {
+                    this.close();
+                    return;
+                }
+
+                if (key === 'ai') {
+                    this.controlAiEnriching = true;
+                }
+
+                window.dispatchEvent(new CustomEvent('control-form-action', {
+                    detail: { action: key },
+                    bubbles: true,
+                }));
+
+                return;
+            }
+
             if (key === 'save_next' && this.currentStep < this.totalSteps) {
                 this.currentStep += 1;
 
@@ -166,13 +326,18 @@
                 'agricart-form-panel--normal': this.size === 'normal',
                 'agricart-form-panel--stretched': this.size === 'stretched',
                 'agricart-form-panel--maximized': this.size === 'maximized',
-                'agricart-form-panel--wide': this.formKey === 'ai-settings' || this.formKey === 'ai-log-detail' || this.formKey === 'categories',
+                'agricart-form-panel--wide': this.formKey === 'ai-settings' || this.formKey === 'ai-log-detail' || this.formKey === 'categories' || this.formKey === 'brands' || this.formKey === 'units' || this.formKey === 'packing-units' || this.formKey === 'attributes' || this.formKey === 'controls',
             };
         },
     }"
     x-on:open-form-panel.window="open($event.detail)"
     x-on:close-form-panel.window="close()"
     x-on:category-form-busy.window="categoryAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); categorySaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
+    x-on:brand-form-busy.window="brandAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); brandSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
+    x-on:unit-form-busy.window="unitAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); unitSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
+    x-on:packing-unit-form-busy.window="packingUnitAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); packingUnitSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
+    x-on:attribute-form-busy.window="attributeAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); attributeSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
+    x-on:control-form-busy.window="controlAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); controlSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:keydown.escape.window="if (isOpen && !minimized) close()"
 >
     {{-- Backdrop + panel --}}
@@ -259,7 +424,27 @@
                         <livewire:categories.form />
                     </div>
 
-                    <div x-show="formKey !== 'ai-settings' && formKey !== 'ai-log-detail' && formKey !== 'categories'">
+                    <div x-show="formKey === 'brands'" x-cloak>
+                        <livewire:brands.form />
+                    </div>
+
+                    <div x-show="formKey === 'units'" x-cloak>
+                        <livewire:units.form />
+                    </div>
+
+                    <div x-show="formKey === 'packing-units'" x-cloak>
+                        <livewire:packing-units.form />
+                    </div>
+
+                    <div x-show="formKey === 'attributes'" x-cloak>
+                        <livewire:attributes.form />
+                    </div>
+
+                    <div x-show="formKey === 'controls'" x-cloak>
+                        <livewire:controls.form />
+                    </div>
+
+                    <div x-show="formKey !== 'ai-settings' && formKey !== 'ai-log-detail' && formKey !== 'categories' && formKey !== 'brands' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls'">
                         @include('filament.components.form-panel.sample-fields')
                     </div>
                 </div>
