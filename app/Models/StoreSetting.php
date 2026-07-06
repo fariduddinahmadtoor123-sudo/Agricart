@@ -49,6 +49,23 @@ class StoreSetting extends Model
         'category_grid_columns',
         'category_grid_title_en',
         'category_grid_title_ur',
+        'footer_enabled',
+        'footer_tagline_en',
+        'footer_tagline_ur',
+        'footer_logo_path',
+        'footer_show_logo',
+        'footer_quick_title_en',
+        'footer_quick_title_ur',
+        'footer_policies_title_en',
+        'footer_policies_title_ur',
+        'footer_registration_title_en',
+        'footer_registration_title_ur',
+        'footer_map_embed',
+        'footer_copyright_en',
+        'footer_copyright_ur',
+        'footer_show_social',
+        'footer_show_login_link',
+        'footer_show_register_link',
     ];
 
     /**
@@ -68,6 +85,11 @@ class StoreSetting extends Model
             'menu_enabled' => 'boolean',
             'menu_show_home' => 'boolean',
             'category_grid_enabled' => 'boolean',
+            'footer_enabled' => 'boolean',
+            'footer_show_logo' => 'boolean',
+            'footer_show_social' => 'boolean',
+            'footer_show_login_link' => 'boolean',
+            'footer_show_register_link' => 'boolean',
             'ticker_speed' => 'integer',
             'category_grid_columns' => 'integer',
         ];
@@ -136,5 +158,26 @@ class StoreSetting extends Model
         }
 
         return 'https://wa.me/' . $digits . '?text=' . rawurlencode($message);
+    }
+
+    public function footerCopyrightText(): string
+    {
+        $text = $this->localized('footer_copyright');
+
+        if (! filled($text)) {
+            $name = $this->localized('site_name') ?? 'Agricart';
+            $text = '© {year} ' . $name . '. All rights reserved.';
+        }
+
+        return str_replace('{year}', (string) date('Y'), $text);
+    }
+
+    public function footerLogoPath(): ?string
+    {
+        if (filled($this->footer_logo_path)) {
+            return $this->footer_logo_path;
+        }
+
+        return $this->logo_path;
     }
 }

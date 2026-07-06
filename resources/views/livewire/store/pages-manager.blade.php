@@ -49,15 +49,46 @@
                 <input type="checkbox" wire:model="is_active" />
                 <span>{{ __('agricart.store.admin.active') }}</span>
             </label>
-            <label class="agricart-store-admin__checkbox">
-                <input type="checkbox" wire:model="show_in_menu" />
-                <span>{{ __('agricart.store.admin.pages.show_in_menu') }}</span>
-            </label>
-            <label class="agricart-store-admin__checkbox">
-                <input type="checkbox" wire:model="show_in_footer" />
-                <span>{{ __('agricart.store.admin.pages.show_in_footer') }}</span>
-            </label>
-            <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.pages.footer_hint') }}</p>
+
+            <div class="agricart-store-admin__placement">
+                <h4 class="agricart-store-admin__subtitle">{{ __('agricart.store.admin.pages.placement_title') }}</h4>
+                <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.pages.placement_hint') }}</p>
+
+                <div class="agricart-store-admin__placement-grid">
+                    <label class="agricart-store-admin__placement-card">
+                        <input type="checkbox" wire:model="show_in_menu" />
+                        <span class="agricart-store-admin__placement-card-body">
+                            <strong>{{ __('agricart.store.admin.pages.place_menu') }}</strong>
+                            <small>{{ __('agricart.store.admin.pages.place_menu_hint') }}</small>
+                        </span>
+                    </label>
+
+                    <label class="agricart-store-admin__placement-card">
+                        <input type="checkbox" wire:model="show_in_quick_links" />
+                        <span class="agricart-store-admin__placement-card-body">
+                            <strong>{{ __('agricart.store.admin.pages.place_quick') }}</strong>
+                            <small>{{ __('agricart.store.admin.pages.place_quick_hint') }}</small>
+                        </span>
+                    </label>
+
+                    <label class="agricart-store-admin__placement-card">
+                        <input type="checkbox" wire:model="show_in_footer" />
+                        <span class="agricart-store-admin__placement-card-body">
+                            <strong>{{ __('agricart.store.admin.pages.place_policies') }}</strong>
+                            <small>{{ __('agricart.store.admin.pages.place_policies_hint') }}</small>
+                        </span>
+                    </label>
+
+                    <label class="agricart-store-admin__placement-card">
+                        <input type="checkbox" wire:model="show_in_registration" />
+                        <span class="agricart-store-admin__placement-card-body">
+                            <strong>{{ __('agricart.store.admin.pages.place_registration') }}</strong>
+                            <small>{{ __('agricart.store.admin.pages.place_registration_hint') }}</small>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
             <div class="agricart-store-admin__actions">
                 <button type="submit" class="agricart-store-admin__btn">
                     {{ $editingId ? __('agricart.store.admin.update') : __('agricart.store.admin.add') }}
@@ -85,9 +116,11 @@
                             <td>{{ $page->title_en }}</td>
                             <td><code>/page/{{ $page->slug }}</code></td>
                             <td>
-                                @if ($page->show_in_menu) {{ __('agricart.store.admin.pages.menu') }} @endif
-                                @if ($page->show_in_footer) {{ __('agricart.store.admin.pages.footer') }} @endif
-                                @if (! $page->show_in_menu && ! $page->show_in_footer) — @endif
+                                @forelse ($page->placementKeys() as $placement)
+                                    <span class="agricart-store-admin__badge">{{ __('agricart.store.admin.pages.placement_' . $placement) }}</span>
+                                @empty
+                                    —
+                                @endforelse
                             </td>
                             <td>{{ $page->is_active ? __('agricart.store.admin.active') : __('agricart.store.admin.inactive') }}</td>
                             <td class="agricart-store-admin__row-actions">

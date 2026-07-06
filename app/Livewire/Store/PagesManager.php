@@ -25,6 +25,10 @@ class PagesManager extends BaseStoreSettings
 
     public bool $show_in_footer = false;
 
+    public bool $show_in_quick_links = false;
+
+    public bool $show_in_registration = false;
+
     public bool $showSlugField = false;
 
     public bool $slugManuallyEdited = false;
@@ -85,6 +89,8 @@ class PagesManager extends BaseStoreSettings
             'is_active' => $this->is_active,
             'show_in_menu' => $this->show_in_menu,
             'show_in_footer' => $this->show_in_footer,
+            'show_in_quick_links' => $this->show_in_quick_links,
+            'show_in_registration' => $this->show_in_registration,
         ];
 
         if ($this->editingId) {
@@ -114,6 +120,8 @@ class PagesManager extends BaseStoreSettings
         $this->is_active = $page->is_active;
         $this->show_in_menu = $page->show_in_menu;
         $this->show_in_footer = $page->show_in_footer;
+        $this->show_in_quick_links = $page->show_in_quick_links;
+        $this->show_in_registration = $page->show_in_registration;
         $this->showSlugField = false;
         $this->slugManuallyEdited = true;
     }
@@ -147,6 +155,8 @@ class PagesManager extends BaseStoreSettings
         $this->is_active = true;
         $this->show_in_menu = false;
         $this->show_in_footer = false;
+        $this->show_in_quick_links = false;
+        $this->show_in_registration = false;
         $this->showSlugField = false;
         $this->slugManuallyEdited = false;
     }

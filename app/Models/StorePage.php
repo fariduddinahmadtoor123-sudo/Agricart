@@ -19,6 +19,8 @@ class StorePage extends Model
         'is_active',
         'show_in_menu',
         'show_in_footer',
+        'show_in_quick_links',
+        'show_in_registration',
         'sort_order',
     ];
 
@@ -31,6 +33,8 @@ class StorePage extends Model
             'is_active' => 'boolean',
             'show_in_menu' => 'boolean',
             'show_in_footer' => 'boolean',
+            'show_in_quick_links' => 'boolean',
+            'show_in_registration' => 'boolean',
             'sort_order' => 'integer',
         ];
     }
@@ -58,6 +62,40 @@ class StorePage extends Model
     public function publicUrl(): string
     {
         return route('store.page', $this->slug);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function placementKeys(): array
+    {
+        $placements = [];
+
+        if ($this->show_in_menu) {
+            $placements[] = 'menu';
+        }
+
+        if ($this->show_in_quick_links) {
+            $placements[] = 'quick_links';
+        }
+
+        if ($this->show_in_footer) {
+            $placements[] = 'policies';
+        }
+
+        if ($this->show_in_registration) {
+            $placements[] = 'registration';
+        }
+
+        return $placements;
+    }
+
+    public function hasAnyPlacement(): bool
+    {
+        return $this->show_in_menu
+            || $this->show_in_quick_links
+            || $this->show_in_footer
+            || $this->show_in_registration;
     }
 
     public static function uniqueSlug(string $base, ?int $exceptId = null): string

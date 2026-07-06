@@ -29,6 +29,10 @@
         </div>
     </main>
 
+    @if ($settings->footer_enabled)
+        @include('store.components.footer')
+    @endif
+
     @include('store.components.whatsapp-float')
 
     @stack('scripts')
