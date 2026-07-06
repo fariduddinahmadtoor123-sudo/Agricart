@@ -40,4 +40,59 @@ document.addEventListener('DOMContentLoaded', () => {
             applySpeed();
         });
     });
+
+    document.querySelectorAll('[data-store-product-gallery]').forEach((gallery) => {
+        const mainImage = gallery.querySelector('[data-store-product-gallery-main]');
+        const thumbs = gallery.querySelectorAll('[data-store-product-gallery-thumb]');
+
+        if (! mainImage || thumbs.length === 0) {
+            return;
+        }
+
+        thumbs.forEach((thumb) => {
+            thumb.addEventListener('click', () => {
+                const url = thumb.dataset.imageUrl;
+
+                if (! url) {
+                    return;
+                }
+
+                mainImage.src = url;
+                thumbs.forEach((item) => {
+                    const active = item === thumb;
+                    item.classList.toggle('is-active', active);
+                    item.setAttribute('aria-pressed', active ? 'true' : 'false');
+                });
+            });
+        });
+    });
+
+    document.querySelectorAll('[data-store-product-card]').forEach((card) => {
+        const mainImage = card.querySelector('[data-store-product-card-main]');
+        const thumbs = card.querySelectorAll('[data-store-product-card-thumb]');
+
+        if (! mainImage || thumbs.length === 0) {
+            return;
+        }
+
+        thumbs.forEach((thumb) => {
+            thumb.addEventListener('click', (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+
+                const url = thumb.dataset.imageUrl;
+
+                if (! url) {
+                    return;
+                }
+
+                mainImage.src = url;
+                thumbs.forEach((item) => {
+                    const active = item === thumb;
+                    item.classList.toggle('is-active', active);
+                    item.setAttribute('aria-pressed', active ? 'true' : 'false');
+                });
+            });
+        });
+    });
 });

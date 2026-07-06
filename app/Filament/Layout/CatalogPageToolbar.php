@@ -38,6 +38,31 @@ class CatalogPageToolbar extends ClusterPageToolbar
         }
 
         return match ($config['resourceSlug']) {
+            'products' => [
+                ...$config,
+                'livewirePrefix' => 'products',
+                'columnDataAttr' => 'data-product-column',
+                'interactive' => true,
+                'filters' => [
+                    ['label' => __('agricart.form_panel.statuses.active'), 'value' => 'status:active'],
+                    ['label' => __('agricart.form_panel.statuses.inactive'), 'value' => 'status:inactive'],
+                    ['label' => __('agricart.form_panel.statuses.draft'), 'value' => 'status:draft'],
+                ],
+                'columns' => [
+                    ['label' => __('agricart.products.list.col_image'), 'value' => 'image', 'visible' => true],
+                    ['label' => __('agricart.products.list.col_code'), 'value' => 'code', 'visible' => true],
+                    ['label' => __('agricart.products.list.col_label_code'), 'value' => 'label_code', 'visible' => true],
+                    ['label' => __('agricart.products.list.col_name_en'), 'value' => 'name_en', 'visible' => true],
+                    ['label' => __('agricart.products.list.col_name_ur'), 'value' => 'name_ur', 'visible' => false],
+                    ['label' => __('agricart.products.list.col_status'), 'value' => 'status', 'visible' => true],
+                    ['label' => __('agricart.products.list.col_created'), 'value' => 'created_at', 'visible' => true],
+                ],
+            ],
+            'labels' => [
+                ...$config,
+                'livewirePrefix' => 'labels',
+                'interactive' => false,
+            ],
             'categories' => [
                 ...$config,
                 'livewirePrefix' => 'categories',

@@ -6,10 +6,17 @@
     @if ($childCategories->isNotEmpty())
         @include('store.components.category-grid', [
             'categories' => $childCategories,
-            'sectionTitle' => null,
+            'sectionTitle' => __('agricart.storefront.category.subcategories'),
             'emptyMessage' => __('agricart.storefront.category.no_children'),
         ])
-    @elseif (! $hasStorefrontContent)
+    @endif
+
+    @if ($products->isNotEmpty())
+        @include('store.components.product-grid', [
+            'products' => $products,
+            'sectionTitle' => __('agricart.storefront.products.title'),
+        ])
+    @elseif ($childCategories->isEmpty() && ! $hasStorefrontContent)
         <div class="ag-store-placeholder-note">
             {{ __('agricart.storefront.category.coming_soon') }}
         </div>

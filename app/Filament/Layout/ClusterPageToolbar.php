@@ -69,6 +69,7 @@ abstract class ClusterPageToolbar
             'packing-units' => 'packing-units',
             'attributes' => 'attributes',
             'controls' => 'controls',
+            'products' => 'products',
             default => null,
         };
     }
