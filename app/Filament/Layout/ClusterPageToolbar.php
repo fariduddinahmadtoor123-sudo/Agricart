@@ -100,6 +100,7 @@ abstract class ClusterPageToolbar
             'products' => 'products',
             'users' => 'users',
             'roles' => 'roles',
+            'suppliers' => 'suppliers',
             default => null,
         };
     }

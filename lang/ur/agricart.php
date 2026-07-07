@@ -300,6 +300,7 @@ return [
                 'control_enrichment' => 'کنٹرول AI',
                 'product_enrichment' => 'مصنوعات AI',
                 'company_profile_enrichment' => 'اسٹور پروفائل AI',
+                'supplier_enrichment' => 'سپلائر AI',
             ],
             'sources' => [
                 'settings_form' => 'AI سیٹ اپ فارم',

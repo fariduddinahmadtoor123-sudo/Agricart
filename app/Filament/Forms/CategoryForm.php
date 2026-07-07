@@ -293,7 +293,12 @@ class CategoryForm
             return [];
         }
 
-        $needle = '%' . $term . '%';
+        $terms = preg_split('/\s+/u', $term, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+        if ($terms === []) {
+            return [];
+        }
+
         $exclude = collect($excludeIds)
             ->map(fn ($id): int => (int) $id)
             ->filter(fn (int $id): bool => $id > 0)
@@ -304,10 +309,16 @@ class CategoryForm
 
         return Category::query()
             ->when($exclude !== [], fn ($query) => $query->whereNotIn('id', $exclude))
-            ->where(function ($query) use ($needle): void {
-                $query->where('name_en', 'like', $needle)
-                    ->orWhere('name_ur', 'like', $needle)
-                    ->orWhere('slug', 'like', $needle);
+            ->where(function ($query) use ($terms): void {
+                foreach ($terms as $word) {
+                    $needle = '%' . $word . '%';
+
+                    $query->where(function ($inner) use ($needle): void {
+                        $inner->where('name_en', 'like', $needle)
+                            ->orWhere('name_ur', 'like', $needle)
+                            ->orWhere('slug', 'like', $needle);
+                    });
+                }
             })
             ->orderBy('name_en')
             ->limit($limit)

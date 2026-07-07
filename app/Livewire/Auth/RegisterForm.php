@@ -4,6 +4,7 @@ namespace App\Livewire\Auth;
 
 use App\Models\User;
 use App\Services\Access\UserService;
+use App\Support\PakistaniBanks;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -196,7 +197,7 @@ class RegisterForm extends Component
      */
     private function filteredBanksByRow(): array
     {
-        $banks = config('pakistani_banks', []);
+        $banks = PakistaniBanks::englishNames();
         $results = [];
 
         foreach ($this->bankSearches as $index => $search) {

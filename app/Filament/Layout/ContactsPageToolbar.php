@@ -25,4 +25,63 @@ class ContactsPageToolbar extends ClusterPageToolbar
     {
         return 'contacts';
     }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public static function config(): ?array
+    {
+        $config = parent::config();
+
+        if ($config === null) {
+            return null;
+        }
+
+        return match ($config['resourceSlug']) {
+            'suppliers' => [
+                ...$config,
+                'livewirePrefix' => 'suppliers',
+                'columnDataAttr' => 'data-supplier-column',
+                'interactive' => true,
+                'formKey' => 'suppliers',
+                'addLabel' => static::userCan('create') ? __('suppliers.actions.add') : null,
+                'filters' => static::supplierFilters(),
+                'columns' => [
+                    ['label' => __('suppliers.list.col_code'), 'value' => 'supplier_code', 'visible' => true],
+                    ['label' => __('suppliers.list.col_business'), 'value' => 'business_name', 'visible' => true],
+                    ['label' => __('suppliers.list.col_contact'), 'value' => 'contact_name', 'visible' => true],
+                    ['label' => __('suppliers.list.col_city'), 'value' => 'city', 'visible' => true],
+                    ['label' => __('suppliers.list.col_type'), 'value' => 'supplier_type', 'visible' => true],
+                    ['label' => __('suppliers.list.col_status'), 'value' => 'status', 'visible' => true],
+                    ['label' => __('suppliers.list.col_categories'), 'value' => 'categories', 'visible' => false],
+                    ['label' => __('suppliers.list.col_created'), 'value' => 'created_at', 'visible' => true],
+                ],
+            ],
+            default => $config,
+        };
+    }
+
+    /**
+     * @return list<array{label: string, value: string}>
+     */
+    protected static function supplierFilters(): array
+    {
+        $filters = [
+            ['label' => __('suppliers.filters.active'), 'value' => 'status:active'],
+            ['label' => __('suppliers.filters.inactive'), 'value' => 'status:inactive'],
+        ];
+
+        foreach (config('pakistani_cities', []) as $key => $city) {
+            if (! is_array($city)) {
+                continue;
+            }
+
+            $filters[] = [
+                'label' => (string) ($city['en'] ?? $key),
+                'value' => 'city:' . $key,
+            ];
+        }
+
+        return $filters;
+    }
 }

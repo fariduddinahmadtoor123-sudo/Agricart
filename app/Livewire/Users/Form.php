@@ -5,6 +5,7 @@ namespace App\Livewire\Users;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Access\UserService;
+use App\Support\PakistaniBanks;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -224,7 +225,7 @@ class Form extends Component
      */
     private function filteredBanksByRow(): array
     {
-        $banks = config('pakistani_banks', []);
+        $banks = PakistaniBanks::englishNames();
         $results = [];
 
         foreach ($this->bankSearches as $index => $search) {

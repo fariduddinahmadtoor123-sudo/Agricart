@@ -300,6 +300,7 @@ return [
                 'control_enrichment' => 'Control enrichment',
                 'product_enrichment' => 'Product enrichment',
                 'company_profile_enrichment' => 'Store profile enrichment',
+                'supplier_enrichment' => 'Supplier enrichment',
             ],
             'sources' => [
                 'settings_form' => 'AI setup form',
