@@ -25,6 +25,18 @@
     @endif
 
     <main class="ag-store-main">
+        @if (session('customer_auth_status') && ! request()->routeIs('store.customer.login'))
+            <div class="ag-store__container ag-store-flash-banner">
+                <div @class([
+                    'ag-store-customer-auth__alert',
+                    'is-danger' => session('customer_auth_status_type', 'success') === 'danger',
+                    'is-success' => session('customer_auth_status_type', 'success') === 'success',
+                    'is-warning' => session('customer_auth_status_type') === 'warning',
+                ]) role="status">
+                    {{ session('customer_auth_status') }}
+                </div>
+            </div>
+        @endif
         <div class="ag-store__container">
             @yield('content')
         </div>

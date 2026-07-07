@@ -8205,6 +8205,89 @@ body.agricart-price-tags-panel-open {
     margin-top: 0.75rem;
 }
 
+.agricart-sale-form__status-row--three-fields {
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.75fr) minmax(0, 1.35fr);
+    width: 100%;
+}
+
+.agricart-sale-form__status-row--three-fields .agricart-purchase-form__field {
+    min-width: 0;
+}
+
+.agricart-sale-form__status-row--three-fields .agricart-purchase-form__label {
+    display: block;
+    line-height: 1.25;
+    min-height: 2.5em;
+    align-content: end;
+}
+
+.agricart-sale-form__status-row--three-fields .agricart-purchase-form__input--compact {
+    width: 100%;
+}
+
+.agricart-sale-form__status-row--four-fields {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100%;
+}
+
+.agricart-sale-form__status-row--four-fields .agricart-purchase-form__field {
+    min-width: 0;
+}
+
+.agricart-sale-form__status-row--four-fields .agricart-purchase-form__label {
+    display: block;
+    line-height: 1.25;
+    min-height: 2.5em;
+    align-content: end;
+}
+
+.agricart-sale-form__status-row--four-fields .agricart-purchase-form__input--compact {
+    width: 100%;
+}
+
+.agricart-online-order__ship-block {
+    margin-top: 0.65rem;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0.35rem;
+    background: color-mix(in oklab, var(--agricart-border) 8%, transparent);
+}
+
+.agricart-online-order__section-title {
+    margin: 0.75rem 0 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--agricart-muted);
+}
+
+.agricart-online-order__ship-line,
+.agricart-online-order__meta-line {
+    margin: 0.15rem 0;
+    font-size: 0.88rem;
+}
+
+.agricart-online-order__declared-payment {
+    margin-top: 0.5rem;
+}
+
+.agricart-online-order__note-readonly {
+    margin: 0;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0.25rem;
+    background: color-mix(in oklab, var(--agricart-border) 6%, transparent);
+    font-size: 0.88rem;
+    white-space: pre-wrap;
+}
+
+.agricart-categories__empty-hint {
+    margin-top: 0.35rem;
+    font-size: 0.85rem;
+    color: var(--agricart-muted);
+}
+
 .agricart-sale-form__notes-block {
     margin-top: 0.75rem;
     display: grid;

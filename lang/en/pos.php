@@ -137,6 +137,7 @@ return [
         'products_required' => 'Add at least one product to the invoice.',
         'completed_locked' => 'Completed sales cannot be edited.',
         'invalid_status' => 'Invalid invoice status.',
+        'insufficient_stock' => 'Not enough stock for :product (available :available, requested :requested).',
     ],
 
     'print' => [

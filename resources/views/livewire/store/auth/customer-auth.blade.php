@@ -1,7 +1,11 @@
 @php
     $isLogin = $tab === 'login';
-    $loginUrl = route('store.customer.login');
-    $registerUrl = route('store.customer.login', ['tab' => 'register']);
+    $authRedirect = request()->query('redirect');
+    $redirectQuery = is_string($authRedirect) && str_starts_with($authRedirect, '/') && ! str_starts_with($authRedirect, '//')
+        ? ['redirect' => $authRedirect]
+        : [];
+    $loginUrl = route('store.customer.login', $redirectQuery);
+    $registerUrl = route('store.customer.login', array_merge(['tab' => 'register'], $redirectQuery));
 @endphp
 
 <div class="ag-store-customer-auth">
@@ -40,13 +44,14 @@
                     'ag-store-customer-auth__alert',
                     'is-danger' => $statusType === 'danger',
                     'is-success' => $statusType === 'success',
+                    'is-warning' => $statusType === 'warning',
                 ])>
                     {{ $statusMessage }}
                 </div>
             @endif
 
             @if ($isLogin)
-                <form wire:submit="login" class="ag-store-customer-auth__form">
+                <form wire:submit.prevent="login" class="ag-store-customer-auth__form">
                     <div class="ag-store-customer-auth__field">
                         <label for="customer-login-email">{{ __('agricart.customer.fields.email') }}</label>
                         <input id="customer-login-email" type="email" wire:model="loginEmail" class="ag-store-customer-auth__input" autocomplete="email" />
@@ -81,7 +86,7 @@
                     </p>
                 </form>
             @else
-                <form wire:submit="register" class="ag-store-customer-auth__form">
+                <form wire:submit.prevent="register" class="ag-store-customer-auth__form">
                     <div class="ag-store-customer-auth__section">
                         <h2 class="ag-store-customer-auth__section-title">{{ __('agricart.customer.auth.section_account') }}</h2>
                         <div class="ag-store-customer-auth__grid ag-store-customer-auth__grid--2">

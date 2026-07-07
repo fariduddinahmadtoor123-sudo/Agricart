@@ -3,13 +3,15 @@
 namespace App\Http\Controllers\Store;
 
 use App\Http\Controllers\Controller;
-use App\Services\Store\StoreLayoutService;
-use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 
 class RegisterController extends Controller
 {
-    public function show(StoreLayoutService $layout): View
+    /**
+     * Legacy storefront URL — online customers register via customer login.
+     */
+    public function show(): RedirectResponse
     {
-        return view('store.auth.register', $layout->layoutData());
+        return redirect()->route('store.customer.login', ['tab' => 'register']);
     }
 }

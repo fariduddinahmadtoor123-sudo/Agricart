@@ -87,7 +87,14 @@ class StoreProductService
         return Product::query()
             ->where('slug', $slug)
             ->where('status', 'active')
-            ->with(['brand', 'category', 'unit', 'packUnit', 'attributes'])
+            ->with([
+                'brand',
+                'category',
+                'unit',
+                'packUnit',
+                'attributes',
+                'controls' => fn ($query) => $query->where('status', 'active'),
+            ])
             ->first();
     }
 

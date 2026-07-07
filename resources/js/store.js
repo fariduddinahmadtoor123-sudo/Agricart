@@ -1,3 +1,5 @@
+import './password-toggle.js';
+
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-store-ticker]').forEach((root) => {
         const track = root.querySelector('[data-store-ticker-track]');
@@ -91,6 +93,31 @@ document.addEventListener('DOMContentLoaded', () => {
                     const active = item === thumb;
                     item.classList.toggle('is-active', active);
                     item.setAttribute('aria-pressed', active ? 'true' : 'false');
+                });
+            });
+        });
+    });
+
+    document.querySelectorAll('[data-store-pdp-tabs]').forEach((root) => {
+        const tabs = root.querySelectorAll('[data-store-pdp-tab]');
+        const panels = root.querySelectorAll('[data-store-pdp-panel]');
+
+        if (tabs.length === 0) {
+            return;
+        }
+
+        tabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                const key = tab.dataset.storePdpTab;
+
+                tabs.forEach((item) => {
+                    const active = item === tab;
+                    item.classList.toggle('is-active', active);
+                    item.setAttribute('aria-selected', active ? 'true' : 'false');
+                });
+
+                panels.forEach((panel) => {
+                    panel.classList.toggle('is-active', panel.dataset.storePdpPanel === key);
                 });
             });
         });

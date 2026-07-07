@@ -12,7 +12,7 @@ class PosSalesPage extends BaseModulePage
 {
     protected static ?string $cluster = SalesCluster::class;
 
-    protected static ?string $navigationLabel = 'POS';
+    protected static ?string $navigationLabel = 'Sales & POS';
 
     protected static ?int $navigationSort = 2;
 

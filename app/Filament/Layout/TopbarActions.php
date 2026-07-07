@@ -12,12 +12,32 @@ class TopbarActions
 {
     public static function purchaseUrl(): ?string
     {
-        return static::userCan('purchasing', 'view') ? PurchasesPage::getUrl() : null;
+        if (! static::userCan('purchasing', 'view')) {
+            return null;
+        }
+
+        $url = PurchasesPage::getUrl();
+
+        if (static::userCan('purchasing', 'create')) {
+            return static::withQuery($url, ['open' => 'purchase']);
+        }
+
+        return $url;
     }
 
     public static function posUrl(): ?string
     {
-        return static::userCan('sales', 'view') ? PosSalesPage::getUrl() : null;
+        if (! static::userCan('sales', 'view')) {
+            return null;
+        }
+
+        $url = PosSalesPage::getUrl();
+
+        if (static::userCan('sales', 'create')) {
+            return static::withQuery($url, ['open' => 'sale']);
+        }
+
+        return $url;
     }
 
     public static function showPurchaseButton(): bool
@@ -28,6 +48,16 @@ class TopbarActions
     public static function showPosButton(): bool
     {
         return static::posUrl() !== null;
+    }
+
+    public static function userCanQuickOpenPos(): bool
+    {
+        return static::userCan('sales', 'create');
+    }
+
+    public static function userCanQuickOpenPurchase(): bool
+    {
+        return static::userCan('purchasing', 'create');
     }
 
     public static function timezone(): string
@@ -75,5 +105,21 @@ class TopbarActions
         }
 
         return $user->hasPermission("{$module}.{$action}");
+    }
+
+    /**
+     * @param  array<string, scalar|null>  $params
+     */
+    protected static function withQuery(string $url, array $params): string
+    {
+        $params = array_filter($params, fn (mixed $value): bool => $value !== null && $value !== '');
+
+        if ($params === []) {
+            return $url;
+        }
+
+        $separator = str_contains($url, '?') ? '&' : '?';
+
+        return $url . $separator . http_build_query($params);
     }
 }

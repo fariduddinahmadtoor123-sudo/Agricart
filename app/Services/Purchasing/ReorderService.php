@@ -182,6 +182,46 @@ class ReorderService
         $this->fulfillQueueForProducts(array_values(array_unique($fulfilledProductIds)));
     }
 
+    public function reversePurchaseStock(Purchase $purchase): void
+    {
+        if (! in_array($purchase->delivery_status, [Purchase::DELIVERY_RECEIVED, Purchase::DELIVERY_PARTIAL], true)) {
+            return;
+        }
+
+        $purchase->loadMissing('items');
+
+        foreach ($purchase->items as $item) {
+            if ($item->product_id === null) {
+                continue;
+            }
+
+            $qty = $this->numericValue($item->purchase_qty);
+
+            if ($qty <= 0) {
+                continue;
+            }
+
+            $product = Product::query()->lockForUpdate()->find($item->product_id);
+
+            if ($product === null) {
+                continue;
+            }
+
+            $product->update([
+                'stock_qty' => max(0, round($this->numericStock($product) - $qty, 2)),
+            ]);
+        }
+    }
+
+    public function refreshPurchaseStock(Purchase $before, Purchase $after): void
+    {
+        $before->loadMissing('items');
+        $after->loadMissing('items');
+
+        $this->reversePurchaseStock($before);
+        $this->applyPurchaseStock($after);
+    }
+
     public function needsReorder(Product $product): bool
     {
         $required = $this->numericValue($product->required_qty);

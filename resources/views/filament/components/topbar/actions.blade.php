@@ -250,6 +250,9 @@
                 href="{{ TopbarActions::purchaseUrl() }}"
                 wire:navigate
                 class="agricart-topbar-actions__quick-btn agricart-topbar-actions__quick-btn--purchase"
+                @if (TopbarActions::userCanQuickOpenPurchase())
+                    x-on:click="sessionStorage.setItem('agricart-quick-form-open', 'purchase')"
+                @endif
             >
                 <x-filament::icon :icon="Heroicon::OutlinedShoppingCart" class="agricart-topbar-actions__quick-icon" />
                 <span>{{ __('agricart.topbar.purchase') }}</span>
@@ -261,6 +264,9 @@
                 href="{{ TopbarActions::posUrl() }}"
                 wire:navigate
                 class="agricart-topbar-actions__quick-btn agricart-topbar-actions__quick-btn--pos"
+                @if (TopbarActions::userCanQuickOpenPos())
+                    x-on:click="sessionStorage.setItem('agricart-quick-form-open', 'sale')"
+                @endif
             >
                 <x-filament::icon :icon="Heroicon::OutlinedCreditCard" class="agricart-topbar-actions__quick-icon" />
                 <span>{{ __('agricart.topbar.pos') }}</span>

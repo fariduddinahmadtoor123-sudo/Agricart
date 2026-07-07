@@ -133,12 +133,18 @@ class CustomerService
             return null;
         }
 
-        return Customer::query()
+        $candidates = Customer::query()
             ->when($exceptId !== null, fn ($query) => $query->where('id', '!=', $exceptId))
-            ->get()
-            ->first(function (Customer $customer) use ($needle): bool {
-                return in_array($needle, $this->customerPhoneKeys($customer), true);
-            });
+            ->where(function ($query) use ($needle): void {
+                $query->where('phone', 'like', '%' . $needle . '%')
+                    ->orWhere('contacts', 'like', '%' . $needle . '%');
+            })
+            ->limit(30)
+            ->get();
+
+        return $candidates->first(function (Customer $customer) use ($needle): bool {
+            return in_array($needle, $this->customerPhoneKeys($customer), true);
+        });
     }
 
     /**

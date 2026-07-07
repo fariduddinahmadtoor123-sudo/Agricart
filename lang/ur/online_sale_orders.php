@@ -1,0 +1,89 @@
+<?php
+
+return [
+    'actions' => [
+        'view_short' => 'دیکھیں',
+        'edit_short' => 'ترمیم',
+        'print' => 'محفوظ اور پرنٹ',
+        'print_short' => 'پرنٹ',
+    ],
+
+    'fields' => [
+        'order_number' => 'آرڈر نمبر',
+        'order_date' => 'آرڈر تاریخ',
+        'order_status' => 'آرڈر سٹیٹس',
+        'pos_invoice' => 'POS انوائس',
+        'customer_payment_method' => 'گاہک نے بتایا',
+        'customer_notes' => 'گاہک کے نوٹس',
+        'admin_notes' => 'ایڈمن نوٹس',
+        'subtotal' => 'ذیلی کل',
+        'total_amount' => 'کل رقم',
+        'balance_due' => 'باقی واجب',
+    ],
+
+    'sections' => [
+        'shipping' => 'ڈیلیوری',
+        'customer_payment' => 'ادائیگی (گاہک نے بتائی)',
+        'admin_payment' => 'ادائیگی کی تصدیق (ایڈمن)',
+    ],
+
+    'columns' => [
+        'product_name' => 'پروڈکٹ',
+        'brand' => 'برانڈ',
+        'quantity' => 'مقدار',
+        'unit_price' => 'یونٹ قیمت',
+        'line_total' => 'رقم',
+    ],
+
+    'order_statuses' => [
+        'pending' => 'ادائیگی کا انتظار',
+        'payment_received' => 'ادائیگی موصول',
+        'processing' => 'پروسیسنگ',
+        'converted' => 'سیل میں تبدیل',
+        'cancelled' => 'منسوخ',
+    ],
+
+    'filters' => [
+        'order' => 'آرڈر سٹیٹس',
+        'active_order_status' => 'سٹیٹس: :status',
+    ],
+
+    'hints' => [
+        'admin_notes' => 'اسٹاف کے لیے اندرونی نوٹس…',
+        'converted_locked' => 'یہ آرڈر مکمل POS سیل سے منسلک ہے — یہاں ترمیم نہیں ہو سکتی۔',
+    ],
+
+    'list' => [
+        'empty' => 'ابھی کوئی آن لائن آرڈر نہیں۔',
+        'empty_hint' => 'آرڈرز سٹور پر چیک آؤٹ سے بنیں گے۔ ٹیسٹ کے لیے: php artisan online-orders:demo',
+        'no_results' => 'تلاش یا فلٹر کے مطابق کوئی آرڈر نہیں۔',
+        'clear_filters' => 'فلٹر صاف کریں',
+        'col_number' => 'آرڈر #',
+        'col_customer' => 'گاہک',
+        'col_total' => 'کل',
+        'col_order_status' => 'آرڈر سٹیٹس',
+        'col_payment_status' => 'ادائیگی (تصدیق شدہ)',
+        'col_customer_payment' => 'گاہک کی ادائیگی',
+        'col_order_date' => 'آرڈر تاریخ',
+        'col_created' => 'وقت',
+        'col_actions' => 'عمل',
+    ],
+
+    'messages' => [
+        'updated' => 'آرڈر :number اپ ڈیٹ ہو گیا۔',
+        'save_failed' => 'آرڈر محفوظ نہیں ہو سکا۔',
+        'order_status_required' => 'آرڈر سٹیٹس منتخب کریں۔',
+    ],
+
+    'validation' => [
+        'items_required' => 'کم از کم ایک پروڈکٹ ضروری ہے۔',
+        'converted_locked' => 'یہ آرڈر پہلے ہی سیل میں تبدیل ہو چکا ہے۔',
+        'amount_paid_exceeds_total' => 'ادا شدہ رقم کل سے زیادہ نہیں ہو سکتی۔',
+    ],
+
+    'print' => [
+        'title' => 'آن لائن آرڈر',
+        'heading' => 'آن لائن سیل آرڈر',
+        'ship_to' => 'شپنگ پتہ',
+    ],
+];

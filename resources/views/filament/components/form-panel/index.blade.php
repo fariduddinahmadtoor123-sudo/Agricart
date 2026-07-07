@@ -1,4 +1,6 @@
 @php
+    use App\Filament\Clusters\Purchasing\PurchasesPage;
+    use App\Filament\Clusters\Sales\PosSalesPage;
     use App\Filament\Forms\CategoryForm;
     use Filament\Support\Icons\Heroicon;
 
@@ -11,6 +13,22 @@
         'maximize' => __('agricart.form_panel.maximize'),
         'close' => __('agricart.form_panel.close'),
         'restore' => __('agricart.form_panel.restore'),
+    ];
+    $quickFormOpenPaths = [
+        'sale' => parse_url(PosSalesPage::getUrl(), PHP_URL_PATH) ?: '',
+        'purchase' => parse_url(PurchasesPage::getUrl(), PHP_URL_PATH) ?: '',
+    ];
+    $quickFormOpenPanels = [
+        'sale' => [
+            'title' => __('pos.actions.add'),
+            'resource' => PosSalesPage::getNavigationLabel(),
+            'formKey' => 'sales',
+        ],
+        'purchase' => [
+            'title' => __('purchases.actions.add'),
+            'resource' => PurchasesPage::getNavigationLabel(),
+            'formKey' => 'purchases',
+        ],
     ];
 @endphp
 
@@ -52,6 +70,9 @@
         purchaseQuotationSaving: false,
         purchaseSaving: false,
         saleSaving: false,
+        saleQuotationSaving: false,
+        saleReturnSaving: false,
+        onlineOrderSaving: false,
         priceControlSaving: false,
         quantityControlSaving: false,
         secretCodingSaving: false,
@@ -249,6 +270,36 @@
                 }));
             }
 
+            if (this.formKey === 'sale-quotations') {
+                window.dispatchEvent(new CustomEvent('sale-quotation-form-open', {
+                    detail: {
+                        quotationId: detail.quotationId ?? null,
+                        mode: detail.mode ?? 'create',
+                    },
+                    bubbles: true,
+                }));
+            }
+
+            if (this.formKey === 'sale-returns') {
+                window.dispatchEvent(new CustomEvent('sale-return-form-open', {
+                    detail: {
+                        returnId: detail.returnId ?? null,
+                        mode: detail.mode ?? 'create',
+                    },
+                    bubbles: true,
+                }));
+            }
+
+            if (this.formKey === 'online-orders') {
+                window.dispatchEvent(new CustomEvent('online-order-form-open', {
+                    detail: {
+                        orderId: detail.orderId ?? null,
+                        mode: detail.mode ?? 'view',
+                    },
+                    bubbles: true,
+                }));
+            }
+
             if (this.formKey === 'price-controls') {
                 window.dispatchEvent(new CustomEvent('price-control-form-open', {
                     detail: {
@@ -281,7 +332,7 @@
 
             this.isOpen = true;
             this.minimized = false;
-            this.size = ['ai-settings', 'ai-log-detail', 'categories', 'brands', 'units', 'packing-units', 'attributes', 'controls', 'products', 'users', 'roles', 'company-profile', 'suppliers', 'customers', 'purchase-planning', 'purchase-payment-summary', 'purchase-quotations', 'purchases', 'sales', 'price-controls', 'quantity-controls', 'secret-coding'].includes(this.formKey) ? 'stretched' : 'normal';
+            this.size = ['ai-settings', 'ai-log-detail', 'categories', 'brands', 'units', 'packing-units', 'attributes', 'controls', 'products', 'users', 'roles', 'company-profile', 'suppliers', 'customers', 'purchase-planning', 'purchase-payment-summary', 'purchase-quotations', 'purchases', 'sales', 'sale-quotations', 'sale-returns', 'online-orders', 'price-controls', 'quantity-controls', 'secret-coding'].includes(this.formKey) ? 'stretched' : 'normal';
             document.body.classList.add('agricart-form-panel-open');
 
             if (this.formKey === 'ai-log-detail' && detail.logId) {
@@ -320,6 +371,9 @@
             this.purchaseQuotationSaving = false;
             this.purchaseSaving = false;
             this.saleSaving = false;
+            this.saleQuotationSaving = false;
+            this.saleReturnSaving = false;
+            this.onlineOrderSaving = false;
             this.priceControlSaving = false;
             this.quantityControlSaving = false;
             this.secretCodingSaving = false;
@@ -648,6 +702,48 @@
                 return;
             }
 
+            if (this.formKey === 'sale-quotations') {
+                if (key === 'cancel') {
+                    this.close();
+                    return;
+                }
+
+                window.dispatchEvent(new CustomEvent('sale-quotation-form-action', {
+                    detail: { action: key },
+                    bubbles: true,
+                }));
+
+                return;
+            }
+
+            if (this.formKey === 'sale-returns') {
+                if (key === 'cancel') {
+                    this.close();
+                    return;
+                }
+
+                window.dispatchEvent(new CustomEvent('sale-return-form-action', {
+                    detail: { action: key },
+                    bubbles: true,
+                }));
+
+                return;
+            }
+
+            if (this.formKey === 'online-orders') {
+                if (key === 'cancel') {
+                    this.close();
+                    return;
+                }
+
+                window.dispatchEvent(new CustomEvent('online-order-form-action', {
+                    detail: { action: key },
+                    bubbles: true,
+                }));
+
+                return;
+            }
+
             if (this.formKey === 'price-controls') {
                 if (key === 'cancel') {
                     this.close();
@@ -711,7 +807,7 @@
                 'agricart-form-panel--normal': this.size === 'normal',
                 'agricart-form-panel--stretched': this.size === 'stretched',
                 'agricart-form-panel--maximized': this.size === 'maximized',
-                'agricart-form-panel--wide': this.formKey === 'ai-settings' || this.formKey === 'ai-log-detail' || this.formKey === 'categories' || this.formKey === 'brands' || this.formKey === 'units' || this.formKey === 'packing-units' || this.formKey === 'attributes' || this.formKey === 'controls' || this.formKey === 'products' || this.formKey === 'users' || this.formKey === 'roles' || this.formKey === 'company-profile' || this.formKey === 'suppliers' || this.formKey === 'customers' || this.formKey === 'purchase-planning' || this.formKey === 'purchase-payment-summary' || this.formKey === 'purchase-quotations' || this.formKey === 'purchases' || this.formKey === 'sales' || this.formKey === 'price-controls' || this.formKey === 'quantity-controls' || this.formKey === 'secret-coding',
+                'agricart-form-panel--wide': this.formKey === 'ai-settings' || this.formKey === 'ai-log-detail' || this.formKey === 'categories' || this.formKey === 'brands' || this.formKey === 'units' || this.formKey === 'packing-units' || this.formKey === 'attributes' || this.formKey === 'controls' || this.formKey === 'products' || this.formKey === 'users' || this.formKey === 'roles' || this.formKey === 'company-profile' || this.formKey === 'suppliers' || this.formKey === 'customers' || this.formKey === 'purchase-planning' || this.formKey === 'purchase-payment-summary' || this.formKey === 'purchase-quotations' || this.formKey === 'purchases' || this.formKey === 'sales' || this.formKey === 'sale-quotations' || this.formKey === 'sale-returns' || this.formKey === 'online-orders' || this.formKey === 'price-controls' || this.formKey === 'quantity-controls' || this.formKey === 'secret-coding',
             };
         },
     }"
@@ -734,6 +830,9 @@
     x-on:purchase-quotation-form-busy.window="purchaseQuotationSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:purchase-form-busy.window="purchaseSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:sale-form-busy.window="saleSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
+    x-on:sale-quotation-form-busy.window="saleQuotationSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
+    x-on:sale-return-form-busy.window="saleReturnSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
+    x-on:online-order-form-busy.window="onlineOrderSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:price-control-form-busy.window="priceControlSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:quantity-control-form-busy.window="quantityControlSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:secret-coding-form-busy.window="secretCodingSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
@@ -760,7 +859,7 @@
                     <h2 class="agricart-form-panel__title" x-text="title"></h2>
                     <p
                         class="agricart-form-panel__subtitle"
-                        x-show="formKey !== 'products' && formKey !== 'users' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'customers' && formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'sales' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding' && resourceLabel"
+                        x-show="formKey !== 'products' && formKey !== 'users' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'customers' && formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'sales' && formKey !== 'sale-quotations' && formKey !== 'sale-returns' && formKey !== 'online-orders' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding' && resourceLabel"
                         x-text="resourceLabel"
                         x-cloak
                     ></p>
@@ -892,6 +991,18 @@
                         <livewire:sales.form />
                     </div>
 
+                    <div x-show="formKey === 'sale-quotations'" x-cloak>
+                        <livewire:sale-quotations.form />
+                    </div>
+
+                    <div x-show="formKey === 'sale-returns'" x-cloak>
+                        <livewire:sale-returns.form />
+                    </div>
+
+                    <div x-show="formKey === 'online-orders'" x-cloak>
+                        <livewire:online-sale-orders.form />
+                    </div>
+
                     <div x-show="formKey === 'price-controls'" x-cloak>
                         <livewire:price-controls.form />
                     </div>
@@ -904,7 +1015,7 @@
                         <livewire:secret-codings.form />
                     </div>
 
-                    <div x-show="formKey !== 'ai-settings' && formKey !== 'ai-log-detail' && formKey !== 'categories' && formKey !== 'brands' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls' && formKey !== 'products' && formKey !== 'users' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'customers' && formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'sales' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding'">
+                    <div x-show="formKey !== 'ai-settings' && formKey !== 'ai-log-detail' && formKey !== 'categories' && formKey !== 'brands' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls' && formKey !== 'products' && formKey !== 'users' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'customers' && formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'sales' && formKey !== 'sale-quotations' && formKey !== 'sale-returns' && formKey !== 'online-orders' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding'">
                         @include('filament.components.form-panel.sample-fields')
                     </div>
                 </div>
@@ -991,4 +1102,98 @@
             }));
         });
     });
+
+    (function () {
+        const quickOpenPaths = @json($quickFormOpenPaths);
+        const quickOpenPanels = @json($quickFormOpenPanels);
+        const storageKey = 'agricart-quick-form-open';
+
+        const normalizePath = (path) => {
+            if (typeof path !== 'string') {
+                return '';
+            }
+
+            const trimmed = path.replace(/\/+$/, '') || '/';
+
+            return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+        };
+
+        const currentPath = () => normalizePath(window.location.pathname);
+
+        const resolveQuickOpenKey = () => {
+            const fromStorage = sessionStorage.getItem(storageKey);
+
+            if (fromStorage && quickOpenPanels[fromStorage]) {
+                return fromStorage;
+            }
+
+            const open = new URLSearchParams(window.location.search).get('open');
+
+            if (open && quickOpenPanels[open]) {
+                return open;
+            }
+
+            return null;
+        };
+
+        const stripOpenQuery = () => {
+            const params = new URLSearchParams(window.location.search);
+
+            if (! params.has('open')) {
+                return;
+            }
+
+            params.delete('open');
+            const query = params.toString();
+            const next = window.location.pathname + (query ? `?${query}` : '');
+
+            window.history.replaceState({}, '', next);
+        };
+
+        const tryQuickFormOpen = () => {
+            const key = resolveQuickOpenKey();
+
+            if (! key) {
+                return;
+            }
+
+            const expectedPath = normalizePath(quickOpenPaths[key] ?? '');
+
+            if (expectedPath === '' || currentPath() !== expectedPath) {
+                return;
+            }
+
+            sessionStorage.removeItem(storageKey);
+            stripOpenQuery();
+
+            const panel = quickOpenPanels[key];
+
+            window.setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('open-form-panel', {
+                    detail: {
+                        title: panel.title,
+                        resource: panel.resource,
+                        formKey: panel.formKey,
+                        mode: 'create',
+                    },
+                }));
+            }, 120);
+        };
+
+        if (! window.__agricartQuickFormOpenBound) {
+            window.__agricartQuickFormOpenBound = true;
+            document.addEventListener('DOMContentLoaded', tryQuickFormOpen);
+            document.addEventListener('livewire:navigated', tryQuickFormOpen);
+        }
+
+        ['sales-open-print', 'sale-quotations-open-print', 'sale-returns-open-print', 'online-sale-orders-open-print'].forEach((eventName) => {
+            Livewire.on(eventName, (payload) => {
+                const url = payload?.url ?? payload?.[0]?.url;
+
+                if (url) {
+                    window.open(url, '_blank');
+                }
+            });
+        });
+    })();
 </script>

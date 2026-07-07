@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\Supplier;
+use App\Services\Catalog\ProductSearchQuery;
 use App\Services\PricingControls\ChannelPricingEngine;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
@@ -75,6 +76,8 @@ class PurchaseService
         unset($validated['items']);
 
         return DB::transaction(function () use ($purchase, $validated, $items, $vendorBill, $removeVendorBill): Purchase {
+            $before = Purchase::query()->with('items')->findOrFail($purchase->id);
+
             $validated = $this->applyTotals($validated, $items);
 
             if ($removeVendorBill && filled($purchase->vendor_bill_path)) {
@@ -99,6 +102,8 @@ class PurchaseService
             $fresh = $purchase->fresh(['items']);
             $this->applyChannelPricing($fresh);
 
+            app(ReorderService::class)->refreshPurchaseStock($before, $fresh);
+
             if (in_array($fresh->delivery_status, [Purchase::DELIVERY_RECEIVED, Purchase::DELIVERY_PARTIAL], true)) {
                 $productIds = $fresh->items->pluck('product_id')->filter()->map(fn ($id) => (int) $id)->all();
                 app(ReorderService::class)->fulfillQueueForProducts($productIds);
@@ -111,6 +116,8 @@ class PurchaseService
     public function delete(Purchase $purchase): void
     {
         DB::transaction(function () use ($purchase): void {
+            $purchase->load('items');
+            app(ReorderService::class)->reversePurchaseStock($purchase);
             $this->reverseSupplierLedger($purchase);
 
             if (filled($purchase->vendor_bill_path)) {
@@ -220,26 +227,13 @@ class PurchaseService
     {
         $term = trim($term);
 
-        if ($term === '') {
+        if ($term === '' || mb_strlen($term) < 2) {
             return [];
         }
 
-        $needle = '%' . $term . '%';
-
         $products = Product::query()
             ->where('status', 'active')
-            ->where(function ($query) use ($term, $needle): void {
-                $query->where('name_en', 'like', $needle)
-                    ->orWhere('name_ur', 'like', $needle)
-                    ->orWhere('code', 'like', $needle)
-                    ->orWhere('sku', $term)
-                    ->orWhere('label_code', $term)
-                    ->orWhere('label_code', 'like', $needle);
-
-                if (ctype_digit($term)) {
-                    $query->orWhere('id', (int) $term);
-                }
-            })
+            ->tap(fn ($query) => ProductSearchQuery::apply($query, $term))
             ->orderBy('name_en')
             ->limit($limit)
             ->get(['id', 'name_en', 'name_ur', 'image_path']);

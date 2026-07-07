@@ -1,0 +1,16 @@
+@extends('store.layouts.app')
+
+@section('title', __('agricart.storefront.checkout.success_title') . ' — ' . ($settings->localized('site_name') ?? config('app.name')))
+
+@section('content')
+    <div class="ag-store-checkout-success">
+        <h1 class="ag-store-page-title">{{ __('agricart.storefront.checkout.success_title') }}</h1>
+        <p class="ag-store-checkout-success__lead">{{ __('agricart.storefront.checkout.success_lead') }}</p>
+        <p class="ag-store-checkout-success__order">
+            {{ __('agricart.storefront.checkout.order_number') }}
+            <strong><code>{{ $orderNumber }}</code></strong>
+        </p>
+        <p class="ag-store-checkout-success__hint">{{ __('agricart.storefront.checkout.success_hint') }}</p>
+        <a href="{{ route('store.home') }}" class="ag-store-btn ag-store-btn--primary">{{ __('agricart.storefront.cart.continue_shopping') }}</a>
+    </div>
+@endsection

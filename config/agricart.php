@@ -28,4 +28,17 @@ return [
         ['id' => 'eid_ul_fitr', 'name_en' => 'Eid ul-Fitr', 'name_ur' => 'عید الفطر', 'keywords' => ['eid', 'fitr', 'عید', 'فطر']],
         ['id' => 'eid_ul_adha', 'name_en' => 'Eid ul-Adha', 'name_ur' => 'عید الاضحی', 'keywords' => ['eid', 'adha', 'azha', 'قربانی', 'عید']],
     ],
+    /*
+    |--------------------------------------------------------------------------
+    | Inventory
+    |--------------------------------------------------------------------------
+    |
+    | allow_overselling: when true, sales and online cart may reduce stock below
+    | zero (typical retail when purchase is recorded later). When false, POS and
+    | store checkout block lines that exceed on-hand quantity.
+    |
+    */
+    'inventory' => [
+        'allow_overselling' => filter_var(env('AGRICART_ALLOW_OVERSELLING', true), FILTER_VALIDATE_BOOL),
+    ],
 ];

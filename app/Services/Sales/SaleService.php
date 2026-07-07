@@ -71,7 +71,8 @@ class SaleService
             $this->syncItems($sale, $rows, $status);
 
             if ($status === Sale::STATUS_COMPLETED) {
-                $this->adjustStock($this->billableRows($rows));
+                $billable = $this->billableRows($rows);
+                $this->adjustStock($billable);
             }
 
             return $sale->fresh(['items', 'customer', 'cashier']);
@@ -100,7 +101,8 @@ class SaleService
             $this->syncItems($sale, $rows, $status);
 
             if ($status === Sale::STATUS_COMPLETED && $wasHeld) {
-                $this->adjustStock($this->billableRows($rows));
+                $billable = $this->billableRows($rows);
+                $this->adjustStock($billable);
             }
 
             return $sale->fresh(['items', 'customer', 'cashier']);
@@ -479,12 +481,25 @@ class SaleService
      */
     private function adjustStock(array $rows): void
     {
-        foreach ($rows as $row) {
-            $productId = (int) ($row['product_id'] ?? 0);
-            $qty = $this->numeric((string) ($row['quantity'] ?? '0'));
+        foreach ($this->aggregateStockDeltas($rows) as $productId => $qty) {
+            $product = Product::query()->lockForUpdate()->find($productId);
 
-            if ($productId <= 0 || $qty <= 0) {
+            if ($product === null) {
                 continue;
+            }
+
+            if (! $this->allowsOverselling() && $product->stock_qty !== null) {
+                $available = (float) $product->stock_qty;
+
+                if ($qty > $available + 0.0001) {
+                    throw ValidationException::withMessages([
+                        'rows' => [__('pos.validation.insufficient_stock', [
+                            'product' => (string) $product->name_en,
+                            'available' => $this->formatQty($available),
+                            'requested' => $this->formatQty($qty),
+                        ])],
+                    ]);
+                }
             }
 
             Product::query()->whereKey($productId)->decrement('stock_qty', $qty);
@@ -496,6 +511,25 @@ class SaleService
      */
     private function restoreStock(array $rows): void
     {
+        foreach ($this->aggregateStockDeltas($rows) as $productId => $qty) {
+            Product::query()->lockForUpdate()->find($productId);
+            Product::query()->whereKey($productId)->increment('stock_qty', $qty);
+        }
+    }
+
+    public function allowsOverselling(): bool
+    {
+        return (bool) config('agricart.inventory.allow_overselling', true);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     * @return array<int, float>
+     */
+    private function aggregateStockDeltas(array $rows): array
+    {
+        $byProduct = [];
+
         foreach ($rows as $row) {
             $productId = (int) ($row['product_id'] ?? 0);
             $qty = $this->numeric((string) ($row['quantity'] ?? '0'));
@@ -504,7 +538,11 @@ class SaleService
                 continue;
             }
 
-            Product::query()->whereKey($productId)->increment('stock_qty', $qty);
+            $byProduct[$productId] = ($byProduct[$productId] ?? 0.0) + $qty;
         }
+
+        ksort($byProduct);
+
+        return $byProduct;
     }
 }

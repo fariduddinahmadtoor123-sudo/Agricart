@@ -65,6 +65,17 @@ class CustomerAuth extends Component
             $this->statusMessage = $flash;
             $this->statusType = 'success';
         }
+
+        if (is_string($flash = session()->pull('store_status'))) {
+            $this->statusMessage = $flash;
+            $this->statusType = 'warning';
+        }
+
+        $redirect = request()->query('redirect');
+
+        if (is_string($redirect) && str_starts_with($redirect, '/') && ! str_starts_with($redirect, '//')) {
+            session()->put('url.intended', $redirect);
+        }
     }
 
     public function switchTab(string $tab): void
@@ -109,10 +120,14 @@ class CustomerAuth extends Component
 
             session()->regenerate();
 
-            $this->redirectIntended(route('store.home'), navigate: false);
+            $this->redirectToIntended(route('store.home'));
         } catch (ValidationException $exception) {
             $message = collect($exception->errors())->flatten()->first();
             $this->statusMessage = $message ?: __('agricart.customer.auth.login_failed');
+            $this->statusType = 'danger';
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->statusMessage = __('agricart.customer.auth.login_failed');
             $this->statusType = 'danger';
         } finally {
             $this->busy = false;
@@ -148,18 +163,26 @@ class CustomerAuth extends Component
                 'is_active' => true,
             ], true)) {
                 session()->flash('customer_auth_status', __('agricart.customer.auth.register_success_login'));
-                $this->redirect(route('store.customer.login'), navigate: false);
+                $redirect = request()->query('redirect');
+                $params = is_string($redirect) && str_starts_with($redirect, '/') && ! str_starts_with($redirect, '//')
+                    ? ['redirect' => $redirect]
+                    : [];
+                $this->redirect(route('store.customer.login', $params), navigate: false);
 
                 return;
             }
 
             session()->regenerate();
 
-            $this->redirect(route('store.home'), navigate: false);
+            $this->redirectToIntended(route('store.home'));
         } catch (ValidationException $exception) {
             $this->setErrorBag($exception->validator->getMessageBag());
             $message = collect($exception->errors())->flatten()->first();
             $this->statusMessage = $message ?: __('agricart.customer.auth.register_failed');
+            $this->statusType = 'danger';
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->statusMessage = __('agricart.customer.auth.register_failed');
             $this->statusType = 'danger';
         } finally {
             $this->busy = false;
@@ -171,5 +194,16 @@ class CustomerAuth extends Component
         return view('livewire.store.auth.customer-auth', [
             'provinces' => config('pakistani_provinces', []),
         ]);
+    }
+
+    protected function redirectToIntended(string $fallback): void
+    {
+        $url = session()->pull('url.intended', $fallback);
+
+        if (! is_string($url) || ! str_starts_with($url, '/') || str_starts_with($url, '//')) {
+            $url = $fallback;
+        }
+
+        $this->redirect($url, navigate: false);
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Livewire\Products;
 
 use App\Models\Product;
+use App\Services\Catalog\ProductSearchQuery;
 use App\Services\Catalog\ProductService;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
@@ -131,32 +132,7 @@ class ListProducts extends Component
         $products = Product::query()
             ->with(['brand', 'category'])
             ->when(filled($this->search), function ($query): void {
-                $term = trim($this->search);
-
-                if (! str_contains($term, ' ') && mb_strlen($term) >= 2) {
-                    $prefix = $term . '%';
-                    $query->where(function ($inner) use ($term, $prefix): void {
-                        $inner->where('code', $term)
-                            ->orWhere('sku', $term)
-                            ->orWhere('label_code', $term)
-                            ->orWhere('code', 'like', $prefix)
-                            ->orWhere('sku', 'like', $prefix)
-                            ->orWhere('label_code', 'like', $prefix)
-                            ->orWhere('name_en', 'like', $prefix)
-                            ->orWhere('name_ur', 'like', $prefix);
-                    });
-
-                    return;
-                }
-
-                $needle = '%' . $term . '%';
-                $query->where(function ($inner) use ($needle): void {
-                    $inner->where('name_en', 'like', $needle)
-                        ->orWhere('name_ur', 'like', $needle)
-                        ->orWhere('code', 'like', $needle)
-                        ->orWhere('label_code', 'like', $needle)
-                        ->orWhere('sku', 'like', $needle);
-                });
+                ProductSearchQuery::apply($query, trim($this->search));
             })
             ->when(filled($this->statusFilter), fn ($query) => $query->where('status', $this->statusFilter))
             ->latest('created_at')

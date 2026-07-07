@@ -72,6 +72,10 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::BODY_END,
                 fn (): View => view('filament.components.form-panel.index'),
             )
+            ->renderHook(
+                PanelsRenderHook::SCRIPTS_AFTER,
+                fn (): View => view('filament.components.agricart-scripts'),
+            )
             ->middleware([
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,

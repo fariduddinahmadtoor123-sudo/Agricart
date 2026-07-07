@@ -137,6 +137,7 @@ return [
         'products_required' => 'انوائس میں کم از کم ایک پروڈکٹ شامل کریں۔',
         'completed_locked' => 'مکمل سیل میں ترمیم نہیں ہو سکتی۔',
         'invalid_status' => 'انوائس کی حیثیت درست نہیں۔',
+        'insufficient_stock' => ':product کے لیے سٹاک ناکافی ہے (دستیاب :available، درخواست :requested)۔',
     ],
 
     'print' => [

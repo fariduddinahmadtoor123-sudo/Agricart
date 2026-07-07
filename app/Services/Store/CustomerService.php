@@ -3,7 +3,7 @@
 namespace App\Services\Store;
 
 use App\Models\Customer;
-use App\Services\Contacts\CustomerService;
+use App\Services\Contacts\CustomerService as ContactCustomerService;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -65,6 +65,7 @@ class CustomerService
 
         $validator = validator($data, $rules, [
             'terms_accepted.accepted' => __('agricart.customer.auth.terms_required'),
+            'email.unique' => __('agricart.customer.auth.email_exists'),
         ]);
 
         if ($validator->fails()) {
@@ -88,11 +89,11 @@ class CustomerService
 
         $validated['accepts_marketing'] = (bool) ($validated['accepts_marketing'] ?? false);
 
-        $existing = app(CustomerService::class)->findByPhone((string) $validated['phone']);
+        $existing = app(ContactCustomerService::class)->findByPhone((string) $validated['phone']);
 
         if ($existing !== null) {
             throw ValidationException::withMessages([
-                'phone' => [__('customers.validation.phone_duplicate', ['name' => $existing->displayLabel()])],
+                'phone' => [__('agricart.customer.auth.phone_exists')],
             ]);
         }
 
