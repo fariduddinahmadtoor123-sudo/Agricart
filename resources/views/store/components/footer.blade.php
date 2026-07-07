@@ -71,9 +71,9 @@
                                     </a>
                                 </li>
                             @endif
-                            @if ($settings->footer_show_register_link && filled($settings->register_url))
+                            @if ($settings->footer_show_register_link)
                                 <li>
-                                    <a href="{{ $settings->register_url }}" class="ag-store-footer__link">
+                                    <a href="{{ $settings->resolvedRegisterUrl() }}" class="ag-store-footer__link">
                                         {{ __('agricart.storefront.header.register') }}
                                     </a>
                                 </li>

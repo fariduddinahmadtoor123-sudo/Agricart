@@ -6,7 +6,7 @@ use App\Filament\Clusters\DashboardCluster;
 
 class DashboardSubNavigation extends ClusterSubNavigation
 {
-    protected static function clusterClass(): string
+    public static function clusterClass(): string
     {
         return DashboardCluster::class;
     }

@@ -3,15 +3,13 @@
 namespace App\Filament\Clusters\Settings;
 
 use App\Filament\Clusters\SettingsCluster;
-use App\Filament\Concerns\HasTranslatedNavigationLabel;
 use BackedEnum;
-use Filament\Pages\Page;
+use App\Filament\Pages\BaseModulePage;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 
-class AiLogsPage extends Page
+class AiLogsPage extends BaseModulePage
 {
-    use HasTranslatedNavigationLabel;
 
     protected static ?string $cluster = SettingsCluster::class;
 

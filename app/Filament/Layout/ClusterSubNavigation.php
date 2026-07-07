@@ -9,7 +9,12 @@ abstract class ClusterSubNavigation
     /**
      * @return class-string<\Filament\Clusters\Cluster>
      */
-    abstract protected static function clusterClass(): string;
+    abstract public static function clusterClass(): string;
+
+    public static function moduleKey(): string
+    {
+        return static::clusterClass()::$slug ?? '';
+    }
 
     abstract protected static function pathPrefix(): string;
 

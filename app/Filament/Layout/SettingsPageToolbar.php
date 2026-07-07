@@ -46,6 +46,34 @@ class SettingsPageToolbar extends ClusterPageToolbar
         }
 
         return match ($config['resourceSlug']) {
+            'users' => [
+                ...$config,
+                'addLabel' => static::userCanManageUsers() ? $config['addLabel'] : null,
+                'livewirePrefix' => 'users',
+                'columnDataAttr' => 'data-user-column',
+                'interactive' => true,
+                'filters' => [
+                    ['label' => __('agricart.form_panel.statuses.active'), 'value' => 'status:active'],
+                    ['label' => __('agricart.form_panel.statuses.inactive'), 'value' => 'status:inactive'],
+                ],
+                'columns' => [
+                    ['label' => __('agricart.users.list.col_user_number'), 'value' => 'user_number', 'visible' => true],
+                    ['label' => __('agricart.users.list.col_name'), 'value' => 'name', 'visible' => true],
+                    ['label' => __('agricart.users.list.col_email'), 'value' => 'email', 'visible' => true],
+                    ['label' => __('agricart.users.list.col_role'), 'value' => 'role', 'visible' => true],
+                    ['label' => __('agricart.users.list.col_status'), 'value' => 'status', 'visible' => true],
+                    ['label' => __('agricart.users.list.col_created'), 'value' => 'created_at', 'visible' => true],
+                ],
+                'formKey' => 'users',
+            ],
+            'permission' => [
+                ...$config,
+                'livewirePrefix' => 'roles',
+                'interactive' => false,
+                'addLabel' => static::userCanManageRoles() ? __('agricart.roles.actions.add') : null,
+                'formKey' => 'roles',
+                'searchPlaceholder' => __('agricart.roles.list.search'),
+            ],
             'ai-logs' => [
                 ...$config,
                 'addLabel' => null,
@@ -103,5 +131,21 @@ class SettingsPageToolbar extends ClusterPageToolbar
             ['label' => __('agricart.ai.logs.col_duration'), 'value' => 'duration_ms', 'visible' => true],
             ['label' => __('agricart.ai.logs.col_created'), 'value' => 'created_at', 'visible' => true],
         ];
+    }
+
+    protected static function userCanManageUsers(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof \App\Models\User
+            && ($user->isSuperAdmin() || $user->hasPermission('settings.users.manage'));
+    }
+
+    protected static function userCanManageRoles(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof \App\Models\User
+            && ($user->isSuperAdmin() || $user->hasPermission('settings.roles.manage'));
     }
 }

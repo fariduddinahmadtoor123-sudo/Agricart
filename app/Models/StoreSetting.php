@@ -180,4 +180,17 @@ class StoreSetting extends Model
 
         return $this->logo_path;
     }
+
+    public function resolvedRegisterUrl(): string
+    {
+        $url = $this->register_url;
+
+        if (! filled($url)) {
+            return route('auth.register');
+        }
+
+        return str_starts_with($url, 'http://') || str_starts_with($url, 'https://')
+            ? $url
+            : url($url);
+    }
 }

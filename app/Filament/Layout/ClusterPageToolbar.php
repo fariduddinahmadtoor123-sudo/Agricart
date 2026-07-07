@@ -2,6 +2,7 @@
 
 namespace App\Filament\Layout;
 
+use App\Models\User;
 use Illuminate\Support\Str;
 
 abstract class ClusterPageToolbar
@@ -43,9 +44,10 @@ abstract class ClusterPageToolbar
         $resourceLabel = $pageClass ? $pageClass::getNavigationLabel() : static::defaultResourceLabel();
         $resourceSlug = $pageClass ? ($pageClass::getSlug() ?? static::defaultResourceSlug()) : static::defaultResourceSlug();
         $isOverview = $pageClass === static::overviewPageClass() || $pageClass === null;
+        $canCreate = static::userCan('create');
 
         return [
-            'addLabel' => (! $isOverview && $pageClass)
+            'addLabel' => (! $isOverview && $pageClass && $canCreate)
                 ? __('agricart.toolbar.add', ['item' => $resourceLabel])
                 : null,
             'searchPlaceholder' => $isOverview
@@ -59,6 +61,32 @@ abstract class ClusterPageToolbar
         ];
     }
 
+    protected static function moduleKey(): string
+    {
+        return static::subNavigationClass()::moduleKey();
+    }
+
+    protected static function userCan(string $action): bool
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        $moduleKey = static::moduleKey();
+
+        if ($moduleKey === '') {
+            return false;
+        }
+
+        return $user->hasPermission("{$moduleKey}.{$action}");
+    }
+
     protected static function formKeyFor(string $resourceSlug): ?string
     {
         return match ($resourceSlug) {
@@ -70,6 +98,8 @@ abstract class ClusterPageToolbar
             'attributes' => 'attributes',
             'controls' => 'controls',
             'products' => 'products',
+            'users' => 'users',
+            'roles' => 'roles',
             default => null,
         };
     }

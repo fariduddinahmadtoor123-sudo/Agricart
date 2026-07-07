@@ -6,7 +6,7 @@ use App\Filament\Clusters\ServiceCluster;
 
 class ServiceSubNavigation extends ClusterSubNavigation
 {
-    protected static function clusterClass(): string
+    public static function clusterClass(): string
     {
         return ServiceCluster::class;
     }

@@ -29,7 +29,7 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login(\App\Filament\Auth\Login::class)
             ->brandName('Agricart')
             ->font('Arial, sans-serif', provider: LocalFontProvider::class)
             ->monoFont('Arial, sans-serif', provider: LocalFontProvider::class)
@@ -46,7 +46,9 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\Filament\Clusters')
-            ->homeUrl(fn (): string => DashboardOverviewPage::getUrl())
+            ->homeUrl(fn (): string => auth()->user() instanceof \App\Models\User
+                ? auth()->user()->defaultAdminHomeUrl()
+                : DashboardOverviewPage::getUrl())
             ->globalSearch(false)
             ->pages([])
             ->widgets([])
@@ -81,6 +83,7 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
                 \App\Http\Middleware\SetAgricartLocale::class,
+                \App\Http\Middleware\EagerLoadUserRole::class,
             ])
             ->authMiddleware([
                 Authenticate::class,

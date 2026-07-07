@@ -2,12 +2,14 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Concerns\ChecksAgricartPermissions;
 use App\Filament\Concerns\HasTranslatedNavigationLabel;
 use Filament\Pages\Page;
 use Illuminate\Contracts\Support\Htmlable;
 
 abstract class BasePlaceholderPage extends Page
 {
+    use ChecksAgricartPermissions;
     use HasTranslatedNavigationLabel;
 
     protected string $view = 'filament.pages.placeholder';

@@ -3,15 +3,13 @@
 namespace App\Filament\Clusters\Catalog;
 
 use App\Filament\Clusters\CatalogCluster;
-use App\Filament\Concerns\HasTranslatedNavigationLabel;
 use BackedEnum;
-use Filament\Pages\Page;
+use App\Filament\Pages\BaseModulePage;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 
-class BrandsPage extends Page
+class BrandsPage extends BaseModulePage
 {
-    use HasTranslatedNavigationLabel;
 
     protected static ?string $cluster = CatalogCluster::class;
 

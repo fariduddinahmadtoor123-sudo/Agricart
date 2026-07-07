@@ -12,7 +12,7 @@
 @endphp
 
 <div class="agricart-form-panel__footer-inner">
-    <div class="agricart-form-panel__progress" x-show="formKey !== 'categories' && formKey !== 'brands' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls' && formKey !== 'products'" x-cloak>
+    <div class="agricart-form-panel__progress" x-show="formKey !== 'categories' && formKey !== 'brands' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls' && formKey !== 'products' && formKey !== 'users' && formKey !== 'roles'" x-cloak>
         <div class="agricart-form-panel__progress-meta">
             <span
                 class="agricart-form-panel__progress-label"
@@ -80,6 +80,8 @@
                     tag="button"
                     type="button"
                     class="agricart-form-panel__action-btn agricart-form-panel__action-btn--ai"
+                    x-show="!['users', 'roles'].includes(formKey)"
+                    x-cloak
                     x-bind:class="{ 'is-loading': (formKey === 'categories' && categoryAiEnriching) || (formKey === 'brands' && brandAiEnriching) || (formKey === 'units' && unitAiEnriching) || (formKey === 'packing-units' && packingUnitAiEnriching) || (formKey === 'attributes' && attributeAiEnriching) || (formKey === 'controls' && controlAiEnriching) || (formKey === 'products' && productAiEnriching) }"
                     x-bind:disabled="(formKey === 'categories' && categoryAiEnriching) || (formKey === 'brands' && brandAiEnriching) || (formKey === 'units' && unitAiEnriching) || (formKey === 'packing-units' && packingUnitAiEnriching) || (formKey === 'attributes' && attributeAiEnriching) || (formKey === 'controls' && controlAiEnriching) || (formKey === 'products' && productAiEnriching)"
                     x-bind:aria-busy="(formKey === 'categories' && categoryAiEnriching) || (formKey === 'brands' && brandAiEnriching) || (formKey === 'units' && unitAiEnriching) || (formKey === 'packing-units' && packingUnitAiEnriching) || (formKey === 'attributes' && attributeAiEnriching) || (formKey === 'controls' && controlAiEnriching) || (formKey === 'products' && productAiEnriching) ? 'true' : 'false'"

@@ -6,7 +6,7 @@ use App\Filament\Clusters\SettingsCluster;
 
 class SettingsSubNavigation extends ClusterSubNavigation
 {
-    protected static function clusterClass(): string
+    public static function clusterClass(): string
     {
         return SettingsCluster::class;
     }

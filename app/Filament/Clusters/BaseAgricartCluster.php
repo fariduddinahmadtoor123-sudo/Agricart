@@ -2,6 +2,7 @@
 
 namespace App\Filament\Clusters;
 
+use App\Models\User;
 use App\Support\AgricartTranslator;
 use Filament\Clusters\Cluster;
 use Illuminate\Contracts\Support\Htmlable;
@@ -9,6 +10,27 @@ use Illuminate\Contracts\Support\Htmlable;
 abstract class BaseAgricartCluster extends Cluster
 {
     protected static bool $shouldRegisterSubNavigation = false;
+
+    public static function canAccess(): bool
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User || ! $user->canUseAdmin()) {
+            return false;
+        }
+
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        $slug = static::$slug ?? null;
+
+        if (! filled($slug)) {
+            return false;
+        }
+
+        return $user->hasPermission("{$slug}.view");
+    }
 
     public static function getNavigationLabel(): string
     {

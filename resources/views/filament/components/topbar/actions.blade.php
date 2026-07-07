@@ -245,23 +245,27 @@
             ></time>
         </div>
 
-        <a
-            href="{{ TopbarActions::purchaseUrl() }}"
-            wire:navigate
-            class="agricart-topbar-actions__quick-btn agricart-topbar-actions__quick-btn--purchase"
-        >
-            <x-filament::icon :icon="Heroicon::OutlinedShoppingCart" class="agricart-topbar-actions__quick-icon" />
-            <span>{{ __('agricart.topbar.purchase') }}</span>
-        </a>
+        @if (TopbarActions::showPurchaseButton())
+            <a
+                href="{{ TopbarActions::purchaseUrl() }}"
+                wire:navigate
+                class="agricart-topbar-actions__quick-btn agricart-topbar-actions__quick-btn--purchase"
+            >
+                <x-filament::icon :icon="Heroicon::OutlinedShoppingCart" class="agricart-topbar-actions__quick-icon" />
+                <span>{{ __('agricart.topbar.purchase') }}</span>
+            </a>
+        @endif
 
-        <a
-            href="{{ TopbarActions::posUrl() }}"
-            wire:navigate
-            class="agricart-topbar-actions__quick-btn agricart-topbar-actions__quick-btn--pos"
-        >
-            <x-filament::icon :icon="Heroicon::OutlinedCreditCard" class="agricart-topbar-actions__quick-icon" />
-            <span>{{ __('agricart.topbar.pos') }}</span>
-        </a>
+        @if (TopbarActions::showPosButton())
+            <a
+                href="{{ TopbarActions::posUrl() }}"
+                wire:navigate
+                class="agricart-topbar-actions__quick-btn agricart-topbar-actions__quick-btn--pos"
+            >
+                <x-filament::icon :icon="Heroicon::OutlinedCreditCard" class="agricart-topbar-actions__quick-icon" />
+                <span>{{ __('agricart.topbar.pos') }}</span>
+            </a>
+        @endif
 
         <div class="agricart-topbar-actions__lang" role="group" aria-label="{{ __('agricart.topbar.language') }}">
             <button

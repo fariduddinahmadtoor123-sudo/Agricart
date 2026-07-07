@@ -6,7 +6,7 @@ use App\Filament\Clusters\FinanceCluster;
 
 class FinanceSubNavigation extends ClusterSubNavigation
 {
-    protected static function clusterClass(): string
+    public static function clusterClass(): string
     {
         return FinanceCluster::class;
     }

@@ -11,7 +11,7 @@ class CatalogSubNavigation extends ClusterSubNavigation
         return static::isModulePath($path);
     }
 
-    protected static function clusterClass(): string
+    public static function clusterClass(): string
     {
         return CatalogCluster::class;
     }

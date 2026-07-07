@@ -4,6 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', $settings->localized('site_name') ?? config('app.name'))</title>
+    @livewireStyles
     @vite(['resources/css/app.css', 'resources/css/store/theme.css', 'resources/js/store.js'])
 </head>
 <body class="ag-store">
@@ -35,6 +36,8 @@
 
     @include('store.components.whatsapp-float')
 
+    @livewireScriptConfig
+    @livewireScripts
     @stack('scripts')
 </body>
 </html>

@@ -6,7 +6,7 @@ use App\Filament\Clusters\StoreCluster;
 
 class StoreSubNavigation extends ClusterSubNavigation
 {
-    protected static function clusterClass(): string
+    public static function clusterClass(): string
     {
         return StoreCluster::class;
     }

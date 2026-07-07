@@ -40,7 +40,7 @@ class HeaderSettings extends BaseStoreSettings
 
     public string $login_url = '/admin/login';
 
-    public string $register_url = '';
+    public string $register_url = '/register';
 
     public bool $show_cart = true;
 

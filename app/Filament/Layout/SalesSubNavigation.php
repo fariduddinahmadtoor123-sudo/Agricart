@@ -6,7 +6,7 @@ use App\Filament\Clusters\SalesCluster;
 
 class SalesSubNavigation extends ClusterSubNavigation
 {
-    protected static function clusterClass(): string
+    public static function clusterClass(): string
     {
         return SalesCluster::class;
     }

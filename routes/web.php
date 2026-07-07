@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware([SetAgricartLocale::class])->group(function (): void {
     Route::get('/', [HomeController::class, 'index'])->name('store.home');
+    Route::get('/register', [\App\Http\Controllers\Store\RegisterController::class, 'show'])->name('auth.register');
     Route::get('/search', [SearchController::class, 'index'])->name('store.search');
     Route::get('/page/{slug}', [PageController::class, 'show'])->name('store.page');
     Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('store.category');

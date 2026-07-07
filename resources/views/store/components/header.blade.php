@@ -38,10 +38,8 @@
 
                 @if ($settings->show_auth_links)
                     <div class="ag-store-header__auth">
-                        <a href="{{ $settings->login_url }}" class="ag-store-header__auth-link">{{ __('agricart.storefront.header.login') }}</a>
-                        @if (filled($settings->register_url))
-                            <a href="{{ $settings->register_url }}" class="ag-store-header__auth-link ag-store-header__auth-link--primary">{{ __('agricart.storefront.header.register') }}</a>
-                        @endif
+                        <a href="{{ $settings->login_url ?: url('/admin/login') }}" class="ag-store-header__auth-link">{{ __('agricart.storefront.header.login') }}</a>
+                        <a href="{{ $settings->resolvedRegisterUrl() }}" class="ag-store-header__auth-link ag-store-header__auth-link--primary">{{ __('agricart.storefront.header.register') }}</a>
                     </div>
                 @endif
 

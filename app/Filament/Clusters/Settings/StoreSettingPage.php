@@ -5,10 +5,10 @@ namespace App\Filament\Clusters\Settings;
 use App\Filament\Clusters\SettingsCluster;
 use App\Filament\Clusters\Store\OverviewPage;
 use BackedEnum;
-use Filament\Pages\Page;
+use App\Filament\Pages\BaseModulePage;
 use Filament\Support\Icons\Heroicon;
 
-class StoreSettingPage extends Page
+class StoreSettingPage extends BaseModulePage
 {
     protected static ?string $cluster = SettingsCluster::class;
 

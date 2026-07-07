@@ -6,7 +6,7 @@ use App\Filament\Clusters\PurchasingCluster;
 
 class PurchasingSubNavigation extends ClusterSubNavigation
 {
-    protected static function clusterClass(): string
+    public static function clusterClass(): string
     {
         return PurchasingCluster::class;
     }

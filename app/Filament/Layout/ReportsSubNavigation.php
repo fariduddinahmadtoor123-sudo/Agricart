@@ -6,7 +6,7 @@ use App\Filament\Clusters\ReportsCluster;
 
 class ReportsSubNavigation extends ClusterSubNavigation
 {
-    protected static function clusterClass(): string
+    public static function clusterClass(): string
     {
         return ReportsCluster::class;
     }

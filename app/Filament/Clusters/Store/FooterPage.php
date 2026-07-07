@@ -3,15 +3,13 @@
 namespace App\Filament\Clusters\Store;
 
 use App\Filament\Clusters\StoreCluster;
-use App\Filament\Concerns\HasTranslatedNavigationLabel;
 use BackedEnum;
-use Filament\Pages\Page;
+use App\Filament\Pages\BaseModulePage;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 
-class FooterPage extends Page
+class FooterPage extends BaseModulePage
 {
-    use HasTranslatedNavigationLabel;
 
     protected static ?string $cluster = StoreCluster::class;
 

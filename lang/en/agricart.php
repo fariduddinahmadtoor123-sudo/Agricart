@@ -6,6 +6,25 @@ return [
         'message' => 'This section is a placeholder. Content will be added in a future phase.',
     ],
 
+    'access' => [
+        'denied' => 'You do not have permission to perform this action.',
+    ],
+
+    'auth' => [
+        'register_title' => 'Staff Registration',
+        'register_lead' => 'Submit your details. An administrator will review your application before you can sign in.',
+        'register_submit' => 'Submit Application',
+        'register_saving' => 'Submitting…',
+        'register_success_title' => 'Application Submitted',
+        'register_success_text' => 'Your account is under approval. You will be able to sign in after an administrator approves your application.',
+        'register_failed' => 'Could not submit your application. Please check the form and try again.',
+        'pending' => 'Your account is under approval. Please wait until an administrator approves it.',
+        'rejected' => 'Your registration was not approved. Please contact the administrator.',
+        'inactive' => 'Your account is inactive. Please contact the administrator.',
+        'no_role' => 'Your account is active but no role has been assigned yet.',
+        'login_link' => 'Already registered? Sign in',
+    ],
+
     'modules' => [
         'dashboard' => 'Dashboard',
         'approvals' => 'Approvals',
@@ -802,6 +821,134 @@ return [
         ],
     ],
 
+    'users' => [
+        'fields' => [
+            'user_number' => 'User Number',
+            'name' => 'Name',
+            'role' => 'Role',
+            'email' => 'Email',
+            'address' => 'Address',
+            'password' => 'Password',
+            'password_confirm' => 'Confirm Password',
+            'contact_person' => 'Contact Person',
+            'phone_number' => 'Phone Number',
+            'bank_name' => 'Bank Name',
+            'account_title' => 'Account Title',
+            'account_number' => 'IBAN / Account Number',
+            'profile_photo' => 'Profile Photo',
+            'cnic_front' => 'CNIC Front',
+            'cnic_back' => 'CNIC Back',
+        ],
+        'sections' => [
+            'phones' => 'Phone Numbers',
+            'bank_accounts' => 'Bank Accounts',
+            'documents' => 'Documents',
+        ],
+        'hints' => [
+            'auto_on_save' => 'Auto generated on save',
+            'select_role' => 'Select an option',
+            'contact_person' => 'Contact person name',
+            'phone_number' => 'Phone number',
+            'bank_search' => 'Search Pakistani bank…',
+            'iban_or_account' => 'IBAN or account number',
+            'choose_file' => 'No file chosen',
+        ],
+        'actions' => [
+            'add' => 'Add User',
+            'edit' => 'Edit :name',
+            'edit_short' => 'Edit',
+            'remove' => 'Remove',
+            'add_phone' => 'Add phone',
+            'add_bank' => 'Add bank account',
+        ],
+        'messages' => [
+            'created' => 'User ":name" has been saved.',
+            'updated' => 'User ":name" has been updated.',
+            'save_failed' => 'Could not save the user. Please check the form and try again.',
+        ],
+        'statuses' => [
+            'pending' => 'Pending approval',
+            'active' => 'Active',
+            'inactive' => 'Inactive',
+            'rejected' => 'Rejected',
+        ],
+        'list' => [
+            'empty' => 'No users yet. Click Add User to create the first account.',
+            'col_user_number' => 'User #',
+            'col_name' => 'Name',
+            'col_email' => 'Email',
+            'col_role' => 'Role',
+            'col_status' => 'Status',
+            'col_created' => 'Created',
+            'col_actions' => 'Actions',
+        ],
+    ],
+
+    'approvals' => [
+        'staff' => [
+            'list' => [
+                'empty' => 'No staff applications in this filter.',
+                'col_actions' => 'Actions',
+            ],
+            'actions' => [
+                'approve' => 'Approve',
+                'reject' => 'Reject',
+                'approve_title' => 'Approve staff application',
+                'approve_hint' => 'Assign a role, then confirm approval. The user can sign in after approval.',
+                'confirm_approve' => 'Confirm approval',
+                'cancel' => 'Cancel',
+            ],
+            'messages' => [
+                'approved' => '":name" has been approved and can now sign in.',
+                'rejected' => '":name" has been rejected.',
+                'approve_failed' => 'Could not approve this application.',
+                'reject_failed' => 'Could not reject this application.',
+                'reject_confirm' => 'Reject application for ":name"?',
+                'not_pending' => 'This application is no longer pending.',
+                'role_required' => 'Please select a role before approval.',
+            ],
+        ],
+    ],
+
+    'roles' => [
+        'fields' => [
+            'name' => 'Role Name',
+            'description' => 'Description',
+        ],
+        'sections' => [
+            'permissions' => 'Permissions',
+        ],
+        'hints' => [
+            'permissions' => 'Enable or disable module access for this role.',
+            'super_admin_locked' => 'Super Admin has full access and cannot be edited.',
+        ],
+        'actions' => [
+            'add' => 'Add Role',
+            'edit' => 'Edit :name',
+            'edit_short' => 'Edit',
+            'view' => 'View',
+            'delete_short' => 'Delete',
+        ],
+        'messages' => [
+            'created' => 'Role ":name" has been created.',
+            'updated' => 'Role ":name" has been updated.',
+            'save_failed' => 'Could not save the role. Please check the form and try again.',
+            'system_locked' => 'System roles cannot be modified.',
+            'delete_confirm' => 'Delete role ":name"? This cannot be undone.',
+            'in_use' => 'This role is assigned to users and cannot be deleted.',
+        ],
+        'list' => [
+            'empty' => 'No roles yet.',
+            'search' => 'Search roles…',
+            'col_name' => 'Role',
+            'col_permissions' => 'Permissions',
+            'col_type' => 'Type',
+            'col_actions' => 'Actions',
+            'system' => 'System',
+            'custom' => 'Custom',
+        ],
+    ],
+
     'labels' => [
         'list' => [
             'empty' => 'No product labels yet. Add a product to generate printable barcode stickers.',
@@ -817,6 +964,9 @@ return [
     'storefront' => [
         'home' => [
             'title' => 'Home',
+            'staff_cta_title' => 'Join our team',
+            'staff_cta_text' => 'Apply for staff access. Your application will be reviewed by our administrators.',
+            'staff_cta_button' => 'Register as staff',
         ],
         'search' => [
             'title' => 'Search',
