@@ -5959,87 +5959,231 @@ body.agricart-form-panel-open {
     }
 }
 
-.agricart-payment-summary-form__section {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.agricart-payment-summary-form__section-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+.agricart-payment-summary-form {
     gap: 0.75rem;
 }
 
-.agricart-payment-summary-form__section-head h3 {
-    margin: 0;
-    font-size: 0.9rem;
-    font-weight: 700;
-}
-
-.agricart-payment-summary-form__table-wrap {
-    overflow-x: auto;
-    border: 1px solid color-mix(in srgb, var(--gray-300) 80%, transparent);
-    border-radius: 0.5rem;
-}
-
-.agricart-payment-summary-form__table {
+.agricart-payment-summary-form .agricart-purchase-form__banner.agricart-payment-summary-form__banner {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
     width: 100%;
-    border-collapse: collapse;
-    font-size: 0.78rem;
+    padding: 0.55rem 0.75rem;
+    gap: 0.4rem;
 }
 
-.agricart-payment-summary-form__table th,
-.agricart-payment-summary-form__table td {
-    border-bottom: 1px solid color-mix(in srgb, var(--gray-200) 90%, transparent);
-    padding: 0.4rem 0.45rem;
-    vertical-align: top;
+.agricart-payment-summary-form__meta-row {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.35rem;
+    width: 100%;
 }
 
-.agricart-payment-summary-form__table th {
-    background: color-mix(in srgb, var(--gray-100) 80%, white);
+.agricart-payment-summary-form__meta-chip {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+    padding: 0.3rem 0.45rem;
+    border-radius: 0.4rem;
+    border: 1px solid color-mix(in srgb, var(--gray-300) 90%, transparent);
+    background: #fff;
+    font-size: 0.7rem;
+}
+
+.agricart-payment-summary-form__meta-label {
+    color: var(--gray-500);
+    font-size: 0.64rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.agricart-payment-summary-form__meta-value {
+    font-size: 0.72rem;
     font-weight: 700;
-    text-align: start;
-    white-space: nowrap;
+    line-height: 1.2;
 }
 
-.agricart-payment-summary-form__table tbody tr:last-child td {
-    border-bottom: none;
+.agricart-payment-summary-form__meta-input {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: inherit;
+    width: 100%;
+    min-width: 0;
 }
 
-.agricart-payment-summary-form__supplier {
-    min-width: 10rem;
+.agricart-payment-summary-form__store-block {
+    width: 100%;
+    padding-top: 0.35rem;
+    border-top: 1px solid color-mix(in srgb, #83B735 18%, var(--gray-200));
 }
 
-.agricart-payment-summary-form__supplier .agricart-planning-form__input + .agricart-planning-form__input {
-    margin-top: 0.35rem;
+.agricart-payment-summary-form__banner {
+    align-items: stretch;
 }
 
-.agricart-payment-summary-form__address {
-    min-width: 8rem;
+.agricart-payment-summary-form__store-name {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.25;
+    color: #111827;
+}
+
+.agricart-payment-summary-form__store-meta {
+    margin: 0.2rem 0 0;
+    font-size: 0.72rem;
+    line-height: 1.35;
+    color: #4b5563;
+}
+
+@media (max-width: 900px) {
+    .agricart-payment-summary-form__meta-row {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .agricart-payment-summary-form__meta-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.agricart-payment-summary-form__notes {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    width: 100%;
+}
+
+.agricart-payment-summary-form__notes-input {
+    width: 100%;
+    min-height: 4.5rem;
+    resize: vertical;
+    border: 1px solid color-mix(in srgb, var(--gray-300) 90%, transparent);
+    border-radius: 0.45rem;
+    padding: 0.45rem 0.55rem;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    background: #fff;
+}
+
+.agricart-payment-summary-form__icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid color-mix(in srgb, #83B735 55%, white);
+    border-radius: 0.45rem;
+    background: color-mix(in srgb, #83B735 10%, white);
+    color: #4d7c0f;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.agricart-payment-summary-form__icon-btn.is-muted {
+    border-color: color-mix(in srgb, var(--gray-300) 80%, transparent);
+    background: #fff;
+    color: #6b7280;
+}
+
+.agricart-payment-summary-form__icon {
+    width: 1rem;
+    height: 1rem;
+}
+
+.agricart-payment-summary-form__empty {
+    margin: 0;
+    padding: 0.75rem;
+    border: 1px dashed color-mix(in srgb, var(--gray-300) 80%, transparent);
+    border-radius: 0.5rem;
+    font-size: 0.78rem;
+    color: #6b7280;
+    text-align: center;
+}
+
+.agricart-payment-summary-form__grid .agricart-payment-summary-form__party {
+    text-align: start !important;
+    min-width: 11rem;
+    max-width: 16rem;
+}
+
+.agricart-payment-summary-form__party-name {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.agricart-payment-summary-form__party-meta {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.62rem;
+    line-height: 1.3;
+    color: #6b7280;
+}
+
+.agricart-payment-summary-form__party-input {
+    text-align: start !important;
+    min-width: 9rem;
 }
 
 .agricart-payment-summary-form__check {
-    text-align: center;
-    width: 3rem;
+    width: 0.95rem;
+    height: 0.95rem;
+    margin: 0 auto;
 }
 
-.agricart-payment-summary-form__sources {
+.agricart-payment-summary-form__sources-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-top: 0.25rem;
+}
+
+.agricart-payment-summary-form__sources-header {
     display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr) 2.25rem;
     gap: 0.5rem;
+    margin-bottom: 0.1rem;
+}
+
+.agricart-payment-summary-form__sources-header .agricart-form-panel__label {
+    margin-bottom: 0;
+    font-size: 0.72rem;
+}
+
+.agricart-payment-summary-form__sources-header-spacer {
+    width: 2.25rem;
 }
 
 .agricart-payment-summary-form__source-row {
     display: grid;
-    grid-template-columns: 1.4fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 0.85fr) 2.25rem;
     gap: 0.5rem;
+    align-items: center;
 }
 
-@media (max-width: 700px) {
-    .agricart-payment-summary-form__source-row {
-        grid-template-columns: 1fr;
-    }
+.agricart-payment-summary-form__source-input {
+    font-size: 0.78rem;
+    padding: 0.35rem 0.45rem;
+    min-height: 2.25rem;
+}
+
+.agricart-payment-summary-form__source-actions {
+    display: flex;
+    gap: 0.25rem;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.agricart-payment-summary-form__totals {
+    margin-top: 0;
 }
 
 .agricart-purchase-form {

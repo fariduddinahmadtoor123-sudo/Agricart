@@ -3,7 +3,8 @@
 return [
     'actions' => [
         'add' => 'Add Purchase Payment Summary',
-        'add_manual' => 'Add manual row',
+        'add_manual' => 'Add manual party',
+        'add_source' => 'Add payment source',
         'edit' => 'Edit :number',
         'view' => 'View :number',
         'edit_short' => 'Edit',
@@ -22,12 +23,16 @@ return [
         'locale' => 'Sheet Language',
         'notes' => 'Notes',
         'supplier' => 'Supplier',
+        'supplier_search' => 'Search supplier',
         'phone' => 'Phone',
         'address' => 'Address',
         'payment_amount' => 'Payment',
         'line_status' => 'Status',
         'source_label' => 'Payment source',
         'source_amount' => 'Amount received',
+        'purchaser' => 'Purchaser',
+        'created_by' => 'Created by',
+        'printed_by' => 'Printed by',
     ],
 
     'sections' => [
@@ -47,15 +52,18 @@ return [
 
     'hints' => [
         'auto_on_save' => 'Auto generated on save',
+        'select_purchaser' => 'Select purchaser',
         'notes' => 'Optional note for this summary sheet',
-        'manual_row' => 'Use manual rows for expenses or parties not in suppliers list.',
-        'sources' => 'Enter up to three sources (cash, bank, purchaser pocket, etc.).',
+        'manual_row' => 'Use the plus button for expenses or parties not in the suppliers list.',
+        'supplier_search' => 'Search and select a supplier to add a row',
+        'manual_name' => 'Party / expense name',
+        'sources' => 'Add payment sources with amounts (up to five).',
         'supplier_readonly' => 'Supplier details are read-only here.',
     ],
 
     'paper_sizes' => [
         'a4' => 'A4',
-        'a5' => 'A5',
+        'receipt' => 'Roll / Receipt',
     ],
 
     'filters' => [
@@ -63,6 +71,7 @@ return [
     ],
 
     'columns' => [
+        'sr' => 'Sr',
         'supplier' => 'Supplier / Party',
         'payment' => 'Payment',
         'ok' => 'OK',
@@ -70,7 +79,13 @@ return [
     ],
 
     'form' => [
-        'empty' => 'No suppliers found. Add suppliers first or use manual rows.',
+        'empty' => 'Search a supplier above or use + for a manual party.',
+    ],
+
+    'totals' => [
+        'supplier_payments' => 'Total paid to suppliers',
+        'source_payments' => 'Total payment received',
+        'balance' => 'Balance / remaining',
     ],
 
     'list' => [
@@ -88,6 +103,7 @@ return [
         'created' => 'Payment summary :number saved.',
         'updated' => 'Payment summary :number updated.',
         'save_failed' => 'Could not save payment summary. Please check the form and try again.',
+        'supplier_exists' => 'This supplier is already in the list.',
     ],
 
     'validation' => [
@@ -103,6 +119,8 @@ return [
         'close_button' => 'Close',
         'sources_heading' => 'Payments received from',
         'total_payments' => 'Total paid to suppliers',
+        'total_sources' => 'Total payment received',
+        'balance' => 'Balance / remaining',
         'notes' => 'Notes',
     ],
 ];

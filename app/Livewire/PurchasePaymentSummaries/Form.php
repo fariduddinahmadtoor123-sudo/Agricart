@@ -2,9 +2,11 @@
 
 namespace App\Livewire\PurchasePaymentSummaries;
 
+use App\Models\CompanyProfile;
 use App\Models\PurchasePaymentSummary;
 use App\Models\User;
 use App\Services\Purchasing\PurchasePaymentSummaryService;
+use App\Services\Purchasing\PurchaseService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
@@ -24,7 +26,11 @@ class Form extends Component
 
     public string $locale = 'en';
 
+    public ?int $purchaser_id = null;
+
     public string $notes = '';
+
+    public string $supplier_search = '';
 
     /** @var list<array<string, mixed>> */
     public array $rows = [];
@@ -65,6 +71,36 @@ class Form extends Component
         $this->dispatchBusyState();
     }
 
+    public function updatedSupplierSearch(): void
+    {
+        $this->supplier_search = trim($this->supplier_search);
+    }
+
+    public function addSupplier(int $supplierId): void
+    {
+        if ($this->isReadonly()) {
+            return;
+        }
+
+        $service = app(PurchasePaymentSummaryService::class);
+
+        if ($service->supplierAlreadyInRows($this->rows, $supplierId)) {
+            $this->setStatus(__('purchase_payment_summary.messages.supplier_exists'), 'error');
+
+            return;
+        }
+
+        $row = $service->rowFromSupplierId($supplierId);
+
+        if ($row === null) {
+            return;
+        }
+
+        $this->rows[] = $row;
+        $this->supplier_search = '';
+        $this->statusMessage = null;
+    }
+
     public function addManualRow(): void
     {
         if ($this->isReadonly()) {
@@ -76,16 +112,41 @@ class Form extends Component
 
     public function removeRow(int $index): void
     {
-        if ($this->isReadonly()) {
-            return;
-        }
-
-        if (! isset($this->rows[$index]) || ! ($this->rows[$index]['is_manual'] ?? false)) {
+        if ($this->isReadonly() || ! isset($this->rows[$index])) {
             return;
         }
 
         unset($this->rows[$index]);
         $this->rows = array_values($this->rows);
+    }
+
+    public function addPaymentSource(): void
+    {
+        if ($this->isReadonly()) {
+            return;
+        }
+
+        if (count($this->paymentSources) >= PurchasePaymentSummaryService::MAX_PAYMENT_SOURCES) {
+            return;
+        }
+
+        $this->paymentSources[] = ['label' => '', 'amount' => ''];
+    }
+
+    public function removePaymentSource(int $index): void
+    {
+        if ($this->isReadonly() || ! isset($this->paymentSources[$index])) {
+            return;
+        }
+
+        if (count($this->paymentSources) <= 1) {
+            $this->paymentSources = app(PurchasePaymentSummaryService::class)->defaultPaymentSources();
+
+            return;
+        }
+
+        unset($this->paymentSources[$index]);
+        $this->paymentSources = array_values($this->paymentSources);
     }
 
     public function setLineStatus(int $index, string $status): void
@@ -100,6 +161,49 @@ class Form extends Component
 
         $current = (string) ($this->rows[$index]['line_status'] ?? '');
         $this->rows[$index]['line_status'] = $current === $status ? '' : $status;
+    }
+
+    public function encodeRowPayment(int $index): void
+    {
+        if ($this->isReadonly() || ! isset($this->rows[$index])) {
+            return;
+        }
+
+        $service = app(PurchasePaymentSummaryService::class);
+        $this->rows[$index]['payment_amount'] = $service->encodePaymentAmount(
+            (string) ($this->rows[$index]['payment_amount'] ?? ''),
+        );
+    }
+
+    public function encodeSourcePayment(int $index): void
+    {
+        if ($this->isReadonly() || ! isset($this->paymentSources[$index])) {
+            return;
+        }
+
+        $service = app(PurchasePaymentSummaryService::class);
+        $this->paymentSources[$index]['amount'] = $service->encodePaymentAmount(
+            (string) ($this->paymentSources[$index]['amount'] ?? ''),
+        );
+    }
+
+    public function rowDisplayName(array $row): string
+    {
+        if ($this->locale === 'ur' && filled($row['name_ur'] ?? null)) {
+            return (string) $row['name_ur'];
+        }
+
+        return (string) ($row['name_en'] ?: ($row['name_ur'] ?? ''));
+    }
+
+    public function rowPartyMeta(array $row): string
+    {
+        $parts = array_filter([
+            filled($row['phone'] ?? null) ? trim((string) $row['phone']) : null,
+            filled($row['address'] ?? null) ? trim((string) $row['address']) : null,
+        ]);
+
+        return implode(' · ', $parts);
     }
 
     public function saveAndClose(): void
@@ -130,9 +234,37 @@ class Form extends Component
 
     public function render(): View
     {
+        $company = CompanyProfile::current();
+        $locale = app(PurchaseService::class)->normalizeLocale($this->locale);
+        $previousLocale = app()->getLocale();
+        app()->setLocale($locale);
+
+        $storeName = (string) ($company->localized('business_name') ?? '');
+        $storeAddress = $company->formattedPrimaryAddress() ?? '';
+        $primaryPhone = $company->primaryPhone();
+        $storePhone = (string) ($primaryPhone['phone_number'] ?? '');
+
+        app()->setLocale($previousLocale);
+
+        $service = app(PurchasePaymentSummaryService::class);
+        $supplierTotal = $service->totalSupplierPayments($this->rows);
+        $sourceTotal = $service->totalSourcePayments($this->paymentSources);
+        $balanceTotal = $sourceTotal - $supplierTotal;
+
         return view('livewire.purchase-payment-summaries.form', [
             'paperSizeOptions' => $this->paperSizeOptions(),
             'localeOptions' => $this->localeOptions(),
+            'supplierResults' => $this->supplierSearchResults(),
+            'storeName' => $storeName,
+            'storeAddress' => $storeAddress,
+            'storePhone' => $storePhone,
+            'formattedSummaryDate' => $this->formattedSummaryDate(),
+            'totalSupplierPayments' => $service->formatEncodedAmount($supplierTotal),
+            'totalSourcePayments' => $service->formatEncodedAmount($sourceTotal),
+            'balanceRemaining' => $service->formatEncodedAmount(abs($balanceTotal)),
+            'canAddPaymentSource' => count($this->paymentSources) < PurchasePaymentSummaryService::MAX_PAYMENT_SOURCES,
+            'purchaserOptions' => $this->purchaserOptions(),
+            'creatorName' => $this->creatorName(),
         ]);
     }
 
@@ -160,6 +292,55 @@ class Form extends Component
             ->all();
     }
 
+    /**
+     * @return array<int, array{id: int, label: string}>
+     */
+    private function supplierSearchResults(): array
+    {
+        if ($this->isReadonly() || $this->supplier_search === '') {
+            return [];
+        }
+
+        return app(PurchasePaymentSummaryService::class)->searchSuppliers($this->supplier_search);
+    }
+
+    private function formattedSummaryDate(): string
+    {
+        if ($this->summary_date === '') {
+            return now()->format('d M Y');
+        }
+
+        try {
+            return \Illuminate\Support\Carbon::parse($this->summary_date)->format('d M Y');
+        } catch (\Throwable) {
+            return $this->summary_date;
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function purchaserOptions(): array
+    {
+        return User::query()
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
+    }
+
+    private function creatorName(): string
+    {
+        if (! $this->summaryId) {
+            $user = auth()->user();
+
+            return $user instanceof User ? (string) $user->name : '—';
+        }
+
+        $summary = PurchasePaymentSummary::query()->with('creator')->find($this->summaryId);
+
+        return (string) ($summary?->creator?->name ?? '—');
+    }
+
     private function loadSummary(int $summaryId): void
     {
         $summary = PurchasePaymentSummary::query()->with('items')->find($summaryId);
@@ -173,6 +354,7 @@ class Form extends Component
         $this->summary_date = (string) $state['summary_date'];
         $this->paper_size = (string) $state['paper_size'];
         $this->locale = (string) $state['locale'];
+        $this->purchaser_id = filled($state['purchaser_id'] ?? null) ? (int) $state['purchaser_id'] : null;
         $this->notes = (string) $state['notes'];
         $this->rows = $state['rows'];
         $this->paymentSources = $state['payment_sources'];
@@ -198,6 +380,7 @@ class Form extends Component
                 'summary_date' => $this->summary_date,
                 'paper_size' => $this->paper_size,
                 'locale' => $this->locale,
+                'purchaser_id' => $this->purchaser_id,
                 'notes' => $this->notes,
                 'payment_sources' => $this->paymentSources,
                 'items' => $this->rows,
@@ -237,8 +420,10 @@ class Form extends Component
         $this->summary_date = now()->format('Y-m-d');
         $this->paper_size = 'a4';
         $this->locale = app()->getLocale() === 'ur' ? 'ur' : 'en';
+        $this->purchaser_id = auth()->id();
         $this->notes = '';
-        $this->rows = $service->supplierRowsForNewForm();
+        $this->supplier_search = '';
+        $this->rows = [];
         $this->paymentSources = $service->defaultPaymentSources();
         $this->statusMessage = null;
         $this->statusType = 'success';

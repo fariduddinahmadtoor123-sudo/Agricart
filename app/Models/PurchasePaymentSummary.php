@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\Purchasing\PurchasePaymentSummaryService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -19,6 +20,7 @@ class PurchasePaymentSummary extends Model
         'notes',
         'payment_sources',
         'created_by',
+        'purchaser_id',
     ];
 
     /**
@@ -42,6 +44,16 @@ class PurchasePaymentSummary extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function purchaser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'purchaser_id');
+    }
+
+    public function purchaserName(): string
+    {
+        return (string) ($this->purchaser?->name ?? '—');
+    }
+
     public function displayLocale(): string
     {
         return in_array($this->locale, ['en', 'ur'], true) ? $this->locale : 'en';
@@ -57,7 +69,7 @@ class PurchasePaymentSummary extends Model
         $total = 0.0;
 
         foreach ($this->items as $item) {
-            $total += $item->numericPaymentAmount();
+            $total += app(PurchasePaymentSummaryService::class)->numericAmount($item->payment_amount);
         }
 
         return $total;
@@ -66,5 +78,29 @@ class PurchasePaymentSummary extends Model
     public function paidLineCount(): int
     {
         return $this->items->filter(fn (PurchasePaymentSummaryItem $item): bool => filled($item->payment_amount))->count();
+    }
+
+    public function totalSourcePayments(): float
+    {
+        $total = 0.0;
+
+        foreach ($this->payment_sources ?? [] as $source) {
+            if (! is_array($source)) {
+                continue;
+            }
+
+            $amount = $source['amount'] ?? null;
+
+            if (filled($amount)) {
+                $total += app(PurchasePaymentSummaryService::class)->numericAmount((string) $amount);
+            }
+        }
+
+        return $total;
+    }
+
+    public function balanceRemaining(): float
+    {
+        return $this->totalSourcePayments() - $this->totalPayments();
     }
 }

@@ -60,11 +60,8 @@ class PurchasePaymentSummaryItem extends Model
 
     public function numericPaymentAmount(): float
     {
-        if (! filled($this->payment_amount)) {
-            return 0.0;
-        }
-
-        return (float) str_replace(',', '', (string) $this->payment_amount);
+        return app(\App\Services\Purchasing\PurchasePaymentSummaryService::class)
+            ->numericAmount($this->payment_amount);
     }
 
     public function lineStatusLabel(): string
