@@ -45,6 +45,11 @@
         companyProfileSaving: false,
         supplierAiEnriching: false,
         supplierSaving: false,
+        purchasePlanningSaving: false,
+        purchaseSaving: false,
+        priceControlSaving: false,
+        quantityControlSaving: false,
+        secretCodingSaving: false,
         roleSaving: false,
         selectCategoryVisualIcon(index) {
             this.categoryVisualMapping.selected = index;
@@ -179,9 +184,59 @@
                 }));
             }
 
+            if (this.formKey === 'purchase-planning') {
+                window.dispatchEvent(new CustomEvent('purchase-planning-form-open', {
+                    detail: {
+                        sheetId: detail.sheetId ?? null,
+                        mode: detail.mode ?? 'create',
+                    },
+                    bubbles: true,
+                }));
+            }
+
+            if (this.formKey === 'purchases') {
+                window.dispatchEvent(new CustomEvent('purchase-form-open', {
+                    detail: {
+                        purchaseId: detail.purchaseId ?? null,
+                        mode: detail.mode ?? 'create',
+                    },
+                    bubbles: true,
+                }));
+            }
+
+            if (this.formKey === 'price-controls') {
+                window.dispatchEvent(new CustomEvent('price-control-form-open', {
+                    detail: {
+                        priceControlId: detail.priceControlId ?? null,
+                        mode: detail.mode ?? 'create',
+                    },
+                    bubbles: true,
+                }));
+            }
+
+            if (this.formKey === 'quantity-controls') {
+                window.dispatchEvent(new CustomEvent('quantity-control-form-open', {
+                    detail: {
+                        quantityControlId: detail.quantityControlId ?? null,
+                        mode: detail.mode ?? 'create',
+                    },
+                    bubbles: true,
+                }));
+            }
+
+            if (this.formKey === 'secret-coding') {
+                window.dispatchEvent(new CustomEvent('secret-coding-form-open', {
+                    detail: {
+                        secretCodingId: detail.secretCodingId ?? null,
+                        mode: detail.mode ?? 'create',
+                    },
+                    bubbles: true,
+                }));
+            }
+
             this.isOpen = true;
             this.minimized = false;
-            this.size = ['ai-settings', 'ai-log-detail', 'categories', 'brands', 'units', 'packing-units', 'attributes', 'controls', 'products', 'users', 'roles', 'company-profile', 'suppliers'].includes(this.formKey) ? 'stretched' : 'normal';
+            this.size = ['ai-settings', 'ai-log-detail', 'categories', 'brands', 'units', 'packing-units', 'attributes', 'controls', 'products', 'users', 'roles', 'company-profile', 'suppliers', 'purchase-planning', 'purchases', 'price-controls', 'quantity-controls', 'secret-coding'].includes(this.formKey) ? 'stretched' : 'normal';
             document.body.classList.add('agricart-form-panel-open');
 
             if (this.formKey === 'ai-log-detail' && detail.logId) {
@@ -213,6 +268,11 @@
             this.companyProfileSaving = false;
             this.supplierAiEnriching = false;
             this.supplierSaving = false;
+            this.purchasePlanningSaving = false;
+            this.purchaseSaving = false;
+            this.priceControlSaving = false;
+            this.quantityControlSaving = false;
+            this.secretCodingSaving = false;
             document.body.classList.remove('agricart-form-panel-open');
             window.dispatchEvent(new CustomEvent('close-form-panel', { bubbles: true }));
         },
@@ -450,6 +510,76 @@
                 return;
             }
 
+            if (this.formKey === 'purchase-planning') {
+                if (key === 'cancel') {
+                    this.close();
+                    return;
+                }
+
+                window.dispatchEvent(new CustomEvent('purchase-planning-form-action', {
+                    detail: { action: key },
+                    bubbles: true,
+                }));
+
+                return;
+            }
+
+            if (this.formKey === 'purchases') {
+                if (key === 'cancel') {
+                    this.close();
+                    return;
+                }
+
+                window.dispatchEvent(new CustomEvent('purchase-form-action', {
+                    detail: { action: key },
+                    bubbles: true,
+                }));
+
+                return;
+            }
+
+            if (this.formKey === 'price-controls') {
+                if (key === 'cancel') {
+                    this.close();
+                    return;
+                }
+
+                window.dispatchEvent(new CustomEvent('price-control-form-action', {
+                    detail: { action: key },
+                    bubbles: true,
+                }));
+
+                return;
+            }
+
+            if (this.formKey === 'quantity-controls') {
+                if (key === 'cancel') {
+                    this.close();
+                    return;
+                }
+
+                window.dispatchEvent(new CustomEvent('quantity-control-form-action', {
+                    detail: { action: key },
+                    bubbles: true,
+                }));
+
+                return;
+            }
+
+            if (this.formKey === 'secret-coding') {
+                if (key === 'cancel') {
+                    this.close();
+                    return;
+                }
+
+                window.dispatchEvent(new CustomEvent('secret-coding-form-action', {
+                    detail: { action: key },
+                    bubbles: true,
+                }));
+
+                return;
+            }
+
             if (key === 'save_next' && this.currentStep < this.totalSteps) {
                 this.currentStep += 1;
 
@@ -471,7 +601,7 @@
                 'agricart-form-panel--normal': this.size === 'normal',
                 'agricart-form-panel--stretched': this.size === 'stretched',
                 'agricart-form-panel--maximized': this.size === 'maximized',
-                'agricart-form-panel--wide': this.formKey === 'ai-settings' || this.formKey === 'ai-log-detail' || this.formKey === 'categories' || this.formKey === 'brands' || this.formKey === 'units' || this.formKey === 'packing-units' || this.formKey === 'attributes' || this.formKey === 'controls' || this.formKey === 'products' || this.formKey === 'users' || this.formKey === 'roles' || this.formKey === 'company-profile' || this.formKey === 'suppliers',
+                'agricart-form-panel--wide': this.formKey === 'ai-settings' || this.formKey === 'ai-log-detail' || this.formKey === 'categories' || this.formKey === 'brands' || this.formKey === 'units' || this.formKey === 'packing-units' || this.formKey === 'attributes' || this.formKey === 'controls' || this.formKey === 'products' || this.formKey === 'users' || this.formKey === 'roles' || this.formKey === 'company-profile' || this.formKey === 'suppliers' || this.formKey === 'purchase-planning' || this.formKey === 'purchases' || this.formKey === 'price-controls' || this.formKey === 'quantity-controls' || this.formKey === 'secret-coding',
             };
         },
     }"
@@ -488,6 +618,11 @@
     x-on:role-form-busy.window="roleSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:company-profile-form-busy.window="companyProfileAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); companyProfileSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:supplier-form-busy.window="supplierAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); supplierSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
+    x-on:purchase-planning-form-busy.window="purchasePlanningSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
+    x-on:purchase-form-busy.window="purchaseSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
+    x-on:price-control-form-busy.window="priceControlSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
+    x-on:quantity-control-form-busy.window="quantityControlSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
+    x-on:secret-coding-form-busy.window="secretCodingSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:keydown.escape.window="if (isOpen && !minimized) close()"
 >
     {{-- Backdrop + panel --}}
@@ -511,7 +646,7 @@
                     <h2 class="agricart-form-panel__title" x-text="title"></h2>
                     <p
                         class="agricart-form-panel__subtitle"
-                        x-show="formKey !== 'products' && formKey !== 'users' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && resourceLabel"
+                        x-show="formKey !== 'products' && formKey !== 'users' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'purchase-planning' && formKey !== 'purchases' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding' && resourceLabel"
                         x-text="resourceLabel"
                         x-cloak
                     ></p>
@@ -619,7 +754,27 @@
                         <livewire:suppliers.form />
                     </div>
 
-                    <div x-show="formKey !== 'ai-settings' && formKey !== 'ai-log-detail' && formKey !== 'categories' && formKey !== 'brands' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls' && formKey !== 'products' && formKey !== 'users' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers'">
+                    <div x-show="formKey === 'purchase-planning'" x-cloak>
+                        <livewire:purchase-planning.form />
+                    </div>
+
+                    <div x-show="formKey === 'purchases'" x-cloak>
+                        <livewire:purchases.form />
+                    </div>
+
+                    <div x-show="formKey === 'price-controls'" x-cloak>
+                        <livewire:price-controls.form />
+                    </div>
+
+                    <div x-show="formKey === 'quantity-controls'" x-cloak>
+                        <livewire:quantity-controls.form />
+                    </div>
+
+                    <div x-show="formKey === 'secret-coding'" x-cloak>
+                        <livewire:secret-codings.form />
+                    </div>
+
+                    <div x-show="formKey !== 'ai-settings' && formKey !== 'ai-log-detail' && formKey !== 'categories' && formKey !== 'brands' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls' && formKey !== 'products' && formKey !== 'users' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'purchase-planning' && formKey !== 'purchases' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding'">
                         @include('filament.components.form-panel.sample-fields')
                     </div>
                 </div>

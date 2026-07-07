@@ -105,7 +105,7 @@ class ModuleChrome
                 'path' => 'admin/marketplace',
                 'subNavigation' => MarketplaceSubNavigation::class,
                 'toolbar' => MarketplacePageToolbar::class,
-                'navLabel' => 'Marketplace',
+                'navLabel' => 'Pricing & Controls',
             ],
             [
                 'key' => 'settings',

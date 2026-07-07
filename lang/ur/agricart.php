@@ -44,7 +44,7 @@ return [
         'reports' => 'رپورٹس',
         'staff' => 'عملہ',
         'finance' => 'مالیات',
-        'marketplace' => 'مارکیٹ پلیس',
+        'marketplace' => 'قیمت و کنٹرول',
         'settings' => 'ترتیبات',
         'docs' => 'دستاویزات',
     ],
@@ -59,7 +59,7 @@ return [
             'labels' => 'لیبل', 'controls' => 'کنٹرول',
         ],
         'purchasing' => [
-            'overview' => 'جائزہ', 'purchases' => 'خریداری', 'purchase-planning' => 'منصوبہ بندی',
+            'overview' => 'جائزہ', 'purchases' => 'خریداری', 'purchase-planning' => 'خریداری منصوبہ بندی',
             'purchase-quotations' => 'کوٹیشن', 'purchase-payment-sheet' => 'ادائیگیاں',
             're-order-center' => 'دوبارہ آرڈر', 'price-tags' => 'قیمت ٹیگ',
         ],
@@ -82,8 +82,10 @@ return [
             'financial-reports' => 'رپورٹس',
         ],
         'marketplace' => [
-            'overview' => 'جائزہ', 'channel-connections' => 'چینل', 'product-sync' => 'مصنوعات',
-            'orders-sync' => 'آرڈر', 'pricing-rules' => 'قیمت', 'sync-logs' => 'لاگ',
+            'overview' => 'جائزہ',
+            'price-control' => 'قیمت کنٹرول',
+            'quantity-control' => 'مقدار کنٹرول',
+            'secret-coding' => 'خفیہ کوڈنگ',
         ],
         'settings' => [
             'store-profile' => 'بزنس پروفائل', 'tax-system' => 'ٹیکس',

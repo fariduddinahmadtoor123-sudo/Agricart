@@ -44,7 +44,7 @@ return [
         'reports' => 'Reports',
         'staff' => 'Staff',
         'finance' => 'Finance',
-        'marketplace' => 'Marketplace',
+        'marketplace' => 'Pricing & Controls',
         'settings' => 'Settings',
         'docs' => 'Docs',
     ],
@@ -59,7 +59,7 @@ return [
             'labels' => 'Labels', 'controls' => 'Controls',
         ],
         'purchasing' => [
-            'overview' => 'Overview', 'purchases' => 'Purchases', 'purchase-planning' => 'Planning',
+            'overview' => 'Overview', 'purchases' => 'Purchases', 'purchase-planning' => 'Purchase Planning',
             'purchase-quotations' => 'Quotes', 'purchase-payment-sheet' => 'Payments',
             're-order-center' => 'Re-Order', 'price-tags' => 'Tags',
         ],
@@ -82,8 +82,10 @@ return [
             'financial-reports' => 'Reports',
         ],
         'marketplace' => [
-            'overview' => 'Overview', 'channel-connections' => 'Channels', 'product-sync' => 'Products',
-            'orders-sync' => 'Orders', 'pricing-rules' => 'Pricing', 'sync-logs' => 'Logs',
+            'overview' => 'Overview',
+            'price-control' => 'Price Control',
+            'quantity-control' => 'Quantity Control',
+            'secret-coding' => 'Secret Coding',
         ],
         'settings' => [
             'store-profile' => 'Business Profile', 'tax-system' => 'Tax',

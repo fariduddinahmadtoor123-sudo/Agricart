@@ -58,4 +58,8 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
         ->name('admin.backups.export');
     Route::get('/labels/{product}/print', [\App\Http\Controllers\Admin\LabelPrintController::class, 'show'])
         ->name('admin.labels.print');
+    Route::get('/purchase-planning/{sheet}/print', [\App\Http\Controllers\Admin\PurchasePlanningPrintController::class, 'show'])
+        ->name('admin.purchase-planning.print');
+    Route::get('/purchases/{purchase}/print', [\App\Http\Controllers\Admin\PurchasePrintController::class, 'show'])
+        ->name('admin.purchases.print');
 });

@@ -50,7 +50,10 @@
                     :icon="$toolbar['actionIcon'] ?? Heroicon::OutlinedPlus"
                     tag="button"
                     type="button"
-                    class="agricart-catalog-toolbar__action"
+                    @class([
+                        'agricart-catalog-toolbar__action',
+                        'agricart-catalog-toolbar__action--compact-label' => ($toolbar['compactAddButton'] ?? false) === true,
+                    ])
                     data-agricart-open-form-panel
                     data-form-title="{{ $toolbar['addLabel'] }}"
                     data-form-resource="{{ $toolbar['resourceLabel'] }}"

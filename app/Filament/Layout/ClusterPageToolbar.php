@@ -101,6 +101,11 @@ abstract class ClusterPageToolbar
             'users' => 'users',
             'roles' => 'roles',
             'suppliers' => 'suppliers',
+            'purchase-planning' => 'purchase-planning',
+            'purchases' => 'purchases',
+            'price-control' => 'price-controls',
+            'quantity-control' => 'quantity-controls',
+            'secret-coding' => 'secret-coding',
             default => null,
         };
     }
