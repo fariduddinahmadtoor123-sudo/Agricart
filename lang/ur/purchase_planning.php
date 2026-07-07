@@ -38,6 +38,11 @@ return [
         'a3' => 'A3',
     ],
 
+    'filters' => [
+        'paper_size' => 'کاغذ کا سائز',
+        'locale' => 'شیٹ کی زبان',
+    ],
+
     'columns' => [
         'sr' => 'نمبر',
         'thumb' => 'تصویر',

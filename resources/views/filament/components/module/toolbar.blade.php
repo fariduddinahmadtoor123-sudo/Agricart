@@ -8,32 +8,69 @@
 @endphp
 
 @if (filled($toolbar))
-    <div @class([
-        'agricart-catalog-toolbar',
-        'agricart-catalog-toolbar--compact' => ! empty($toolbar['hideSearch']) && ! empty($toolbar['hideFilters']) && ! empty($toolbar['hideColumns']),
-    ])>
-        @if (empty($toolbar['hideSearch']))
-            <div class="agricart-catalog-toolbar__search">
-            <label class="fi-sr-only" for="agricart-{{ $moduleKey }}-search-{{ $toolbar['resourceSlug'] }}">
-                {{ $toolbar['searchPlaceholder'] }}
-            </label>
+    @php
+        $defaultTab = (string) (($toolbar['segments'][0]['value'] ?? null) ?: 'reorder');
+    @endphp
+    <div
+        @class([
+            'agricart-catalog-toolbar',
+            'agricart-catalog-toolbar--compact' => ! empty($toolbar['hideSearch']) && ! empty($toolbar['hideFilters']) && ! empty($toolbar['hideColumns']),
+            'agricart-catalog-toolbar--segmented' => ! empty($toolbar['segments']),
+        ])
+        @if (! empty($toolbar['segments']))
+            x-data="{
+                activeTab: @js($defaultTab),
+                queueCount: 0,
+                switchTab(tab) {
+                    this.activeTab = tab;
+                    window.Livewire.dispatch(@js($livewirePrefix . '-tab'), { tab });
+                },
+                sync(payload) {
+                    const data = Array.isArray(payload) ? (payload[0] ?? {}) : (payload ?? {});
 
-            <x-filament::input.wrapper
-                :prefix-icon="Heroicon::OutlinedMagnifyingGlass"
-                inline-prefix
-            >
-                <input
-                    id="agricart-{{ $moduleKey }}-search-{{ $toolbar['resourceSlug'] }}"
-                    type="search"
-                    autocomplete="off"
-                    placeholder="{{ $toolbar['searchPlaceholder'] }}"
-                    class="fi-input fi-input-has-inline-prefix agricart-catalog-toolbar__search-input"
-                    @if ($livewirePrefix)
-                        x-on:input.debounce.300ms="window.Livewire.dispatch(@js($livewirePrefix . '-search'), { query: $event.target.value })"
-                    @endif
-                />
-            </x-filament::input.wrapper>
-        </div>
+                    if (data.activeTab) {
+                        this.activeTab = data.activeTab;
+                    }
+
+                    if (data.queueCount !== undefined) {
+                        this.queueCount = data.queueCount;
+                    }
+                },
+            }"
+            x-on:livewire:init="Livewire.on(@js($livewirePrefix . '-toolbar-sync'), (payload) => sync(payload))"
+        @endif
+    >
+        @if (empty($toolbar['hideSearch']))
+            <div @class([
+                'agricart-catalog-toolbar__search',
+                'agricart-catalog-toolbar__search--segments' => ! empty($toolbar['segments']),
+            ])>
+                @if (! empty($toolbar['segments']))
+                    @include('filament.components.module.toolbar-segments', ['toolbar' => $toolbar, 'moduleKey' => $moduleKey])
+                @endif
+
+                @if (empty($toolbar['hideSearchInput']))
+                    <label class="fi-sr-only" for="agricart-{{ $moduleKey }}-search-{{ $toolbar['resourceSlug'] }}">
+                        {{ $toolbar['searchPlaceholder'] }}
+                    </label>
+
+                    <x-filament::input.wrapper
+                        :prefix-icon="Heroicon::OutlinedMagnifyingGlass"
+                        inline-prefix
+                    >
+                        <input
+                            id="agricart-{{ $moduleKey }}-search-{{ $toolbar['resourceSlug'] }}"
+                            type="search"
+                            autocomplete="off"
+                            placeholder="{{ $toolbar['searchPlaceholder'] }}"
+                            class="fi-input fi-input-has-inline-prefix agricart-catalog-toolbar__search-input"
+                            @if ($livewirePrefix)
+                                x-on:input.debounce.300ms="window.Livewire.dispatch(@js($livewirePrefix . '-search'), { query: $event.target.value })"
+                            @endif
+                        />
+                    </x-filament::input.wrapper>
+                @endif
+            </div>
         @endif
 
         <div class="agricart-catalog-toolbar__actions">
@@ -42,6 +79,10 @@
             @endif
             @if (empty($toolbar['hideColumns']))
                 @include('filament.components.module.columns-dropdown', ['toolbar' => $toolbar, 'moduleKey' => $moduleKey])
+            @endif
+
+            @if (! empty($toolbar['toolbarActions']))
+                @include('filament.components.module.toolbar-actions', ['toolbar' => $toolbar])
             @endif
 
             @if (filled($toolbar['addLabel']))

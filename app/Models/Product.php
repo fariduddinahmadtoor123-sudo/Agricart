@@ -29,6 +29,7 @@ class Product extends Model
         'pack_qty',
         'required_qty',
         'alert_qty',
+        'stock_qty',
         'retail_price',
         'wholesale_price',
         'super_wholesale_price',
@@ -83,6 +84,7 @@ class Product extends Model
             'label_barcode' => 'array',
             'ai_status' => CategoryAiStatus::class,
             'ai_generated_at' => 'datetime',
+            'stock_qty' => 'decimal:2',
         ];
     }
 

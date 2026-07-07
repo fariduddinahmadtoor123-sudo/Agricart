@@ -15,14 +15,6 @@
             <p>{{ __('agricart.printing.sections.profiles_hint') }}</p>
         </header>
 
-        @if ($canManage)
-            <div class="agricart-backups__actions">
-                <button type="button" class="agricart-backups__btn is-primary" wire:click="openCreate">
-                    {{ __('agricart.printing.actions.add_profile') }}
-                </button>
-            </div>
-        @endif
-
         <div class="agricart-categories__table-wrap">
             <table class="agricart-categories__table agricart-printing__table">
                 <thead>

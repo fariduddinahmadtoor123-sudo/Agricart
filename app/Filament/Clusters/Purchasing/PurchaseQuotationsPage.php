@@ -3,19 +3,42 @@
 namespace App\Filament\Clusters\Purchasing;
 
 use App\Filament\Clusters\PurchasingCluster;
-use App\Filament\Pages\BasePlaceholderPage;
+use App\Filament\Pages\BaseModulePage;
 use BackedEnum;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Contracts\Support\Htmlable;
 
-class PurchaseQuotationsPage extends BasePlaceholderPage
+class PurchaseQuotationsPage extends BaseModulePage
 {
     protected static ?string $cluster = PurchasingCluster::class;
 
-    protected static ?string $navigationLabel = 'Quotes';
+    protected static ?string $navigationLabel = 'Purchase Quotations';
 
     protected static ?int $navigationSort = 3;
 
     protected static ?string $slug = 'purchase-quotations';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocument;
+
+    protected string $view = 'filament.pages.purchasing.purchase-quotations';
+
+    public function getHeading(): string|Htmlable|null
+    {
+        return null;
+    }
+
+    public function getSubheading(): string|Htmlable|null
+    {
+        return null;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getBreadcrumbs(): array
+    {
+        return PurchasingCluster::unshiftClusterBreadcrumbs([
+            static::getUrl() => static::getNavigationLabel(),
+        ]);
+    }
 }

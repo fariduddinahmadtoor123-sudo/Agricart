@@ -38,6 +38,11 @@ return [
         'a3' => 'A3',
     ],
 
+    'filters' => [
+        'paper_size' => 'Paper size',
+        'locale' => 'Sheet language',
+    ],
+
     'columns' => [
         'sr' => 'Sr',
         'thumb' => 'Thumb',

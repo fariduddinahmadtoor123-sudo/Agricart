@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\Printing\PrintProfileService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 class ManagePrintProfiles extends Component
@@ -34,6 +35,22 @@ class ManagePrintProfiles extends Component
     ];
 
     public bool $showCreate = false;
+
+    public string $search = '';
+
+    #[On('printing-action')]
+    public function handleToolbarAction(string $action): void
+    {
+        if ($action === 'add-profile') {
+            $this->openCreate();
+        }
+    }
+
+    #[On('printing-search')]
+    public function updateSearch(string $query): void
+    {
+        $this->search = $query;
+    }
 
     public function startEdit(int $profileId): void
     {
@@ -164,8 +181,25 @@ class ManagePrintProfiles extends Component
 
     public function render(): View
     {
+        $profiles = app(PrintProfileService::class)->all();
+        $needle = trim($this->search);
+
+        if ($needle !== '') {
+            $profiles = $profiles->filter(function (PrintProfile $profile) use ($needle): bool {
+                $haystack = mb_strtolower(implode(' ', array_filter([
+                    $profile->name_en,
+                    $profile->name_ur,
+                    $profile->category,
+                    $profile->label_kind,
+                    $profile->printer_hint,
+                ])));
+
+                return str_contains($haystack, mb_strtolower($needle));
+            })->values();
+        }
+
         return view('livewire.settings.manage-print-profiles', [
-            'profiles' => app(PrintProfileService::class)->all(),
+            'profiles' => $profiles,
             'canManage' => $this->canManage(),
         ]);
     }

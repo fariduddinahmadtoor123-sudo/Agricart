@@ -4,6 +4,7 @@ namespace App\Filament\Layout;
 
 use App\Filament\Clusters\Purchasing\OverviewPage;
 use App\Services\Purchasing\PurchasePlanningService;
+use App\Services\Purchasing\PurchaseQuotationService;
 use App\Services\Purchasing\PurchaseService;
 
 class PurchasingPageToolbar extends ClusterPageToolbar
@@ -40,6 +41,13 @@ class PurchasingPageToolbar extends ClusterPageToolbar
         }
 
         return match ($config['resourceSlug']) {
+            'overview' => [
+                ...$config,
+                'livewirePrefix' => 'purchasing-overview',
+                'interactive' => false,
+                'hideFilters' => true,
+                'hideColumns' => true,
+            ],
             'purchase-planning' => [
                 ...$config,
                 'livewirePrefix' => 'purchase-planning',
@@ -48,7 +56,8 @@ class PurchasingPageToolbar extends ClusterPageToolbar
                 'formKey' => 'purchase-planning',
                 'addLabel' => static::userCan('create') ? __('purchase_planning.actions.add') : null,
                 'compactAddButton' => true,
-                'filters' => static::planningFilters(),
+                'filterGroups' => static::planningFilterGroups(),
+                'filters' => [],
                 'columns' => [
                     ['label' => __('purchase_planning.list.col_number'), 'value' => 'planning_number', 'visible' => true],
                     ['label' => __('purchase_planning.list.col_items'), 'value' => 'item_count', 'visible' => true],
@@ -56,6 +65,24 @@ class PurchasingPageToolbar extends ClusterPageToolbar
                     ['label' => __('purchase_planning.list.col_locale'), 'value' => 'locale', 'visible' => true],
                     ['label' => __('purchase_planning.list.col_created_by'), 'value' => 'created_by', 'visible' => true],
                     ['label' => __('purchase_planning.list.col_created'), 'value' => 'created_at', 'visible' => true],
+                ],
+            ],
+            'purchase-quotations' => [
+                ...$config,
+                'livewirePrefix' => 'purchase-quotations',
+                'columnDataAttr' => 'data-quotation-column',
+                'interactive' => true,
+                'formKey' => 'purchase-quotations',
+                'addLabel' => static::userCan('create') ? __('purchase_quotations.actions.add') : null,
+                'compactAddButton' => true,
+                'filters' => static::quotationFilters(),
+                'columns' => [
+                    ['label' => __('purchase_quotations.list.col_number'), 'value' => 'quotation_number', 'visible' => true],
+                    ['label' => __('purchase_quotations.list.col_supplier'), 'value' => 'supplier', 'visible' => true],
+                    ['label' => __('purchase_quotations.list.col_items'), 'value' => 'item_count', 'visible' => true],
+                    ['label' => __('purchase_quotations.list.col_locale'), 'value' => 'locale', 'visible' => true],
+                    ['label' => __('purchase_quotations.list.col_created_by'), 'value' => 'created_by', 'visible' => true],
+                    ['label' => __('purchase_quotations.list.col_created'), 'value' => 'created_at', 'visible' => true],
                 ],
             ],
             'purchases' => [
@@ -66,7 +93,8 @@ class PurchasingPageToolbar extends ClusterPageToolbar
                 'formKey' => 'purchases',
                 'addLabel' => static::userCan('create') ? __('purchases.actions.add') : null,
                 'compactAddButton' => true,
-                'filters' => static::purchaseFilters(),
+                'filterGroups' => static::purchaseFilterGroups(),
+                'filters' => [],
                 'columns' => [
                     ['label' => __('purchases.list.col_number'), 'value' => 'purchase_number', 'visible' => true],
                     ['label' => __('purchases.list.col_supplier'), 'value' => 'supplier', 'visible' => true],
@@ -78,35 +106,155 @@ class PurchasingPageToolbar extends ClusterPageToolbar
                     ['label' => __('purchases.list.col_created'), 'value' => 'created_at', 'visible' => true],
                 ],
             ],
+            're-order-center' => [
+                ...$config,
+                'livewirePrefix' => 'reorder',
+                'interactive' => true,
+                'hideColumns' => true,
+                'formKey' => null,
+                'addLabel' => null,
+                'searchPlaceholder' => __('reorder.toolbar.search'),
+                'segments' => [
+                    ['label' => __('reorder.tabs.reorder'), 'value' => 'reorder'],
+                    ['label' => __('reorder.tabs.queue'), 'value' => 'queue', 'badge' => true],
+                ],
+                'filterGroups' => static::reorderFilterGroups(),
+                'filters' => [],
+                'columns' => [],
+                'toolbarActions' => static::reorderToolbarActions(),
+            ],
+            'price-tags' => [
+                ...$config,
+                'livewirePrefix' => 'price-tags',
+                'livewireComponent' => 'price-tags.list-price-tags',
+                'interactive' => true,
+                'hideColumns' => true,
+                'formKey' => null,
+                'addLabel' => null,
+                'searchPlaceholder' => __('price_tags.toolbar.search'),
+                'filterGroups' => static::priceTagFilterGroups(),
+                'filters' => [],
+                'columns' => [],
+                'toolbarActions' => [
+                    [
+                        'label' => __('price_tags.actions.print'),
+                        'value' => 'print',
+                        'icon' => \Filament\Support\Icons\Heroicon::OutlinedPrinter,
+                        'color' => 'primary',
+                        'outlined' => false,
+                    ],
+                ],
+            ],
             default => $config,
         };
     }
 
     /**
-     * @return list<array{label: string, value: string}>
+     * @return list<array{label: string, filters: list<array{label: string, value: string}>}>
      */
-    protected static function purchaseFilters(): array
+    protected static function purchaseFilterGroups(): array
     {
-        $filters = [];
-
+        $deliveryFilters = [];
         foreach (PurchaseService::DELIVERY_STATUSES as $status) {
-            $filters[] = [
+            $deliveryFilters[] = [
                 'label' => __('purchases.statuses.delivery.' . $status),
                 'value' => 'delivery:' . $status,
             ];
         }
 
+        $paymentFilters = [];
         foreach (PurchaseService::PAYMENT_STATUSES as $status) {
-            $filters[] = [
+            $paymentFilters[] = [
                 'label' => __('purchases.statuses.payment.' . $status),
                 'value' => 'payment:' . $status,
             ];
         }
 
+        $disputeFilters = [];
         foreach (PurchaseService::DISPUTE_STATUSES as $status) {
-            $filters[] = [
+            $disputeFilters[] = [
                 'label' => __('purchases.statuses.dispute.' . $status),
                 'value' => 'dispute:' . $status,
+            ];
+        }
+
+        return [
+            [
+                'label' => __('purchases.filters.delivery'),
+                'filters' => $deliveryFilters,
+            ],
+            [
+                'label' => __('purchases.filters.payment'),
+                'filters' => $paymentFilters,
+            ],
+            [
+                'label' => __('purchases.filters.dispute'),
+                'filters' => $disputeFilters,
+            ],
+        ];
+    }
+
+    /**
+     * @return list<array{label: string, filters: list<array{label: string, value: string}>}>
+     */
+    protected static function planningFilterGroups(): array
+    {
+        $paperFilters = [];
+        foreach (PurchasePlanningService::PAPER_SIZES as $size) {
+            $paperFilters[] = [
+                'label' => __('purchase_planning.paper_sizes.' . $size),
+                'value' => 'paper_size:' . $size,
+            ];
+        }
+
+        $localeFilters = [];
+        foreach (PurchasePlanningService::LOCALES as $locale) {
+            $localeFilters[] = [
+                'label' => __('purchase_planning.locales.' . $locale),
+                'value' => 'locale:' . $locale,
+            ];
+        }
+
+        return [
+            [
+                'label' => __('purchase_planning.filters.paper_size'),
+                'filters' => $paperFilters,
+            ],
+            [
+                'label' => __('purchase_planning.filters.locale'),
+                'filters' => $localeFilters,
+            ],
+        ];
+    }
+
+    /**
+     * @return list<array{label: string, filters: list<array{label: string, value: string}>}>
+     */
+    protected static function priceTagFilterGroups(): array
+    {
+        return [
+            [
+                'label' => __('price_tags.filters.readiness'),
+                'filters' => [
+                    ['label' => __('price_tags.filters.ready_to_label'), 'value' => 'readiness:ready'],
+                    ['label' => __('price_tags.filters.missing_sale_price'), 'value' => 'readiness:missing_sale_price'],
+                    ['label' => __('price_tags.filters.missing_barcode'), 'value' => 'readiness:missing_barcode'],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @return list<array{label: string, value: string}>
+     */
+    protected static function quotationFilters(): array
+    {
+        $filters = [];
+
+        foreach (PurchaseQuotationService::LOCALES as $locale) {
+            $filters[] = [
+                'label' => __('purchase_quotations.locales.' . $locale),
+                'value' => 'locale:' . $locale,
             ];
         }
 
@@ -114,26 +262,68 @@ class PurchasingPageToolbar extends ClusterPageToolbar
     }
 
     /**
-     * @return list<array{label: string, value: string}>
+     * @return list<array{label: string, filters: list<array{label: string, value: string}>}>
      */
-    protected static function planningFilters(): array
+    protected static function reorderFilterGroups(): array
     {
-        $filters = [];
+        $reorderFilters = [];
 
-        foreach (PurchasePlanningService::PAPER_SIZES as $size) {
-            $filters[] = [
-                'label' => __('purchase_planning.paper_sizes.' . $size),
-                'value' => 'paper_size:' . $size,
+        foreach (['available', 'in_queue', 'repeated', 'all'] as $filter) {
+            $reorderFilters[] = [
+                'label' => __('reorder.filters.' . $filter),
+                'value' => 'reorder:' . $filter,
             ];
         }
 
-        foreach (PurchasePlanningService::LOCALES as $locale) {
-            $filters[] = [
-                'label' => __('purchase_planning.locales.' . $locale),
-                'value' => 'locale:' . $locale,
+        return [
+            [
+                'label' => __('reorder.tabs.reorder'),
+                'filters' => $reorderFilters,
+            ],
+            [
+                'label' => __('reorder.tabs.queue'),
+                'filters' => [
+                    ['label' => __('reorder.filters.pending'), 'value' => 'queue:pending'],
+                    ['label' => __('reorder.filters.stale'), 'value' => 'queue:stale'],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    protected static function reorderToolbarActions(): array
+    {
+        $actions = [
+            [
+                'label' => __('reorder.actions.print'),
+                'value' => 'print',
+                'icon' => \Filament\Support\Icons\Heroicon::OutlinedPrinter,
+                'outlined' => true,
+            ],
+        ];
+
+        if (static::userCan('create')) {
+            $actions = [
+                [
+                    'label' => __('reorder.actions.select_all'),
+                    'value' => 'select_all',
+                    'tab' => 'reorder',
+                    'outlined' => true,
+                ],
+                [
+                    'label' => __('reorder.actions.send_to_queue'),
+                    'value' => 'send_to_queue',
+                    'tab' => 'reorder',
+                    'color' => 'primary',
+                    'outlined' => false,
+                    'icon' => \Filament\Support\Icons\Heroicon::OutlinedPaperAirplane,
+                ],
+                ...$actions,
             ];
         }
 
-        return $filters;
+        return $actions;
     }
 }

@@ -77,6 +77,15 @@ return [
         ],
     ],
 
+    'filters' => [
+        'delivery' => 'Delivery status',
+        'payment' => 'Payment status',
+        'dispute' => 'Invoice status',
+        'active_delivery' => 'Delivery: :status',
+        'active_payment' => 'Payment: :status',
+        'active_dispute' => 'Invoice: :status',
+    ],
+
     'statuses_short' => [
         'delivery' => [
             'pending' => 'Pending',
@@ -114,6 +123,8 @@ return [
 
     'list' => [
         'empty' => 'No purchases yet. Click Add Purchase to create one.',
+        'no_results' => 'No purchases match your search or filters.',
+        'clear_filters' => 'Clear filters',
         'col_number' => 'Purchase No.',
         'col_supplier' => 'Supplier',
         'col_purchaser' => 'Purchaser',
@@ -147,5 +158,15 @@ return [
         'supplier' => 'Supplier',
         'purchaser' => 'Purchaser',
         'supplier_balance' => 'Supplier Previous Balance',
+        'receipt' => [
+            'required_qty' => 'Req Qty',
+            'purchase_qty' => 'Pur Qty',
+            'previous_price' => 'Prev Price',
+            'current_rate' => 'Current',
+            'landing_cost' => 'Landing',
+            'cost_price' => 'Cost',
+            'sale_price' => 'Sale',
+            'line_total' => 'Line Total',
+        ],
     ],
 ];

@@ -60,6 +60,7 @@ class PurchaseService
             $purchase = Purchase::query()->create($validated);
             $this->syncItems($purchase, $items);
             $this->applySupplierLedger($purchase);
+            app(ReorderService::class)->applyPurchaseStock($purchase->fresh(['items']));
 
             return $purchase->fresh(['items', 'supplier', 'purchaser', 'creator']);
         });
@@ -92,6 +93,13 @@ class PurchaseService
             $purchase->update($validated);
             $this->syncItems($purchase, $items);
             $this->applySupplierLedger($purchase->fresh(), $previousPurchase);
+
+            $fresh = $purchase->fresh(['items']);
+
+            if (in_array($fresh->delivery_status, [Purchase::DELIVERY_RECEIVED, Purchase::DELIVERY_PARTIAL], true)) {
+                $productIds = $fresh->items->pluck('product_id')->filter()->map(fn ($id) => (int) $id)->all();
+                app(ReorderService::class)->fulfillQueueForProducts($productIds);
+            }
 
             return $purchase->fresh(['items', 'supplier', 'purchaser', 'creator']);
         });

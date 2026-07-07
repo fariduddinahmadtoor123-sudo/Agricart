@@ -62,6 +62,21 @@ class PrintProfileService
     }
 
     /**
+     * @return Collection<int, PrintProfile>
+     */
+    public function priceLabels(): Collection
+    {
+        return $this->labels()
+            ->where('label_kind', PrintProfile::LABEL_KIND_PRICE)
+            ->values();
+    }
+
+    public function defaultPriceLabel(): ?PrintProfile
+    {
+        return $this->defaultForCategory(PrintProfile::CATEGORY_LABEL, PrintProfile::LABEL_KIND_PRICE);
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      */
     public function update(int $id, array $data): PrintProfile

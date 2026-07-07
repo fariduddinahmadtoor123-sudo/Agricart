@@ -66,6 +66,63 @@ class ListPurchases extends Component
         $this->resetPage();
     }
 
+    public function removeFilter(string $field): void
+    {
+        match ($field) {
+            'delivery' => $this->deliveryFilter = '',
+            'payment' => $this->paymentFilter = '',
+            'dispute' => $this->disputeFilter = '',
+            default => null,
+        };
+
+        $this->resetPage();
+    }
+
+    /**
+     * @return list<array{field: string, label: string}>
+     */
+    public function activeFilters(): array
+    {
+        $filters = [];
+
+        if (filled($this->deliveryFilter)) {
+            $filters[] = [
+                'field' => 'delivery',
+                'label' => __('purchases.filters.active_delivery', [
+                    'status' => __('purchases.statuses.delivery.' . $this->deliveryFilter),
+                ]),
+            ];
+        }
+
+        if (filled($this->paymentFilter)) {
+            $filters[] = [
+                'field' => 'payment',
+                'label' => __('purchases.filters.active_payment', [
+                    'status' => __('purchases.statuses.payment.' . $this->paymentFilter),
+                ]),
+            ];
+        }
+
+        if (filled($this->disputeFilter)) {
+            $filters[] = [
+                'field' => 'dispute',
+                'label' => __('purchases.filters.active_dispute', [
+                    'status' => __('purchases.statuses.dispute.' . $this->disputeFilter),
+                ]),
+            ];
+        }
+
+        return $filters;
+    }
+
+    public function hasListConstraints(): bool
+    {
+        return filled($this->search)
+            || filled($this->deliveryFilter)
+            || filled($this->paymentFilter)
+            || filled($this->disputeFilter);
+    }
+
     #[On('purchases-column-toggle')]
     public function toggleColumn(string $column, bool $visible): void
     {
@@ -172,6 +229,10 @@ class ListPurchases extends Component
                             $supplier->where('business_name_en', 'like', $needle)
                                 ->orWhere('business_name_ur', 'like', $needle)
                                 ->orWhere('supplier_code', 'like', $needle);
+                        })
+                        ->orWhereHas('purchaser', function ($purchaser) use ($needle): void {
+                            $purchaser->where('name', 'like', $needle)
+                                ->orWhere('email', 'like', $needle);
                         });
                 });
             })
@@ -186,6 +247,8 @@ class ListPurchases extends Component
             'purchases' => $purchases,
             'canEdit' => $this->userCan('edit'),
             'canDelete' => $this->userCan('delete'),
+            'activeFilters' => $this->activeFilters(),
+            'hasListConstraints' => $this->hasListConstraints(),
         ]);
     }
 

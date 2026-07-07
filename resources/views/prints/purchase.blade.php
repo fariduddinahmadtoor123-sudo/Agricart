@@ -184,29 +184,75 @@
         .receipt-items {
             display: flex;
             flex-direction: column;
-            gap: 0.45rem;
+            gap: 0.5rem;
         }
         .receipt-item {
-            border-bottom: 1px dashed #9ca3af;
-            padding-bottom: 0.4rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.2rem;
+            padding: 0.35rem 0.3rem 0.3rem;
+            background: #fafafa;
         }
         .receipt-item:last-child {
-            border-bottom: 0;
-            padding-bottom: 0;
+            margin-bottom: 0;
+        }
+        .receipt-item__name {
+            margin: 0 0 0.28rem;
+            font-weight: 800;
+            font-size: 0.7rem;
+            line-height: 1.3;
+            word-break: break-word;
+            padding-bottom: 0.2rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .receipt-item__grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.18rem;
+        }
+        .receipt-item__field {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 0.2rem;
+            min-width: 0;
+            padding: 0.14rem 0.22rem;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.15rem;
+            font-size: 0.6rem;
+            line-height: 1.25;
+        }
+        .receipt-item__label {
+            color: #6b7280;
+            flex: 1 1 auto;
+            min-width: 0;
+            word-break: break-word;
+        }
+        .receipt-item__value {
+            font-weight: 700;
+            color: #111827;
+            text-align: end;
+            white-space: nowrap;
+            flex: 0 0 auto;
+        }
+        .receipt-item__field--total {
+            grid-column: 1 / -1;
+            margin-top: 0.08rem;
+            padding: 0.2rem 0.28rem;
+            background: #f3f4f6;
+            border-color: #9ca3af;
+            font-size: 0.64rem;
+        }
+        .receipt-item__field--total .receipt-item__label {
+            color: #111827;
+            font-weight: 700;
+        }
+        .receipt-item__field--total .receipt-item__value {
+            font-size: 0.68rem;
         }
         .receipt-item__line {
             margin: 0;
             word-break: break-word;
-        }
-        .receipt-item__line--name {
-            font-weight: 800;
-            font-size: 0.72rem;
-            margin-bottom: 0.12rem;
-        }
-        .receipt-item__line--qty,
-        .receipt-item__line--prices {
-            font-size: 0.64rem;
-            color: #374151;
         }
         .receipt-item__sep {
             color: #9ca3af;
@@ -334,29 +380,43 @@
                 <div class="receipt-items">
                     @foreach ($purchase->items as $index => $item)
                         <article class="receipt-item">
-                            <p class="receipt-item__line receipt-item__line--name">
+                            <p class="receipt-item__name">
                                 {{ $index + 1 }}. {{ $item->displayName($locale) }}
                             </p>
-                            <p class="receipt-item__line receipt-item__line--qty">
-                                {{ __('purchases.columns.required_qty') }}: {{ $item->required_qty ?: '—' }}
-                                <span class="receipt-item__sep">·</span>
-                                {{ __('purchases.columns.purchase_qty') }}: {{ $item->purchase_qty ?: '—' }}
-                            </p>
-                            <p class="receipt-item__line receipt-item__line--prices">
-                                {{ __('purchases.columns.previous_price') }}: {{ $item->previous_price ?: '—' }}
-                                <span class="receipt-item__sep">·</span>
-                                {{ __('purchases.columns.current_rate') }}: {{ $item->current_rate ?: '—' }}
-                                <span class="receipt-item__sep">·</span>
-                                {{ __('purchases.columns.landing_cost') }}: {{ $item->landing_cost ?: '—' }}
-                                <span class="receipt-item__sep">·</span>
-                                {{ __('purchases.columns.cost_price') }}: {{ $item->cost_price ?: '—' }}
-                                @if (filled($item->sale_price))
-                                    <span class="receipt-item__sep">·</span>
-                                    {{ __('purchases.columns.sale_price') }}: {{ $item->sale_price }}
-                                @endif
-                                <span class="receipt-item__sep">·</span>
-                                <strong>{{ __('purchases.columns.line_total') }}: {{ $item->line_total ?: '—' }}</strong>
-                            </p>
+                            <div class="receipt-item__grid">
+                                <div class="receipt-item__field">
+                                    <span class="receipt-item__label">{{ __('purchases.print.receipt.required_qty') }}</span>
+                                    <span class="receipt-item__value">{{ $item->required_qty ?: '—' }}</span>
+                                </div>
+                                <div class="receipt-item__field">
+                                    <span class="receipt-item__label">{{ __('purchases.print.receipt.purchase_qty') }}</span>
+                                    <span class="receipt-item__value">{{ $item->purchase_qty ?: '—' }}</span>
+                                </div>
+                                <div class="receipt-item__field">
+                                    <span class="receipt-item__label">{{ __('purchases.print.receipt.previous_price') }}</span>
+                                    <span class="receipt-item__value">{{ $item->previous_price ?: '—' }}</span>
+                                </div>
+                                <div class="receipt-item__field">
+                                    <span class="receipt-item__label">{{ __('purchases.print.receipt.current_rate') }}</span>
+                                    <span class="receipt-item__value">{{ $item->current_rate ?: '—' }}</span>
+                                </div>
+                                <div class="receipt-item__field">
+                                    <span class="receipt-item__label">{{ __('purchases.print.receipt.landing_cost') }}</span>
+                                    <span class="receipt-item__value">{{ $item->landing_cost ?: '—' }}</span>
+                                </div>
+                                <div class="receipt-item__field">
+                                    <span class="receipt-item__label">{{ __('purchases.print.receipt.cost_price') }}</span>
+                                    <span class="receipt-item__value">{{ $item->cost_price ?: '—' }}</span>
+                                </div>
+                                <div class="receipt-item__field">
+                                    <span class="receipt-item__label">{{ __('purchases.print.receipt.sale_price') }}</span>
+                                    <span class="receipt-item__value">{{ $item->sale_price ?: '—' }}</span>
+                                </div>
+                                <div class="receipt-item__field receipt-item__field--total">
+                                    <span class="receipt-item__label">{{ __('purchases.print.receipt.line_total') }}</span>
+                                    <span class="receipt-item__value">{{ $item->line_total ?: '—' }}</span>
+                                </div>
+                            </div>
                         </article>
                     @endforeach
                 </div>

@@ -77,6 +77,15 @@ return [
         ],
     ],
 
+    'filters' => [
+        'delivery' => 'مال کی حیثیت',
+        'payment' => 'ادائیگی کی حیثیت',
+        'dispute' => 'انوائس کی حیثیت',
+        'active_delivery' => 'مال: :status',
+        'active_payment' => 'ادائیگی: :status',
+        'active_dispute' => 'انوائس: :status',
+    ],
+
     'statuses_short' => [
         'delivery' => [
             'pending' => 'باقی',
@@ -114,6 +123,8 @@ return [
 
     'list' => [
         'empty' => 'ابھی کوئی خریداری نہیں۔ نئی بنانے کے لیے Add Purchase دبائیں۔',
+        'no_results' => 'آپ کی تلاش یا فلٹرز سے کوئی خریداری نہیں ملی۔',
+        'clear_filters' => 'فلٹرز صاف کریں',
         'col_number' => 'خریداری نمبر',
         'col_supplier' => 'سپلائر',
         'col_purchaser' => 'پرچیزر',
@@ -147,5 +158,15 @@ return [
         'supplier' => 'سپلائر',
         'purchaser' => 'پرچیزر',
         'supplier_balance' => 'سپلائر سابقہ بیلنس',
+        'receipt' => [
+            'required_qty' => 'درکار',
+            'purchase_qty' => 'خرید',
+            'previous_price' => 'پچھلی',
+            'current_rate' => 'موجودہ',
+            'landing_cost' => 'لینڈنگ',
+            'cost_price' => 'لاگت',
+            'sale_price' => 'فروخت',
+            'line_total' => 'لائن کل',
+        ],
     ],
 ];

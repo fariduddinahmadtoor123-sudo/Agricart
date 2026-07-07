@@ -60,6 +60,12 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
         ->name('admin.labels.print');
     Route::get('/purchase-planning/{sheet}/print', [\App\Http\Controllers\Admin\PurchasePlanningPrintController::class, 'show'])
         ->name('admin.purchase-planning.print');
+    Route::get('/purchase-quotations/{quotation}/print', [\App\Http\Controllers\Admin\PurchaseQuotationPrintController::class, 'show'])
+        ->name('admin.purchase-quotations.print');
+    Route::get('/re-order/print', [\App\Http\Controllers\Admin\ReorderPrintController::class, 'show'])
+        ->name('admin.reorder.print');
+    Route::get('/price-tags/print', [\App\Http\Controllers\Admin\PriceTagPrintController::class, 'show'])
+        ->name('admin.price-tags.print');
     Route::get('/purchases/{purchase}/print', [\App\Http\Controllers\Admin\PurchasePrintController::class, 'show'])
         ->name('admin.purchases.print');
 });

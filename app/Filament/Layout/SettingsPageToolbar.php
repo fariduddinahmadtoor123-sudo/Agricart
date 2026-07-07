@@ -103,6 +103,27 @@ class SettingsPageToolbar extends ClusterPageToolbar
                 'filters' => [],
                 'columns' => [],
             ],
+            'printing' => [
+                ...$config,
+                'addLabel' => null,
+                'formKey' => null,
+                'livewirePrefix' => 'printing',
+                'livewireComponent' => 'settings.manage-print-profiles',
+                'interactive' => true,
+                'hideFilters' => true,
+                'searchPlaceholder' => __('agricart.toolbar.search_resource', ['resource' => mb_strtolower($config['resourceLabel'])]),
+                'filters' => [],
+                'columns' => [],
+                'toolbarActions' => static::userCanManagePrinting() ? [
+                    [
+                        'label' => __('agricart.printing.actions.add_profile'),
+                        'value' => 'add-profile',
+                        'icon' => Heroicon::OutlinedPlus,
+                        'color' => 'primary',
+                        'outlined' => false,
+                    ],
+                ] : [],
+            ],
             default => $config,
         };
     }
@@ -160,5 +181,13 @@ class SettingsPageToolbar extends ClusterPageToolbar
 
         return $user instanceof \App\Models\User
             && ($user->isSuperAdmin() || $user->hasPermission('settings.roles.manage'));
+    }
+
+    protected static function userCanManagePrinting(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof \App\Models\User
+            && ($user->isSuperAdmin() || $user->hasPermission('settings.printing.manage'));
     }
 }

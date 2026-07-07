@@ -1,7 +1,29 @@
 <div class="agricart-categories agricart-purchases">
+    @if ($activeFilters !== [])
+        <div class="agricart-list-filters">
+            @foreach ($activeFilters as $filter)
+                <button
+                    type="button"
+                    class="agricart-list-filters__chip"
+                    wire:click="removeFilter('{{ $filter['field'] }}')"
+                    wire:key="purchase-filter-{{ $filter['field'] }}"
+                >
+                    <span>{{ $filter['label'] }}</span>
+                    <span aria-hidden="true">×</span>
+                </button>
+            @endforeach
+
+            @if ($hasListConstraints)
+                <button type="button" class="agricart-list-filters__clear" wire:click="clearFilters">
+                    {{ __('purchases.list.clear_filters') }}
+                </button>
+            @endif
+        </div>
+    @endif
+
     @if ($purchases->isEmpty())
         <div class="agricart-categories__empty">
-            <p>{{ __('purchases.list.empty') }}</p>
+            <p>{{ $hasListConstraints ? __('purchases.list.no_results') : __('purchases.list.empty') }}</p>
         </div>
     @else
         <div class="agricart-categories__table-wrap">
