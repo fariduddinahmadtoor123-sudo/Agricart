@@ -65,6 +65,39 @@ class StoreProductService
     }
 
     /**
+     * @return \Illuminate\Support\Collection<int, Product>
+     */
+    public function search(string $term, int $limit = 48): \Illuminate\Support\Collection
+    {
+        $term = trim($term);
+
+        if ($term === '') {
+            return collect();
+        }
+
+        $needle = '%' . $term . '%';
+
+        return Product::query()
+            ->where('status', 'active')
+            ->where(function ($query) use ($needle): void {
+                $query->where('name_en', 'like', $needle)
+                    ->orWhere('name_ur', 'like', $needle)
+                    ->orWhere('code', 'like', $needle)
+                    ->orWhere('sku', 'like', $needle)
+                    ->orWhere('label_code', 'like', $needle)
+                    ->orWhere('slug', 'like', $needle)
+                    ->orWhereHas('brand', function ($brandQuery) use ($needle): void {
+                        $brandQuery->where('name_en', 'like', $needle)
+                            ->orWhere('name_ur', 'like', $needle);
+                    });
+            })
+            ->with(['brand'])
+            ->orderBy('name_en')
+            ->limit($limit)
+            ->get();
+    }
+
+    /**
      * @return list<string>
      */
     public function allImageUrls(Product $product): array

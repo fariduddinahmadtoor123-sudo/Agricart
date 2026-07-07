@@ -1,4 +1,41 @@
 <div class="agricart-catalog-overview">
+    @if (filled(trim($search)))
+        <section class="agricart-catalog-overview__search-results" wire:key="catalog-overview-search">
+            <h2 class="agricart-catalog-overview__search-title">
+                {{ __('agricart.catalog.overview.search_results', ['query' => $search]) }}
+            </h2>
+
+            @if ($searchResults === [])
+                <p class="agricart-catalog-overview__search-empty">
+                    {{ __('agricart.catalog.overview.search_no_results', ['query' => $search]) }}
+                </p>
+            @else
+                <div class="agricart-catalog-overview__search-groups">
+                    @foreach ($searchResults as $groupKey => $items)
+                        <section class="agricart-catalog-overview__search-group" wire:key="catalog-search-group-{{ $groupKey }}">
+                            <h3 class="agricart-catalog-overview__search-group-title">
+                                {{ __('agricart.catalog.overview.cards.' . $groupKey) }}
+                            </h3>
+
+                            <ul class="agricart-catalog-overview__search-list">
+                                @foreach ($items as $index => $item)
+                                    <li wire:key="catalog-search-{{ $groupKey }}-{{ $index }}">
+                                        <a href="{{ $item['url'] }}" class="agricart-catalog-overview__search-item">
+                                            <span class="agricart-catalog-overview__search-item-label">{{ $item['label'] }}</span>
+                                            @if (filled($item['meta']))
+                                                <span class="agricart-catalog-overview__search-item-meta">{{ $item['meta'] }}</span>
+                                            @endif
+                                        </a>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        </section>
+                    @endforeach
+                </div>
+            @endif
+        </section>
+    @endif
+
     <section class="agricart-catalog-overview__intro">
         <h2 class="agricart-catalog-overview__title">{{ __('agricart.catalog.overview.title') }}</h2>
         <p class="agricart-catalog-overview__hint">{{ __('agricart.catalog.overview.hint') }}</p>

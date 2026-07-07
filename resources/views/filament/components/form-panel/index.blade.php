@@ -390,7 +390,12 @@
             <header class="agricart-form-panel__header">
                 <div class="agricart-form-panel__header-main">
                     <h2 class="agricart-form-panel__title" x-text="title"></h2>
-                    <p class="agricart-form-panel__subtitle" x-text="resourceLabel"></p>
+                    <p
+                        class="agricart-form-panel__subtitle"
+                        x-show="formKey !== 'products' && resourceLabel"
+                        x-text="resourceLabel"
+                        x-cloak
+                    ></p>
                 </div>
 
                 <div class="agricart-form-panel__window-controls">

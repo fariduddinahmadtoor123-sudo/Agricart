@@ -4,12 +4,14 @@ use App\Http\Controllers\Store\CategoryController;
 use App\Http\Controllers\Store\HomeController;
 use App\Http\Controllers\Store\PageController;
 use App\Http\Controllers\Store\ProductController;
+use App\Http\Controllers\Store\SearchController;
 use App\Http\Middleware\SetAgricartLocale;
 use App\Filament\Layout\TopbarActions;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware([SetAgricartLocale::class])->group(function (): void {
     Route::get('/', [HomeController::class, 'index'])->name('store.home');
+    Route::get('/search', [SearchController::class, 'index'])->name('store.search');
     Route::get('/page/{slug}', [PageController::class, 'show'])->name('store.page');
     Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('store.category');
     Route::get('/product/{slug}', [ProductController::class, 'show'])->name('store.product');

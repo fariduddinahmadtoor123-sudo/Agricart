@@ -11,7 +11,7 @@
             </a>
 
             <div class="ag-store-header__search">
-                <form action="{{ route('store.home') }}" method="get" class="ag-store-header__search-form" role="search">
+                <form action="{{ route('store.search') }}" method="get" class="ag-store-header__search-form" role="search">
                     <input
                         type="search"
                         name="q"

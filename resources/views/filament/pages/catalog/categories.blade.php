@@ -1,25 +1,6 @@
 <x-filament-panels::page>
     @script
         <script>
-            const bindCategoriesToolbarSearch = () => {
-                const input = document.getElementById('agricart-catalog-search-categories');
-
-                if (! input || input.dataset.categoriesSearchBound === 'true') {
-                    return;
-                }
-
-                input.dataset.categoriesSearchBound = 'true';
-
-                input.addEventListener('input', (event) => {
-                    window.Livewire.dispatch('categories-search', {
-                        query: event.target.value,
-                    });
-                });
-            };
-
-            bindCategoriesToolbarSearch();
-            document.addEventListener('livewire:navigated', bindCategoriesToolbarSearch);
-
             Livewire.on('categories-columns-sync', (payload) => {
                 const columns = payload?.columns ?? [];
 

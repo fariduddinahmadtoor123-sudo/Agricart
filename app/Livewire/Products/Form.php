@@ -26,6 +26,8 @@ class Form extends Component
 {
     use WithFileUploads;
 
+    private const GALLERY_SLOT_COUNT = 4;
+
     public ?int $productId = null;
 
     public string $mode = 'create';
@@ -899,9 +901,9 @@ class Form extends Component
 
     private function resetGallerySlots(): void
     {
-        $this->galleryUploads = array_fill(0, 5, null);
-        $this->galleryPreviewUrls = array_fill(0, 5, null);
-        $this->storedGalleryPaths = array_fill(0, 5, null);
+        $this->galleryUploads = array_fill(0, self::GALLERY_SLOT_COUNT, null);
+        $this->galleryPreviewUrls = array_fill(0, self::GALLERY_SLOT_COUNT, null);
+        $this->storedGalleryPaths = array_fill(0, self::GALLERY_SLOT_COUNT, null);
     }
 
     private function loadProduct(int $productId): void
@@ -929,6 +931,10 @@ class Form extends Component
         $galleryImages = $product->gallery_images ?? [];
 
         foreach ($galleryImages as $index => $path) {
+            if ($index >= self::GALLERY_SLOT_COUNT) {
+                break;
+            }
+
             if (! is_string($path) || ! filled($path)) {
                 continue;
             }

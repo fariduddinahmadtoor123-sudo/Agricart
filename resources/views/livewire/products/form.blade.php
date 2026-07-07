@@ -37,7 +37,7 @@
 
     {{-- Row 1: Category hierarchy + display categories --}}
     <div class="agricart-product-form__categories">
-        <div class="agricart-product-form__category-col">
+        <div class="agricart-product-form__category-col agricart-product-form__category-col--parent">
             <label class="agricart-product-form__row-label" for="agricart-product-parent-search">
                 {{ __('agricart.products.fields.parent_category') }}
             </label>
@@ -112,7 +112,27 @@
             </div>
         </div>
 
-        <div class="agricart-product-form__category-col">
+        <div class="agricart-product-form__category-col agricart-product-form__category-col--names">
+            <div class="agricart-form-panel__field agricart-product-form__name-field">
+                <label class="agricart-form-panel__label" for="agricart-product-name-en">
+                    {{ __('agricart.form_panel.categories.english_name') }}
+                </label>
+                <x-filament::input.wrapper>
+                    <input id="agricart-product-name-en" type="text" wire:model="name_en" class="fi-input" @disabled($readonly) />
+                </x-filament::input.wrapper>
+            </div>
+
+            <div class="agricart-form-panel__field agricart-product-form__name-field">
+                <label class="agricart-form-panel__label" for="agricart-product-name-ur">
+                    {{ __('agricart.form_panel.categories.urdu_name') }}
+                </label>
+                <x-filament::input.wrapper>
+                    <input id="agricart-product-name-ur" type="text" wire:model="name_ur" dir="rtl" class="fi-input" @disabled($readonly) />
+                </x-filament::input.wrapper>
+            </div>
+        </div>
+
+        <div class="agricart-product-form__category-col agricart-product-form__category-col--display">
             <label class="agricart-product-form__row-label" for="agricart-product-display-search">
                 {{ __('agricart.products.fields.display_categories') }}
             </label>
@@ -165,7 +185,7 @@
             </div>
 
             <div class="agricart-product-form__icons agricart-product-form__icons--display" role="list">
-                @for ($slot = 0; $slot < 5; $slot++)
+                @for ($slot = 0; $slot < 4; $slot++)
                     <div class="agricart-product-form__image-slot" role="listitem" wire:key="product-gallery-{{ $slot }}">
                         <label
                             class="agricart-category-form__icon-slot agricart-category-form__icon-slot--upload agricart-product-form__image-upload"
@@ -197,24 +217,57 @@
         </div>
     </div>
 
-    {{-- Row 2: Names, brand, attributes --}}
+    {{-- Row 2: Controls, brand, attributes --}}
     <div class="agricart-product-form__identity">
-        <div class="agricart-form-panel__field agricart-product-form__name-field">
-            <label class="agricart-form-panel__label" for="agricart-product-name-en">
-                {{ __('agricart.form_panel.categories.english_name') }}
+        <div class="agricart-product-form__controls-field">
+            <label class="agricart-form-panel__label" for="agricart-product-control-search">
+                {{ __('agricart.products.fields.controls') }}
             </label>
-            <x-filament::input.wrapper>
-                <input id="agricart-product-name-en" type="text" wire:model="name_en" class="fi-input" @disabled($readonly) />
-            </x-filament::input.wrapper>
-        </div>
-
-        <div class="agricart-form-panel__field agricart-product-form__name-field">
-            <label class="agricart-form-panel__label" for="agricart-product-name-ur">
-                {{ __('agricart.form_panel.categories.urdu_name') }}
-            </label>
-            <x-filament::input.wrapper>
-                <input id="agricart-product-name-ur" type="text" wire:model="name_ur" dir="rtl" class="fi-input" @disabled($readonly) />
-            </x-filament::input.wrapper>
+            <div class="agricart-category-form__picker">
+                @if ($selectedControls !== [])
+                    <div class="agricart-product-form__control-chips">
+                        @foreach ($selectedControls as $control)
+                            <span class="agricart-product-form__control-chip" wire:key="product-control-{{ $control['id'] }}">
+                                <span class="agricart-product-form__control-chip-name">{{ $control['name_en'] }}</span>
+                                <span class="agricart-product-form__control-chip-value">{{ $control['value_en'] }}</span>
+                                @unless ($readonly)
+                                    <button type="button" class="agricart-category-form__picker-chip-remove" wire:click="removeControl({{ $control['id'] }})" title="{{ __('agricart.products.actions.remove') }}">×</button>
+                                @endunless
+                            </span>
+                        @endforeach
+                    </div>
+                @endif
+                <x-filament::input.wrapper :prefix-icon="Heroicon::OutlinedMagnifyingGlass" inline-prefix>
+                    <input
+                        id="agricart-product-control-search"
+                        type="search"
+                        wire:model.live.debounce.300ms="control_search"
+                        class="fi-input fi-input-has-inline-prefix"
+                        placeholder="{{ __('agricart.products.hints.control_search') }}"
+                        @disabled($readonly)
+                    />
+                </x-filament::input.wrapper>
+                @if (mb_strlen(trim($control_search)) >= 2)
+                    <div class="agricart-category-form__picker-results" role="listbox">
+                        @forelse ($filteredControlOptions as $id => $label)
+                            <button
+                                type="button"
+                                class="agricart-category-form__picker-result"
+                                wire:click="addControl({{ $id }})"
+                                wire:key="product-control-result-{{ $id }}"
+                                role="option"
+                                @disabled($readonly)
+                            >
+                                {{ $label }}
+                            </button>
+                        @empty
+                            <p class="agricart-form-panel__hint agricart-category-form__picker-empty">
+                                {{ __('agricart.products.hints.control_empty') }}
+                            </p>
+                        @endforelse
+                    </div>
+                @endif
+            </div>
         </div>
 
         <div class="agricart-form-panel__field agricart-product-form__brand-field">
@@ -476,56 +529,4 @@
         <h3 class="agricart-form-panel__section-title agricart-product-form__details-heading">{{ __('agricart.products.sections.additional') }}</h3>
         @include('livewire.products.partials.additional-sections')
     </div>
-
-    {{-- Controls (bottom) --}}
-    <section class="agricart-product-form__controls-section">
-        <label class="agricart-product-form__row-label" for="agricart-product-control-search">
-            {{ __('agricart.products.fields.controls') }}
-        </label>
-        <div class="agricart-category-form__picker">
-            @if ($selectedControls !== [])
-                <div class="agricart-product-form__control-chips">
-                    @foreach ($selectedControls as $control)
-                        <span class="agricart-product-form__control-chip" wire:key="product-control-{{ $control['id'] }}">
-                            <span class="agricart-product-form__control-chip-name">{{ $control['name_en'] }}</span>
-                            <span class="agricart-product-form__control-chip-value">{{ $control['value_en'] }}</span>
-                            @unless ($readonly)
-                                <button type="button" class="agricart-category-form__picker-chip-remove" wire:click="removeControl({{ $control['id'] }})" title="{{ __('agricart.products.actions.remove') }}">×</button>
-                            @endunless
-                        </span>
-                    @endforeach
-                </div>
-            @endif
-            <x-filament::input.wrapper :prefix-icon="Heroicon::OutlinedMagnifyingGlass" inline-prefix>
-                <input
-                    id="agricart-product-control-search"
-                    type="search"
-                    wire:model.live.debounce.300ms="control_search"
-                    class="fi-input fi-input-has-inline-prefix"
-                    placeholder="{{ __('agricart.products.hints.control_search') }}"
-                    @disabled($readonly)
-                />
-            </x-filament::input.wrapper>
-            @if (mb_strlen(trim($control_search)) >= 2)
-                <div class="agricart-category-form__picker-results" role="listbox">
-                    @forelse ($filteredControlOptions as $id => $label)
-                        <button
-                            type="button"
-                            class="agricart-category-form__picker-result"
-                            wire:click="addControl({{ $id }})"
-                            wire:key="product-control-result-{{ $id }}"
-                            role="option"
-                            @disabled($readonly)
-                        >
-                            {{ $label }}
-                        </button>
-                    @empty
-                        <p class="agricart-form-panel__hint agricart-category-form__picker-empty">
-                            {{ __('agricart.products.hints.control_empty') }}
-                        </p>
-                    @endforelse
-                </div>
-            @endif
-        </div>
-    </section>
 </div>

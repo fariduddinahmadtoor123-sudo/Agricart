@@ -303,6 +303,9 @@ return [
             'hint' => 'کیٹalog ماڈیول کا خلاصہ۔ کسی بھی حصے پر کلک کریں۔',
             'total_records' => 'کل :count ریکارڈ',
             'active_count' => ':count فعال',
+            'search_results' => '":query" کے نتائج',
+            'search_no_results' => '":query" سے کوئی ریکارڈ نہیں ملا۔',
+            'search_untitled' => 'بے عنوان',
             'cards' => [
                 'categories' => 'زمرے',
                 'products' => 'مصنوعات',
@@ -813,6 +816,13 @@ return [
 
     'storefront' => [
         'home' => ['title' => 'ہوم'],
+        'search' => [
+            'title' => 'تلاش',
+            'heading' => 'مصنوعات تلاش کریں',
+            'for_query' => '":query" کے نتائج',
+            'empty_query' => 'مصنوعات کا نام، کوڈ یا برانڈ لکھ کر تلاش کریں۔',
+            'no_results' => '":query" کے لیے کوئی مصنوعات نہیں ملیں۔',
+        ],
         'header' => [
             'search' => 'تلاش',
             'login' => 'لاگ ان',

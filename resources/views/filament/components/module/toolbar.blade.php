@@ -4,6 +4,7 @@
     /** @var class-string<\App\Filament\Layout\ClusterPageToolbar> $toolbarClass */
     $toolbar = $toolbarClass::config();
     $moduleKey = $moduleKey ?? 'module';
+    $livewirePrefix = $toolbar['livewirePrefix'] ?? null;
 @endphp
 
 @if (filled($toolbar))
@@ -23,6 +24,9 @@
                     autocomplete="off"
                     placeholder="{{ $toolbar['searchPlaceholder'] }}"
                     class="fi-input fi-input-has-inline-prefix agricart-catalog-toolbar__search-input"
+                    @if ($livewirePrefix)
+                        x-on:input.debounce.300ms="window.Livewire.dispatch(@js($livewirePrefix . '-search'), { query: $event.target.value })"
+                    @endif
                 />
             </x-filament::input.wrapper>
         </div>

@@ -81,11 +81,7 @@
                                     type="checkbox"
                                     value="{{ $column['value'] }}"
                                     @if ($interactive)
-                                        @if ($columnDataAttr === 'data-category-column')
-                                            data-category-column="{{ $column['value'] }}"
-                                        @else
-                                            data-ai-log-column="{{ $column['value'] }}"
-                                        @endif
+                                        {!! ' ' . $columnDataAttr . '="' . e($column['value']) . '"' !!}
                                         x-on:change="toggleColumn(@js($column['value']), $event.target.checked)"
                                     @endif
                                     @checked($column['visible'])

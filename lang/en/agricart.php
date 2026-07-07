@@ -303,6 +303,9 @@ return [
             'hint' => 'Summary of everything in your catalog module. Click a card to open that section.',
             'total_records' => ':count total catalog records',
             'active_count' => ':count active',
+            'search_results' => 'Results for ":query"',
+            'search_no_results' => 'No catalog records match ":query".',
+            'search_untitled' => 'Untitled',
             'cards' => [
                 'categories' => 'Categories',
                 'products' => 'Products',
@@ -814,6 +817,13 @@ return [
     'storefront' => [
         'home' => [
             'title' => 'Home',
+        ],
+        'search' => [
+            'title' => 'Search',
+            'heading' => 'Search products',
+            'for_query' => 'Results for ":query"',
+            'empty_query' => 'Enter a product name, code, or brand to search.',
+            'no_results' => 'No products found for ":query".',
         ],
         'header' => [
             'search' => 'Search',

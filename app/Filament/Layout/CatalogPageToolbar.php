@@ -38,6 +38,11 @@ class CatalogPageToolbar extends ClusterPageToolbar
         }
 
         return match ($config['resourceSlug']) {
+            'overview' => [
+                ...$config,
+                'livewirePrefix' => 'catalog-overview',
+                'interactive' => false,
+            ],
             'products' => [
                 ...$config,
                 'livewirePrefix' => 'products',
