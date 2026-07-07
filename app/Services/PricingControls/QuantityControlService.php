@@ -183,8 +183,8 @@ class QuantityControlService
         $defaults = [
             ['tier_key' => 'retail', 'name_en' => 'Retail quantity', 'name_ur' => 'ریٹیل کوانٹٹی', 'min_quantity' => 1, 'price_field' => 'retail_price', 'sort_order' => 1],
             ['tier_key' => 'wholesale', 'name_en' => 'Wholesale quantity', 'name_ur' => 'ہول سیل کوانٹٹی', 'min_quantity' => 5, 'price_field' => 'wholesale_price', 'sort_order' => 2],
-            ['tier_key' => 'super_wholesale', 'name_en' => 'Bulk quantity', 'name_ur' => 'بلک کوانٹٹی', 'min_quantity' => 500, 'price_field' => 'super_wholesale_price', 'sort_order' => 3],
-            ['tier_key' => 'distributor', 'name_en' => 'Distributor quantity', 'name_ur' => 'ڈسٹریبیوٹر کوانٹٹی', 'min_quantity' => 20, 'price_field' => 'distributor_price', 'sort_order' => 4],
+            ['tier_key' => 'super_wholesale', 'name_en' => 'Bulk quantity', 'name_ur' => 'بلک کوانٹٹی', 'min_quantity' => 20, 'price_field' => 'super_wholesale_price', 'sort_order' => 3],
+            ['tier_key' => 'distributor', 'name_en' => 'Distributor quantity', 'name_ur' => 'ڈسٹریبیوٹر کوانٹٹی', 'min_quantity' => 500, 'price_field' => 'distributor_price', 'sort_order' => 4],
         ];
 
         foreach ($defaults as $tier) {

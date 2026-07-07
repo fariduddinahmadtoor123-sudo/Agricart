@@ -304,6 +304,7 @@ return [
                 'product_enrichment' => 'Product enrichment',
                 'company_profile_enrichment' => 'Store profile enrichment',
                 'supplier_enrichment' => 'Supplier enrichment',
+                'customer_enrichment' => 'Customer enrichment',
             ],
             'sources' => [
                 'settings_form' => 'AI setup form',

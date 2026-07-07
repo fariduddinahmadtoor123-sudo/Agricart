@@ -199,10 +199,13 @@ class QuantityPricingEngine
         return $options;
     }
 
+    /** @var list<string> Quantity tiers not used on in-store POS (e.g. online wholesale). */
+    public const POS_EXCLUDED_TIER_KEYS = ['wholesale'];
+
     /**
      * @return array{field: string, price: string|null, tier: QuantityChannelTier}|null
      */
-    public function resolveForQuantity(Product $product, float $quantity): ?array
+    public function resolveForQuantity(Product $product, float $quantity, bool $forPos = false): ?array
     {
         if ($quantity <= 0) {
             return null;
@@ -210,30 +213,38 @@ class QuantityPricingEngine
 
         $overrides = is_array($product->price_tier_quantities) ? $product->price_tier_quantities : [];
 
-        $rules = $this->activeTiers()
+        $tiers = $this->activeTiers();
+
+        if ($forPos) {
+            $tiers = $tiers->filter(
+                fn (QuantityChannelTier $tier): bool => ! in_array($tier->tier_key, self::POS_EXCLUDED_TIER_KEYS, true),
+            );
+        }
+
+        $rules = $tiers
             ->map(fn (QuantityChannelTier $tier): array => [
                 'min_quantity' => (int) ($overrides[$tier->price_field] ?? $tier->min_quantity),
                 'price_field' => $tier->price_field,
                 'sort_order' => $tier->sort_order,
                 'tier' => $tier,
-            ])
-            ->sortBy([
-                ['min_quantity', 'desc'],
-                ['sort_order', 'asc'],
+                'tier_rank' => self::TIER_SORT_ORDER[$tier->tier_key] ?? 0,
             ])
             ->values();
 
-        foreach ($rules as $rule) {
-            if ($quantity >= $rule['min_quantity']) {
-                return [
-                    'field' => $rule['price_field'],
-                    'price' => $this->productPrice($product, $rule['price_field']),
-                    'tier' => $rule['tier'],
-                ];
-            }
+        $match = $rules
+            ->filter(fn (array $rule): bool => $quantity >= $rule['min_quantity'])
+            ->sortByDesc(fn (array $rule): int => ($rule['tier_rank'] * 1_000_000) + $rule['min_quantity'])
+            ->first();
+
+        if ($match === null) {
+            return null;
         }
 
-        return null;
+        return [
+            'field' => $match['price_field'],
+            'price' => $this->productPrice($product, $match['price_field']),
+            'tier' => $match['tier'],
+        ];
     }
 
     public function productPrice(Product $product, string $priceField): ?string

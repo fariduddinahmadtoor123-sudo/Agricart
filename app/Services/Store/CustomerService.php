@@ -3,6 +3,7 @@
 namespace App\Services\Store;
 
 use App\Models\Customer;
+use App\Services\Contacts\CustomerService;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -18,6 +19,11 @@ class CustomerService
         $validated['customer_number'] = $this->nextCustomerNumber();
         $validated['country'] = $validated['country'] ?? 'Pakistan';
         $validated['is_active'] = true;
+        $validated['customer_channel'] = Customer::CHANNEL_ONLINE;
+        $validated['display_name'] = trim($validated['first_name'] . ' ' . $validated['last_name']);
+        $validated['name_en'] = $validated['display_name'];
+        $validated['contacts'] = [['mobile_number' => $validated['phone']]];
+        $validated['city_en'] = $validated['city'];
 
         return Customer::query()->create($validated);
     }
@@ -81,6 +87,14 @@ class CustomerService
         ]);
 
         $validated['accepts_marketing'] = (bool) ($validated['accepts_marketing'] ?? false);
+
+        $existing = app(CustomerService::class)->findByPhone((string) $validated['phone']);
+
+        if ($existing !== null) {
+            throw ValidationException::withMessages([
+                'phone' => [__('customers.validation.phone_duplicate', ['name' => $existing->displayLabel()])],
+            ]);
+        }
 
         return $validated;
     }

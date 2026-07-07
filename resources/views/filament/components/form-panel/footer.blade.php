@@ -12,7 +12,7 @@
 @endphp
 
 <div class="agricart-form-panel__footer-inner">
-    <div class="agricart-form-panel__progress" x-show="formKey !== 'categories' && formKey !== 'brands' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls' && formKey !== 'products' && formKey !== 'users' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding'" x-cloak>
+    <div class="agricart-form-panel__progress" x-show="formKey !== 'categories' && formKey !== 'brands' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls' && formKey !== 'products' && formKey !== 'users' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'customers' && formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'sales' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding'" x-cloak>
         <div class="agricart-form-panel__progress-meta">
             <span
                 class="agricart-form-panel__progress-label"
@@ -80,11 +80,11 @@
                     tag="button"
                     type="button"
                     class="agricart-form-panel__action-btn agricart-form-panel__action-btn--ai"
-                    x-show="!['users', 'roles', 'purchase-planning', 'purchase-payment-summary', 'purchase-quotations', 'purchases', 'price-controls', 'quantity-controls', 'secret-coding'].includes(formKey)"
+                    x-show="!['users', 'roles', 'purchase-planning', 'purchase-payment-summary', 'purchase-quotations', 'purchases', 'sales', 'price-controls', 'quantity-controls', 'secret-coding'].includes(formKey)"
                     x-cloak
-                    x-bind:class="{ 'is-loading': (formKey === 'categories' && categoryAiEnriching) || (formKey === 'brands' && brandAiEnriching) || (formKey === 'units' && unitAiEnriching) || (formKey === 'packing-units' && packingUnitAiEnriching) || (formKey === 'attributes' && attributeAiEnriching) || (formKey === 'controls' && controlAiEnriching) || (formKey === 'products' && productAiEnriching) || (formKey === 'company-profile' && companyProfileAiEnriching) || (formKey === 'suppliers' && supplierAiEnriching) }"
-                    x-bind:disabled="(formKey === 'categories' && categoryAiEnriching) || (formKey === 'brands' && brandAiEnriching) || (formKey === 'units' && unitAiEnriching) || (formKey === 'packing-units' && packingUnitAiEnriching) || (formKey === 'attributes' && attributeAiEnriching) || (formKey === 'controls' && controlAiEnriching) || (formKey === 'products' && productAiEnriching) || (formKey === 'company-profile' && companyProfileAiEnriching) || (formKey === 'suppliers' && supplierAiEnriching)"
-                    x-bind:aria-busy="(formKey === 'categories' && categoryAiEnriching) || (formKey === 'brands' && brandAiEnriching) || (formKey === 'units' && unitAiEnriching) || (formKey === 'packing-units' && packingUnitAiEnriching) || (formKey === 'attributes' && attributeAiEnriching) || (formKey === 'controls' && controlAiEnriching) || (formKey === 'products' && productAiEnriching) || (formKey === 'company-profile' && companyProfileAiEnriching) || (formKey === 'suppliers' && supplierAiEnriching) ? 'true' : 'false'"
+                    x-bind:class="{ 'is-loading': (formKey === 'categories' && categoryAiEnriching) || (formKey === 'brands' && brandAiEnriching) || (formKey === 'units' && unitAiEnriching) || (formKey === 'packing-units' && packingUnitAiEnriching) || (formKey === 'attributes' && attributeAiEnriching) || (formKey === 'controls' && controlAiEnriching) || (formKey === 'products' && productAiEnriching) || (formKey === 'company-profile' && companyProfileAiEnriching) || (formKey === 'suppliers' && supplierAiEnriching) || (formKey === 'customers' && customerAiEnriching) }"
+                    x-bind:disabled="(formKey === 'categories' && categoryAiEnriching) || (formKey === 'brands' && brandAiEnriching) || (formKey === 'units' && unitAiEnriching) || (formKey === 'packing-units' && packingUnitAiEnriching) || (formKey === 'attributes' && attributeAiEnriching) || (formKey === 'controls' && controlAiEnriching) || (formKey === 'products' && productAiEnriching) || (formKey === 'company-profile' && companyProfileAiEnriching) || (formKey === 'suppliers' && supplierAiEnriching) || (formKey === 'customers' && customerAiEnriching)"
+                    x-bind:aria-busy="(formKey === 'categories' && categoryAiEnriching) || (formKey === 'brands' && brandAiEnriching) || (formKey === 'units' && unitAiEnriching) || (formKey === 'packing-units' && packingUnitAiEnriching) || (formKey === 'attributes' && attributeAiEnriching) || (formKey === 'controls' && controlAiEnriching) || (formKey === 'products' && productAiEnriching) || (formKey === 'company-profile' && companyProfileAiEnriching) || (formKey === 'suppliers' && supplierAiEnriching) || (formKey === 'customers' && customerAiEnriching) ? 'true' : 'false'"
                     x-on:click="handleAction('ai')"
                 >
                     <span class="agricart-form-panel__action-ai-inner">
@@ -101,7 +101,7 @@
                     tag="button"
                     type="button"
                     class="agricart-form-panel__action-btn"
-                    x-show="formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding'"
+                    x-show="formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'sales' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding'"
                     x-cloak
                     x-on:click="handleAction('{{ $actionKey }}')"
                 >
@@ -115,11 +115,12 @@
                     tag="button"
                     type="button"
                     class="agricart-form-panel__action-btn"
-                    x-bind:class="{ 'is-loading': (formKey === 'purchase-planning' && purchasePlanningSaving) || (formKey === 'purchase-payment-summary' && purchasePaymentSummarySaving) || (formKey === 'purchase-quotations' && purchaseQuotationSaving) || (formKey === 'purchases' && purchaseSaving) || (formKey === 'price-controls' && priceControlSaving) || (formKey === 'quantity-controls' && quantityControlSaving) || (formKey === 'secret-coding' && secretCodingSaving) }"
-                    x-bind:disabled="(formKey === 'purchase-planning' && purchasePlanningSaving) || (formKey === 'purchase-payment-summary' && purchasePaymentSummarySaving) || (formKey === 'purchase-quotations' && purchaseQuotationSaving) || (formKey === 'purchases' && purchaseSaving) || (formKey === 'price-controls' && priceControlSaving) || (formKey === 'quantity-controls' && quantityControlSaving) || (formKey === 'secret-coding' && secretCodingSaving)"
+                    x-bind:class="{ 'is-loading': (formKey === 'purchase-planning' && purchasePlanningSaving) || (formKey === 'purchase-payment-summary' && purchasePaymentSummarySaving) || (formKey === 'purchase-quotations' && purchaseQuotationSaving) || (formKey === 'purchases' && purchaseSaving) || (formKey === 'sales' && saleSaving) || (formKey === 'price-controls' && priceControlSaving) || (formKey === 'quantity-controls' && quantityControlSaving) || (formKey === 'secret-coding' && secretCodingSaving) }"
+                    x-bind:disabled="(formKey === 'purchase-planning' && purchasePlanningSaving) || (formKey === 'purchase-payment-summary' && purchasePaymentSummarySaving) || (formKey === 'purchase-quotations' && purchaseQuotationSaving) || (formKey === 'purchases' && purchaseSaving) || (formKey === 'sales' && saleSaving) || (formKey === 'price-controls' && priceControlSaving) || (formKey === 'quantity-controls' && quantityControlSaving) || (formKey === 'secret-coding' && secretCodingSaving)"
                     x-on:click="handleAction('{{ $actionKey }}')"
                 >
-                    {{ $action['label'] }}
+                    <span x-show="formKey !== 'sales'">{{ $action['label'] }}</span>
+                    <span x-show="formKey === 'sales'" x-cloak>{{ __('pos.actions.complete_sale') }}</span>
                 </x-filament::button>
             @else
                 <x-filament::button
@@ -137,22 +138,38 @@
         @endforeach
 
         <x-filament::button
+            color="warning"
+            outlined
+            tag="button"
+            type="button"
+            class="agricart-form-panel__action-btn"
+            x-show="formKey === 'sales'"
+            x-cloak
+            x-bind:class="{ 'is-loading': saleSaving }"
+            x-bind:disabled="saleSaving"
+            x-on:click="handleAction('hold')"
+        >
+            {{ __('pos.actions.hold') }}
+        </x-filament::button>
+
+        <x-filament::button
             color="gray"
             outlined
             :icon="Heroicon::OutlinedPrinter"
             tag="button"
             type="button"
             class="agricart-form-panel__action-btn"
-            x-show="formKey === 'purchase-planning' || formKey === 'purchase-payment-summary' || formKey === 'purchase-quotations' || formKey === 'purchases'"
+            x-show="formKey === 'purchase-planning' || formKey === 'purchase-payment-summary' || formKey === 'purchase-quotations' || formKey === 'purchases' || formKey === 'sales'"
             x-cloak
-            x-bind:class="{ 'is-loading': (formKey === 'purchase-planning' && purchasePlanningSaving) || (formKey === 'purchase-payment-summary' && purchasePaymentSummarySaving) || (formKey === 'purchase-quotations' && purchaseQuotationSaving) || (formKey === 'purchases' && purchaseSaving) }"
-            x-bind:disabled="(formKey === 'purchase-planning' && purchasePlanningSaving) || (formKey === 'purchase-payment-summary' && purchasePaymentSummarySaving) || (formKey === 'purchase-quotations' && purchaseQuotationSaving) || (formKey === 'purchases' && purchaseSaving)"
+            x-bind:class="{ 'is-loading': (formKey === 'purchase-planning' && purchasePlanningSaving) || (formKey === 'purchase-payment-summary' && purchasePaymentSummarySaving) || (formKey === 'purchase-quotations' && purchaseQuotationSaving) || (formKey === 'purchases' && purchaseSaving) || (formKey === 'sales' && saleSaving) }"
+            x-bind:disabled="(formKey === 'purchase-planning' && purchasePlanningSaving) || (formKey === 'purchase-payment-summary' && purchasePaymentSummarySaving) || (formKey === 'purchase-quotations' && purchaseQuotationSaving) || (formKey === 'purchases' && purchaseSaving) || (formKey === 'sales' && saleSaving)"
             x-on:click="handleAction('print')"
         >
             <span x-show="formKey === 'purchase-planning'">{{ __('purchase_planning.actions.print') }}</span>
             <span x-show="formKey === 'purchase-payment-summary'">{{ __('purchase_payment_summary.actions.print') }}</span>
             <span x-show="formKey === 'purchase-quotations'">{{ __('purchase_quotations.actions.print') }}</span>
             <span x-show="formKey === 'purchases'">{{ __('purchases.actions.print') }}</span>
+            <span x-show="formKey === 'sales'">{{ __('pos.actions.print') }}</span>
         </x-filament::button>
     </div>
 </div>

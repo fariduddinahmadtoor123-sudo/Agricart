@@ -105,6 +105,7 @@ abstract class ClusterPageToolbar
             'purchase-payment-summary' => 'purchase-payment-summary',
             'purchase-quotations' => 'purchase-quotations',
             'purchases' => 'purchases',
+            'pos-sales' => 'sales',
             're-order-center' => 're-order-center',
             'price-control' => 'price-controls',
             'quantity-control' => 'quantity-controls',

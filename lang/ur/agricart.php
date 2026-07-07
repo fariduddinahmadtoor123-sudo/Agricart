@@ -304,6 +304,7 @@ return [
                 'product_enrichment' => 'مصنوعات AI',
                 'company_profile_enrichment' => 'اسٹور پروفائل AI',
                 'supplier_enrichment' => 'سپلائر AI',
+                'customer_enrichment' => 'گاہک AI',
             ],
             'sources' => [
                 'settings_form' => 'AI سیٹ اپ فارم',

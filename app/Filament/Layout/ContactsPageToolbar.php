@@ -57,6 +57,24 @@ class ContactsPageToolbar extends ClusterPageToolbar
                     ['label' => __('suppliers.list.col_created'), 'value' => 'created_at', 'visible' => true],
                 ],
             ],
+            'customers' => [
+                ...$config,
+                'livewirePrefix' => 'customers',
+                'columnDataAttr' => 'data-customer-column',
+                'interactive' => true,
+                'formKey' => 'customers',
+                'addLabel' => static::userCan('create') ? __('customers.actions.add') : null,
+                'filters' => static::customerFilters(),
+                'columns' => [
+                    ['label' => __('customers.list.col_number'), 'value' => 'customer_number', 'visible' => true],
+                    ['label' => __('customers.list.col_name'), 'value' => 'name', 'visible' => true],
+                    ['label' => __('customers.list.col_phone'), 'value' => 'phone', 'visible' => true],
+                    ['label' => __('customers.list.col_channel'), 'value' => 'channel', 'visible' => true],
+                    ['label' => __('customers.list.col_city'), 'value' => 'city', 'visible' => true],
+                    ['label' => __('customers.list.col_balance'), 'value' => 'balance', 'visible' => true],
+                    ['label' => __('customers.list.col_created'), 'value' => 'created_at', 'visible' => true],
+                ],
+            ],
             default => $config,
         };
     }
@@ -83,5 +101,18 @@ class ContactsPageToolbar extends ClusterPageToolbar
         }
 
         return $filters;
+    }
+
+    /**
+     * @return list<array{label: string, value: string}>
+     */
+    protected static function customerFilters(): array
+    {
+        return [
+            ['label' => __('customers.filters.online'), 'value' => 'channel:online'],
+            ['label' => __('customers.filters.offline'), 'value' => 'channel:offline'],
+            ['label' => __('customers.filters.active'), 'value' => 'status:active'],
+            ['label' => __('customers.filters.inactive'), 'value' => 'status:inactive'],
+        ];
     }
 }
