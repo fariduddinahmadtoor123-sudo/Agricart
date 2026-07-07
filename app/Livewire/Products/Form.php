@@ -13,6 +13,7 @@ use App\Models\Product;
 use App\Services\Catalog\ProductEnrichmentService;
 use App\Services\Catalog\ProductService;
 use App\Services\Catalog\CategoryVisualMappingService;
+use App\Services\PricingControls\QuantityPricingEngine;
 use App\Models\Unit;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
@@ -100,6 +101,9 @@ class Form extends Component
     public string $super_wholesale_price = '';
 
     public string $distributor_price = '';
+
+    /** @var array<string, int|string> */
+    public array $price_tier_quantities = [];
 
     public string $control_search = '';
 
@@ -202,6 +206,8 @@ class Form extends Component
 
         if ($productId) {
             $this->loadProduct($productId);
+        } else {
+            $this->applyDefaultTierQuantities();
         }
     }
 
@@ -635,6 +641,7 @@ class Form extends Component
                 ->all(),
             'labelCodePreview' => $this->labelCodePreview(),
             'categoryVisualMapCode' => $this->categoryVisualMapCode(),
+            'pricingTiers' => $this->pricingTierRows(),
         ]);
     }
 
@@ -776,6 +783,7 @@ class Form extends Component
             'wholesale_price' => filled($this->wholesale_price) ? $this->wholesale_price : null,
             'super_wholesale_price' => filled($this->super_wholesale_price) ? $this->super_wholesale_price : null,
             'distributor_price' => filled($this->distributor_price) ? $this->distributor_price : null,
+            'price_tier_quantities' => $this->normalizedTierQuantities(),
             'short_description_en' => $this->short_description_en ?: null,
             'short_description_ur' => $this->short_description_ur ?: null,
             'full_description_en' => $this->description_en ?: null,
@@ -957,6 +965,7 @@ class Form extends Component
         $this->wholesale_price = $product->wholesale_price ?? '';
         $this->super_wholesale_price = $product->super_wholesale_price ?? '';
         $this->distributor_price = $product->distributor_price ?? '';
+        $this->price_tier_quantities = $this->mergeTierQuantities($product);
         $this->short_description_en = $product->short_description_en ?? '';
         $this->short_description_ur = $product->short_description_ur ?? '';
         $this->description_en = $product->full_description_en ?? '';
@@ -1365,6 +1374,7 @@ class Form extends Component
         $this->wholesale_price = '';
         $this->super_wholesale_price = '';
         $this->distributor_price = '';
+        $this->price_tier_quantities = [];
         $this->control_search = '';
         $this->selectedControls = [];
         $this->short_description_en = '';
@@ -1407,5 +1417,61 @@ class Form extends Component
         $this->enriching = false;
         $this->statusMessage = null;
         $this->statusType = 'success';
+    }
+
+    private function applyDefaultTierQuantities(): void
+    {
+        $this->price_tier_quantities = app(QuantityPricingEngine::class)->defaultQuantitiesByPriceField();
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    private function mergeTierQuantities(Product $product): array
+    {
+        $defaults = app(QuantityPricingEngine::class)->defaultQuantitiesByPriceField();
+        $stored = is_array($product->price_tier_quantities) ? $product->price_tier_quantities : [];
+
+        return array_merge($defaults, array_map('intval', $stored));
+    }
+
+    /**
+     * @return array<string, int>|null
+     */
+    private function normalizedTierQuantities(): ?array
+    {
+        if ($this->price_tier_quantities === []) {
+            return null;
+        }
+
+        $normalized = [];
+
+        foreach ($this->price_tier_quantities as $field => $quantity) {
+            if ($quantity === '' || $quantity === null) {
+                continue;
+            }
+
+            $normalized[(string) $field] = (int) $quantity;
+        }
+
+        return $normalized === [] ? null : $normalized;
+    }
+
+    /**
+     * @return list<array{price_field: string, label: string}>
+     */
+    private function pricingTierRows(): array
+    {
+        $rows = [];
+
+        foreach (app(QuantityPricingEngine::class)->activeTiers() as $tier) {
+            $rows[] = [
+                'price_field' => $tier->price_field,
+                'tier_key' => $tier->tier_key,
+                'label' => $tier->localizedName(),
+            ];
+        }
+
+        return $rows;
     }
 }

@@ -2,31 +2,34 @@
 
 return [
     'actions' => [
-        'add' => 'Add Quantity Control',
+        'add' => 'Add quantity tier',
         'edit' => 'Edit :name',
         'edit_short' => 'Edit',
         'delete_short' => 'Delete',
     ],
 
     'fields' => [
-        'number' => 'Control No.',
-        'name_en' => 'Name (English)',
-        'name_ur' => 'Name (Urdu)',
+        'name_en' => 'Tier name (English)',
+        'name_ur' => 'Tier name (Urdu)',
+        'min_quantity' => 'Minimum quantity',
+        'price_type' => 'Price type',
         'status' => 'Status',
-        'notes' => 'Notes',
+        'map_retail' => 'Retail price',
     ],
 
     'hints' => [
-        'scaffold' => 'This is a starter form. Detailed quantity control rules will be added in the next step.',
+        'form' => 'Set default minimum quantities for each price type. These auto-fill on the product form; you can override per product.',
+        'quantity_preview' => 'Default on product form: ≥ :qty units → :price',
     ],
 
     'list' => [
-        'empty' => 'No quantity controls yet. Use Add to create the first record.',
-        'col_number' => 'No.',
-        'col_name_en' => 'Name (EN)',
-        'col_name_ur' => 'Name (UR)',
+        'intro' => 'Default quantity breakpoints for retail, wholesale, bulk and distributor prices.',
+        'link_note' => 'These quantities appear automatically on Add Product. Prices are managed separately (retail on purchase; others via Price Channel %).',
+        'empty' => 'No quantity tiers yet. Use Add to create the first tier.',
+        'col_name' => 'Tier',
+        'col_min_quantity' => 'Min. qty',
+        'col_price_type' => 'Price type',
         'col_status' => 'Status',
-        'col_created' => 'Created',
         'col_actions' => 'Actions',
     ],
 
@@ -41,9 +44,11 @@ return [
     ],
 
     'messages' => [
-        'created' => 'Quantity control saved.',
-        'updated' => 'Quantity control updated.',
-        'save_failed' => 'Could not save quantity control.',
-        'delete_confirm' => 'Delete quantity control ":name"?',
+        'created' => 'Quantity tier saved.',
+        'updated' => 'Quantity tier updated.',
+        'save_failed' => 'Could not save quantity tier.',
+        'delete_confirm' => 'Delete quantity tier ":name"?',
+        'quantity_in_use' => 'Another tier already uses this minimum quantity.',
+        'cannot_delete_last_profile' => 'At least one quantity profile must remain.',
     ],
 ];

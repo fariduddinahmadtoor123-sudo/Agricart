@@ -261,6 +261,8 @@ class ProductService
             'wholesale_price' => ['nullable', 'string', 'max:64'],
             'super_wholesale_price' => ['nullable', 'string', 'max:64'],
             'distributor_price' => ['nullable', 'string', 'max:64'],
+            'price_tier_quantities' => ['nullable', 'array'],
+            'price_tier_quantities.*' => ['integer', 'min:1', 'max:9999999'],
             'short_description_en' => ['nullable', 'string'],
             'short_description_ur' => ['nullable', 'string'],
             'full_description_en' => ['nullable', 'string'],

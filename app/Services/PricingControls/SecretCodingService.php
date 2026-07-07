@@ -22,6 +22,54 @@ class SecretCodingService
         return array_fill_keys(self::DIGITS, '');
     }
 
+    public function ensureDefaultProfile(): SecretCodingProfile
+    {
+        $profile = SecretCodingProfile::query()->orderBy('id')->first();
+
+        if ($profile instanceof SecretCodingProfile) {
+            return $profile;
+        }
+
+        return DB::transaction(function (): SecretCodingProfile {
+            return SecretCodingProfile::query()->create([
+                'profile_number' => $this->nextProfileNumber(),
+                'name_en' => 'Default secret coding channel',
+                'name_ur' => 'ڈیفالٹ خفیہ کوڈنگ چینل',
+                'status' => 'active',
+                'notes' => null,
+                'digit_slots' => self::emptyDigitSlots(),
+                'created_by' => auth()->id(),
+            ]);
+        });
+    }
+
+    public function activeProfile(): ?SecretCodingProfile
+    {
+        return app(SecretCodingEngine::class)->activeProfile();
+    }
+
+    public function encodePrice(?string $value): string
+    {
+        return app(SecretCodingEngine::class)->encodePrice($value);
+    }
+
+    /**
+     * @param  array<string, mixed>  $slots
+     */
+    public function mappingSummary(array $slots): string
+    {
+        $normalized = $this->normalizeDigitSlots($slots);
+        $parts = [];
+
+        foreach (self::DIGITS as $digit) {
+            if (filled($normalized[$digit])) {
+                $parts[] = $digit . '=' . $normalized[$digit];
+            }
+        }
+
+        return $parts === [] ? '—' : implode('، ', $parts);
+    }
+
     public function create(array $data): SecretCodingProfile
     {
         $validated = $this->validate($data);
@@ -70,6 +118,15 @@ class SecretCodingService
      * @return array<string, string>
      */
     public function normalizeDigitSlots(array $slots): array
+    {
+        return self::normalizeDigitSlotsStatic($slots);
+    }
+
+    /**
+     * @param  array<string, mixed>  $slots
+     * @return array<string, string>
+     */
+    public static function normalizeDigitSlotsStatic(array $slots): array
     {
         $normalized = self::emptyDigitSlots();
 

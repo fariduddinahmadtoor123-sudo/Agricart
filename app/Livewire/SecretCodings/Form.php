@@ -3,6 +3,7 @@
 namespace App\Livewire\SecretCodings;
 
 use App\Models\SecretCodingProfile;
+use App\Services\PricingControls\SecretCodingEngine;
 use App\Services\PricingControls\SecretCodingService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
@@ -81,6 +82,11 @@ class Form extends Component
     public function isReadonly(): bool
     {
         return $this->mode === 'view';
+    }
+
+    public function sampleEncodedPrice(): string
+    {
+        return app(SecretCodingEngine::class)->encodeWithSlots('1500', $this->digitSlots);
     }
 
     public function render(): View

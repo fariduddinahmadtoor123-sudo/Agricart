@@ -7,6 +7,7 @@ use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\ReorderQueueBatch;
 use App\Models\ReorderQueueItem;
+use App\Services\PricingControls\SecretCodingEngine;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -16,6 +17,8 @@ class ReorderService
 
     public function __construct(
         private readonly PurchaseService $purchaseService,
+        private readonly PriceTagService $priceTags,
+        private readonly SecretCodingEngine $secretCoding,
     ) {}
 
     /**
@@ -269,6 +272,81 @@ class ReorderService
                 'previous_price' => (string) ($item['previous_price'] ?? ''),
             ];
         })->all();
+    }
+
+    /**
+     * @param  iterable<mixed>  $rows
+     * @return array{
+     *     line_count: int,
+     *     qty_total: float,
+     *     total: float,
+     *     formatted: string,
+     *     encoded: string
+     * }
+     */
+    public function summarizeOrderValue(iterable $rows): array
+    {
+        $total = 0.0;
+        $lineCount = 0;
+        $qtyTotal = 0.0;
+
+        foreach ($rows as $row) {
+            [$qty, $price] = $this->rowQtyAndPrice($row);
+
+            if ($qty <= 0) {
+                continue;
+            }
+
+            $lineCount++;
+            $qtyTotal += $qty;
+
+            if ($price > 0) {
+                $total += $qty * $price;
+            }
+        }
+
+        $formatted = $lineCount > 0 && $total > 0
+            ? $this->priceTags->formatPrice($total)
+            : '';
+
+        return [
+            'line_count' => $lineCount,
+            'qty_total' => $qtyTotal,
+            'total' => $total,
+            'formatted' => $formatted,
+            'encoded' => $formatted !== '' ? $this->secretCoding->encodePrice($formatted) : '',
+        ];
+    }
+
+    public function formatQuantity(float $qty): string
+    {
+        if ($qty <= 0) {
+            return '0';
+        }
+
+        return rtrim(rtrim(number_format($qty, 2, '.', ''), '0'), '.');
+    }
+
+    /**
+     * @return array{0: float, 1: float}
+     */
+    private function rowQtyAndPrice(mixed $row): array
+    {
+        if ($row instanceof ReorderQueueItem) {
+            return [
+                $this->numericValue($row->required_qty),
+                $this->numericValue($row->previous_price),
+            ];
+        }
+
+        if (is_array($row)) {
+            return [
+                $this->numericValue($row['required_qty'] ?? null),
+                $this->numericValue($row['previous_price'] ?? null),
+            ];
+        }
+
+        return [0.0, 0.0];
     }
 
     private function numericStock(Product $product): float

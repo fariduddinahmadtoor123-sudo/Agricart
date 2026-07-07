@@ -46,6 +46,7 @@
         supplierAiEnriching: false,
         supplierSaving: false,
         purchasePlanningSaving: false,
+        purchasePaymentSummarySaving: false,
         purchaseQuotationSaving: false,
         purchaseSaving: false,
         priceControlSaving: false,
@@ -195,6 +196,16 @@
                 }));
             }
 
+            if (this.formKey === 'purchase-payment-summary') {
+                window.dispatchEvent(new CustomEvent('purchase-payment-summary-form-open', {
+                    detail: {
+                        summaryId: detail.summaryId ?? null,
+                        mode: detail.mode ?? 'create',
+                    },
+                    bubbles: true,
+                }));
+            }
+
             if (this.formKey === 'purchase-quotations') {
                 window.dispatchEvent(new CustomEvent('purchase-quotation-form-open', {
                     detail: {
@@ -218,7 +229,7 @@
             if (this.formKey === 'price-controls') {
                 window.dispatchEvent(new CustomEvent('price-control-form-open', {
                     detail: {
-                        priceControlId: detail.priceControlId ?? null,
+                        tierId: detail.tierId ?? null,
                         mode: detail.mode ?? 'create',
                     },
                     bubbles: true,
@@ -228,7 +239,7 @@
             if (this.formKey === 'quantity-controls') {
                 window.dispatchEvent(new CustomEvent('quantity-control-form-open', {
                     detail: {
-                        quantityControlId: detail.quantityControlId ?? null,
+                        tierId: detail.tierId ?? null,
                         mode: detail.mode ?? 'create',
                     },
                     bubbles: true,
@@ -247,7 +258,7 @@
 
             this.isOpen = true;
             this.minimized = false;
-            this.size = ['ai-settings', 'ai-log-detail', 'categories', 'brands', 'units', 'packing-units', 'attributes', 'controls', 'products', 'users', 'roles', 'company-profile', 'suppliers', 'purchase-planning', 'purchase-quotations', 'purchases', 'price-controls', 'quantity-controls', 'secret-coding'].includes(this.formKey) ? 'stretched' : 'normal';
+            this.size = ['ai-settings', 'ai-log-detail', 'categories', 'brands', 'units', 'packing-units', 'attributes', 'controls', 'products', 'users', 'roles', 'company-profile', 'suppliers', 'purchase-planning', 'purchase-payment-summary', 'purchase-quotations', 'purchases', 'price-controls', 'quantity-controls', 'secret-coding'].includes(this.formKey) ? 'stretched' : 'normal';
             document.body.classList.add('agricart-form-panel-open');
 
             if (this.formKey === 'ai-log-detail' && detail.logId) {
@@ -280,6 +291,7 @@
             this.supplierAiEnriching = false;
             this.supplierSaving = false;
             this.purchasePlanningSaving = false;
+            this.purchasePaymentSummarySaving = false;
             this.purchaseQuotationSaving = false;
             this.purchaseSaving = false;
             this.priceControlSaving = false;
@@ -536,6 +548,20 @@
                 return;
             }
 
+            if (this.formKey === 'purchase-payment-summary') {
+                if (key === 'cancel') {
+                    this.close();
+                    return;
+                }
+
+                window.dispatchEvent(new CustomEvent('purchase-payment-summary-form-action', {
+                    detail: { action: key },
+                    bubbles: true,
+                }));
+
+                return;
+            }
+
             if (this.formKey === 'purchase-quotations') {
                 if (key === 'cancel') {
                     this.close();
@@ -627,7 +653,7 @@
                 'agricart-form-panel--normal': this.size === 'normal',
                 'agricart-form-panel--stretched': this.size === 'stretched',
                 'agricart-form-panel--maximized': this.size === 'maximized',
-                'agricart-form-panel--wide': this.formKey === 'ai-settings' || this.formKey === 'ai-log-detail' || this.formKey === 'categories' || this.formKey === 'brands' || this.formKey === 'units' || this.formKey === 'packing-units' || this.formKey === 'attributes' || this.formKey === 'controls' || this.formKey === 'products' || this.formKey === 'users' || this.formKey === 'roles' || this.formKey === 'company-profile' || this.formKey === 'suppliers' || this.formKey === 'purchase-planning' || this.formKey === 'purchase-quotations' || this.formKey === 'purchases' || this.formKey === 'price-controls' || this.formKey === 'quantity-controls' || this.formKey === 'secret-coding',
+                'agricart-form-panel--wide': this.formKey === 'ai-settings' || this.formKey === 'ai-log-detail' || this.formKey === 'categories' || this.formKey === 'brands' || this.formKey === 'units' || this.formKey === 'packing-units' || this.formKey === 'attributes' || this.formKey === 'controls' || this.formKey === 'products' || this.formKey === 'users' || this.formKey === 'roles' || this.formKey === 'company-profile' || this.formKey === 'suppliers' || this.formKey === 'purchase-planning' || this.formKey === 'purchase-payment-summary' || this.formKey === 'purchase-quotations' || this.formKey === 'purchases' || this.formKey === 'price-controls' || this.formKey === 'quantity-controls' || this.formKey === 'secret-coding',
             };
         },
     }"
@@ -645,6 +671,7 @@
     x-on:company-profile-form-busy.window="companyProfileAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); companyProfileSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:supplier-form-busy.window="supplierAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); supplierSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:purchase-planning-form-busy.window="purchasePlanningSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
+    x-on:purchase-payment-summary-form-busy.window="purchasePaymentSummarySaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:purchase-quotation-form-busy.window="purchaseQuotationSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:purchase-form-busy.window="purchaseSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:price-control-form-busy.window="priceControlSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
@@ -673,7 +700,7 @@
                     <h2 class="agricart-form-panel__title" x-text="title"></h2>
                     <p
                         class="agricart-form-panel__subtitle"
-                        x-show="formKey !== 'products' && formKey !== 'users' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'purchase-planning' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding' && resourceLabel"
+                        x-show="formKey !== 'products' && formKey !== 'users' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding' && resourceLabel"
                         x-text="resourceLabel"
                         x-cloak
                     ></p>
@@ -785,6 +812,10 @@
                         <livewire:purchase-planning.form />
                     </div>
 
+                    <div x-show="formKey === 'purchase-payment-summary'" x-cloak>
+                        <livewire:purchase-payment-summaries.form />
+                    </div>
+
                     <div x-show="formKey === 'purchase-quotations'" x-cloak>
                         <livewire:purchase-quotations.form />
                     </div>
@@ -805,7 +836,7 @@
                         <livewire:secret-codings.form />
                     </div>
 
-                    <div x-show="formKey !== 'ai-settings' && formKey !== 'ai-log-detail' && formKey !== 'categories' && formKey !== 'brands' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls' && formKey !== 'products' && formKey !== 'users' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'purchase-planning' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding'">
+                    <div x-show="formKey !== 'ai-settings' && formKey !== 'ai-log-detail' && formKey !== 'categories' && formKey !== 'brands' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls' && formKey !== 'products' && formKey !== 'users' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding'">
                         @include('filament.components.form-panel.sample-fields')
                     </div>
                 </div>

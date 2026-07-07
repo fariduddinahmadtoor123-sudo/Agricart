@@ -2,20 +2,19 @@
 
 namespace App\Livewire\PriceControls;
 
-use App\Models\PriceControl;
+use App\Models\PriceChannelTier;
+use App\Services\PricingControls\ChannelPricingEngine;
 use App\Services\PricingControls\PriceControlService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use Livewire\WithPagination;
 
 class ListPriceControls extends Component
 {
-    use WithPagination;
-
     /** @var list<string> */
-    public array $visibleColumns = ['control_number', 'name_en', 'name_ur', 'status', 'created_at'];
+    public array $visibleColumns = ['name', 'markup_percent', 'product_field', 'example_price', 'status'];
 
     public string $search = '';
 
@@ -24,14 +23,13 @@ class ListPriceControls extends Component
     #[On('price-controls-saved')]
     public function refreshList(): void
     {
-        $this->resetPage();
+        // List is rebuilt on each render.
     }
 
     #[On('price-controls-search')]
     public function updateSearch(string $query): void
     {
         $this->search = $query;
-        $this->resetPage();
     }
 
     #[On('price-controls-filter')]
@@ -45,7 +43,6 @@ class ListPriceControls extends Component
 
         if ($field === 'status') {
             $this->statusFilter = $value;
-            $this->resetPage();
         }
     }
 
@@ -53,7 +50,6 @@ class ListPriceControls extends Component
     public function clearFilters(): void
     {
         $this->statusFilter = '';
-        $this->resetPage();
     }
 
     #[On('price-controls-column-toggle')]
@@ -71,41 +67,40 @@ class ListPriceControls extends Component
         }
 
         if ($this->visibleColumns === []) {
-            $this->visibleColumns = ['name_en'];
+            $this->visibleColumns = ['name'];
         }
 
         $this->dispatch('price-controls-columns-sync', columns: $this->visibleColumns);
     }
 
-    public function openEdit(int $recordId): void
+    public function openEdit(int $tierId): void
     {
-        $record = PriceControl::query()->find($recordId);
+        $tier = PriceChannelTier::query()->find($tierId);
 
-        if ($record === null) {
+        if ($tier === null || $tier->isManual()) {
             return;
         }
 
         $this->dispatch(
             'open-form-panel',
-            title: __('price_controls.actions.edit', ['name' => $record->name_en]),
+            title: __('price_controls.actions.edit', ['name' => app(ChannelPricingEngine::class)->tierPriceLabel($tier->tier_key)]),
             resource: __('agricart.pages.marketplace.price-control'),
             formKey: 'price-controls',
-            priceControlId: $recordId,
+            tierId: $tierId,
             mode: 'edit',
         );
     }
 
-    public function deleteRecord(int $recordId): void
+    public function deleteRecord(int $tierId): void
     {
-        $record = PriceControl::query()->find($recordId);
+        $tier = PriceChannelTier::query()->find($tierId);
 
-        if ($record === null) {
+        if ($tier === null) {
             return;
         }
 
         try {
-            app(PriceControlService::class)->delete($record);
-            $this->resetPage();
+            app(PriceControlService::class)->deleteTier($tier);
         } catch (ValidationException $exception) {
             session()->flash('price_control_error', collect($exception->errors())->flatten()->first());
         }
@@ -113,22 +108,29 @@ class ListPriceControls extends Component
 
     public function render(): View
     {
-        $records = PriceControl::query()
-            ->with('creator')
-            ->when(filled($this->search), function ($query): void {
-                $needle = '%' . $this->search . '%';
-                $query->where(function ($inner) use ($needle): void {
-                    $inner->where('control_number', 'like', $needle)
-                        ->orWhere('name_en', 'like', $needle)
-                        ->orWhere('name_ur', 'like', $needle);
-                });
+        $engine = app(ChannelPricingEngine::class);
+        $profile = app(PriceControlService::class)->ensureDefaultProfile();
+        $exampleBase = $engine->examplePurchasePrice();
+
+        /** @var Collection<int, PriceChannelTier> $tiers */
+        $tiers = $engine->listTiers()
+            ->when(filled($this->search), function (Collection $collection) use ($engine): Collection {
+                $needle = mb_strtolower($this->search);
+
+                return $collection->filter(function (PriceChannelTier $tier) use ($needle): bool {
+                    return str_contains(mb_strtolower($tier->name_en), $needle)
+                        || str_contains(mb_strtolower((string) $tier->name_ur), $needle)
+                        || str_contains(mb_strtolower($tier->tier_key), $needle);
+                })->values();
             })
-            ->when(filled($this->statusFilter), fn ($query) => $query->where('status', $this->statusFilter))
-            ->latest('id')
-            ->paginate(15);
+            ->when(filled($this->statusFilter), fn (Collection $collection): Collection => $collection
+                ->filter(fn (PriceChannelTier $tier): bool => $tier->status === $this->statusFilter)
+                ->values());
 
         return view('livewire.price-controls.list', [
-            'records' => $records,
+            'tiers' => $tiers,
+            'engine' => $engine,
+            'exampleBase' => $exampleBase,
         ]);
     }
 }

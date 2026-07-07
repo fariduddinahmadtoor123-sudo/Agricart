@@ -3,7 +3,7 @@
         <div class="agricart-user-form__alert is-danger">{{ session('price_control_error') }}</div>
     @endif
 
-    @if ($records->isEmpty())
+    @if ($tiers->isEmpty())
         <div class="agricart-categories__empty">
             <p>{{ __('price_controls.list.empty') }}</p>
         </div>
@@ -12,63 +12,67 @@
             <table class="agricart-categories__table">
                 <thead>
                     <tr>
-                        @if (in_array('control_number', $visibleColumns, true))
-                            <th>{{ __('price_controls.list.col_number') }}</th>
+                        @if (in_array('name', $visibleColumns, true))
+                            <th>{{ __('price_controls.list.col_name') }}</th>
                         @endif
-                        @if (in_array('name_en', $visibleColumns, true))
-                            <th>{{ __('price_controls.list.col_name_en') }}</th>
+                        @if (in_array('markup_percent', $visibleColumns, true))
+                            <th>{{ __('price_controls.list.col_markup') }}</th>
                         @endif
-                        @if (in_array('name_ur', $visibleColumns, true))
-                            <th>{{ __('price_controls.list.col_name_ur') }}</th>
+                        @if (in_array('product_field', $visibleColumns, true))
+                            <th>{{ __('price_controls.list.col_maps_to') }}</th>
+                        @endif
+                        @if (in_array('example_price', $visibleColumns, true))
+                            <th>{{ __('price_controls.list.col_example', ['base' => $engine->formatPrice($exampleBase)]) }}</th>
                         @endif
                         @if (in_array('status', $visibleColumns, true))
                             <th>{{ __('price_controls.list.col_status') }}</th>
-                        @endif
-                        @if (in_array('created_at', $visibleColumns, true))
-                            <th>{{ __('price_controls.list.col_created') }}</th>
                         @endif
                         <th>{{ __('price_controls.list.col_actions') }}</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($records as $record)
-                        <tr wire:key="price-control-{{ $record->id }}" class="agricart-categories__row">
-                            @if (in_array('control_number', $visibleColumns, true))
-                                <td><code>{{ $record->control_number }}</code></td>
+                    @foreach ($tiers as $tier)
+                        <tr wire:key="price-channel-tier-{{ $tier->id }}" class="agricart-categories__row">
+                            @if (in_array('name', $visibleColumns, true))
+                                <td>
+                                    <strong>{{ $engine->tierPriceLabel($tier->tier_key) }}</strong>
+                                </td>
                             @endif
-                            @if (in_array('name_en', $visibleColumns, true))
-                                <td>{{ $record->name_en }}</td>
+                            @if (in_array('markup_percent', $visibleColumns, true))
+                                <td>
+                                    @if ($tier->isManual())
+                                        {{ __('price_controls.list.manual_markup') }}
+                                    @else
+                                        {{ rtrim(rtrim(number_format((float) $tier->markup_percent, 3, '.', ''), '0'), '.') }}%
+                                    @endif
+                                </td>
                             @endif
-                            @if (in_array('name_ur', $visibleColumns, true))
-                                <td>{{ $record->name_ur }}</td>
+                            @if (in_array('product_field', $visibleColumns, true))
+                                <td>{{ $engine->productFieldLabel($tier->product_field) }}</td>
+                            @endif
+                            @if (in_array('example_price', $visibleColumns, true))
+                                <td>
+                                    @if ($tier->isManual())
+                                        <span class="agricart-price-controls__muted">{{ __('price_controls.list.manual_example') }}</span>
+                                    @else
+                                        <code>{{ $engine->computeTierPrice($exampleBase, $tier) }}</code>
+                                    @endif
+                                </td>
                             @endif
                             @if (in_array('status', $visibleColumns, true))
-                                <td>{{ __('price_controls.statuses.' . $record->status) }}</td>
-                            @endif
-                            @if (in_array('created_at', $visibleColumns, true))
-                                <td>{{ $record->created_at?->format('Y-m-d H:i') }}</td>
+                                <td>{{ __('price_controls.statuses.' . $tier->status) }}</td>
                             @endif
                             <td>
-                                <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $record->id }})">
-                                    {{ __('price_controls.actions.edit_short') }}
-                                </button>
-                                <button
-                                    type="button"
-                                    class="agricart-categories__action is-danger"
-                                    wire:click="deleteRecord({{ $record->id }})"
-                                    wire:confirm="{{ __('price_controls.messages.delete_confirm', ['name' => $record->name_en]) }}"
-                                >
-                                    {{ __('price_controls.actions.delete_short') }}
-                                </button>
+                                @unless ($tier->isManual())
+                                    <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $tier->id }})">
+                                        {{ __('price_controls.actions.edit_short') }}
+                                    </button>
+                                @endunless
                             </td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
-        </div>
-
-        <div class="agricart-categories__pagination">
-            {{ $records->links() }}
         </div>
     @endif
 </div>

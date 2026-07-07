@@ -23,8 +23,6 @@
         </div>
     @endif
 
-    <p class="agricart-form-panel__hint">{{ __('secret_coding.hints.scaffold') }}</p>
-
     <section class="agricart-form-panel__section agricart-user-form__section">
         <div class="agricart-user-form__identity-grid">
             <div class="agricart-form-panel__field">
@@ -79,13 +77,13 @@
             @foreach ($digits as $digit)
                 <div class="agricart-form-panel__field" wire:key="secret-digit-{{ $digit }}">
                     <label class="agricart-form-panel__label" for="agricart-secret-digit-{{ $digit }}">
-                        {{ __('secret_coding.fields.digit', ['digit' => $digit]) }}
+                        {{ __('secret_coding.digit_equals.' . $digit) }}
                     </label>
                     <x-filament::input.wrapper>
                         <input
                             id="agricart-secret-digit-{{ $digit }}"
                             type="text"
-                            wire:model="digitSlots.{{ $digit }}"
+                            wire:model.live="digitSlots.{{ $digit }}"
                             class="fi-input"
                             maxlength="32"
                             @disabled($this->isReadonly())
@@ -94,5 +92,10 @@
                 </div>
             @endforeach
         </div>
+
+        <p class="agricart-form-panel__hint agricart-secret-coding-form__preview">
+            {{ __('secret_coding.hints.preview') }}
+            <strong dir="ltr">{{ $this->sampleEncodedPrice() ?: '1500' }}</strong>
+        </p>
     </section>
 </div>

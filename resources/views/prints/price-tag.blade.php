@@ -70,7 +70,7 @@
                             @if ($options['show_cost_price'])
                                 <div class="print-label__price">
                                     <span>{{ __('price_tags.fields.cost_price') }}</span>
-                                    <strong>{{ $tag['cost_price'] ?: '—' }}</strong>
+                                    <strong><x-secret-price :value="$tag['cost_price'] ?? ''" /></strong>
                                 </div>
                             @endif
                             @if ($options['show_sale_price'])

@@ -495,33 +495,58 @@
             </x-filament::input.wrapper>
         </div>
 
-        <div class="agricart-form-panel__field agricart-product-form__qty-field agricart-product-form__qty-field--rate">
-            <label class="agricart-form-panel__label">{{ __('agricart.products.fields.retail') }}</label>
-            <x-filament::input.wrapper>
-                <input type="text" wire:model="retail_price" class="fi-input" @disabled($readonly) />
-            </x-filament::input.wrapper>
-        </div>
+        @foreach ($pricingTiers as $tier)
+            <div class="agricart-form-panel__field agricart-product-form__qty-field agricart-product-form__qty-field--narrow">
+                <label class="agricart-form-panel__label">{{ __('agricart.products.fields.' . $tier['tier_key'] . '_quantity') }}</label>
+                <x-filament::input.wrapper>
+                    <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        wire:model="price_tier_quantities.{{ $tier['price_field'] }}"
+                        class="fi-input"
+                        @disabled($readonly)
+                    />
+                </x-filament::input.wrapper>
+            </div>
 
-        <div class="agricart-form-panel__field agricart-product-form__qty-field agricart-product-form__qty-field--rate">
-            <label class="agricart-form-panel__label">{{ __('agricart.products.fields.wholesale') }}</label>
-            <x-filament::input.wrapper>
-                <input type="text" wire:model="wholesale_price" class="fi-input" @disabled($readonly) />
-            </x-filament::input.wrapper>
-        </div>
-
-        <div class="agricart-form-panel__field agricart-product-form__qty-field agricart-product-form__qty-field--rate">
-            <label class="agricart-form-panel__label">{{ __('agricart.products.fields.super_wholesale') }}</label>
-            <x-filament::input.wrapper>
-                <input type="text" wire:model="super_wholesale_price" class="fi-input" @disabled($readonly) />
-            </x-filament::input.wrapper>
-        </div>
-
-        <div class="agricart-form-panel__field agricart-product-form__qty-field agricart-product-form__qty-field--rate">
-            <label class="agricart-form-panel__label">{{ __('agricart.products.fields.distributor') }}</label>
-            <x-filament::input.wrapper>
-                <input type="text" wire:model="distributor_price" class="fi-input" @disabled($readonly) />
-            </x-filament::input.wrapper>
-        </div>
+            <div class="agricart-form-panel__field agricart-product-form__qty-field agricart-product-form__qty-field--rate">
+                <label class="agricart-form-panel__label">
+                    @switch ($tier['price_field'])
+                        @case('retail_price')
+                            {{ __('agricart.products.fields.retail') }}
+                            @break
+                        @case('wholesale_price')
+                            {{ __('agricart.products.fields.wholesale') }}
+                            @break
+                        @case('super_wholesale_price')
+                            {{ __('agricart.products.fields.super_wholesale') }}
+                            @break
+                        @case('distributor_price')
+                            {{ __('agricart.products.fields.distributor') }}
+                            @break
+                        @default
+                            {{ $tier['label'] }}
+                    @endswitch
+                </label>
+                <x-filament::input.wrapper>
+                    @switch ($tier['price_field'])
+                        @case('retail_price')
+                            <input type="text" wire:model="retail_price" class="fi-input" @disabled($readonly) />
+                            @break
+                        @case('wholesale_price')
+                            <input type="text" wire:model="wholesale_price" class="fi-input" @disabled($readonly) />
+                            @break
+                        @case('super_wholesale_price')
+                            <input type="text" wire:model="super_wholesale_price" class="fi-input" @disabled($readonly) />
+                            @break
+                        @case('distributor_price')
+                            <input type="text" wire:model="distributor_price" class="fi-input" @disabled($readonly) />
+                            @break
+                    @endswitch
+                </x-filament::input.wrapper>
+            </div>
+        @endforeach
     </div>
 
     {{-- Additional Information --}}

@@ -2,10 +2,9 @@
 
 return [
     'actions' => [
-        'add' => 'Add Secret Coding',
+        'add' => 'Add Secret Coding Channel',
         'edit' => 'Edit :name',
         'edit_short' => 'Edit',
-        'delete_short' => 'Delete',
     ],
 
     'fields' => [
@@ -14,25 +13,38 @@ return [
         'name_ur' => 'Name (Urdu)',
         'status' => 'Status',
         'notes' => 'Notes',
-        'digit' => 'Digit :digit',
+    ],
+
+    'digit_equals' => [
+        '0' => 'Zero equals',
+        '1' => 'One equals',
+        '2' => 'Two equals',
+        '3' => 'Three equals',
+        '4' => 'Four equals',
+        '5' => 'Five equals',
+        '6' => 'Six equals',
+        '7' => 'Seven equals',
+        '8' => 'Eight equals',
+        '9' => 'Nine equals',
     ],
 
     'sections' => [
         'digit_mapping' => 'Digit Mapping (0–9)',
+        'preview' => 'Example',
     ],
 
     'hints' => [
-        'scaffold' => 'This is a starter form. Full secret coding logic will be configured in the next step.',
-        'digit_mapping' => 'Assign a secret symbol or letter for each digit. Example: 1 → A, 2 → B.',
+        'digit_mapping' => 'Enter any symbol or letter for each digit. Prices will show using these symbols instead of numbers.',
+        'preview' => 'Sample price 1500 encoded with your mapping:',
     ],
 
     'list' => [
-        'empty' => 'No secret coding profiles yet. Use Add to create the first profile.',
+        'empty' => 'No secret coding channels yet. Use Add to create the first channel.',
         'col_number' => 'No.',
         'col_name_en' => 'Name (EN)',
         'col_name_ur' => 'Name (UR)',
+        'col_mapping' => 'Digit Mapping',
         'col_status' => 'Status',
-        'col_created' => 'Created',
         'col_actions' => 'Actions',
     ],
 
@@ -47,9 +59,8 @@ return [
     ],
 
     'messages' => [
-        'created' => 'Secret coding profile saved.',
-        'updated' => 'Secret coding profile updated.',
-        'save_failed' => 'Could not save secret coding profile.',
-        'delete_confirm' => 'Delete secret coding profile ":name"?',
+        'created' => 'Secret coding channel saved.',
+        'updated' => 'Secret coding channel updated.',
+        'save_failed' => 'Could not save secret coding channel.',
     ],
 ];

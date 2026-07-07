@@ -12,7 +12,7 @@ class SecretCodingPage extends BaseModulePage
 {
     protected static ?string $cluster = MarketplaceCluster::class;
 
-    protected static ?string $navigationLabel = 'Secret Coding';
+    protected static ?string $navigationLabel = 'Secret Coding Channel';
 
     protected static ?int $navigationSort = 4;
 

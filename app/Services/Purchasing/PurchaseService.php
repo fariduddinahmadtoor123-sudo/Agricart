@@ -6,6 +6,7 @@ use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\Supplier;
+use App\Services\PricingControls\ChannelPricingEngine;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
@@ -60,6 +61,7 @@ class PurchaseService
             $purchase = Purchase::query()->create($validated);
             $this->syncItems($purchase, $items);
             $this->applySupplierLedger($purchase);
+            $this->applyChannelPricing($purchase->fresh(['items']));
             app(ReorderService::class)->applyPurchaseStock($purchase->fresh(['items']));
 
             return $purchase->fresh(['items', 'supplier', 'purchaser', 'creator']);
@@ -95,6 +97,7 @@ class PurchaseService
             $this->applySupplierLedger($purchase->fresh(), $previousPurchase);
 
             $fresh = $purchase->fresh(['items']);
+            $this->applyChannelPricing($fresh);
 
             if (in_array($fresh->delivery_status, [Purchase::DELIVERY_RECEIVED, Purchase::DELIVERY_PARTIAL], true)) {
                 $productIds = $fresh->items->pluck('product_id')->filter()->map(fn ($id) => (int) $id)->all();
@@ -576,5 +579,36 @@ class PurchaseService
         }
 
         return (string) $product->name_en;
+    }
+
+    private function applyChannelPricing(Purchase $purchase): void
+    {
+        $purchase->loadMissing('items');
+        $engine = app(ChannelPricingEngine::class);
+
+        if ($engine->markupTiers()->isEmpty()) {
+            return;
+        }
+
+        foreach ($purchase->items as $item) {
+            if ($item->product_id === null) {
+                continue;
+            }
+
+            $product = Product::query()->find($item->product_id);
+
+            if ($product === null) {
+                continue;
+            }
+
+            $purchasePrice = $this->numericValue($item->current_rate);
+
+            if ($purchasePrice === null || $purchasePrice <= 0) {
+                continue;
+            }
+
+            $retail = filled($item->sale_price) ? trim((string) $item->sale_price) : null;
+            $engine->applyToProduct($product, $purchasePrice, $retail);
+        }
     }
 }

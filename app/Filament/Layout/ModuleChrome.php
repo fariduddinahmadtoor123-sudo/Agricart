@@ -105,7 +105,7 @@ class ModuleChrome
                 'path' => 'admin/marketplace',
                 'subNavigation' => MarketplaceSubNavigation::class,
                 'toolbar' => MarketplacePageToolbar::class,
-                'navLabel' => 'Pricing & Controls',
+                'navLabel' => 'Channels Hub',
             ],
             [
                 'key' => 'settings',

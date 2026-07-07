@@ -2,28 +2,30 @@
 
 namespace App\Livewire\PriceControls;
 
-use App\Models\PriceControl;
+use App\Models\PriceChannelTier;
+use App\Services\PricingControls\ChannelPricingEngine;
 use App\Services\PricingControls\PriceControlService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
 class Form extends Component
 {
-    public ?int $priceControlId = null;
+    public ?int $tierId = null;
 
     public string $mode = 'create';
-
-    public string $control_number = '';
 
     public string $name_en = '';
 
     public string $name_ur = '';
 
-    public string $status = 'active';
+    public string $markup_percent = '0';
 
-    public string $notes = '';
+    public string $product_field = '';
+
+    public string $status = 'active';
 
     public bool $saving = false;
 
@@ -31,20 +33,17 @@ class Form extends Component
 
     public string $statusType = 'success';
 
-    public function mount(): void
-    {
-        $this->control_number = app(PriceControlService::class)->nextControlNumber();
-    }
-
     #[On('price-control-form-open')]
-    public function openForm(?int $priceControlId = null, string $mode = 'create'): void
+    public function openForm(?int $tierId = null, string $mode = 'create'): void
     {
         $this->resetForm();
         $this->mode = $mode;
-        $this->priceControlId = $priceControlId;
+        $this->tierId = $tierId;
 
-        if ($priceControlId) {
-            $this->loadRecord($priceControlId);
+        if ($tierId) {
+            $this->loadRecord($tierId);
+        } else {
+            $this->product_field = $this->defaultProductField();
         }
     }
 
@@ -71,6 +70,7 @@ class Form extends Component
         if ($this->persist()) {
             $this->dispatch('price-controls-saved');
             $this->resetForm();
+            $this->product_field = $this->defaultProductField();
         }
     }
 
@@ -81,20 +81,37 @@ class Form extends Component
 
     public function render(): View
     {
+        $engine = app(ChannelPricingEngine::class);
+        $exampleBase = $engine->examplePurchasePrice();
+        $previewPrice = null;
+
+        if (is_numeric($this->markup_percent) && (float) $this->markup_percent >= 0) {
+            $previewPrice = $engine->formatPrice($exampleBase * (1 + ((float) $this->markup_percent / 100)));
+        }
+
         return view('livewire.price-controls.form', [
             'statuses' => PriceControlService::STATUSES,
+            'productFieldOptions' => $engine->productFieldOptions($this->tierId),
+            'productFieldLabel' => filled($this->product_field)
+                ? $engine->productFieldLabel($this->product_field)
+                : null,
+            'engine' => $engine,
+            'exampleBase' => $exampleBase,
+            'exampleBaseFormatted' => $engine->formatPrice($exampleBase),
+            'previewPrice' => $previewPrice,
+            'usesCustomField' => str_starts_with($this->product_field, 'channel:'),
         ]);
     }
 
-    private function loadRecord(int $recordId): void
+    private function loadRecord(int $tierId): void
     {
-        $record = PriceControl::query()->findOrFail($recordId);
+        $tier = PriceChannelTier::query()->findOrFail($tierId);
 
-        $this->control_number = $record->control_number;
-        $this->name_en = $record->name_en;
-        $this->name_ur = (string) ($record->name_ur ?? '');
-        $this->status = $record->status;
-        $this->notes = (string) ($record->notes ?? '');
+        $this->name_en = $tier->name_en;
+        $this->name_ur = (string) ($tier->name_ur ?? '');
+        $this->markup_percent = (string) $tier->markup_percent;
+        $this->product_field = $tier->product_field;
+        $this->status = $tier->status;
     }
 
     private function persist(): bool
@@ -108,22 +125,26 @@ class Form extends Component
         $this->dispatchBusyState();
 
         try {
+            $profile = app(PriceControlService::class)->ensureDefaultProfile();
+            $productField = $this->resolveProductField();
+
             $payload = [
-                'control_number' => $this->control_number,
                 'name_en' => $this->name_en,
                 'name_ur' => $this->name_ur,
+                'markup_percent' => $this->markup_percent,
+                'product_field' => $productField,
                 'status' => $this->status,
-                'notes' => $this->notes,
             ];
 
             $service = app(PriceControlService::class);
 
-            if ($this->priceControlId) {
-                $record = PriceControl::query()->findOrFail($this->priceControlId);
-                $service->update($record, $payload);
+            if ($this->tierId) {
+                $tier = PriceChannelTier::query()->findOrFail($this->tierId);
+                $service->updateTier($tier, $payload);
+                $this->product_field = $productField;
                 $this->setStatus(__('price_controls.messages.updated'), 'success');
             } else {
-                $service->create($payload);
+                $service->createTier($profile, $payload);
                 $this->setStatus(__('price_controls.messages.created'), 'success');
             }
 
@@ -138,15 +159,39 @@ class Form extends Component
         }
     }
 
+    private function resolveProductField(): string
+    {
+        if (str_starts_with($this->product_field, 'channel:')) {
+            return $this->product_field;
+        }
+
+        if ($this->product_field !== '' && $this->product_field !== '__custom__') {
+            return $this->product_field;
+        }
+
+        return 'channel:' . Str::slug($this->name_en, '_');
+    }
+
+    private function defaultProductField(): string
+    {
+        $options = app(ChannelPricingEngine::class)->productFieldOptions();
+
+        if ($options === []) {
+            return '__custom__';
+        }
+
+        return (string) ($options[0]['value'] ?? '__custom__');
+    }
+
     private function resetForm(): void
     {
-        $this->priceControlId = null;
+        $this->tierId = null;
         $this->mode = 'create';
-        $this->control_number = app(PriceControlService::class)->nextControlNumber();
         $this->name_en = '';
         $this->name_ur = '';
+        $this->markup_percent = '0';
+        $this->product_field = '';
         $this->status = 'active';
-        $this->notes = '';
         $this->statusMessage = null;
         $this->statusType = 'success';
     }

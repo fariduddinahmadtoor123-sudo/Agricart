@@ -34,6 +34,8 @@ class Product extends Model
         'wholesale_price',
         'super_wholesale_price',
         'distributor_price',
+        'price_tier_quantities',
+        'channel_prices',
         'short_description_en',
         'short_description_ur',
         'full_description_en',
@@ -80,6 +82,8 @@ class Product extends Model
         return [
             'search_terms' => 'array',
             'gallery_images' => 'array',
+            'channel_prices' => 'array',
+            'price_tier_quantities' => 'array',
             'label_qr' => 'array',
             'label_barcode' => 'array',
             'ai_status' => CategoryAiStatus::class,

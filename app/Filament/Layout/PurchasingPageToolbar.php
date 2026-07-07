@@ -3,6 +3,7 @@
 namespace App\Filament\Layout;
 
 use App\Filament\Clusters\Purchasing\OverviewPage;
+use App\Services\Purchasing\PurchasePaymentSummaryService;
 use App\Services\Purchasing\PurchasePlanningService;
 use App\Services\Purchasing\PurchaseQuotationService;
 use App\Services\Purchasing\PurchaseService;
@@ -106,6 +107,24 @@ class PurchasingPageToolbar extends ClusterPageToolbar
                     ['label' => __('purchases.list.col_created'), 'value' => 'created_at', 'visible' => true],
                 ],
             ],
+            'purchase-payment-summary' => [
+                ...$config,
+                'livewirePrefix' => 'purchase-payment-summaries',
+                'columnDataAttr' => 'data-payment-summary-column',
+                'interactive' => true,
+                'formKey' => 'purchase-payment-summary',
+                'addLabel' => static::userCan('create') ? __('purchase_payment_summary.actions.add') : null,
+                'compactAddButton' => true,
+                'filters' => static::paymentSummaryFilters(),
+                'columns' => [
+                    ['label' => __('purchase_payment_summary.list.col_number'), 'value' => 'summary_number', 'visible' => true],
+                    ['label' => __('purchase_payment_summary.list.col_date'), 'value' => 'summary_date', 'visible' => true],
+                    ['label' => __('purchase_payment_summary.list.col_paid_lines'), 'value' => 'paid_lines', 'visible' => true],
+                    ['label' => __('purchase_payment_summary.list.col_total'), 'value' => 'total_payments', 'visible' => true],
+                    ['label' => __('purchase_payment_summary.list.col_locale'), 'value' => 'locale', 'visible' => true],
+                    ['label' => __('purchase_payment_summary.list.col_created'), 'value' => 'created_at', 'visible' => true],
+                ],
+            ],
             're-order-center' => [
                 ...$config,
                 'livewirePrefix' => 'reorder',
@@ -192,6 +211,23 @@ class PurchasingPageToolbar extends ClusterPageToolbar
                 'filters' => $disputeFilters,
             ],
         ];
+    }
+
+    /**
+     * @return list<array{label: string, value: string}>
+     */
+    protected static function paymentSummaryFilters(): array
+    {
+        $filters = [];
+
+        foreach (PurchasePaymentSummaryService::LOCALES as $locale) {
+            $filters[] = [
+                'label' => __('purchase_payment_summary.locales.' . $locale),
+                'value' => 'locale:' . $locale,
+            ];
+        }
+
+        return $filters;
     }
 
     /**

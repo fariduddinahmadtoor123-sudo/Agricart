@@ -2,20 +2,19 @@
 
 namespace App\Livewire\QuantityControls;
 
-use App\Models\QuantityControl;
+use App\Models\QuantityChannelTier;
 use App\Services\PricingControls\QuantityControlService;
+use App\Services\PricingControls\QuantityPricingEngine;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use Livewire\WithPagination;
 
 class ListQuantityControls extends Component
 {
-    use WithPagination;
-
     /** @var list<string> */
-    public array $visibleColumns = ['control_number', 'name_en', 'name_ur', 'status', 'created_at'];
+    public array $visibleColumns = ['name', 'min_quantity', 'price_field', 'status'];
 
     public string $search = '';
 
@@ -24,14 +23,13 @@ class ListQuantityControls extends Component
     #[On('quantity-controls-saved')]
     public function refreshList(): void
     {
-        $this->resetPage();
+        // List is rebuilt on each render.
     }
 
     #[On('quantity-controls-search')]
     public function updateSearch(string $query): void
     {
         $this->search = $query;
-        $this->resetPage();
     }
 
     #[On('quantity-controls-filter')]
@@ -45,7 +43,6 @@ class ListQuantityControls extends Component
 
         if ($field === 'status') {
             $this->statusFilter = $value;
-            $this->resetPage();
         }
     }
 
@@ -53,7 +50,6 @@ class ListQuantityControls extends Component
     public function clearFilters(): void
     {
         $this->statusFilter = '';
-        $this->resetPage();
     }
 
     #[On('quantity-controls-column-toggle')]
@@ -71,41 +67,40 @@ class ListQuantityControls extends Component
         }
 
         if ($this->visibleColumns === []) {
-            $this->visibleColumns = ['name_en'];
+            $this->visibleColumns = ['name'];
         }
 
         $this->dispatch('quantity-controls-columns-sync', columns: $this->visibleColumns);
     }
 
-    public function openEdit(int $recordId): void
+    public function openEdit(int $tierId): void
     {
-        $record = QuantityControl::query()->find($recordId);
+        $tier = QuantityChannelTier::query()->find($tierId);
 
-        if ($record === null) {
+        if ($tier === null) {
             return;
         }
 
         $this->dispatch(
             'open-form-panel',
-            title: __('quantity_controls.actions.edit', ['name' => $record->name_en]),
+            title: __('quantity_controls.actions.edit', ['name' => $tier->localizedName()]),
             resource: __('agricart.pages.marketplace.quantity-control'),
             formKey: 'quantity-controls',
-            quantityControlId: $recordId,
+            tierId: $tierId,
             mode: 'edit',
         );
     }
 
-    public function deleteRecord(int $recordId): void
+    public function deleteRecord(int $tierId): void
     {
-        $record = QuantityControl::query()->find($recordId);
+        $tier = QuantityChannelTier::query()->find($tierId);
 
-        if ($record === null) {
+        if ($tier === null) {
             return;
         }
 
         try {
-            app(QuantityControlService::class)->delete($record);
-            $this->resetPage();
+            app(QuantityControlService::class)->deleteTier($tier);
         } catch (ValidationException $exception) {
             session()->flash('quantity_control_error', collect($exception->errors())->flatten()->first());
         }
@@ -113,22 +108,27 @@ class ListQuantityControls extends Component
 
     public function render(): View
     {
-        $records = QuantityControl::query()
-            ->with('creator')
-            ->when(filled($this->search), function ($query): void {
-                $needle = '%' . $this->search . '%';
-                $query->where(function ($inner) use ($needle): void {
-                    $inner->where('control_number', 'like', $needle)
-                        ->orWhere('name_en', 'like', $needle)
-                        ->orWhere('name_ur', 'like', $needle);
-                });
+        $engine = app(QuantityPricingEngine::class);
+        $profile = app(QuantityControlService::class)->ensureDefaultProfile();
+
+        /** @var Collection<int, QuantityChannelTier> $tiers */
+        $tiers = $engine->sortTiers($profile->tiers)
+            ->when(filled($this->search), function (Collection $collection): Collection {
+                $needle = mb_strtolower($this->search);
+
+                return $collection->filter(function (QuantityChannelTier $tier) use ($needle): bool {
+                    return str_contains(mb_strtolower($tier->name_en), $needle)
+                        || str_contains(mb_strtolower((string) $tier->name_ur), $needle)
+                        || str_contains(mb_strtolower($tier->tier_key), $needle);
+                })->values();
             })
-            ->when(filled($this->statusFilter), fn ($query) => $query->where('status', $this->statusFilter))
-            ->latest('id')
-            ->paginate(15);
+            ->when(filled($this->statusFilter), fn (Collection $collection): Collection => $collection
+                ->filter(fn (QuantityChannelTier $tier): bool => $tier->status === $this->statusFilter)
+                ->values());
 
         return view('livewire.quantity-controls.list', [
-            'records' => $records,
+            'tiers' => $tiers,
+            'engine' => $engine,
         ]);
     }
 }

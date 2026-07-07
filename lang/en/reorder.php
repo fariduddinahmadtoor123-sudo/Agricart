@@ -24,6 +24,9 @@ return [
 
     'toolbar' => [
         'search' => 'Search products…',
+        'order_value' => 'Est. cash (prev. rate)',
+        'order_detail' => ':lines item(s) · :qty units',
+        'selected_only' => 'selected only',
     ],
 
     'columns' => [
@@ -68,5 +71,7 @@ return [
             'previous_price' => 'Prev Price',
             'current_price' => 'Current',
         ],
+        'estimated_total' => 'Estimated order value (previous rate)',
+        'total_meta' => ':lines product(s) · :qty units total',
     ],
 ];

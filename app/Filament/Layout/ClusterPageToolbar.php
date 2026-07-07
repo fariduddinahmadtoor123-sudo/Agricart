@@ -102,6 +102,7 @@ abstract class ClusterPageToolbar
             'roles' => 'roles',
             'suppliers' => 'suppliers',
             'purchase-planning' => 'purchase-planning',
+            'purchase-payment-summary' => 'purchase-payment-summary',
             'purchase-quotations' => 'purchase-quotations',
             'purchases' => 'purchases',
             're-order-center' => 're-order-center',

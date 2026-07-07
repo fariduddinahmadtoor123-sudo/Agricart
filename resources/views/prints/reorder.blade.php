@@ -41,6 +41,10 @@
         .receipt-item__field { display: flex; justify-content: space-between; gap: 0.15rem; padding: 0.12rem 0.2rem; background: #fff; border: 1px solid #e5e7eb; font-size: 0.58rem; }
         .receipt-item__field--wide { grid-column: 1 / -1; min-height: 1.5rem; align-items: center; }
         .receipt-item__field--wide .val { flex: 1; border-bottom: 1px dashed #9ca3af; min-height: 1rem; }
+        .sheet__footer { margin-top: 0.75rem; padding-top: 0.55rem; border-top: 2px solid #111827; text-align: center; }
+        .sheet__total-label { margin: 0; font-size: 0.72rem; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.04em; }
+        .sheet__total-value { margin: 0.2rem 0 0; font-family: 'Courier New', Courier, monospace; font-size: 1.15rem; font-weight: 800; letter-spacing: 0.05em; }
+        .sheet__total-meta { margin: 0.2rem 0 0; font-size: 0.65rem; color: #6b7280; }
         @media print { body { background: #fff; } .print-actions { display: none; } .print-shell { padding: 0; } .sheet { border: none; max-width: none; width: 100%; } }
         @if ($isReceipt)
         @media print { @page { size: {{ $widthCss }}mm auto; margin: {{ $marginCss }}mm; } }
@@ -71,7 +75,7 @@
                             <p class="receipt-item__name">{{ $row['sr'] }}. {{ $row['name'] }}</p>
                             <div class="receipt-item__grid">
                                 <div class="receipt-item__field"><span>{{ __('reorder.print.receipt.required_qty') }}</span><strong>{{ $row['required_qty'] ?: '—' }}</strong></div>
-                                <div class="receipt-item__field"><span>{{ __('reorder.print.receipt.previous_price') }}</span><strong>{{ $row['previous_price'] ?: '—' }}</strong></div>
+                                <div class="receipt-item__field"><span>{{ __('reorder.print.receipt.previous_price') }}</span><strong><x-secret-price :value="$row['previous_price'] ?? ''" /></strong></div>
                                 <div class="receipt-item__field receipt-item__field--wide"><span>{{ __('reorder.print.receipt.current_price') }}</span><span class="val"></span></div>
                             </div>
                         </article>
@@ -100,7 +104,7 @@
                                             <td>@if ($row['image_url'])<img src="{{ $row['image_url'] }}" alt="" class="thumb" />@endif</td>
                                             <td class="name">{{ $row['name'] }}</td>
                                             <td>{{ $row['required_qty'] ?: '—' }}</td>
-                                            <td>{{ $row['previous_price'] ?: '—' }}</td>
+                                            <td><x-secret-price :value="$row['previous_price'] ?? ''" /></td>
                                             <td class="blank"></td>
                                         </tr>
                                     @endforeach
@@ -109,6 +113,19 @@
                         </div>
                     @endforeach
                 </div>
+            @endif
+
+            @if (($orderSummary['line_count'] ?? 0) > 0 && filled($orderSummary['formatted'] ?? null))
+                <footer class="sheet__footer">
+                    <p class="sheet__total-label">{{ __('reorder.print.estimated_total') }}</p>
+                    <p class="sheet__total-value"><x-secret-price :value="$orderSummary['formatted']" /></p>
+                    <p class="sheet__total-meta">
+                        {{ __('reorder.print.total_meta', [
+                            'lines' => $orderSummary['line_count'],
+                            'qty' => app(\App\Services\Purchasing\ReorderService::class)->formatQuantity($orderSummary['qty_total']),
+                        ]) }}
+                    </p>
+                </footer>
             @endif
         </div>
     </div>

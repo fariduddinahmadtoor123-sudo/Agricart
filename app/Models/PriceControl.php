@@ -24,6 +24,16 @@ class PriceControl extends Model
         ];
     }
 
+    public function tiers(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(PriceChannelTier::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function activeTiers(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->tiers()->where('status', 'active');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

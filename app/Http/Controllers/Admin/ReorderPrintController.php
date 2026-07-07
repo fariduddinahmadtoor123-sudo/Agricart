@@ -40,6 +40,7 @@ class ReorderPrintController extends Controller
         }
 
         $rows = $reorderService->rowsForPrint($items, $locale);
+        $orderSummary = $reorderService->summarizeOrderValue($items);
         $half = (int) ceil(count($rows) / 2);
         $leftRows = array_slice($rows, 0, $half);
         $rightRows = array_slice($rows, $half);
@@ -56,6 +57,7 @@ class ReorderPrintController extends Controller
             'locale' => $locale,
             'autoprint' => $request->query('autoprint', '1') !== '0',
             'scope' => $scope,
+            'orderSummary' => $orderSummary,
         ]);
     }
 

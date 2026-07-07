@@ -57,7 +57,7 @@
                                 </div>
                                 <div>
                                     <dt>{{ __('reorder.columns.previous_price') }}</dt>
-                                    <dd>{{ $row['previous_price'] ?: '—' }}</dd>
+                                    <dd><x-secret-price :value="$row['previous_price'] ?? ''" /></dd>
                                 </div>
                                 <div class="agricart-reorder__card-meta--wide">
                                     <dt>{{ __('reorder.columns.current_price') }}</dt>
@@ -131,7 +131,7 @@
                                                     </td>
                                                     <td class="agricart-reorder__sheet-name">{{ $this->productName($item->product) }}</td>
                                                     <td>{{ $item->required_qty ?: '—' }}</td>
-                                                    <td>{{ $item->previous_price ?: '—' }}</td>
+                                                    <td><x-secret-price :value="$item->previous_price" /></td>
                                                     <td><code>{{ $item->batch?->batch_number }}</code></td>
                                                     <td>{{ $item->queued_at?->format('d M Y') }}</td>
                                                     <td>{{ $item->send_count }}</td>
@@ -155,12 +155,3 @@
         @endif
     @endif
 </div>
-
-@script
-<script>
-    Livewire.on('reorder-open-print', (payload) => {
-        const url = payload?.url ?? payload?.[0]?.url;
-        if (url) window.open(url, '_blank');
-    });
-</script>
-@endscript

@@ -12,7 +12,7 @@ class QuantityControlPage extends BaseModulePage
 {
     protected static ?string $cluster = MarketplaceCluster::class;
 
-    protected static ?string $navigationLabel = 'Quantity Control';
+    protected static ?string $navigationLabel = 'Quantity Channel';
 
     protected static ?int $navigationSort = 3;
 

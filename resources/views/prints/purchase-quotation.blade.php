@@ -321,7 +321,7 @@
                                 </div>
                                 <div class="receipt-item__field">
                                     <span class="receipt-item__label">{{ __('purchase_quotations.print.receipt.previous_price') }}</span>
-                                    <span class="receipt-item__value">{{ $item->previous_price ?: '—' }}</span>
+                                    <span class="receipt-item__value"><x-secret-price :value="$item->previous_price" /></span>
                                 </div>
                                 <div class="receipt-item__field receipt-item__field--quoted">
                                     <span class="receipt-item__label">{{ __('purchase_quotations.print.receipt.quoted_rate') }}</span>
@@ -354,7 +354,7 @@
                                 </td>
                                 <td class="name">{{ $item->displayName($locale) }}</td>
                                 <td>{{ $item->required_qty ?: '—' }}</td>
-                                <td>{{ $item->previous_price ?: '—' }}</td>
+                                <td><x-secret-price :value="$item->previous_price" /></td>
                                 <td class="quotation-sheet__quoted"></td>
                             </tr>
                         @endforeach

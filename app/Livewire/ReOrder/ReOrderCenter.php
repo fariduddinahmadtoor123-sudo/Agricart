@@ -56,6 +56,7 @@ class ReOrderCenter extends Component
     public function updateSearch(string $query): void
     {
         $this->search = $query;
+        $this->syncToolbar();
     }
 
     #[On('reorder-filter')]
@@ -122,6 +123,8 @@ class ReOrderCenter extends Component
         } else {
             $this->selectedProductIds[] = $productId;
         }
+
+        $this->syncToolbar();
     }
 
     public function toggleSelectAll(): void
@@ -133,6 +136,7 @@ class ReOrderCenter extends Component
             ->all();
 
         $this->selectedProductIds = count($ids) === count($this->selectedProductIds) ? [] : $ids;
+        $this->syncToolbar();
     }
 
     public function sendToQueue(): void
@@ -275,11 +279,50 @@ class ReOrderCenter extends Component
 
     private function syncToolbar(): void
     {
+        $service = app(ReorderService::class);
+        $encoded = $this->orderTotalEncoded($service);
+
+        $this->dispatch('reorder-order-code', encoded: $encoded);
+
         $this->dispatch(
             'reorder-toolbar-sync',
             activeTab: $this->activeTab,
-            queueCount: app(ReorderService::class)->queueItems('pending')->count(),
+            queueCount: $service->queueItems('pending')->count(),
         );
+    }
+
+    private function orderTotalEncoded(?ReorderService $service = null): string
+    {
+        $service ??= app(ReorderService::class);
+        $summary = $this->currentOrderSummary($service);
+
+        return $summary['encoded'] !== '' ? $summary['encoded'] : '—';
+    }
+
+    /**
+     * @return array{
+     *     line_count: int,
+     *     qty_total: float,
+     *     total: float,
+     *     formatted: string,
+     *     encoded: string
+     * }
+     */
+    private function currentOrderSummary(ReorderService $service): array
+    {
+        if ($this->activeTab === 'queue') {
+            return $service->summarizeOrderValue($this->filteredQueueRows());
+        }
+
+        $rows = $this->filteredReorderRows();
+
+        if ($this->selectedProductIds !== []) {
+            $rows = $rows->filter(
+                fn (array $row): bool => in_array((int) $row['product_id'], $this->selectedProductIds, true),
+            )->values();
+        }
+
+        return $service->summarizeOrderValue($rows);
     }
 
     private function userCan(string $action): bool

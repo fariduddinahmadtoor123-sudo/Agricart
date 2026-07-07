@@ -29,7 +29,7 @@ class PermissionRegistry
             'reports' => ['Reports', 'رپورٹس'],
             'staff' => ['Staff', 'عملہ'],
             'finance' => ['Finance', 'مالیات'],
-            'marketplace' => ['Pricing & Controls', 'قیمت و کنٹرول'],
+            'marketplace' => ['Channels Hub', 'چینلز حب'],
             'settings' => ['Settings', 'ترتیبات'],
             'docs' => ['Docs', 'دستاویزات'],
         ];

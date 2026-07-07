@@ -12,7 +12,7 @@ class PriceControlPage extends BaseModulePage
 {
     protected static ?string $cluster = MarketplaceCluster::class;
 
-    protected static ?string $navigationLabel = 'Price Control';
+    protected static ?string $navigationLabel = 'Price Channel';
 
     protected static ?int $navigationSort = 2;
 

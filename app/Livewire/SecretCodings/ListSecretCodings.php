@@ -5,7 +5,6 @@ namespace App\Livewire\SecretCodings;
 use App\Models\SecretCodingProfile;
 use App\Services\PricingControls\SecretCodingService;
 use Illuminate\Contracts\View\View;
-use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -15,7 +14,7 @@ class ListSecretCodings extends Component
     use WithPagination;
 
     /** @var list<string> */
-    public array $visibleColumns = ['profile_number', 'name_en', 'name_ur', 'status', 'created_at'];
+    public array $visibleColumns = ['profile_number', 'name_en', 'name_ur', 'digit_mapping', 'status'];
 
     public string $search = '';
 
@@ -95,24 +94,12 @@ class ListSecretCodings extends Component
         );
     }
 
-    public function deleteRecord(int $recordId): void
-    {
-        $record = SecretCodingProfile::query()->find($recordId);
-
-        if ($record === null) {
-            return;
-        }
-
-        try {
-            app(SecretCodingService::class)->delete($record);
-            $this->resetPage();
-        } catch (ValidationException $exception) {
-            session()->flash('secret_coding_error', collect($exception->errors())->flatten()->first());
-        }
-    }
-
     public function render(): View
     {
+        app(SecretCodingService::class)->ensureDefaultProfile();
+
+        $service = app(SecretCodingService::class);
+
         $records = SecretCodingProfile::query()
             ->with('creator')
             ->when(filled($this->search), function ($query): void {
@@ -129,6 +116,7 @@ class ListSecretCodings extends Component
 
         return view('livewire.secret-codings.list', [
             'records' => $records,
+            'mappingService' => $service,
         ]);
     }
 }

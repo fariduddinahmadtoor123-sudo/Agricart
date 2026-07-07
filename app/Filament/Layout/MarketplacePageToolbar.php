@@ -18,7 +18,7 @@ class MarketplacePageToolbar extends ClusterPageToolbar
 
     protected static function defaultResourceLabel(): string
     {
-        return 'Pricing & Controls';
+        return 'Channels Hub';
     }
 
     /**
@@ -55,11 +55,11 @@ class MarketplacePageToolbar extends ClusterPageToolbar
             'addLabel' => static::userCan('create') ? __('price_controls.actions.add') : null,
             'filters' => static::statusFilters('price_controls'),
             'columns' => [
-                ['label' => __('price_controls.list.col_number'), 'value' => 'control_number', 'visible' => true],
-                ['label' => __('price_controls.list.col_name_en'), 'value' => 'name_en', 'visible' => true],
-                ['label' => __('price_controls.list.col_name_ur'), 'value' => 'name_ur', 'visible' => true],
+                ['label' => __('price_controls.list.col_name'), 'value' => 'name', 'visible' => true],
+                ['label' => __('price_controls.list.col_markup'), 'value' => 'markup_percent', 'visible' => true],
+                ['label' => __('price_controls.list.col_maps_to'), 'value' => 'product_field', 'visible' => true],
+                ['label' => __('price_controls.list.col_example_short'), 'value' => 'example_price', 'visible' => true],
                 ['label' => __('price_controls.list.col_status'), 'value' => 'status', 'visible' => true],
-                ['label' => __('price_controls.list.col_created'), 'value' => 'created_at', 'visible' => true],
             ],
         ];
     }
@@ -79,11 +79,10 @@ class MarketplacePageToolbar extends ClusterPageToolbar
             'addLabel' => static::userCan('create') ? __('quantity_controls.actions.add') : null,
             'filters' => static::statusFilters('quantity_controls'),
             'columns' => [
-                ['label' => __('quantity_controls.list.col_number'), 'value' => 'control_number', 'visible' => true],
-                ['label' => __('quantity_controls.list.col_name_en'), 'value' => 'name_en', 'visible' => true],
-                ['label' => __('quantity_controls.list.col_name_ur'), 'value' => 'name_ur', 'visible' => true],
+                ['label' => __('quantity_controls.list.col_name'), 'value' => 'name', 'visible' => true],
+                ['label' => __('quantity_controls.list.col_min_quantity'), 'value' => 'min_quantity', 'visible' => true],
+                ['label' => __('quantity_controls.list.col_price_type'), 'value' => 'price_field', 'visible' => true],
                 ['label' => __('quantity_controls.list.col_status'), 'value' => 'status', 'visible' => true],
-                ['label' => __('quantity_controls.list.col_created'), 'value' => 'created_at', 'visible' => true],
             ],
         ];
     }
@@ -106,8 +105,8 @@ class MarketplacePageToolbar extends ClusterPageToolbar
                 ['label' => __('secret_coding.list.col_number'), 'value' => 'profile_number', 'visible' => true],
                 ['label' => __('secret_coding.list.col_name_en'), 'value' => 'name_en', 'visible' => true],
                 ['label' => __('secret_coding.list.col_name_ur'), 'value' => 'name_ur', 'visible' => true],
+                ['label' => __('secret_coding.list.col_mapping'), 'value' => 'digit_mapping', 'visible' => true],
                 ['label' => __('secret_coding.list.col_status'), 'value' => 'status', 'visible' => true],
-                ['label' => __('secret_coding.list.col_created'), 'value' => 'created_at', 'visible' => true],
             ],
         ];
     }

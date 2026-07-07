@@ -28,4 +28,14 @@ class QuantityControl extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    public function tiers(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(QuantityChannelTier::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function activeTiers(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->tiers()->where('status', 'active');
+    }
 }

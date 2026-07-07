@@ -7,9 +7,9 @@ use Filament\Support\Icons\Heroicon;
 
 class MarketplaceCluster extends BaseAgricartCluster
 {
-    protected static ?string $navigationLabel = 'Pricing & Controls';
+    protected static ?string $navigationLabel = 'Channels Hub';
 
-    protected static ?string $clusterBreadcrumb = 'Pricing & Controls';
+    protected static ?string $clusterBreadcrumb = 'Channels Hub';
 
     protected static ?string $slug = 'marketplace';
 

@@ -2,8 +2,9 @@
 
 namespace App\Livewire\QuantityControls;
 
-use App\Models\QuantityControl;
+use App\Models\QuantityChannelTier;
 use App\Services\PricingControls\QuantityControlService;
+use App\Services\PricingControls\QuantityPricingEngine;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
@@ -11,19 +12,19 @@ use Livewire\Component;
 
 class Form extends Component
 {
-    public ?int $quantityControlId = null;
+    public ?int $tierId = null;
 
     public string $mode = 'create';
 
-    public string $control_number = '';
+    public string $tier_key = '';
 
     public string $name_en = '';
 
     public string $name_ur = '';
 
-    public string $status = 'active';
+    public string $min_quantity = '1';
 
-    public string $notes = '';
+    public string $status = 'active';
 
     public bool $saving = false;
 
@@ -31,20 +32,18 @@ class Form extends Component
 
     public string $statusType = 'success';
 
-    public function mount(): void
-    {
-        $this->control_number = app(QuantityControlService::class)->nextControlNumber();
-    }
-
     #[On('quantity-control-form-open')]
-    public function openForm(?int $quantityControlId = null, string $mode = 'create'): void
+    public function openForm(?int $tierId = null, string $mode = 'create'): void
     {
         $this->resetForm();
         $this->mode = $mode;
-        $this->quantityControlId = $quantityControlId;
+        $this->tierId = $tierId;
 
-        if ($quantityControlId) {
-            $this->loadRecord($quantityControlId);
+        if ($tierId) {
+            $this->loadRecord($tierId);
+        } else {
+            $this->tier_key = $this->defaultTierKey();
+            $this->applyTierDefaults();
         }
     }
 
@@ -56,6 +55,15 @@ class Form extends Component
             'save_next' => $this->saveAndAddNext(),
             default => null,
         };
+    }
+
+    public function updatedTierKey(): void
+    {
+        if ($this->tierId) {
+            return;
+        }
+
+        $this->applyTierDefaults();
     }
 
     public function saveAndClose(): void
@@ -71,6 +79,8 @@ class Form extends Component
         if ($this->persist()) {
             $this->dispatch('quantity-controls-saved');
             $this->resetForm();
+            $this->tier_key = $this->defaultTierKey();
+            $this->applyTierDefaults();
         }
     }
 
@@ -81,20 +91,26 @@ class Form extends Component
 
     public function render(): View
     {
+        $engine = app(QuantityPricingEngine::class);
+
         return view('livewire.quantity-controls.form', [
             'statuses' => QuantityControlService::STATUSES,
+            'tierTypeOptions' => $engine->tierTypeOptions($this->tierId),
+            'linkedPriceLabel' => filled($this->tier_key)
+                ? $engine->tierTypeLabel($this->tier_key)
+                : null,
         ]);
     }
 
-    private function loadRecord(int $recordId): void
+    private function loadRecord(int $tierId): void
     {
-        $record = QuantityControl::query()->findOrFail($recordId);
+        $tier = QuantityChannelTier::query()->findOrFail($tierId);
 
-        $this->control_number = $record->control_number;
-        $this->name_en = $record->name_en;
-        $this->name_ur = (string) ($record->name_ur ?? '');
-        $this->status = $record->status;
-        $this->notes = (string) ($record->notes ?? '');
+        $this->tier_key = $tier->tier_key;
+        $this->name_en = $tier->name_en;
+        $this->name_ur = (string) ($tier->name_ur ?? '');
+        $this->min_quantity = (string) $tier->min_quantity;
+        $this->status = $tier->status;
     }
 
     private function persist(): bool
@@ -108,22 +124,24 @@ class Form extends Component
         $this->dispatchBusyState();
 
         try {
+            $profile = app(QuantityControlService::class)->ensureDefaultProfile();
+
             $payload = [
-                'control_number' => $this->control_number,
+                'tier_key' => $this->tier_key,
                 'name_en' => $this->name_en,
                 'name_ur' => $this->name_ur,
+                'min_quantity' => $this->min_quantity,
                 'status' => $this->status,
-                'notes' => $this->notes,
             ];
 
             $service = app(QuantityControlService::class);
 
-            if ($this->quantityControlId) {
-                $record = QuantityControl::query()->findOrFail($this->quantityControlId);
-                $service->update($record, $payload);
+            if ($this->tierId) {
+                $tier = QuantityChannelTier::query()->findOrFail($this->tierId);
+                $service->updateTier($tier, $payload);
                 $this->setStatus(__('quantity_controls.messages.updated'), 'success');
             } else {
-                $service->create($payload);
+                $service->createTier($profile, $payload);
                 $this->setStatus(__('quantity_controls.messages.created'), 'success');
             }
 
@@ -138,15 +156,39 @@ class Form extends Component
         }
     }
 
+    private function defaultTierKey(): string
+    {
+        $options = app(QuantityPricingEngine::class)->tierTypeOptions();
+
+        return (string) ($options[0]['value'] ?? 'retail');
+    }
+
+    private function applyTierDefaults(): void
+    {
+        $definition = QuantityPricingEngine::PRICE_TIER_TYPES[$this->tier_key] ?? null;
+
+        if ($definition === null) {
+            return;
+        }
+
+        if (! filled($this->name_en)) {
+            $this->name_en = $definition['name_en'];
+        }
+
+        if (! filled($this->name_ur)) {
+            $this->name_ur = $definition['name_ur'];
+        }
+    }
+
     private function resetForm(): void
     {
-        $this->quantityControlId = null;
+        $this->tierId = null;
         $this->mode = 'create';
-        $this->control_number = app(QuantityControlService::class)->nextControlNumber();
+        $this->tier_key = '';
         $this->name_en = '';
         $this->name_ur = '';
+        $this->min_quantity = '1';
         $this->status = 'active';
-        $this->notes = '';
         $this->statusMessage = null;
         $this->statusType = 'success';
     }

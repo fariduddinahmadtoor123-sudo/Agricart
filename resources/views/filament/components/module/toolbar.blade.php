@@ -16,6 +16,7 @@
             'agricart-catalog-toolbar',
             'agricart-catalog-toolbar--compact' => ! empty($toolbar['hideSearch']) && ! empty($toolbar['hideFilters']) && ! empty($toolbar['hideColumns']),
             'agricart-catalog-toolbar--segmented' => ! empty($toolbar['segments']),
+            'agricart-catalog-toolbar--reorder' => ($toolbar['resourceSlug'] ?? '') === 're-order-center',
         ])
         @if (! empty($toolbar['segments']))
             x-data="{
@@ -69,6 +70,15 @@
                             @endif
                         />
                     </x-filament::input.wrapper>
+                @endif
+
+                @if (($toolbar['resourceSlug'] ?? '') === 're-order-center')
+                    <span
+                        id="agricart-reorder-toolbar-code"
+                        class="agricart-reorder-toolbar__code"
+                        dir="ltr"
+                        aria-hidden="true"
+                    >—</span>
                 @endif
             </div>
         @endif

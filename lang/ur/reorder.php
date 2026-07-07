@@ -24,6 +24,9 @@ return [
 
     'toolbar' => [
         'search' => 'پروڈکٹس تلاش کریں…',
+        'order_value' => 'تخمینہ کیش (پچھلی ریٹ)',
+        'order_detail' => ':lines آئٹم · :qty عدد',
+        'selected_only' => 'صرف منتخب',
     ],
 
     'columns' => [
@@ -68,5 +71,7 @@ return [
             'previous_price' => 'پچھلی',
             'current_price' => 'موجودہ',
         ],
+        'estimated_total' => 'تخمینہ آرڈر مالیت (پچھلی ریٹ)',
+        'total_meta' => 'کل :lines پروڈکٹ · :qty عدد',
     ],
 ];
