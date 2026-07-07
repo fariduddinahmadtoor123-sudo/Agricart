@@ -14,7 +14,7 @@
 
         @if (! filled($query))
             <div class="ag-store-empty">{{ __('agricart.storefront.search.empty_query') }}</div>
-        @elseif ($products->isEmpty())
+        @elseif ($products === null || $products->isEmpty())
             <div class="ag-store-empty">{{ __('agricart.storefront.search.no_results', ['query' => $query]) }}</div>
         @else
             @include('store.components.product-grid', [
@@ -22,6 +22,12 @@
                 'sectionTitle' => null,
                 'emptyMessage' => __('agricart.storefront.search.no_results', ['query' => $query]),
             ])
+
+            @if ($products->hasPages())
+                <div class="ag-store-pagination">
+                    {{ $products->links() }}
+                </div>
+            @endif
         @endif
     </section>
 @endsection

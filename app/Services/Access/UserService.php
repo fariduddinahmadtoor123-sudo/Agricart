@@ -4,6 +4,7 @@ namespace App\Services\Access;
 
 use App\Models\User;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -32,12 +33,57 @@ class UserService
      */
     public function registerPublic(array $data): User
     {
+        $email = trim((string) ($data['email'] ?? ''));
+        $existing = $email !== ''
+            ? User::query()->where('email', $email)->first()
+            : null;
+
+        if ($existing instanceof User) {
+            if ($existing->status === User::STATUS_REJECTED) {
+                return $this->resubmitRejected($existing, $data);
+            }
+
+            if ($existing->status === User::STATUS_PENDING) {
+                throw ValidationException::withMessages([
+                    'email' => [__('agricart.auth.already_pending')],
+                ]);
+            }
+
+            throw ValidationException::withMessages([
+                'email' => [__('agricart.auth.email_taken')],
+            ]);
+        }
+
         $validated = $this->validatePublicRegistration($data);
         $validated['status'] = User::STATUS_PENDING;
         $validated['role_id'] = null;
         $validated['user_number'] = $this->nextUserNumber();
 
         return User::query()->create($validated);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function resubmitRejected(User $user, array $data): User
+    {
+        if ($user->status !== User::STATUS_REJECTED) {
+            throw ValidationException::withMessages([
+                'email' => [__('agricart.auth.resubmit_not_allowed')],
+            ]);
+        }
+
+        $validated = $this->validatePublicRegistration($data, $user->id);
+        $validated['status'] = User::STATUS_PENDING;
+        $validated['rejection_reason'] = null;
+        $validated['rejected_at'] = null;
+        $validated['role_id'] = null;
+
+        $this->replaceStoredFiles($user, $validated);
+
+        $user->update($validated);
+
+        return $user->fresh(['role']);
     }
 
     /**
@@ -122,11 +168,16 @@ class UserService
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    public function validatePublicRegistration(array $data): array
+    public function validatePublicRegistration(array $data, ?int $exceptId = null): array
     {
         $rules = [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($exceptId),
+            ],
             'address' => ['nullable', 'string', 'max:2000'],
             'phone_numbers' => ['nullable', 'array'],
             'phone_numbers.*.contact_person' => ['nullable', 'string', 'max:255'],
@@ -152,6 +203,21 @@ class UserService
         $validated['bank_accounts'] = $validated['bank_accounts'] ?? [];
 
         return $validated;
+    }
+
+    /**
+     * @param  array<string, mixed>  $validated
+     */
+    private function replaceStoredFiles(User $user, array $validated): void
+    {
+        foreach (['profile_photo_path', 'cnic_front_path', 'cnic_back_path'] as $field) {
+            $newPath = $validated[$field] ?? null;
+            $oldPath = $user->{$field};
+
+            if (filled($newPath) && filled($oldPath) && $newPath !== $oldPath) {
+                Storage::disk('public')->delete($oldPath);
+            }
+        }
     }
 
     /**

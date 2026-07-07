@@ -1,4 +1,7 @@
 @php
+    use App\Services\Printing\LabelRenderService;
+
+    $renderer = app(LabelRenderService::class);
     $stickers = [
         ['type' => 'qr', 'locale' => 'en', 'title' => __('agricart.labels.sticker.qr_en'), 'data' => $product->label_qr['en'] ?? null],
         ['type' => 'barcode', 'locale' => 'en', 'title' => __('agricart.labels.sticker.barcode_en'), 'data' => $product->label_barcode['en'] ?? null],
@@ -21,12 +24,26 @@
 
     <div class="agricart-labels__stickers">
         @foreach ($stickers as $sticker)
-            @include('livewire.labels.partials.sticker', [
-                'title' => $sticker['title'],
-                'type' => $sticker['type'],
-                'locale' => $sticker['locale'],
-                'data' => $sticker['data'],
-            ])
+            @php
+                $stickerData = $renderer->stickerData($product, $sticker['locale'], $sticker['type']);
+                $printUrl = route('admin.labels.print', [
+                    'product' => $product->id,
+                    'type' => $sticker['type'],
+                    'locale' => $sticker['locale'],
+                    'profile' => $labelProfileKey,
+                ]);
+            @endphp
+            <div class="agricart-labels__sticker-wrap">
+                @include('livewire.labels.partials.sticker', [
+                    'title' => $sticker['title'],
+                    'type' => $sticker['type'],
+                    'locale' => $sticker['locale'],
+                    'data' => $stickerData,
+                ])
+                <a href="{{ $printUrl }}" target="_blank" rel="noopener" class="agricart-labels__print-btn">
+                    {{ __('agricart.labels.print.print_button') }}
+                </a>
+            </div>
         @endforeach
     </div>
 </div>

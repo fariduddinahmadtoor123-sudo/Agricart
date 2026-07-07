@@ -45,26 +45,24 @@ class ControlEnrichmentService
         $valueEn = trim($valueEn);
         $valueUr = trim($valueUr);
 
-        $englishPair = filled($nameEn) && filled($valueEn);
-        $urduPair = filled($nameUr) && filled($valueUr);
-
-        if (! $englishPair && ! $urduPair) {
+        if (! filled($nameEn) && ! filled($nameUr) && ! filled($valueEn) && ! filled($valueUr)) {
             return [
                 'success' => false,
-                'message' => __('agricart.controls.ai.pair_required'),
+                'message' => __('agricart.controls.ai.input_required'),
             ];
         }
 
+        $hasEnglish = filled($nameEn) || filled($valueEn);
+        $hasUrdu = filled($nameUr) || filled($valueUr);
+
         $direction = match (true) {
-            $englishPair && ! $urduPair => __('agricart.controls.ai.direction_en_to_ur', [
-                'name' => $nameEn,
-                'value' => $valueEn,
+            $hasEnglish && ! $hasUrdu => __('agricart.controls.ai.direction_en_to_ur', [
+                'fields' => $this->summarizeProvidedFields($nameEn, $valueEn),
             ]),
-            $urduPair && ! $englishPair => __('agricart.controls.ai.direction_ur_to_en', [
-                'name' => $nameUr,
-                'value' => $valueUr,
+            $hasUrdu && ! $hasEnglish => __('agricart.controls.ai.direction_ur_to_en', [
+                'fields' => $this->summarizeProvidedFields($nameUr, $valueUr),
             ]),
-            default => __('agricart.controls.ai.direction_both'),
+            default => __('agricart.controls.ai.direction_complete'),
         };
 
         $prompt = __('agricart.controls.ai.prompt', [
@@ -75,6 +73,7 @@ class ControlEnrichmentService
         ])
             . "\n\n" . $direction
             . "\n\nReturn ONLY valid JSON (no markdown) with keys: name_en, name_ur, value_en, value_ur. "
+            . 'Only translate fields that are empty on the target language side. Keep every provided field unchanged. '
             . 'A control is a product specification label with its value (e.g. Voltage / 220V). Use agriculture and hardware store terminology in Pakistan.';
 
         $start = microtime(true);
@@ -107,36 +106,13 @@ class ControlEnrichmentService
 
         $parsed = $this->mergeKnownValues($parsed, $nameEn, $nameUr, $valueEn, $valueUr);
 
-        if ($englishPair && ! $urduPair) {
-            if (! filled($parsed['name_ur'] ?? null) || strcasecmp((string) $parsed['name_ur'], $nameEn) === 0) {
-                return [
-                    'success' => false,
-                    'message' => __('agricart.controls.ai.missing_ur'),
-                ];
-            }
+        $validationMessage = $this->validateTranslations($parsed, $nameEn, $nameUr, $valueEn, $valueUr);
 
-            if (! filled($parsed['value_ur'] ?? null) || strcasecmp((string) $parsed['value_ur'], $valueEn) === 0) {
-                return [
-                    'success' => false,
-                    'message' => __('agricart.controls.ai.missing_ur'),
-                ];
-            }
-        }
-
-        if ($urduPair && ! $englishPair) {
-            if (! filled($parsed['name_en'] ?? null)) {
-                return [
-                    'success' => false,
-                    'message' => __('agricart.controls.ai.missing_en'),
-                ];
-            }
-
-            if (! filled($parsed['value_en'] ?? null)) {
-                return [
-                    'success' => false,
-                    'message' => __('agricart.controls.ai.missing_en'),
-                ];
-            }
+        if ($validationMessage !== null) {
+            return [
+                'success' => false,
+                'message' => $validationMessage,
+            ];
         }
 
         return [
@@ -144,6 +120,66 @@ class ControlEnrichmentService
             'message' => __('agricart.controls.ai.enriched'),
             'data' => $parsed,
         ];
+    }
+
+    private function summarizeProvidedFields(string $name, string $value): string
+    {
+        $parts = [];
+
+        if (filled($name)) {
+            $parts[] = __('agricart.controls.ai.provided_name') . ': ' . $name;
+        }
+
+        if (filled($value)) {
+            $parts[] = __('agricart.controls.ai.provided_value') . ': ' . $value;
+        }
+
+        return implode('; ', $parts);
+    }
+
+  /**
+     * @param  array<string, mixed>  $parsed
+     */
+    private function validateTranslations(
+        array $parsed,
+        string $nameEn,
+        string $nameUr,
+        string $valueEn,
+        string $valueUr,
+    ): ?string {
+        if (filled($nameEn) && ! filled($nameUr)) {
+            $translated = trim((string) ($parsed['name_ur'] ?? ''));
+
+            if (! filled($translated) || strcasecmp($translated, $nameEn) === 0) {
+                return __('agricart.controls.ai.missing_ur');
+            }
+        }
+
+        if (filled($nameUr) && ! filled($nameEn)) {
+            $translated = trim((string) ($parsed['name_en'] ?? ''));
+
+            if (! filled($translated)) {
+                return __('agricart.controls.ai.missing_en');
+            }
+        }
+
+        if (filled($valueEn) && ! filled($valueUr)) {
+            $translated = trim((string) ($parsed['value_ur'] ?? ''));
+
+            if (! filled($translated) || strcasecmp($translated, $valueEn) === 0) {
+                return __('agricart.controls.ai.missing_ur');
+            }
+        }
+
+        if (filled($valueUr) && ! filled($valueEn)) {
+            $translated = trim((string) ($parsed['value_en'] ?? ''));
+
+            if (! filled($translated)) {
+                return __('agricart.controls.ai.missing_en');
+            }
+        }
+
+        return null;
     }
 
     /**

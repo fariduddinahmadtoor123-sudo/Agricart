@@ -16,6 +16,12 @@
             'products' => $products,
             'sectionTitle' => __('agricart.storefront.products.title'),
         ])
+
+        @if ($products->hasPages())
+            <div class="ag-store-pagination">
+                {{ $products->links() }}
+            </div>
+        @endif
     @elseif ($childCategories->isEmpty() && ! $hasStorefrontContent)
         <div class="ag-store-placeholder-note">
             {{ __('agricart.storefront.category.coming_soon') }}

@@ -130,6 +130,35 @@ class MenuManager extends BaseStoreSettings
         $this->flashSaved();
     }
 
+    public function moveItem(int $id, string $direction): void
+    {
+        $items = StoreMenuItem::query()
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+
+        $index = $items->search(static fn (StoreMenuItem $item): bool => $item->id === $id);
+
+        if ($index === false) {
+            return;
+        }
+
+        $targetIndex = $direction === 'up' ? $index - 1 : $index + 1;
+
+        if ($targetIndex < 0 || $targetIndex >= $items->count()) {
+            return;
+        }
+
+        $current = $items[$index];
+        $other = $items[$targetIndex];
+        $currentSort = $current->sort_order;
+
+        $current->update(['sort_order' => $other->sort_order]);
+        $other->update(['sort_order' => $currentSort]);
+
+        $this->flashSaved();
+    }
+
     public function resetItemForm(): void
     {
         $this->editingId = null;

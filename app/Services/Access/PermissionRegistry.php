@@ -64,6 +64,16 @@ class PermissionRegistry
             'label_en' => 'Manage roles & permissions',
             'label_ur' => 'رولز اور اجازتیں',
         ];
+        $groups['settings']['permissions'][] = [
+            'key' => 'settings.backups.manage',
+            'label_en' => 'Manage backups & restore',
+            'label_ur' => 'بیک اپ اور ریسٹور',
+        ];
+        $groups['settings']['permissions'][] = [
+            'key' => 'settings.printing.manage',
+            'label_en' => 'Manage print profiles',
+            'label_ur' => 'پرنٹ پروفائلز کا انتظام',
+        ];
 
         return $groups;
     }

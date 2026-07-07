@@ -23,6 +23,8 @@ class CategoryService
             $category = Category::query()->create($validated);
             $this->syncDisplayCategories($category, $displayCategoryIds);
 
+            CatalogCache::forgetOverviewStats();
+
             return $category->fresh(['displayInCategories']);
         });
     }
@@ -43,6 +45,8 @@ class CategoryService
             $category->update($validated);
             $this->syncDisplayCategories($category, $displayCategoryIds);
 
+            CatalogCache::forgetOverviewStats();
+
             return $category->fresh(['displayInCategories']);
         });
     }
@@ -50,6 +54,7 @@ class CategoryService
     public function delete(Category $category): void
     {
         $category->delete();
+        CatalogCache::forgetOverviewStats();
     }
 
     /**

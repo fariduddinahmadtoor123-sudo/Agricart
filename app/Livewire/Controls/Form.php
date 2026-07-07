@@ -73,11 +73,11 @@ class Form extends Component
             return;
         }
 
-        $englishPair = filled(trim($this->name_en)) && filled(trim($this->value_en));
-        $urduPair = filled(trim($this->name_ur)) && filled(trim($this->value_ur));
-
-        if (! $englishPair && ! $urduPair) {
-            $this->setStatus(__('agricart.controls.ai.pair_required'), 'warning');
+        if (! filled(trim($this->name_en))
+            && ! filled(trim($this->name_ur))
+            && ! filled(trim($this->value_en))
+            && ! filled(trim($this->value_ur))) {
+            $this->setStatus(__('agricart.controls.ai.input_required'), 'warning');
             $this->enriching = false;
             $this->dispatchBusyState();
 

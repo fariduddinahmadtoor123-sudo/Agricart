@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Auth;
 
+use App\Models\User;
 use App\Services\Access\UserService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\Rule;
@@ -52,6 +53,8 @@ class RegisterForm extends Component
     public bool $saving = false;
 
     public bool $submitted = false;
+
+    public bool $isResubmit = false;
 
     public ?string $statusMessage = null;
 
@@ -126,9 +129,21 @@ class RegisterForm extends Component
         $this->statusMessage = null;
 
         try {
+            $rejectedUser = User::query()
+                ->where('email', $this->email)
+                ->where('status', User::STATUS_REJECTED)
+                ->first();
+
+            $this->isResubmit = $rejectedUser !== null;
+
             $this->validate([
                 'name' => ['required', 'string', 'max:255'],
-                'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
+                'email' => [
+                    'required',
+                    'email',
+                    'max:255',
+                    Rule::unique('users', 'email')->ignore($rejectedUser?->id),
+                ],
                 'address' => ['nullable', 'string', 'max:2000'],
                 'password' => ['required', 'string', 'min:8', 'same:password_confirmation'],
                 'password_confirmation' => ['required', 'string'],

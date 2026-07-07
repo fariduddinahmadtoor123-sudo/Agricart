@@ -2,10 +2,11 @@
     @if ($submitted)
         <div class="ag-store-register__success">
             <h2>{{ __('agricart.auth.register_success_title') }}</h2>
-            <p>{{ __('agricart.auth.register_success_text') }}</p>
+            <p>{{ $isResubmit ? __('agricart.auth.register_resubmit_success_text') : __('agricart.auth.register_success_text') }}</p>
             <a href="{{ url('/admin/login') }}" class="ag-store-register__btn">{{ __('agricart.auth.login_link') }}</a>
         </div>
     @else
+        <p class="ag-store-register__hint">{{ __('agricart.auth.register_resubmit_hint') }}</p>
         @if ($statusMessage)
             <div class="ag-store-register__alert is-danger">{{ $statusMessage }}</div>
         @endif
@@ -30,14 +31,24 @@
                 </div>
 
                 <div class="ag-store-register__field">
-                    <label for="register-password">{{ __('agricart.users.fields.password') }} *</label>
-                    <input id="register-password" type="password" wire:model="password" class="ag-store-register__input" autocomplete="new-password" />
+                    <x-agricart.password-field
+                        id="register-password"
+                        wire:model="password"
+                        input-class="ag-store-register__input"
+                        autocomplete="new-password"
+                        :label="__('agricart.users.fields.password') . ' *'"
+                    />
                     @error('password') <span class="ag-store-register__error">{{ $message }}</span> @enderror
                 </div>
 
                 <div class="ag-store-register__field">
-                    <label for="register-password-confirm">{{ __('agricart.users.fields.password_confirm') }} *</label>
-                    <input id="register-password-confirm" type="password" wire:model="password_confirmation" class="ag-store-register__input" autocomplete="new-password" />
+                    <x-agricart.password-field
+                        id="register-password-confirm"
+                        wire:model="password_confirmation"
+                        input-class="ag-store-register__input"
+                        autocomplete="new-password"
+                        :label="__('agricart.users.fields.password_confirm') . ' *'"
+                    />
                 </div>
             </div>
 

@@ -41,7 +41,8 @@
         controlSaving: false,
         productAiEnriching: false,
         productSaving: false,
-        userSaving: false,
+        companyProfileAiEnriching: false,
+        companyProfileSaving: false,
         roleSaving: false,
         selectCategoryVisualIcon(index) {
             this.categoryVisualMapping.selected = index;
@@ -159,9 +160,16 @@
                 }));
             }
 
+            if (this.formKey === 'company-profile') {
+                window.dispatchEvent(new CustomEvent('company-profile-form-open', {
+                    detail: {},
+                    bubbles: true,
+                }));
+            }
+
             this.isOpen = true;
             this.minimized = false;
-            this.size = ['ai-settings', 'ai-log-detail', 'categories', 'brands', 'units', 'packing-units', 'attributes', 'controls', 'products', 'users', 'roles'].includes(this.formKey) ? 'stretched' : 'normal';
+            this.size = ['ai-settings', 'ai-log-detail', 'categories', 'brands', 'units', 'packing-units', 'attributes', 'controls', 'products', 'users', 'roles', 'company-profile'].includes(this.formKey) ? 'stretched' : 'normal';
             document.body.classList.add('agricart-form-panel-open');
 
             if (this.formKey === 'ai-log-detail' && detail.logId) {
@@ -169,6 +177,10 @@
             }
         },
         close() {
+            if (! this.isOpen && ! this.minimized) {
+                return;
+            }
+
             this.isOpen = false;
             this.minimized = false;
             this.size = 'normal';
@@ -185,7 +197,10 @@
             this.attributeSaving = false;
             this.controlAiEnriching = false;
             this.controlSaving = false;
+            this.companyProfileAiEnriching = false;
+            this.companyProfileSaving = false;
             document.body.classList.remove('agricart-form-panel-open');
+            window.dispatchEvent(new CustomEvent('close-form-panel', { bubbles: true }));
         },
         minimize() {
             this.minimized = true;
@@ -385,6 +400,24 @@
                 return;
             }
 
+            if (this.formKey === 'company-profile') {
+                if (key === 'cancel') {
+                    this.close();
+                    return;
+                }
+
+                if (key === 'ai') {
+                    this.companyProfileAiEnriching = true;
+                }
+
+                window.dispatchEvent(new CustomEvent('company-profile-form-action', {
+                    detail: { action: key },
+                    bubbles: true,
+                }));
+
+                return;
+            }
+
             if (key === 'save_next' && this.currentStep < this.totalSteps) {
                 this.currentStep += 1;
 
@@ -406,7 +439,7 @@
                 'agricart-form-panel--normal': this.size === 'normal',
                 'agricart-form-panel--stretched': this.size === 'stretched',
                 'agricart-form-panel--maximized': this.size === 'maximized',
-                'agricart-form-panel--wide': this.formKey === 'ai-settings' || this.formKey === 'ai-log-detail' || this.formKey === 'categories' || this.formKey === 'brands' || this.formKey === 'units' || this.formKey === 'packing-units' || this.formKey === 'attributes' || this.formKey === 'controls' || this.formKey === 'products' || this.formKey === 'users' || this.formKey === 'roles',
+                'agricart-form-panel--wide': this.formKey === 'ai-settings' || this.formKey === 'ai-log-detail' || this.formKey === 'categories' || this.formKey === 'brands' || this.formKey === 'units' || this.formKey === 'packing-units' || this.formKey === 'attributes' || this.formKey === 'controls' || this.formKey === 'products' || this.formKey === 'users' || this.formKey === 'roles' || this.formKey === 'company-profile',
             };
         },
     }"
@@ -421,6 +454,7 @@
     x-on:product-form-busy.window="productAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); productSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:user-form-busy.window="userSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:role-form-busy.window="roleSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
+    x-on:company-profile-form-busy.window="companyProfileAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); companyProfileSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:keydown.escape.window="if (isOpen && !minimized) close()"
 >
     {{-- Backdrop + panel --}}
@@ -444,7 +478,7 @@
                     <h2 class="agricart-form-panel__title" x-text="title"></h2>
                     <p
                         class="agricart-form-panel__subtitle"
-                        x-show="formKey !== 'products' && formKey !== 'users' && formKey !== 'roles' && resourceLabel"
+                        x-show="formKey !== 'products' && formKey !== 'users' && formKey !== 'roles' && formKey !== 'company-profile' && resourceLabel"
                         x-text="resourceLabel"
                         x-cloak
                     ></p>
@@ -544,7 +578,11 @@
                         <livewire:roles.form />
                     </div>
 
-                    <div x-show="formKey !== 'ai-settings' && formKey !== 'ai-log-detail' && formKey !== 'categories' && formKey !== 'brands' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls' && formKey !== 'products' && formKey !== 'users' && formKey !== 'roles'">
+                    <div x-show="formKey === 'company-profile'" x-cloak>
+                        <livewire:company-profile.form />
+                    </div>
+
+                    <div x-show="formKey !== 'ai-settings' && formKey !== 'ai-log-detail' && formKey !== 'categories' && formKey !== 'brands' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls' && formKey !== 'products' && formKey !== 'users' && formKey !== 'roles' && formKey !== 'company-profile'">
                         @include('filament.components.form-panel.sample-fields')
                     </div>
                 </div>

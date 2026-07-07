@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Storage;
 
 class StoreSetting extends Model
 {
@@ -181,6 +182,15 @@ class StoreSetting extends Model
         return $this->logo_path;
     }
 
+    public function displayLogoUrl(): ?string
+    {
+        $path = $this->footerLogoPath();
+
+        return filled($path)
+            ? Storage::disk('public')->url($path)
+            : null;
+    }
+
     public function resolvedRegisterUrl(): string
     {
         $url = $this->register_url;
@@ -192,5 +202,23 @@ class StoreSetting extends Model
         return str_starts_with($url, 'http://') || str_starts_with($url, 'https://')
             ? $url
             : url($url);
+    }
+
+    public function resolvedCustomerLoginUrl(): string
+    {
+        $url = $this->login_url;
+
+        if (! filled($url) || $url === '/admin/login') {
+            return route('store.customer.login');
+        }
+
+        return str_starts_with($url, 'http://') || str_starts_with($url, 'https://')
+            ? $url
+            : url($url);
+    }
+
+    public function resolvedCustomerRegisterUrl(): string
+    {
+        return route('store.customer.login', ['tab' => 'register']);
     }
 }

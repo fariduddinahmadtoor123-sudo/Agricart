@@ -1,0 +1,95 @@
+<?php
+
+return [
+    'title' => 'Business Profile',
+    'search' => 'Search business profile',
+
+    'actions' => [
+        'add' => 'Add Business Profile',
+        'edit' => 'Edit Business Profile',
+        'upload_logo' => 'Upload logo',
+        'remove_logo' => 'Remove logo',
+        'remove' => 'Remove',
+        'add_phone' => 'Add contact',
+        'add_address' => 'Add address',
+        'fill_urdu_ai' => 'Fill Urdu with AI',
+        'fill_urdu_ai_short' => 'AI → Urdu',
+        'manage_store_logo' => 'Manage logo in Store → Footer',
+    ],
+
+    'sections' => [
+        'identity' => 'Business identity',
+        'contacts' => 'Contact persons',
+        'addresses' => 'Business addresses',
+        'contact_tax' => 'Email, web & tax',
+        'pricing' => 'Pricing settings',
+    ],
+
+    'fields' => [
+        'logo' => 'Logo',
+        'business_name_en' => 'Business name (English)',
+        'business_name_ur' => 'Business name (Urdu)',
+        'tagline_en' => 'Short message (English)',
+        'tagline_ur' => 'Short message (Urdu)',
+        'designation' => 'Role',
+        'contact_person_en' => 'Name (English)',
+        'contact_person_ur' => 'Name (Urdu)',
+        'phone_number' => 'Mobile number',
+        'address_en' => 'Full address (English)',
+        'address_ur' => 'Full address (Urdu)',
+        'postal_code' => 'Postal code',
+        'email' => 'Email',
+        'website' => 'Website',
+        'ntn' => 'NTN',
+        'strn' => 'STRN',
+        'currency' => 'Currency',
+        'price_use_decimals' => 'Use decimals in prices',
+        'price_decimal_places' => 'Decimal places',
+    ],
+
+    'options' => [
+        'decimals_yes' => 'Yes',
+        'decimals_no' => 'No (whole numbers)',
+        'designation_other' => 'Other',
+    ],
+
+    'hints' => [
+        'no_logo' => 'No logo uploaded',
+        'logo_from_store' => 'Logo comes from your online store footer (Store → Footer). The same logo is used here, on invoices and the website.',
+        'logo_sync' => 'This logo is also used on your online store header when saved.',
+        'tagline' => 'A short line about your business — shown on the website, receipts and invoices. Example: "Quality farm tools since 1990".',
+        'address' => 'Write shop address, city and country in one line.',
+        'currency' => 'Pakistani Rupee (PKR) is used for now.',
+        'ai_bottom' => 'Fill English fields first, then click the button below. AI will complete the empty Urdu fields. Phone numbers and tax IDs are never invented.',
+        'ai_panel' => 'You can also use AI Fill in the panel footer.',
+    ],
+
+    'summary' => [
+        'empty_title' => 'No business profile yet',
+        'empty_lead' => 'Add your business name, logo, contacts and address. This appears on invoices and your online store.',
+        'empty_hint' => 'Use the Add Business Profile button in the toolbar above.',
+        'edit_hint' => 'Use Add Business Profile in the toolbar above to update these details.',
+        'details' => 'Business details',
+        'address_line' => 'Address',
+        'unnamed' => 'Unnamed business',
+        'contact' => 'Email, web & tax',
+        'pricing' => 'Pricing',
+        'phones' => 'Contact persons',
+        'phones_hint' => ':count contact(s)',
+        'addresses' => 'Addresses',
+        'addresses_hint' => ':count address(es)',
+        'empty_phones' => 'No contacts added yet.',
+        'empty_addresses' => 'No address added yet.',
+        'store_message' => 'Store message',
+        'store_message_hint' => 'Your logo and short message as shown on the website, receipts and invoices.',
+        'no_store_message' => 'No store message added yet.',
+    ],
+
+    'ai' => [
+        'no_configuration' => 'No active AI configuration. Add one in Settings → AI.',
+        'input_required' => 'Fill at least one English or Urdu field before using AI.',
+        'invalid_json' => 'AI returned an invalid response. Please try again.',
+        'enriched' => 'Urdu fields updated with AI.',
+        'prompt' => 'You are completing a business profile for an agriculture and hardware retailer in Pakistan. Current form data (JSON):\n:payload',
+    ],
+];

@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 #[Fillable([
@@ -20,6 +21,8 @@ use Illuminate\Support\Str;
     'name',
     'role_id',
     'status',
+    'rejection_reason',
+    'rejected_at',
     'email',
     'address',
     'password',
@@ -75,7 +78,9 @@ class User extends Authenticatable implements FilamentUser
     {
         return match ($this->status) {
             self::STATUS_PENDING => __('agricart.auth.pending'),
-            self::STATUS_REJECTED => __('agricart.auth.rejected'),
+            self::STATUS_REJECTED => filled($this->rejection_reason)
+                ? __('agricart.auth.rejected_with_reason', ['reason' => $this->rejection_reason])
+                : __('agricart.auth.rejected'),
             self::STATUS_INACTIVE => __('agricart.auth.inactive'),
             self::STATUS_ACTIVE => $this->role_id === null && ! $this->isSuperAdmin()
                 ? __('agricart.auth.no_role')
@@ -154,10 +159,16 @@ class User extends Authenticatable implements FilamentUser
     /**
      * @return array<string, string>
      */
+    public function publicFileUrl(?string $path): ?string
+    {
+        return filled($path) ? Storage::disk('public')->url($path) : null;
+    }
+
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
+            'rejected_at' => 'datetime',
             'password' => 'hashed',
             'phone_numbers' => 'array',
             'bank_accounts' => 'array',

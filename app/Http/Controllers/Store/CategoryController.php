@@ -19,7 +19,7 @@ class CategoryController extends Controller
             ->firstOrFail();
 
         $childCategories = $categories->childCategories($category);
-        $categoryProducts = $products->productsForCategory($category);
+        $categoryProducts = $products->paginatedProductsForCategory($category);
 
         return view('store.category.show', [
             ...$layout->layoutData(),

@@ -64,6 +64,8 @@ class ProductService
                 'controls',
             ]));
 
+            CatalogCache::forgetOverviewStats();
+
             return $product->fresh([
                 'category',
                 'brand',
@@ -124,6 +126,8 @@ class ProductService
                 'controls',
             ]));
 
+            CatalogCache::forgetOverviewStats();
+
             return $product->fresh([
                 'category',
                 'brand',
@@ -139,6 +143,7 @@ class ProductService
     public function delete(Product $product): void
     {
         $product->delete();
+        CatalogCache::forgetOverviewStats();
     }
 
     public function slugFromName(string $name): string

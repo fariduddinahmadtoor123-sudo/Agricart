@@ -19,9 +19,15 @@ class ListStaffApprovals extends Component
 
     public string $statusFilter = 'pending';
 
+    public ?int $viewUserId = null;
+
     public ?int $approveUserId = null;
 
     public ?int $approveRoleId = null;
+
+    public ?int $rejectUserId = null;
+
+    public string $rejectReason = '';
 
     public ?string $flashMessage = null;
 
@@ -56,6 +62,24 @@ class ListStaffApprovals extends Component
         $this->resetPage();
     }
 
+    public function openView(int $userId): void
+    {
+        if (! $this->canManage()) {
+            return;
+        }
+
+        if (! User::query()->whereKey($userId)->exists()) {
+            return;
+        }
+
+        $this->viewUserId = $userId;
+    }
+
+    public function closeView(): void
+    {
+        $this->viewUserId = null;
+    }
+
     public function openApprove(int $userId): void
     {
         if (! $this->canManage()) {
@@ -84,22 +108,42 @@ class ListStaffApprovals extends Component
             $this->flash(__('agricart.approvals.staff.messages.approved', ['name' => $user->name]), 'success');
             $this->approveUserId = null;
             $this->approveRoleId = null;
+            $this->viewUserId = null;
             $this->resetPage();
         } catch (ValidationException $exception) {
             $this->flash(collect($exception->errors())->flatten()->first() ?: __('agricart.approvals.staff.messages.approve_failed'), 'danger');
         }
     }
 
-    public function reject(int $userId): void
+    public function openReject(int $userId): void
     {
         if (! $this->canManage()) {
             return;
         }
 
+        $user = User::query()->find($userId);
+
+        if ($user === null || ! $user->isPending()) {
+            return;
+        }
+
+        $this->rejectUserId = $userId;
+        $this->rejectReason = '';
+    }
+
+    public function confirmReject(): void
+    {
+        if (! $this->canManage() || $this->rejectUserId === null) {
+            return;
+        }
+
         try {
-            $user = User::query()->findOrFail($userId);
-            app(StaffApprovalService::class)->reject($user);
+            $user = User::query()->findOrFail($this->rejectUserId);
+            app(StaffApprovalService::class)->reject($user, $this->rejectReason);
             $this->flash(__('agricart.approvals.staff.messages.rejected', ['name' => $user->name]), 'success');
+            $this->rejectUserId = null;
+            $this->rejectReason = '';
+            $this->viewUserId = null;
             $this->resetPage();
         } catch (ValidationException $exception) {
             $this->flash(collect($exception->errors())->flatten()->first() ?: __('agricart.approvals.staff.messages.reject_failed'), 'danger');
@@ -110,6 +154,12 @@ class ListStaffApprovals extends Component
     {
         $this->approveUserId = null;
         $this->approveRoleId = null;
+    }
+
+    public function cancelReject(): void
+    {
+        $this->rejectUserId = null;
+        $this->rejectReason = '';
     }
 
     public function render(): View
@@ -129,8 +179,13 @@ class ListStaffApprovals extends Component
             ->latest('id')
             ->paginate(15);
 
+        $viewUser = $this->viewUserId !== null
+            ? User::query()->with('role')->find($this->viewUserId)
+            : null;
+
         return view('livewire.approvals.list-staff', [
             'users' => $users,
+            'viewUser' => $viewUser,
             'roleOptions' => Role::query()->orderBy('name')->pluck('name', 'id')->all(),
             'canManage' => $this->canManage(),
         ]);

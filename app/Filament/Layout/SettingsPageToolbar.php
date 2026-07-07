@@ -2,7 +2,8 @@
 
 namespace App\Filament\Layout;
 
-use App\Filament\Clusters\Settings\OverviewPage;
+use App\Filament\Clusters\Settings\StoreSettingPage;
+use Filament\Support\Icons\Heroicon;
 
 class SettingsPageToolbar extends ClusterPageToolbar
 {
@@ -13,7 +14,7 @@ class SettingsPageToolbar extends ClusterPageToolbar
 
     protected static function overviewPageClass(): string
     {
-        return OverviewPage::class;
+        return StoreSettingPage::class;
     }
 
     protected static function defaultResourceLabel(): string
@@ -89,6 +90,18 @@ class SettingsPageToolbar extends ClusterPageToolbar
                 ...$config,
                 'addLabel' => __('agricart.toolbar.add_ai'),
                 'formKey' => 'ai-settings',
+            ],
+            'store-profile' => [
+                ...$config,
+                'addLabel' => __('company_profile.actions.add'),
+                'actionIcon' => Heroicon::OutlinedPlus,
+                'formKey' => 'company-profile',
+                'hideSearch' => true,
+                'hideFilters' => true,
+                'hideColumns' => true,
+                'interactive' => false,
+                'filters' => [],
+                'columns' => [],
             ],
             default => $config,
         };

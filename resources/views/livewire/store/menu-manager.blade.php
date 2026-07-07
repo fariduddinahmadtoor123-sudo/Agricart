@@ -88,6 +88,7 @@
                         <th>{{ __('agricart.store.admin.fields.label_en') }}</th>
                         <th>{{ __('agricart.store.admin.menu.link') }}</th>
                         <th>{{ __('agricart.store.admin.fields.status') }}</th>
+                        <th>{{ __('agricart.store.admin.order') }}</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -106,13 +107,17 @@
                             </td>
                             <td>{{ $item->is_active ? __('agricart.store.admin.active') : __('agricart.store.admin.inactive') }}</td>
                             <td class="agricart-store-admin__row-actions">
+                                <button type="button" wire:click="moveItem({{ $item->id }}, 'up')" class="agricart-store-admin__link-btn" @disabled($loop->first)>{{ __('agricart.store.admin.move_up') }}</button>
+                                <button type="button" wire:click="moveItem({{ $item->id }}, 'down')" class="agricart-store-admin__link-btn" @disabled($loop->last)>{{ __('agricart.store.admin.move_down') }}</button>
+                            </td>
+                            <td class="agricart-store-admin__row-actions">
                                 <button type="button" wire:click="editItem({{ $item->id }})" class="agricart-store-admin__link-btn">{{ __('agricart.store.admin.edit') }}</button>
                                 <button type="button" wire:click="toggleItem({{ $item->id }})" class="agricart-store-admin__link-btn">{{ __('agricart.store.admin.toggle') }}</button>
                                 <button type="button" wire:click="deleteItem({{ $item->id }})" wire:confirm="{{ __('agricart.store.admin.delete_confirm') }}" class="agricart-store-admin__link-btn is-danger">{{ __('agricart.store.admin.delete') }}</button>
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="4">{{ __('agricart.store.admin.menu.empty') }}</td></tr>
+                        <tr><td colspan="6">{{ __('agricart.store.admin.menu.empty') }}</td></tr>
                     @endforelse
                 </tbody>
             </table>

@@ -1,0 +1,95 @@
+<?php
+
+namespace App\Services\Backup;
+
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Process;
+use Illuminate\Validation\ValidationException;
+
+class DatabaseDumper
+{
+    public function dumpTo(string $targetPath): void
+    {
+        $connection = config('database.default');
+        $driver = config("database.connections.{$connection}.driver");
+
+        File::ensureDirectoryExists(dirname($targetPath));
+
+        if ($driver === 'sqlite') {
+            $this->dumpSqlite($targetPath, config("database.connections.{$connection}.database"));
+
+            return;
+        }
+
+        if ($driver !== 'mysql') {
+            throw ValidationException::withMessages([
+                'backup' => __('agricart.backups.messages.unsupported_driver', ['driver' => $driver]),
+            ]);
+        }
+
+        $this->dumpMysql($targetPath, config("database.connections.{$connection}"));
+    }
+
+    private function dumpSqlite(string $targetPath, string $databasePath): void
+    {
+        if (! is_file($databasePath)) {
+            throw ValidationException::withMessages([
+                'backup' => __('agricart.backups.messages.database_missing'),
+            ]);
+        }
+
+        if (! copy($databasePath, $targetPath)) {
+            throw ValidationException::withMessages([
+                'backup' => __('agricart.backups.messages.dump_failed'),
+            ]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    private function dumpMysql(string $targetPath, array $config): void
+    {
+        $credentialsFile = $this->writeMysqlCredentialsFile(
+            (string) ($config['username'] ?? ''),
+            (string) ($config['password'] ?? ''),
+        );
+
+        try {
+            $binary = (string) config('backup.mysqldump', 'mysqldump');
+            $database = (string) ($config['database'] ?? '');
+            $host = (string) ($config['host'] ?? '127.0.0.1');
+            $port = (string) ($config['port'] ?? '3306');
+
+            $result = Process::timeout(3600)->run([
+                $binary,
+                '--defaults-extra-file=' . $credentialsFile,
+                '--host=' . $host,
+                '--port=' . $port,
+                '--single-transaction',
+                '--routines',
+                '--triggers',
+                '--add-drop-table',
+                '--result-file=' . $targetPath,
+                $database,
+            ]);
+
+            if (! $result->successful() || ! is_file($targetPath) || filesize($targetPath) === 0) {
+                throw ValidationException::withMessages([
+                    'backup' => __('agricart.backups.messages.dump_failed'),
+                ]);
+            }
+        } finally {
+            @unlink($credentialsFile);
+        }
+    }
+
+    private function writeMysqlCredentialsFile(string $username, string $password): string
+    {
+        $path = tempnam(sys_get_temp_dir(), 'agricart-mysql-');
+        $contents = "[client]\nuser=\"{$username}\"\npassword=\"{$password}\"\n";
+        file_put_contents($path, $contents);
+
+        return $path;
+    }
+}

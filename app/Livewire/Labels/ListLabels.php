@@ -3,6 +3,7 @@
 namespace App\Livewire\Labels;
 
 use App\Models\Product;
+use App\Services\Printing\PrintProfileService;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -13,6 +14,14 @@ class ListLabels extends Component
     use WithPagination;
 
     public string $search = '';
+
+    public string $labelProfileKey = '';
+
+    public function mount(): void
+    {
+        $default = app(PrintProfileService::class)->defaultProductLabel();
+        $this->labelProfileKey = $default?->key ?? 'label_75x50';
+    }
 
     #[On('labels-saved')]
     #[On('products-saved')]
@@ -31,6 +40,7 @@ class ListLabels extends Component
     public function render(): View
     {
         $products = Product::query()
+            ->with(['brand', 'unit', 'packUnit', 'attributes'])
             ->whereNotNull('label_code')
             ->when(filled($this->search), function ($query): void {
                 $needle = '%' . $this->search . '%';
@@ -45,8 +55,11 @@ class ListLabels extends Component
             ->latest('id')
             ->paginate(12);
 
+        $profiles = app(PrintProfileService::class)->labels();
+
         return view('livewire.labels.list', [
             'products' => $products,
+            'labelProfiles' => $profiles,
         ]);
     }
 }

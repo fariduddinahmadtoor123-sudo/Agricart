@@ -183,6 +183,20 @@ class FooterSettings extends BaseStoreSettings
             return;
         }
 
+        if (filled($this->store_page_id)) {
+            $duplicatePage = StoreFooterLink::query()
+                ->where('group', $this->link_group)
+                ->where('store_page_id', $this->store_page_id)
+                ->when($this->editingId, fn ($query) => $query->whereKeyNot($this->editingId))
+                ->exists();
+
+            if ($duplicatePage) {
+                $this->addError('store_page_id', __('agricart.store.admin.footer.duplicate_page'));
+
+                return;
+            }
+        }
+
         $payload = [
             'group' => $this->link_group,
             'label_en' => $this->label_en,
@@ -243,9 +257,42 @@ class FooterSettings extends BaseStoreSettings
         $this->flashSaved();
     }
 
+    public function moveLink(int $id, string $direction): void
+    {
+        $link = StoreFooterLink::query()->findOrFail($id);
+
+        $links = StoreFooterLink::query()
+            ->where('group', $link->group)
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get();
+
+        $index = $links->search(static fn (StoreFooterLink $item): bool => $item->id === $id);
+
+        if ($index === false) {
+            return;
+        }
+
+        $targetIndex = $direction === 'up' ? $index - 1 : $index + 1;
+
+        if ($targetIndex < 0 || $targetIndex >= $links->count()) {
+            return;
+        }
+
+        $current = $links[$index];
+        $other = $links[$targetIndex];
+        $currentSort = $current->sort_order;
+
+        $current->update(['sort_order' => $other->sort_order]);
+        $other->update(['sort_order' => $currentSort]);
+
+        $this->flashSaved();
+    }
+
     public function resetLinkForm(): void
     {
         $this->editingId = null;
+        $this->link_group = StoreFooterLink::GROUP_QUICK;
         $this->label_en = '';
         $this->label_ur = '';
         $this->url = '';

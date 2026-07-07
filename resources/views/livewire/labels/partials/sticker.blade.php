@@ -26,12 +26,24 @@
         @endif
 
         @if ($type === 'qr')
-            <div class="agricart-labels__qr-placeholder" aria-hidden="true">
-                <span class="agricart-labels__qr-grid"></span>
+            <div class="agricart-labels__code-wrap">
+                @if (! empty($data['qr_svg']))
+                    {!! $data['qr_svg'] !!}
+                @else
+                    <div class="agricart-labels__qr-placeholder" aria-hidden="true">
+                        <span class="agricart-labels__qr-grid"></span>
+                    </div>
+                @endif
             </div>
             <p class="agricart-labels__sticker-foot">{{ $data['qr_payload'] ?? $labelCode }}</p>
         @else
-            <div class="agricart-labels__barcode" aria-hidden="true"></div>
+            <div class="agricart-labels__code-wrap">
+                @if (! empty($data['barcode_svg']))
+                    {!! $data['barcode_svg'] !!}
+                @else
+                    <div class="agricart-labels__barcode" aria-hidden="true"></div>
+                @endif
+            </div>
             <p class="agricart-labels__sticker-foot">{{ $data['barcode_value'] ?? $labelCode }}</p>
         @endif
     </div>

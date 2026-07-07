@@ -38,7 +38,7 @@ class HeaderSettings extends BaseStoreSettings
 
     public bool $show_auth_links = true;
 
-    public string $login_url = '/admin/login';
+    public string $login_url = '/login';
 
     public string $register_url = '/register';
 
@@ -71,7 +71,7 @@ class HeaderSettings extends BaseStoreSettings
         $this->social_youtube = $settings->social_youtube ?? '';
         $this->social_twitter = $settings->social_twitter ?? '';
         $this->show_auth_links = $settings->show_auth_links;
-        $this->login_url = $settings->login_url ?? '/admin/login';
+        $this->login_url = $settings->login_url ?? '/login';
         $this->register_url = $settings->register_url ?? '';
         $this->show_cart = $settings->show_cart;
         $this->whatsapp_number = $settings->whatsapp_number ?? '';
@@ -149,7 +149,7 @@ class HeaderSettings extends BaseStoreSettings
             'social_youtube' => filled($this->social_youtube) ? $this->social_youtube : null,
             'social_twitter' => filled($this->social_twitter) ? $this->social_twitter : null,
             'show_auth_links' => $this->show_auth_links,
-            'login_url' => filled($this->login_url) ? $this->login_url : '/admin/login',
+            'login_url' => filled($this->login_url) ? $this->login_url : '/login',
             'register_url' => filled($this->register_url) ? $this->register_url : null,
             'show_cart' => $this->show_cart,
             'whatsapp_number' => filled($this->whatsapp_number) ? $this->whatsapp_number : null,

@@ -18,13 +18,26 @@ use App\Models\PackingUnit;
 use App\Models\Product;
 use App\Models\Unit;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 class CatalogOverviewService
 {
+    public function statCards(): array
+    {
+        return Cache::remember(CatalogCache::OVERVIEW_STATS_KEY, now()->addMinutes(10), function (): array {
+            return $this->buildStatCards();
+        });
+    }
+
+    public function totalRecords(): int
+    {
+        return array_sum(array_column($this->statCards(), 'count'));
+    }
+
     /**
      * @return list<array{key: string, label: string, count: int, active: int|null, url: string}>
      */
-    public function statCards(): array
+    private function buildStatCards(): array
     {
         return [
             $this->modelCard('categories', Category::class, CategoriesPage::class),
@@ -36,11 +49,6 @@ class CatalogOverviewService
             $this->modelCard('controls', CatalogControl::class, ControlsPage::class),
             $this->labelsCard(),
         ];
-    }
-
-    public function totalRecords(): int
-    {
-        return array_sum(array_column($this->statCards(), 'count'));
     }
 
     /**

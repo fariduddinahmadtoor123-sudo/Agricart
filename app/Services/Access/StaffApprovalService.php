@@ -30,7 +30,7 @@ class StaffApprovalService
         return $user->fresh(['role']);
     }
 
-    public function reject(User $user): User
+    public function reject(User $user, string $reason): User
     {
         if ($user->status !== User::STATUS_PENDING) {
             throw ValidationException::withMessages([
@@ -38,7 +38,19 @@ class StaffApprovalService
             ]);
         }
 
-        $user->update(['status' => User::STATUS_REJECTED]);
+        $reason = trim($reason);
+
+        if ($reason === '') {
+            throw ValidationException::withMessages([
+                'rejection_reason' => __('agricart.approvals.staff.messages.reason_required'),
+            ]);
+        }
+
+        $user->update([
+            'status' => User::STATUS_REJECTED,
+            'rejection_reason' => $reason,
+            'rejected_at' => now(),
+        ]);
 
         return $user->fresh(['role']);
     }

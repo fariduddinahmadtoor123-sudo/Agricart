@@ -1,5 +1,6 @@
 @php
     $currentPath = trim(request()->path(), '/');
+    $navEntries = $menu_nav_entries ?? collect();
 @endphp
 
 <nav class="ag-store-menu" aria-label="{{ __('agricart.storefront.menu.label') }}">
@@ -13,32 +14,34 @@
                 </li>
             @endif
 
-            @foreach ($auto_menu_pages ?? [] as $page)
-                @php
-                    $pagePath = ltrim(parse_url($page->publicUrl(), PHP_URL_PATH) ?? '', '/');
-                    $isActive = $currentPath === $pagePath;
-                @endphp
-                <li>
-                    <a href="{{ $page->publicUrl() }}" @class(['ag-store-menu__link', 'is-active' => $isActive])>
-                        {{ $page->localizedTitle() }}
-                    </a>
-                </li>
-            @endforeach
-
-            @foreach ($menu_items as $item)
-                @php
-                    $itemPath = ltrim(parse_url($item->resolvedUrl(), PHP_URL_PATH) ?? '', '/');
-                    $isActive = filled($itemPath) && $itemPath !== '' && ($currentPath === $itemPath || str_starts_with($currentPath, $itemPath . '/'));
-                @endphp
-                <li>
-                    <a
-                        href="{{ $item->resolvedUrl() }}"
-                        @class(['ag-store-menu__link', 'is-active' => $isActive])
-                        @if ($item->opens_in_new_tab) target="_blank" rel="noopener noreferrer" @endif
-                    >
-                        {{ $item->localizedLabel() }}
-                    </a>
-                </li>
+            @foreach ($navEntries as $entry)
+                @if ($entry['type'] === 'page')
+                    @php
+                        $page = $entry['page'];
+                        $pagePath = ltrim(parse_url($page->publicUrl(), PHP_URL_PATH) ?? '', '/');
+                        $isActive = $currentPath === $pagePath;
+                    @endphp
+                    <li>
+                        <a href="{{ $page->publicUrl() }}" @class(['ag-store-menu__link', 'is-active' => $isActive])>
+                            {{ $page->localizedTitle() }}
+                        </a>
+                    </li>
+                @else
+                    @php
+                        $item = $entry['item'];
+                        $itemPath = ltrim(parse_url($item->resolvedUrl(), PHP_URL_PATH) ?? '', '/');
+                        $isActive = filled($itemPath) && $itemPath !== '' && ($currentPath === $itemPath || str_starts_with($currentPath, $itemPath . '/'));
+                    @endphp
+                    <li>
+                        <a
+                            href="{{ $item->resolvedUrl() }}"
+                            @class(['ag-store-menu__link', 'is-active' => $isActive])
+                            @if ($item->opens_in_new_tab) target="_blank" rel="noopener noreferrer" @endif
+                        >
+                            {{ $item->localizedLabel() }}
+                        </a>
+                    </li>
+                @endif
             @endforeach
         </ul>
     </div>

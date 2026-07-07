@@ -1,6 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\BackupDownloadController;
 use App\Http\Controllers\Store\CategoryController;
+use App\Http\Controllers\Store\CustomerAuthController;
+use App\Http\Controllers\Store\CustomerLogoutController;
 use App\Http\Controllers\Store\HomeController;
 use App\Http\Controllers\Store\PageController;
 use App\Http\Controllers\Store\ProductController;
@@ -11,6 +14,12 @@ use Illuminate\Support\Facades\Route;
 
 Route::middleware([SetAgricartLocale::class])->group(function (): void {
     Route::get('/', [HomeController::class, 'index'])->name('store.home');
+    Route::get('/login', [CustomerAuthController::class, 'show'])
+        ->middleware('guest:customer')
+        ->name('store.customer.login');
+    Route::post('/logout', CustomerLogoutController::class)
+        ->middleware('auth:customer')
+        ->name('store.customer.logout');
     Route::get('/register', [\App\Http\Controllers\Store\RegisterController::class, 'show'])->name('auth.register');
     Route::get('/search', [SearchController::class, 'index'])->name('store.search');
     Route::get('/page/{slug}', [PageController::class, 'show'])->name('store.page');
@@ -40,3 +49,13 @@ Route::middleware('web')->get('/ai/status', function () {
 
     return response()->json(TopbarActions::aiConnectionState());
 })->name('agricart.ai.status');
+
+Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
+    Route::get('/backups/{backupId}/download', [BackupDownloadController::class, 'download'])
+        ->name('admin.backups.download');
+    Route::get('/backups/export/{type}', [BackupDownloadController::class, 'exportCsv'])
+        ->whereIn('type', ['products', 'categories'])
+        ->name('admin.backups.export');
+    Route::get('/labels/{product}/print', [\App\Http\Controllers\Admin\LabelPrintController::class, 'show'])
+        ->name('admin.labels.print');
+});

@@ -38,8 +38,18 @@
 
                 @if ($settings->show_auth_links)
                     <div class="ag-store-header__auth">
-                        <a href="{{ $settings->login_url ?: url('/admin/login') }}" class="ag-store-header__auth-link">{{ __('agricart.storefront.header.login') }}</a>
-                        <a href="{{ $settings->resolvedRegisterUrl() }}" class="ag-store-header__auth-link ag-store-header__auth-link--primary">{{ __('agricart.storefront.header.register') }}</a>
+                        @auth('customer')
+                            <span class="ag-store-header__auth-user" title="{{ auth('customer')->user()->email }}">
+                                {{ auth('customer')->user()->displayLabel() }}
+                            </span>
+                            <form method="post" action="{{ route('store.customer.logout') }}" class="ag-store-header__logout-form">
+                                @csrf
+                                <button type="submit" class="ag-store-header__auth-link">{{ __('agricart.customer.auth.logout') }}</button>
+                            </form>
+                        @else
+                            <a href="{{ $settings->resolvedCustomerLoginUrl() }}" class="ag-store-header__auth-link">{{ __('agricart.storefront.header.login') }}</a>
+                            <a href="{{ $settings->resolvedCustomerRegisterUrl() }}" class="ag-store-header__auth-link ag-store-header__auth-link--primary">{{ __('agricart.storefront.header.register') }}</a>
+                        @endauth
                     </div>
                 @endif
 

@@ -102,9 +102,13 @@
                         {{ __('agricart.users.fields.password') }}
                         <span class="agricart-form-panel__required">*</span>
                     </label>
-                    <x-filament::input.wrapper>
-                        <input id="agricart-user-password" type="password" wire:model="password" class="fi-input" autocomplete="new-password" @disabled($readonly) />
-                    </x-filament::input.wrapper>
+                    <x-agricart.password-field
+                        id="agricart-user-password"
+                        wire:model="password"
+                        input-class="fi-input"
+                        autocomplete="new-password"
+                        :disabled="$readonly"
+                    />
                 </div>
 
                 <div class="agricart-form-panel__field">
@@ -112,9 +116,13 @@
                         {{ __('agricart.users.fields.password_confirm') }}
                         <span class="agricart-form-panel__required">*</span>
                     </label>
-                    <x-filament::input.wrapper>
-                        <input id="agricart-user-password-confirm" type="password" wire:model="password_confirmation" class="fi-input" autocomplete="new-password" @disabled($readonly) />
-                    </x-filament::input.wrapper>
+                    <x-agricart.password-field
+                        id="agricart-user-password-confirm"
+                        wire:model="password_confirmation"
+                        input-class="fi-input"
+                        autocomplete="new-password"
+                        :disabled="$readonly"
+                    />
                 </div>
             @endif
         </div>

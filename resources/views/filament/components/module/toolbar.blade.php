@@ -8,8 +8,12 @@
 @endphp
 
 @if (filled($toolbar))
-    <div class="agricart-catalog-toolbar">
-        <div class="agricart-catalog-toolbar__search">
+    <div @class([
+        'agricart-catalog-toolbar',
+        'agricart-catalog-toolbar--compact' => ! empty($toolbar['hideSearch']) && ! empty($toolbar['hideFilters']) && ! empty($toolbar['hideColumns']),
+    ])>
+        @if (empty($toolbar['hideSearch']))
+            <div class="agricart-catalog-toolbar__search">
             <label class="fi-sr-only" for="agricart-{{ $moduleKey }}-search-{{ $toolbar['resourceSlug'] }}">
                 {{ $toolbar['searchPlaceholder'] }}
             </label>
@@ -30,15 +34,20 @@
                 />
             </x-filament::input.wrapper>
         </div>
+        @endif
 
         <div class="agricart-catalog-toolbar__actions">
-            @include('filament.components.module.filter-dropdown', ['toolbar' => $toolbar, 'moduleKey' => $moduleKey])
-            @include('filament.components.module.columns-dropdown', ['toolbar' => $toolbar, 'moduleKey' => $moduleKey])
+            @if (empty($toolbar['hideFilters']))
+                @include('filament.components.module.filter-dropdown', ['toolbar' => $toolbar, 'moduleKey' => $moduleKey])
+            @endif
+            @if (empty($toolbar['hideColumns']))
+                @include('filament.components.module.columns-dropdown', ['toolbar' => $toolbar, 'moduleKey' => $moduleKey])
+            @endif
 
             @if (filled($toolbar['addLabel']))
                 <x-filament::button
                     color="primary"
-                    :icon="Heroicon::OutlinedPlus"
+                    :icon="$toolbar['actionIcon'] ?? Heroicon::OutlinedPlus"
                     tag="button"
                     type="button"
                     class="agricart-catalog-toolbar__action"

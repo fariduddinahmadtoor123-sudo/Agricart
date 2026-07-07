@@ -4,28 +4,55 @@ namespace App\Services\Store;
 
 use App\Models\Category;
 use App\Models\Product;
-use Illuminate\Support\Collection;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
 
 class StoreProductService
 {
     /**
-     * @return Collection<int, Product>
+     * @return LengthAwarePaginator<int, Product>
      */
-    public function productsForCategory(Category $category): Collection
+    public function paginatedProductsForCategory(Category $category, int $perPage = 36): LengthAwarePaginator
     {
         return Product::query()
             ->where('status', 'active')
             ->where(function ($query) use ($category): void {
                 $query->where('category_id', $category->id)
-                    ->orWhereHas(
-                        'displayCategories',
-                        fn ($relation) => $relation->where('categories.id', $category->id),
-                    );
+                    ->orWhereIn('id', function ($sub) use ($category): void {
+                        $sub->select('product_id')
+                            ->from('product_display_category')
+                            ->where('category_id', $category->id);
+                    });
             })
             ->with(['brand'])
             ->orderBy('name_en')
-            ->get();
+            ->orderBy('id')
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    /**
+     * @return LengthAwarePaginator<int, Product>
+     */
+    public function paginatedSearch(string $term, int $perPage = 36): LengthAwarePaginator
+    {
+        $term = trim($term);
+
+        if ($term === '') {
+            return Product::query()
+                ->whereRaw('1 = 0')
+                ->paginate($perPage);
+        }
+
+        return Product::query()
+            ->where('status', 'active')
+            ->tap(fn (Builder $query) => $this->applyStorefrontSearch($query, $term))
+            ->with(['brand'])
+            ->orderBy('name_en')
+            ->orderBy('id')
+            ->paginate($perPage)
+            ->withQueryString();
     }
 
     public function imageUrl(?Product $product): ?string
@@ -62,39 +89,6 @@ class StoreProductService
             ->where('status', 'active')
             ->with(['brand', 'category', 'unit', 'packUnit', 'attributes'])
             ->first();
-    }
-
-    /**
-     * @return \Illuminate\Support\Collection<int, Product>
-     */
-    public function search(string $term, int $limit = 48): \Illuminate\Support\Collection
-    {
-        $term = trim($term);
-
-        if ($term === '') {
-            return collect();
-        }
-
-        $needle = '%' . $term . '%';
-
-        return Product::query()
-            ->where('status', 'active')
-            ->where(function ($query) use ($needle): void {
-                $query->where('name_en', 'like', $needle)
-                    ->orWhere('name_ur', 'like', $needle)
-                    ->orWhere('code', 'like', $needle)
-                    ->orWhere('sku', 'like', $needle)
-                    ->orWhere('label_code', 'like', $needle)
-                    ->orWhere('slug', 'like', $needle)
-                    ->orWhereHas('brand', function ($brandQuery) use ($needle): void {
-                        $brandQuery->where('name_en', 'like', $needle)
-                            ->orWhere('name_ur', 'like', $needle);
-                    });
-            })
-            ->with(['brand'])
-            ->orderBy('name_en')
-            ->limit($limit)
-            ->get();
     }
 
     /**
@@ -135,5 +129,47 @@ class StoreProductService
         $value = $product->{$englishKey};
 
         return filled($value) ? $value : null;
+    }
+
+    private function applyStorefrontSearch(Builder $query, string $term): void
+    {
+        $compact = ! str_contains($term, ' ');
+
+        if ($compact && mb_strlen($term) >= 2) {
+            $prefix = $term . '%';
+
+            $query->where(function (Builder $inner) use ($term, $prefix): void {
+                $inner->where('code', $term)
+                    ->orWhere('sku', $term)
+                    ->orWhere('label_code', $term)
+                    ->orWhere('slug', $term)
+                    ->orWhere('code', 'like', $prefix)
+                    ->orWhere('sku', 'like', $prefix)
+                    ->orWhere('label_code', 'like', $prefix)
+                    ->orWhere('name_en', 'like', $prefix)
+                    ->orWhere('name_ur', 'like', $prefix)
+                    ->orWhereHas('brand', function (Builder $brandQuery) use ($prefix): void {
+                        $brandQuery->where('name_en', 'like', $prefix)
+                            ->orWhere('name_ur', 'like', $prefix);
+                    });
+            });
+
+            return;
+        }
+
+        $needle = '%' . $term . '%';
+
+        $query->where(function (Builder $inner) use ($needle): void {
+            $inner->where('name_en', 'like', $needle)
+                ->orWhere('name_ur', 'like', $needle)
+                ->orWhere('code', 'like', $needle)
+                ->orWhere('sku', 'like', $needle)
+                ->orWhere('label_code', 'like', $needle)
+                ->orWhere('slug', 'like', $needle)
+                ->orWhereHas('brand', function (Builder $brandQuery) use ($needle): void {
+                    $brandQuery->where('name_en', 'like', $needle)
+                        ->orWhere('name_ur', 'like', $needle);
+                });
+        });
     }
 }

@@ -162,6 +162,7 @@
                             <option value="{{ $page->id }}">{{ $page->title_en }}</option>
                         @endforeach
                     </select>
+                    @error('store_page_id') <span class="agricart-store-admin__error">{{ $message }}</span> @enderror
                 </div>
             </div>
             <label class="agricart-store-admin__checkbox">
@@ -178,33 +179,28 @@
             </div>
         </form>
 
+        <h4 class="agricart-store-admin__subtitle">{{ __('agricart.store.admin.footer.quick_links') }}</h4>
         <div class="agricart-store-admin__table-wrap">
             <table class="agricart-store-admin__table">
                 <thead>
                     <tr>
-                        <th>{{ __('agricart.store.admin.footer.link_group') }}</th>
                         <th>{{ __('agricart.store.admin.fields.label_en') }}</th>
                         <th>{{ __('agricart.store.admin.menu.link') }}</th>
                         <th>{{ __('agricart.store.admin.fields.status') }}</th>
+                        <th>{{ __('agricart.store.admin.order') }}</th>
                         <th></th>
                     </tr>
                 </thead>
                 <tbody>
-                    @php
-                        $allLinks = $quickLinks->concat($registrationLinks)->sortBy(['sort_order', 'id']);
-                    @endphp
-                    @forelse ($allLinks as $item)
-                        <tr wire:key="footer-link-{{ $item->id }}">
-                            <td>
-                                @if ($item->group === \App\Models\StoreFooterLink::GROUP_QUICK)
-                                    {{ __('agricart.store.admin.footer.quick_links') }}
-                                @else
-                                    {{ __('agricart.store.admin.footer.registration_links') }}
-                                @endif
-                            </td>
+                    @forelse ($quickLinks as $item)
+                        <tr wire:key="footer-quick-{{ $item->id }}">
                             <td>{{ $item->label_en }}</td>
                             <td><code>{{ $item->resolvedUrl() }}</code></td>
                             <td>{{ $item->is_active ? __('agricart.store.admin.active') : __('agricart.store.admin.inactive') }}</td>
+                            <td class="agricart-store-admin__row-actions">
+                                <button type="button" wire:click="moveLink({{ $item->id }}, 'up')" class="agricart-store-admin__link-btn" @disabled($loop->first)>{{ __('agricart.store.admin.move_up') }}</button>
+                                <button type="button" wire:click="moveLink({{ $item->id }}, 'down')" class="agricart-store-admin__link-btn" @disabled($loop->last)>{{ __('agricart.store.admin.move_down') }}</button>
+                            </td>
                             <td class="agricart-store-admin__row-actions">
                                 <button type="button" wire:click="editLink({{ $item->id }})" class="agricart-store-admin__link-btn">{{ __('agricart.store.admin.edit') }}</button>
                                 <button type="button" wire:click="toggleLink({{ $item->id }})" class="agricart-store-admin__link-btn">{{ __('agricart.store.admin.toggle') }}</button>
@@ -212,7 +208,42 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="5">{{ __('agricart.store.admin.footer.links_empty') }}</td></tr>
+                        <tr><td colspan="5">{{ __('agricart.store.admin.footer.quick_links_empty') }}</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        <h4 class="agricart-store-admin__subtitle">{{ __('agricart.store.admin.footer.registration_links') }}</h4>
+        <div class="agricart-store-admin__table-wrap">
+            <table class="agricart-store-admin__table">
+                <thead>
+                    <tr>
+                        <th>{{ __('agricart.store.admin.fields.label_en') }}</th>
+                        <th>{{ __('agricart.store.admin.menu.link') }}</th>
+                        <th>{{ __('agricart.store.admin.fields.status') }}</th>
+                        <th>{{ __('agricart.store.admin.order') }}</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($registrationLinks as $item)
+                        <tr wire:key="footer-registration-{{ $item->id }}">
+                            <td>{{ $item->label_en }}</td>
+                            <td><code>{{ $item->resolvedUrl() }}</code></td>
+                            <td>{{ $item->is_active ? __('agricart.store.admin.active') : __('agricart.store.admin.inactive') }}</td>
+                            <td class="agricart-store-admin__row-actions">
+                                <button type="button" wire:click="moveLink({{ $item->id }}, 'up')" class="agricart-store-admin__link-btn" @disabled($loop->first)>{{ __('agricart.store.admin.move_up') }}</button>
+                                <button type="button" wire:click="moveLink({{ $item->id }}, 'down')" class="agricart-store-admin__link-btn" @disabled($loop->last)>{{ __('agricart.store.admin.move_down') }}</button>
+                            </td>
+                            <td class="agricart-store-admin__row-actions">
+                                <button type="button" wire:click="editLink({{ $item->id }})" class="agricart-store-admin__link-btn">{{ __('agricart.store.admin.edit') }}</button>
+                                <button type="button" wire:click="toggleLink({{ $item->id }})" class="agricart-store-admin__link-btn">{{ __('agricart.store.admin.toggle') }}</button>
+                                <button type="button" wire:click="deleteLink({{ $item->id }})" wire:confirm="{{ __('agricart.store.admin.delete_confirm') }}" class="agricart-store-admin__link-btn is-danger">{{ __('agricart.store.admin.delete') }}</button>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="5">{{ __('agricart.store.admin.footer.registration_links_empty') }}</td></tr>
                     @endforelse
                 </tbody>
             </table>

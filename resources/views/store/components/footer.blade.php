@@ -23,22 +23,21 @@
                             {{ $settings->localized('footer_quick_title') ?? __('agricart.storefront.footer.quick_links') }}
                         </h3>
                         <ul class="ag-store-footer__links">
-                            @foreach ($footer_quick_pages as $page)
+                            @foreach ($footer_quick_entries ?? [] as $entry)
                                 <li>
-                                    <a href="{{ $page->publicUrl() }}" class="ag-store-footer__link">
-                                        {{ $page->localizedTitle() }}
-                                    </a>
-                                </li>
-                            @endforeach
-                            @foreach ($footer_quick_links as $link)
-                                <li>
-                                    <a
-                                        href="{{ $link->resolvedUrl() }}"
-                                        class="ag-store-footer__link"
-                                        @if ($link->opens_in_new_tab) target="_blank" rel="noopener noreferrer" @endif
-                                    >
-                                        {{ $link->localizedLabel() }}
-                                    </a>
+                                    @if ($entry['type'] === 'page')
+                                        <a href="{{ $entry['page']->publicUrl() }}" class="ag-store-footer__link">
+                                            {{ $entry['page']->localizedTitle() }}
+                                        </a>
+                                    @else
+                                        <a
+                                            href="{{ $entry['link']->resolvedUrl() }}"
+                                            class="ag-store-footer__link"
+                                            @if ($entry['link']->opens_in_new_tab) target="_blank" rel="noopener noreferrer" @endif
+                                        >
+                                            {{ $entry['link']->localizedLabel() }}
+                                        </a>
+                                    @endif
                                 </li>
                             @endforeach
                         </ul>
@@ -64,9 +63,9 @@
                             {{ $settings->localized('footer_registration_title') ?? __('agricart.storefront.footer.registration') }}
                         </h3>
                         <ul class="ag-store-footer__links">
-                            @if ($settings->footer_show_login_link && filled($settings->login_url))
+                            @if ($settings->footer_show_login_link)
                                 <li>
-                                    <a href="{{ $settings->login_url }}" class="ag-store-footer__link">
+                                    <a href="{{ $settings->resolvedCustomerLoginUrl() }}" class="ag-store-footer__link">
                                         {{ __('agricart.storefront.header.login') }}
                                     </a>
                                 </li>
@@ -78,22 +77,21 @@
                                     </a>
                                 </li>
                             @endif
-                            @foreach ($footer_registration_pages as $page)
+                            @foreach ($footer_registration_entries ?? [] as $entry)
                                 <li>
-                                    <a href="{{ $page->publicUrl() }}" class="ag-store-footer__link">
-                                        {{ $page->localizedTitle() }}
-                                    </a>
-                                </li>
-                            @endforeach
-                            @foreach ($footer_registration_links as $link)
-                                <li>
-                                    <a
-                                        href="{{ $link->resolvedUrl() }}"
-                                        class="ag-store-footer__link"
-                                        @if ($link->opens_in_new_tab) target="_blank" rel="noopener noreferrer" @endif
-                                    >
-                                        {{ $link->localizedLabel() }}
-                                    </a>
+                                    @if ($entry['type'] === 'page')
+                                        <a href="{{ $entry['page']->publicUrl() }}" class="ag-store-footer__link">
+                                            {{ $entry['page']->localizedTitle() }}
+                                        </a>
+                                    @else
+                                        <a
+                                            href="{{ $entry['link']->resolvedUrl() }}"
+                                            class="ag-store-footer__link"
+                                            @if ($entry['link']->opens_in_new_tab) target="_blank" rel="noopener noreferrer" @endif
+                                        >
+                                            {{ $entry['link']->localizedLabel() }}
+                                        </a>
+                                    @endif
                                 </li>
                             @endforeach
                         </ul>

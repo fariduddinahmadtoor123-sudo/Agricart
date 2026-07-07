@@ -121,6 +121,7 @@ class ListProducts extends Component
         }
 
         app(ProductService::class)->delete($product);
+        $this->dispatch('products-saved');
         $this->dispatch('labels-saved');
         $this->resetPage();
     }
@@ -130,7 +131,25 @@ class ListProducts extends Component
         $products = Product::query()
             ->with(['brand', 'category'])
             ->when(filled($this->search), function ($query): void {
-                $needle = '%' . $this->search . '%';
+                $term = trim($this->search);
+
+                if (! str_contains($term, ' ') && mb_strlen($term) >= 2) {
+                    $prefix = $term . '%';
+                    $query->where(function ($inner) use ($term, $prefix): void {
+                        $inner->where('code', $term)
+                            ->orWhere('sku', $term)
+                            ->orWhere('label_code', $term)
+                            ->orWhere('code', 'like', $prefix)
+                            ->orWhere('sku', 'like', $prefix)
+                            ->orWhere('label_code', 'like', $prefix)
+                            ->orWhere('name_en', 'like', $prefix)
+                            ->orWhere('name_ur', 'like', $prefix);
+                    });
+
+                    return;
+                }
+
+                $needle = '%' . $term . '%';
                 $query->where(function ($inner) use ($needle): void {
                     $inner->where('name_en', 'like', $needle)
                         ->orWhere('name_ur', 'like', $needle)
