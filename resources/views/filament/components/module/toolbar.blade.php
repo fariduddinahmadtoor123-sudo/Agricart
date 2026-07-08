@@ -9,7 +9,7 @@
 @endphp
 
 @if (filled($toolbar))
-    @if (($toolbar['resourceSlug'] ?? '') === 'attendance')
+    @if (($toolbar['resourceSlug'] ?? '') === 'attendance' || ($toolbar['resourceSlug'] ?? '') === 'leave-management' || ($toolbar['resourceSlug'] ?? '') === 'payroll')
         @include('filament.components.module.attendance-toolbar', [
             'toolbar' => $toolbar,
             'moduleKey' => $moduleKey,

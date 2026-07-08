@@ -51,6 +51,7 @@ class PermissionRegistry
                     ['key' => 'staff.payroll.view_all', 'label_en' => 'View all payroll records', 'label_ur' => 'سب کی تنخواہ دیکھیں'],
                     ['key' => 'staff.leave.view_all', 'label_en' => 'View all leave records', 'label_ur' => 'سب کی چھٹیاں دیکھیں'],
                     ['key' => 'staff.advances.view_all', 'label_en' => 'View all advance records', 'label_ur' => 'سب کی ایڈوانس دیکھیں'],
+                    ['key' => 'staff.advances.manage', 'label_en' => 'Record advances & repayments', 'label_ur' => 'ایڈوانس اور واپسی لکھیں'],
                 ];
 
                 $groups[$key] = [

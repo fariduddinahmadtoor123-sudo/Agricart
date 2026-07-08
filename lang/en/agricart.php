@@ -92,7 +92,6 @@ return [
         'staff' => [
             'overview' => 'Overview', 'staff' => 'Staff', 'pay-management' => 'Pay Management', 'attendance' => 'Attendance',
             'advances' => 'Advances', 'payroll' => 'Payroll', 'leave-management' => 'Leave',
-            'staff-reports' => 'Reports',
         ],
         'finance' => [
             'overview' => 'Overview', 'expense-categories' => 'Categories', 'expenses' => 'Expenses',
@@ -982,6 +981,30 @@ return [
     ],
 
     'staff' => [
+        'overview' => [
+            'title' => 'Staff overview',
+            'hint' => 'Roster, pay, attendance, advances, leave, and payroll in one place. Open a card or search staff by name or number.',
+            'total_records' => ':count summary figures across staff areas',
+            'search_results' => 'Results for ":query"',
+            'search_no_results' => 'No staff match ":query".',
+            'search_untitled' => 'Unnamed staff',
+            'cards' => [
+                'members' => 'Staff roster',
+                'pay_management' => 'Pay management',
+                'attendance' => 'Attendance (today)',
+                'advances' => 'Advances',
+                'leave' => 'Leave & holidays',
+                'payroll' => 'Payroll',
+            ],
+            'meta' => [
+                'members' => ':count active',
+                'pay_management' => ':count with salary assigned',
+                'attendance' => ':count present today',
+                'advances' => ':count with balance',
+                'leave' => ':count upcoming holidays',
+                'payroll' => ':count with salary assigned',
+            ],
+        ],
         'members' => [
             'actions' => [
                 'add' => 'Add Staff',
@@ -1055,6 +1078,34 @@ return [
                 'effective_after_previous' => 'Effective date must be after the previous salary start date.',
             ],
         ],
+        'payroll' => [
+            'actions' => [
+                'generate_roll' => 'Generate payroll roll',
+                'regenerate' => 'Refresh roll',
+                'print' => 'Print roll',
+            ],
+            'fields' => [
+                'month' => 'Month',
+                'staff_filter' => 'Staff member',
+                'all_staff' => 'All staff',
+            ],
+            'list' => [
+                'period_label' => ':month — paid days counted :from to :to',
+                'empty' => 'No staff match your search.',
+                'col_monthly_gross' => 'Monthly gross',
+                'col_paid_days' => 'Paid days',
+                'col_earned' => 'Earned (MTD)',
+                'col_advance' => 'Advance balance',
+                'col_net' => 'Net payable',
+            ],
+            'form' => [
+                'empty' => 'No payroll roll for this month and filter.',
+                'slip_title' => 'Payroll roll — :name',
+                'slip_period' => ':month (:from – :to)',
+                'leave_detail' => 'Leave & absence in period',
+                'advance_detail' => 'Advances & repayments (up to today)',
+            ],
+        ],
         'attendance' => [
             'actions' => [
                 'mark_daily' => 'Mark daily attendance',
@@ -1116,10 +1167,71 @@ return [
                 'save_failed' => 'Could not save attendance.',
             ],
         ],
+        'advances' => [
+            'actions' => [
+                'add' => 'Add advance / payment',
+            ],
+            'fields' => [
+                'type' => 'Entry type',
+                'staff_member' => 'Staff member',
+                'amount' => 'Amount (PKR)',
+                'date' => 'Date',
+                'notes' => 'Notes',
+            ],
+            'types' => [
+                'advance' => 'Advance given',
+                'repayment' => 'Repayment received',
+            ],
+            'filters' => [
+                'all' => 'All entries',
+            ],
+            'hints' => [
+                'select_staff' => 'Select staff member',
+                'current_balance' => 'Current balance after all recorded entries:',
+                'balance_help' => 'Advance increases what staff owes you. Repayment reduces it. If repayments exceed advances, you owe staff the difference.',
+            ],
+            'list' => [
+                'balances_heading' => 'Balances by staff',
+                'balances_hint' => 'Current advance balance per employee. Debit = staff owes you; Credit = you owe staff. Detailed transaction history will appear in the main Reports module when available.',
+                'empty_balances' => 'No staff match your search.',
+                'history_heading' => 'History',
+                'empty_history' => 'No advance or repayment entries yet.',
+                'col_date' => 'Date',
+                'col_type' => 'Type',
+                'col_amount' => 'Amount (+/−)',
+                'col_balance' => 'Balance now',
+                'col_balance_side' => 'Debit / Credit',
+                'col_balance_amount' => 'Balance amount',
+                'side_debit' => 'Debit',
+                'side_credit' => 'Credit',
+                'side_clear' => 'Clear',
+                'col_notes' => 'Notes',
+                'col_owes_us' => 'Staff owes us',
+                'col_we_owe' => 'We owe staff',
+                'owes_short' => 'Owes :amount',
+                'we_owe_short' => 'We owe :amount',
+            ],
+            'messages' => [
+                'advance_saved' => 'Advance recorded for ":name".',
+                'repayment_saved' => 'Repayment recorded for ":name".',
+                'save_failed' => 'Could not save this entry.',
+                'amount_positive' => 'Amount must be greater than zero.',
+                'invalid_type' => 'Invalid entry type.',
+                'not_on_roster' => 'This person is not on the staff roster.',
+            ],
+        ],
         'leave' => [
+            'actions' => [
+                'save_allowance' => 'Save allowance',
+                'add_holiday' => 'Add holiday',
+                'add_holiday_row' => 'Add another holiday',
+                'remove' => 'Remove',
+                'manage' => 'Add leave',
+            ],
             'sections' => [
                 'allowance' => 'Monthly paid leave allowance',
                 'public_holidays' => 'Public holidays (Eid, events)',
+                'saved_holidays' => 'Saved holidays',
             ],
             'fields' => [
                 'monthly_paid_leaves' => 'Paid leave days per month',
@@ -1130,12 +1242,8 @@ return [
             ],
             'hints' => [
                 'allowance' => 'When marking absent, the system uses paid leave up to this limit per calendar month, then unpaid absence.',
-                'public_holidays' => 'Add company-wide off days. On these dates, attendance can be recorded as public holiday (paid if checked).',
-            ],
-            'actions' => [
-                'save_allowance' => 'Save allowance',
-                'add_holiday' => 'Add holiday',
-                'remove' => 'Remove',
+                'public_holidays' => 'Pick a date and reason for each row. Use + to add more before saving.',
+                'holiday_reason' => 'e.g. Eid, national day',
             ],
             'list' => [
                 'col_date' => 'Date',
@@ -1143,8 +1251,21 @@ return [
                 'col_paid' => 'Paid',
                 'empty_holidays' => 'No public holidays in this range.',
             ],
+            'report' => [
+                'toolbar_date' => 'Report date',
+                'summary_heading' => 'Last :days days (daily totals)',
+                'summary_hint' => 'Counts come from attendance. Click a row or change the calendar to view that day’s leave list below.',
+                'detail_heading' => 'Leave & absence on :date',
+                'col_date' => 'Date',
+                'col_on_leave' => 'On leave',
+                'col_absent' => 'Absent (unpaid)',
+                'col_holiday' => 'Public holiday',
+                'selected_day' => 'Selected',
+                'empty_day' => 'No paid leave, public holiday, or unpaid absence on this day for the filtered staff.',
+            ],
             'messages' => [
                 'allowance_saved' => 'Monthly paid leave allowance saved.',
+                'settings_saved' => 'Leave settings saved.',
                 'allowance_range' => 'Allowance must be between 0 and 31.',
                 'holiday_added' => 'Public holiday added.',
                 'holiday_removed' => 'Public holiday removed.',

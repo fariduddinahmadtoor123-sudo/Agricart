@@ -12,7 +12,7 @@
 @endphp
 
 <div class="agricart-form-panel__footer-inner">
-    <div class="agricart-form-panel__progress" x-show="formKey !== 'categories' && formKey !== 'brands' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls' && formKey !== 'products' && formKey !== 'users' && formKey !== 'staff' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'customers' && formKey !== 'staff-salary' && formKey !== 'staff-attendance' && formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'sales' && formKey !== 'sale-quotations' && formKey !== 'sale-returns' && formKey !== 'online-orders' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding' && formKey !== 'sales-channel'" x-cloak>
+    <div class="agricart-form-panel__progress" x-show="formKey !== 'categories' && formKey !== 'brands' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls' && formKey !== 'products' && formKey !== 'users' && formKey !== 'staff' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'customers' && formKey !== 'staff-salary' && formKey !== 'staff-attendance' && formKey !== 'staff-advance' && formKey !== 'staff-leave' && formKey !== 'staff-payroll' && formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'sales' && formKey !== 'sale-quotations' && formKey !== 'sale-returns' && formKey !== 'online-orders' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding' && formKey !== 'sales-channel'" x-cloak>
         <div class="agricart-form-panel__progress-meta">
             <span
                 class="agricart-form-panel__progress-label"
@@ -101,7 +101,7 @@
                     tag="button"
                     type="button"
                     class="agricart-form-panel__action-btn"
-                    x-show="formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'sales' && formKey !== 'sale-quotations' && formKey !== 'sale-returns' && formKey !== 'online-orders' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding' && formKey !== 'sales-channel' && formKey !== 'staff-salary' && formKey !== 'staff-attendance'"
+                    x-show="formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'sales' && formKey !== 'sale-quotations' && formKey !== 'sale-returns' && formKey !== 'online-orders' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding' && formKey !== 'sales-channel' && formKey !== 'staff-salary' && formKey !== 'staff-attendance' && formKey !== 'staff-advance' && formKey !== 'staff-leave' && formKey !== 'staff-payroll'"
                     x-cloak
                     x-on:click="handleAction('{{ $actionKey }}')"
                 >
@@ -115,8 +115,9 @@
                     tag="button"
                     type="button"
                     class="agricart-form-panel__action-btn"
-                    x-bind:class="{ 'is-loading': (formKey === 'purchase-planning' && purchasePlanningSaving) || (formKey === 'purchase-payment-summary' && purchasePaymentSummarySaving) || (formKey === 'purchase-quotations' && purchaseQuotationSaving) || (formKey === 'purchases' && purchaseSaving) || (formKey === 'sales' && saleSaving) || (formKey === 'sale-quotations' && saleQuotationSaving) || (formKey === 'sale-returns' && saleReturnSaving) || (formKey === 'online-orders' && onlineOrderSaving) || (formKey === 'price-controls' && priceControlSaving) || (formKey === 'quantity-controls' && quantityControlSaving) || (formKey === 'secret-coding' && secretCodingSaving) || (formKey === 'sales-channel' && salesChannelSaving) }"
-                    x-bind:disabled="(formKey === 'purchase-planning' && purchasePlanningSaving) || (formKey === 'purchase-payment-summary' && purchasePaymentSummarySaving) || (formKey === 'purchase-quotations' && purchaseQuotationSaving) || (formKey === 'purchases' && purchaseSaving) || (formKey === 'sales' && saleSaving) || (formKey === 'sale-quotations' && saleQuotationSaving) || (formKey === 'sale-returns' && saleReturnSaving) || (formKey === 'online-orders' && onlineOrderSaving) || (formKey === 'price-controls' && priceControlSaving) || (formKey === 'quantity-controls' && quantityControlSaving) || (formKey === 'secret-coding' && secretCodingSaving)"
+                    x-show="formKey !== 'staff-payroll'"
+                    x-bind:class="{ 'is-loading': (formKey === 'purchase-planning' && purchasePlanningSaving) || (formKey === 'purchase-payment-summary' && purchasePaymentSummarySaving) || (formKey === 'purchase-quotations' && purchaseQuotationSaving) || (formKey === 'purchases' && purchaseSaving) || (formKey === 'sales' && saleSaving) || (formKey === 'sale-quotations' && saleQuotationSaving) || (formKey === 'sale-returns' && saleReturnSaving) || (formKey === 'online-orders' && onlineOrderSaving) || (formKey === 'price-controls' && priceControlSaving) || (formKey === 'quantity-controls' && quantityControlSaving) || (formKey === 'secret-coding' && secretCodingSaving) || (formKey === 'sales-channel' && salesChannelSaving) || (formKey === 'staff-advance' && staffAdvanceSaving) }"
+                    x-bind:disabled="(formKey === 'purchase-planning' && purchasePlanningSaving) || (formKey === 'purchase-payment-summary' && purchasePaymentSummarySaving) || (formKey === 'purchase-quotations' && purchaseQuotationSaving) || (formKey === 'purchases' && purchaseSaving) || (formKey === 'sales' && saleSaving) || (formKey === 'sale-quotations' && saleQuotationSaving) || (formKey === 'sale-returns' && saleReturnSaving) || (formKey === 'online-orders' && onlineOrderSaving) || (formKey === 'price-controls' && priceControlSaving) || (formKey === 'quantity-controls' && quantityControlSaving) || (formKey === 'secret-coding' && secretCodingSaving) || (formKey === 'staff-advance' && staffAdvanceSaving)"
                     x-on:click="handleAction('{{ $actionKey }}')"
                 >
                     <span x-show="formKey !== 'sales'">{{ $action['label'] }}</span>
@@ -159,7 +160,7 @@
             tag="button"
             type="button"
             class="agricart-form-panel__action-btn"
-            x-show="formKey === 'purchase-planning' || formKey === 'purchase-payment-summary' || formKey === 'purchase-quotations' || formKey === 'purchases' || formKey === 'sales' || formKey === 'sale-quotations' || formKey === 'sale-returns' || formKey === 'online-orders'"
+            x-show="formKey === 'purchase-planning' || formKey === 'purchase-payment-summary' || formKey === 'purchase-quotations' || formKey === 'purchases' || formKey === 'sales' || formKey === 'sale-quotations' || formKey === 'sale-returns' || formKey === 'online-orders' || formKey === 'staff-payroll'"
             x-cloak
             x-bind:class="{ 'is-loading': (formKey === 'purchase-planning' && purchasePlanningSaving) || (formKey === 'purchase-payment-summary' && purchasePaymentSummarySaving) || (formKey === 'purchase-quotations' && purchaseQuotationSaving) || (formKey === 'purchases' && purchaseSaving) || (formKey === 'sales' && saleSaving) || (formKey === 'sale-quotations' && saleQuotationSaving) || (formKey === 'sale-returns' && saleReturnSaving) || (formKey === 'online-orders' && onlineOrderSaving) }"
             x-bind:disabled="(formKey === 'purchase-planning' && purchasePlanningSaving) || (formKey === 'purchase-payment-summary' && purchasePaymentSummarySaving) || (formKey === 'purchase-quotations' && purchaseQuotationSaving) || (formKey === 'purchases' && purchaseSaving) || (formKey === 'sales' && saleSaving) || (formKey === 'sale-quotations' && saleQuotationSaving) || (formKey === 'sale-returns' && saleReturnSaving) || (formKey === 'online-orders' && onlineOrderSaving)"
@@ -173,6 +174,7 @@
             <span x-show="formKey === 'sale-quotations'">{{ __('sale_quotations.actions.print') }}</span>
             <span x-show="formKey === 'sale-returns'">{{ __('sale_returns.actions.print') }}</span>
             <span x-show="formKey === 'online-orders'">{{ __('online_sale_orders.actions.print') }}</span>
+            <span x-show="formKey === 'staff-payroll'">{{ __('agricart.staff.payroll.actions.print') }}</span>
         </x-filament::button>
 
         <x-filament::button

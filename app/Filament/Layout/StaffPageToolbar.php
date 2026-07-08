@@ -48,6 +48,11 @@ class StaffPageToolbar extends ClusterPageToolbar
         }
 
         return match ($config['resourceSlug']) {
+            'overview' => [
+                ...$config,
+                'livewirePrefix' => 'staff-overview',
+                'interactive' => false,
+            ],
             'staff' => [
                 ...$config,
                 'addLabel' => static::userCan('create') || static::userCan('edit')
@@ -98,6 +103,8 @@ class StaffPageToolbar extends ClusterPageToolbar
                 'livewirePrefix' => 'staff-attendance',
                 'columnDataAttr' => 'data-staff-attendance-column',
                 'interactive' => true,
+                'toolbarDateKey' => 'attendanceDate',
+                'toolbarDateLabel' => __('agricart.staff.attendance.fields.date'),
                 'filters' => [
                     ['label' => __('agricart.staff.attendance.filters.all'), 'value' => 'all'],
                     ['label' => __('agricart.staff.attendance.statuses.present'), 'value' => 'status:present'],
@@ -114,6 +121,74 @@ class StaffPageToolbar extends ClusterPageToolbar
                 ],
                 'formKey' => 'staff-attendance',
             ],
+            'leave-management' => [
+                ...$config,
+                'addLabel' => static::userCanManageLeaveSettings()
+                    ? __('agricart.staff.leave.actions.manage')
+                    : null,
+                'compactAddButton' => true,
+                'livewirePrefix' => 'staff-leave',
+                'columnDataAttr' => 'data-staff-leave-column',
+                'interactive' => true,
+                'toolbarDateKey' => 'focusDate',
+                'toolbarDateLabel' => __('agricart.staff.leave.report.toolbar_date'),
+                'filters' => [
+                    ['label' => __('agricart.staff.attendance.filters.all'), 'value' => 'all'],
+                    ['label' => __('agricart.staff.attendance.statuses.on_paid_leave'), 'value' => 'status:on_paid_leave'],
+                    ['label' => __('agricart.staff.attendance.statuses.public_holiday'), 'value' => 'status:public_holiday'],
+                    ['label' => __('agricart.staff.attendance.statuses.absent_unpaid'), 'value' => 'status:absent_unpaid'],
+                ],
+                'columns' => [
+                    ['label' => __('agricart.staff.members.list.col_user_number'), 'value' => 'user_number', 'visible' => true],
+                    ['label' => __('agricart.staff.members.list.col_name'), 'value' => 'name', 'visible' => true],
+                    ['label' => __('agricart.staff.members.list.col_role'), 'value' => 'role', 'visible' => true],
+                    ['label' => __('agricart.staff.attendance.list.col_status'), 'value' => 'attendance_status', 'visible' => true],
+                    ['label' => __('agricart.staff.attendance.list.col_paid_day'), 'value' => 'paid_day', 'visible' => true],
+                ],
+                'formKey' => 'staff-leave',
+            ],
+            'advances' => [
+                ...$config,
+                'addLabel' => static::userCanManageAdvances()
+                    ? __('agricart.staff.advances.actions.add')
+                    : null,
+                'livewirePrefix' => 'staff-advances',
+                'columnDataAttr' => 'data-staff-advances-column',
+                'interactive' => true,
+                'hideFilters' => true,
+                'filters' => [],
+                'columns' => [
+                    ['label' => __('agricart.staff.members.list.col_user_number'), 'value' => 'user_number', 'visible' => true],
+                    ['label' => __('agricart.staff.members.list.col_name'), 'value' => 'name', 'visible' => true],
+                    ['label' => __('agricart.staff.advances.list.col_balance_side'), 'value' => 'balance_side', 'visible' => true],
+                    ['label' => __('agricart.staff.advances.list.col_balance_amount'), 'value' => 'balance_amount', 'visible' => true],
+                ],
+                'formKey' => 'staff-advance',
+            ],
+            'payroll' => [
+                ...$config,
+                'addLabel' => static::userCanRunPayroll()
+                    ? __('agricart.staff.payroll.actions.generate_roll')
+                    : null,
+                'compactAddButton' => true,
+                'livewirePrefix' => 'staff-payroll',
+                'columnDataAttr' => 'data-staff-payroll-column',
+                'interactive' => true,
+                'toolbarInputType' => 'month',
+                'toolbarDateLabel' => __('agricart.staff.payroll.fields.month'),
+                'hideFilters' => true,
+                'filters' => [],
+                'columns' => [
+                    ['label' => __('agricart.staff.members.list.col_user_number'), 'value' => 'user_number', 'visible' => true],
+                    ['label' => __('agricart.staff.members.list.col_name'), 'value' => 'name', 'visible' => true],
+                    ['label' => __('agricart.staff.payroll.list.col_monthly_gross'), 'value' => 'monthly_gross', 'visible' => true],
+                    ['label' => __('agricart.staff.payroll.list.col_paid_days'), 'value' => 'paid_days', 'visible' => true],
+                    ['label' => __('agricart.staff.payroll.list.col_earned'), 'value' => 'earned_gross', 'visible' => true],
+                    ['label' => __('agricart.staff.payroll.list.col_advance'), 'value' => 'advance_net', 'visible' => true],
+                    ['label' => __('agricart.staff.payroll.list.col_net'), 'value' => 'net_payable', 'visible' => true],
+                ],
+                'formKey' => 'staff-payroll',
+            ],
             default => $config,
         };
     }
@@ -123,5 +198,26 @@ class StaffPageToolbar extends ClusterPageToolbar
         $user = auth()->user();
 
         return $user instanceof User && StaffPermissions::canMarkAttendance($user);
+    }
+
+    protected static function userCanManageAdvances(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User && StaffPermissions::canManageAdvances($user);
+    }
+
+    protected static function userCanManageLeaveSettings(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User && StaffPermissions::canManageLeaveSettings($user);
+    }
+
+    protected static function userCanRunPayroll(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User && StaffPermissions::canRunPayroll($user);
     }
 }

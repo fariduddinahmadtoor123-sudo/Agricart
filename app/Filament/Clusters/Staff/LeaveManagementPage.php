@@ -33,7 +33,7 @@ class LeaveManagementPage extends BaseModulePage
         }
 
         return StaffPermissions::canAccessModule($user)
-            && (StaffPermissions::canManageLeaveSettings($user) || StaffPermissions::canUseSelfService($user));
+            && (StaffPermissions::canViewAllLeave($user) || StaffPermissions::canUseSelfService($user));
     }
 
     public function getHeading(): string|Htmlable|null

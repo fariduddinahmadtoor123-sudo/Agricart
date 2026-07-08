@@ -77,6 +77,18 @@ class StaffPermissions
         ]);
     }
 
+    public static function canRunPayroll(User $user): bool
+    {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        return $user->hasAnyPermission([
+            'staff.payroll.view_all',
+            'staff.edit',
+        ]);
+    }
+
     public static function canViewAllLeave(User $user): bool
     {
         if ($user->isSuperAdmin()) {
@@ -123,6 +135,19 @@ class StaffPermissions
             'staff.view',
             'staff.leave.view_all',
             'staff.edit',
+        ]);
+    }
+
+    public static function canManageAdvances(User $user): bool
+    {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        return $user->hasAnyPermission([
+            'staff.advances.manage',
+            'staff.edit',
+            'staff.create',
         ]);
     }
 }

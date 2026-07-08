@@ -77,4 +77,32 @@ class StaffLeaveService
     {
         $holiday->delete();
     }
+
+    /**
+     * @param  list<array{holiday_date: string, title_en: string, title_ur?: string|null, is_paid?: bool, notes?: string|null}>  $rows
+     */
+    public function addPublicHolidays(array $rows, ?User $actor = null): int
+    {
+        $created = 0;
+
+        foreach ($rows as $row) {
+            $title = trim((string) ($row['title_en'] ?? ''));
+
+            if ($title === '' || blank($row['holiday_date'] ?? null)) {
+                continue;
+            }
+
+            $this->addPublicHoliday([
+                'holiday_date' => (string) $row['holiday_date'],
+                'title_en' => $title,
+                'title_ur' => $row['title_ur'] ?? null,
+                'is_paid' => ($row['is_paid'] ?? true) === true,
+                'notes' => $row['notes'] ?? null,
+            ], $actor);
+
+            $created++;
+        }
+
+        return $created;
+    }
 }

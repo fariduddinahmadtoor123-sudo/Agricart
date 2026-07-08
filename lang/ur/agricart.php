@@ -92,7 +92,6 @@ return [
         'staff' => [
             'overview' => 'جائزہ', 'staff' => 'عملہ', 'pay-management' => 'تنخواہ / Pay', 'attendance' => 'حاضری',
             'advances' => 'ایڈوانس', 'payroll' => 'تنخواہ', 'leave-management' => 'رخصت',
-            'staff-reports' => 'رپورٹس',
         ],
         'finance' => [
             'overview' => 'جائزہ', 'expense-categories' => 'زمرے', 'expenses' => 'اخراجات',
@@ -982,6 +981,30 @@ return [
     ],
 
     'staff' => [
+        'overview' => [
+            'title' => 'عملہ — جائزہ',
+            'hint' => 'فہرست، تنخواہ، حاضری، ایڈوانس، رخصت اور پے رول ایک جگہ۔ کارڈ کھولیں یا نام / نمبر سے تلاش کریں۔',
+            'total_records' => 'عملہ کے شعبوں میں :count اعداد',
+            'search_results' => '":query" کے نتائج',
+            'search_no_results' => '":query" سے کوئی عملہ نہیں ملا۔',
+            'search_untitled' => 'بغیر نام',
+            'cards' => [
+                'members' => 'عملہ کی فہرست',
+                'pay_management' => 'تنخواہ / Pay',
+                'attendance' => 'حاضری (آج)',
+                'advances' => 'ایڈوانس',
+                'leave' => 'رخصت اور تعطیلات',
+                'payroll' => 'پے رول',
+            ],
+            'meta' => [
+                'members' => ':count فعال',
+                'pay_management' => ':count کو تنخواہ مقرر',
+                'attendance' => ':count آج حاضر',
+                'advances' => ':count بیلنس والے',
+                'leave' => ':count آنے والی تعطیلات',
+                'payroll' => ':count کو تنخواہ مقرر',
+            ],
+        ],
         'members' => [
             'actions' => [
                 'add' => 'عملہ شامل کریں',
@@ -1055,6 +1078,34 @@ return [
                 'effective_after_previous' => 'تاریخ پچھلی تنخواہ کے آغاز کے بعد ہونی چاہیے۔',
             ],
         ],
+        'payroll' => [
+            'actions' => [
+                'generate_roll' => 'پے رول جنریٹ کریں',
+                'regenerate' => 'دوبارہ حساب',
+                'print' => 'پرنٹ',
+            ],
+            'fields' => [
+                'month' => 'مہینہ',
+                'staff_filter' => 'عملہ',
+                'all_staff' => 'تمام عملہ',
+            ],
+            'list' => [
+                'period_label' => ':month — ادا شدہ دن :from سے :to',
+                'empty' => 'تلاش کے مطابق کوئی عملہ نہیں۔',
+                'col_monthly_gross' => 'ماہانہ تنخواہ',
+                'col_paid_days' => 'ادا شدہ دن',
+                'col_earned' => 'بنی تنخواہ (اب تک)',
+                'col_advance' => 'ایڈوانس بیلنس',
+                'col_net' => 'قابل ادائیگی',
+            ],
+            'form' => [
+                'empty' => 'اس مہینے/فلٹر کے لیے کوئی رول نہیں۔',
+                'slip_title' => 'پے رول — :name',
+                'slip_period' => ':month (:from – :to)',
+                'leave_detail' => 'مدت میں چھٹی / غیر حاضری',
+                'advance_detail' => 'ایڈوانس اور واپسی (آج تک)',
+            ],
+        ],
         'attendance' => [
             'actions' => [
                 'mark_daily' => 'روزانہ حاضری لگائیں',
@@ -1116,10 +1167,71 @@ return [
                 'save_failed' => 'حاضری محفوظ نہیں ہو سکی۔',
             ],
         ],
+        'advances' => [
+            'actions' => [
+                'add' => 'ایڈوانس / واپسی',
+            ],
+            'fields' => [
+                'type' => 'انٹری کی قسم',
+                'staff_member' => 'عملہ',
+                'amount' => 'رقم (PKR)',
+                'date' => 'تاریخ',
+                'notes' => 'نوٹ',
+            ],
+            'types' => [
+                'advance' => 'ایڈوانس دیا',
+                'repayment' => 'واپسی وصول',
+            ],
+            'filters' => [
+                'all' => 'تمام',
+            ],
+            'hints' => [
+                'select_staff' => 'عملہ منتخب کریں',
+                'current_balance' => 'تمام انٹریز کے بعد موجودہ بیلنس:',
+                'balance_help' => 'ایڈوانس سے عملہ کا قرض بڑھتا ہے۔ واپسی سے کم ہوتا ہے۔ زیادہ واپسی پر ہمیں اسے دینا باقی رہ جاتا ہے۔',
+            ],
+            'list' => [
+                'balances_heading' => 'عملہ کے بیلنس',
+                'balances_hint' => 'ہر ملازم کا موجودہ ایڈوانس بیلنس۔ Debit = عملہ کا قرض؛ Credit = ہمیں دینا ہے۔ تفصیلی ہسٹری بعد میں مرکزی Reports ماڈیول میں آئے گی۔',
+                'empty_balances' => 'تلاش کے مطابق کوئی عملہ نہیں۔',
+                'history_heading' => 'ہسٹری',
+                'empty_history' => 'ابھی کوئی ایڈوانس یا واپسی نہیں۔',
+                'col_date' => 'تاریخ',
+                'col_type' => 'قسم',
+                'col_amount' => 'رقم (+/−)',
+                'col_balance' => 'موجودہ بیلنس',
+                'col_balance_side' => 'Debit / Credit',
+                'col_balance_amount' => 'بیلنس رقم',
+                'side_debit' => 'Debit',
+                'side_credit' => 'Credit',
+                'side_clear' => 'صاف',
+                'col_notes' => 'نوٹ',
+                'col_owes_us' => 'عملہ کا قرض',
+                'col_we_owe' => 'ہمیں دینا ہے',
+                'owes_short' => 'قرض :amount',
+                'we_owe_short' => 'دینا :amount',
+            ],
+            'messages' => [
+                'advance_saved' => '":name" کے لیے ایڈوانس محفوظ۔',
+                'repayment_saved' => '":name" کی واپسی محفوظ۔',
+                'save_failed' => 'انٹری محفوظ نہیں ہو سکی۔',
+                'amount_positive' => 'رقم صفر سے زیادہ ہونی چاہیے۔',
+                'invalid_type' => 'غلط قسم۔',
+                'not_on_roster' => 'یہ شخص roster پر نہیں۔',
+            ],
+        ],
         'leave' => [
+            'actions' => [
+                'save_allowance' => 'حد محفوظ کریں',
+                'add_holiday' => 'تعطیل شامل کریں',
+                'add_holiday_row' => 'مزید تعطیل شامل کریں',
+                'remove' => 'ہٹائیں',
+                'manage' => 'چھٹی / تعطیل',
+            ],
             'sections' => [
                 'allowance' => 'ماہانہ ادا شدہ چھٹیاں',
                 'public_holidays' => 'عوامی تعطیلات (عید وغیرہ)',
+                'saved_holidays' => 'محفوظ تعطیلات',
             ],
             'fields' => [
                 'monthly_paid_leaves' => 'ماہانہ paid leave دن',
@@ -1130,12 +1242,8 @@ return [
             ],
             'hints' => [
                 'allowance' => 'غیر حاضری پر پہلے یہ حد استعمال ہوگی، پھر unpaid۔',
-                'public_holidays' => 'پورے عملے کی تعطیل یہاں شامل کریں۔',
-            ],
-            'actions' => [
-                'save_allowance' => 'حد محفوظ کریں',
-                'add_holiday' => 'تعطیل شامل کریں',
-                'remove' => 'ہٹائیں',
+                'public_holidays' => 'ہر قطار میں تاریخ اور وجہ لکھیں۔ + سے مزید قطاریں کھولیں، پھر محفوظ کریں۔',
+                'holiday_reason' => 'مثلاً عید، قومی دن',
             ],
             'list' => [
                 'col_date' => 'تاریخ',
@@ -1143,8 +1251,21 @@ return [
                 'col_paid' => 'ادا شدہ',
                 'empty_holidays' => 'اس مدت میں کوئی تعطیل نہیں۔',
             ],
+            'report' => [
+                'toolbar_date' => 'رپورٹ کی تاریخ',
+                'summary_heading' => 'آخری :days دن (روزانہ مجموعہ)',
+                'summary_hint' => 'اعداد حاضری سے آتے ہیں۔ قطار یا کیلنڈر سے دن منتخب کریں، نیچے اس دن کی چھٹی/غیر حاضری دیکھیں۔',
+                'detail_heading' => ':date پر چھٹی اور غیر حاضری',
+                'col_date' => 'تاریخ',
+                'col_on_leave' => 'چھٹی پر',
+                'col_absent' => 'غیر حاضر (بغیر تنخواہ)',
+                'col_holiday' => 'عوامی تعطیل',
+                'selected_day' => 'منتخب',
+                'empty_day' => 'اس دن کوئی paid leave، عوامی تعطیل یا unpaid غیر حاضری نہیں (فلٹر کے مطابق)۔',
+            ],
             'messages' => [
                 'allowance_saved' => 'ماہانہ چھٹی کی حد محفوظ ہو گئی۔',
+                'settings_saved' => 'چھٹی کی ترتیبات محفوظ ہو گئیں۔',
                 'allowance_range' => 'حد 0 سے 31 کے درمیان ہونی چاہیے۔',
                 'holiday_added' => 'عوامی تعطیل شامل ہو گئی۔',
                 'holiday_removed' => 'تعطیل ہٹا دی گئی۔',
