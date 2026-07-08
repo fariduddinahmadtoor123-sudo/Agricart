@@ -35,6 +35,11 @@ class ApprovalsPageToolbar extends ClusterPageToolbar
         }
 
         return match ($config['resourceSlug']) {
+            'overview' => [
+                ...$config,
+                'livewirePrefix' => 'approvals-overview',
+                'interactive' => false,
+            ],
             'staff' => [
                 ...$config,
                 'addLabel' => null,

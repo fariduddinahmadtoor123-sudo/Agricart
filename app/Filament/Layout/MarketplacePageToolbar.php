@@ -35,6 +35,11 @@ class MarketplacePageToolbar extends ClusterPageToolbar
         }
 
         return match ($config['resourceSlug']) {
+            'overview' => [
+                ...$config,
+                'livewirePrefix' => 'marketplace-overview',
+                'interactive' => false,
+            ],
             'price-control' => static::priceControlConfig($config),
             'quantity-control' => static::quantityControlConfig($config),
             'secret-coding' => static::secretCodingConfig($config),

@@ -16,8 +16,6 @@ class Overview extends Component
     /** @var list<array{key: string, label: string, count: int, hint: string|null, url: string}> */
     public array $insights = [];
 
-    public int $totalRecords = 0;
-
     public string $search = '';
 
     /** @var array<string, list<array{label: string, meta: string|null, url: string}>> */
@@ -27,7 +25,6 @@ class Overview extends Component
     {
         $this->stats = $overview->statCards();
         $this->insights = $overview->labelingInsights();
-        $this->totalRecords = $overview->totalRecords();
     }
 
     #[On('purchasing-overview-search')]

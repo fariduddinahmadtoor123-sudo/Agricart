@@ -36,14 +36,6 @@
         </section>
     @endif
 
-    <section class="agricart-purchasing-overview__intro">
-        <h2 class="agricart-purchasing-overview__title">{{ __('agricart.purchasing.overview.title') }}</h2>
-        <p class="agricart-purchasing-overview__hint">{{ __('agricart.purchasing.overview.hint') }}</p>
-        <p class="agricart-purchasing-overview__total">
-            {{ __('agricart.purchasing.overview.total_records', ['count' => number_format($totalRecords)]) }}
-        </p>
-    </section>
-
     <div class="agricart-purchasing-overview__grid">
         @foreach ($stats as $stat)
             <a href="{{ $stat['url'] }}" class="agricart-purchasing-overview__card" wire:key="purchasing-stat-{{ $stat['key'] }}">

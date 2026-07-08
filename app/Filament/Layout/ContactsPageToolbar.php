@@ -38,6 +38,11 @@ class ContactsPageToolbar extends ClusterPageToolbar
         }
 
         return match ($config['resourceSlug']) {
+            'overview' => [
+                ...$config,
+                'livewirePrefix' => 'contacts-overview',
+                'interactive' => false,
+            ],
             'suppliers' => [
                 ...$config,
                 'livewirePrefix' => 'suppliers',

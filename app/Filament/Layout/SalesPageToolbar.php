@@ -44,6 +44,11 @@ class SalesPageToolbar extends ClusterPageToolbar
         }
 
         return match ($config['resourceSlug']) {
+            'overview' => [
+                ...$config,
+                'livewirePrefix' => 'sales-overview',
+                'interactive' => false,
+            ],
             'pos-sales' => [
                 ...$config,
                 'livewirePrefix' => 'pos-sales',

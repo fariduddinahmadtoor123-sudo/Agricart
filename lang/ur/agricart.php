@@ -348,6 +348,66 @@ return [
         ],
     ],
 
+    'contacts' => [
+        'overview' => [
+            'title' => 'رابطے — جائزہ',
+            'hint' => 'سپلائرز اور کسٹمرز ایک جگہ۔ کارڈ کھولیں یا نام، کوڈ، فون سے تلاش کریں۔',
+            'total_records' => 'کل :count رابطے',
+            'search_results' => '":query" کے نتائج',
+            'search_no_results' => '":query" سے کوئی رابطہ نہیں ملا۔',
+            'search_untitled' => 'بے عنوان',
+            'cards' => [
+                'suppliers' => 'سپلائرز',
+                'customers' => 'کسٹمرز',
+            ],
+            'meta' => [
+                'suppliers' => ':count فعال',
+                'customers' => ':count فعال',
+            ],
+        ],
+    ],
+
+    'sales' => [
+        'overview' => [
+            'search_results' => '":query" کے نتائج',
+            'search_no_results' => '":query" سے کوئی سیل ریکارڈ نہیں ملا۔',
+            'cards' => [
+                'pos_sales' => 'سیلز اور POS',
+                'sales_quotations' => 'سیل کوٹیشنز',
+                'sales_returns' => 'سیل واپسی',
+                'online_orders' => 'آن لائن آرڈرز',
+                'order_dispatch' => 'آرڈر ڈسپیچ',
+            ],
+            'meta' => [
+                'pos_sales' => ':count ہولڈ',
+                'sales_returns' => ':count غیر ادا واپسی',
+                'online_orders' => ':count زیرِ التوا',
+                'order_dispatch' => ':count تفویض کے منتظر',
+            ],
+        ],
+    ],
+
+    'marketplace' => [
+        'overview' => [
+            'search_results' => '":query" کے نتائج',
+            'search_no_results' => '":query" سے کوئی چینل ہب ریکارڈ نہیں ملا۔',
+            'channel_on' => 'آن',
+            'channel_off' => 'آف',
+            'cards' => [
+                'sales_channels' => 'سیلز چینلز',
+                'price_control' => 'قیمت چینل',
+                'quantity_control' => 'مقدار چینل',
+                'secret_coding' => 'خفیہ کوڈنگ',
+            ],
+            'meta' => [
+                'sales_channels' => ':count فعال',
+                'price_control' => ':count فعال ٹیئر',
+                'quantity_control' => ':count فعال ٹیئر',
+                'secret_coding' => ':count فعال پروفائل',
+            ],
+        ],
+    ],
+
     'catalog' => [
         'overview' => [
             'title' => 'کیٹalog جائزہ',
@@ -1275,6 +1335,17 @@ return [
     ],
 
     'approvals' => [
+        'overview' => [
+            'search_results' => '":query" کے نتائج',
+            'search_no_results' => '":query" سے کوئی درخواست نہیں ملی۔',
+            'search_untitled' => 'بغیر نام',
+            'cards' => [
+                'staff' => 'عملہ کی درخواستیں',
+            ],
+            'meta' => [
+                'staff' => ':count زیرِ التوا',
+            ],
+        ],
         'staff' => [
             'list' => [
                 'empty' => 'اس فلٹر میں کوئی درخواست نہیں۔',

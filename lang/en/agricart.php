@@ -348,6 +348,66 @@ return [
         ],
     ],
 
+    'contacts' => [
+        'overview' => [
+            'title' => 'Contacts overview',
+            'hint' => 'Suppliers and customers in one place. Open a card or search by name, code, or phone.',
+            'total_records' => ':count total contacts',
+            'search_results' => 'Results for ":query"',
+            'search_no_results' => 'No contacts match ":query".',
+            'search_untitled' => 'Untitled',
+            'cards' => [
+                'suppliers' => 'Suppliers',
+                'customers' => 'Customers',
+            ],
+            'meta' => [
+                'suppliers' => ':count active',
+                'customers' => ':count active',
+            ],
+        ],
+    ],
+
+    'sales' => [
+        'overview' => [
+            'search_results' => 'Results for ":query"',
+            'search_no_results' => 'No sales records match ":query".',
+            'cards' => [
+                'pos_sales' => 'Sales & POS',
+                'sales_quotations' => 'Sale quotations',
+                'sales_returns' => 'Sale returns',
+                'online_orders' => 'Online orders',
+                'order_dispatch' => 'Order dispatch',
+            ],
+            'meta' => [
+                'pos_sales' => ':count held',
+                'sales_returns' => ':count unpaid refund',
+                'online_orders' => ':count pending',
+                'order_dispatch' => ':count awaiting assignment',
+            ],
+        ],
+    ],
+
+    'marketplace' => [
+        'overview' => [
+            'search_results' => 'Results for ":query"',
+            'search_no_results' => 'No channels hub records match ":query".',
+            'channel_on' => 'On',
+            'channel_off' => 'Off',
+            'cards' => [
+                'sales_channels' => 'Sales channels',
+                'price_control' => 'Price channel',
+                'quantity_control' => 'Quantity channel',
+                'secret_coding' => 'Secret coding',
+            ],
+            'meta' => [
+                'sales_channels' => ':count enabled',
+                'price_control' => ':count active tiers',
+                'quantity_control' => ':count active tiers',
+                'secret_coding' => ':count active profiles',
+            ],
+        ],
+    ],
+
     'catalog' => [
         'overview' => [
             'title' => 'Catalog overview',
@@ -1275,6 +1335,17 @@ return [
     ],
 
     'approvals' => [
+        'overview' => [
+            'search_results' => 'Results for ":query"',
+            'search_no_results' => 'No applications match ":query".',
+            'search_untitled' => 'Unnamed applicant',
+            'cards' => [
+                'staff' => 'Staff applications',
+            ],
+            'meta' => [
+                'staff' => ':count pending',
+            ],
+        ],
         'staff' => [
             'list' => [
                 'empty' => 'No staff applications in this filter.',
