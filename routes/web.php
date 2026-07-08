@@ -32,11 +32,14 @@ Route::middleware([SetAgricartLocale::class, BlockOnlineStoreMaintenance::class]
     Route::get('/register', [\App\Http\Controllers\Store\RegisterController::class, 'show'])->name('auth.register');
     Route::get('/staff-register', [\App\Http\Controllers\Store\StaffRegisterController::class, 'show'])
         ->name('auth.staff.register');
+    Route::get('/search/fragment', [SearchController::class, 'fragment'])->name('store.search.fragment');
+    Route::get('/search/suggest', [SearchController::class, 'suggest'])->name('store.search.suggest');
     Route::get('/search', [SearchController::class, 'index'])->name('store.search');
     Route::get('/page/{slug}', [PageController::class, 'show'])->name('store.page');
     Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('store.category');
     Route::get('/product/{slug}', [ProductController::class, 'show'])->name('store.product');
     Route::get('/cart', [CartController::class, 'index'])->name('store.cart');
+    Route::get('/cart/print', [CartController::class, 'print'])->name('store.cart.print');
     Route::post('/cart/add', [CartController::class, 'add'])->name('store.cart.add');
     Route::post('/cart/update', [CartController::class, 'update'])->name('store.cart.update');
     Route::post('/cart/remove/{productId}', [CartController::class, 'remove'])->name('store.cart.remove');
@@ -96,6 +99,12 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
         ->name('admin.sale-returns.print');
     Route::get('/online-sale-orders/{order}/print', [\App\Http\Controllers\Admin\OnlineSaleOrderPrintController::class, 'show'])
         ->name('admin.online-sale-orders.print');
+    Route::get('/bank-accounts/{account}/print', [\App\Http\Controllers\Admin\BankAccountPrintController::class, 'details'])
+        ->name('admin.bank-accounts.print');
+    Route::get('/bank-accounts/{account}/print-summary', [\App\Http\Controllers\Admin\BankAccountPrintController::class, 'summary'])
+        ->name('admin.bank-accounts.print-summary');
+    Route::get('/bank-accounts/{account}/history-print', [\App\Http\Controllers\Admin\BankAccountPrintController::class, 'history'])
+        ->name('admin.bank-accounts.history-print');
     Route::get('/online-sale-orders/{order}/packing-slip', [\App\Http\Controllers\Admin\OnlineSaleOrderPackingSlipPrintController::class, 'show'])
         ->name('admin.online-sale-orders.packing-slip');
 });

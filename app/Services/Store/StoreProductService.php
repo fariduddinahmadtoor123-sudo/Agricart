@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Services\SalesChannels\SalesChannelService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Facades\Storage;
 
 class StoreProductService
@@ -40,20 +41,78 @@ class StoreProductService
     {
         $term = trim($term);
 
-        if ($term === '') {
+        if ($term === '' || ! $this->isSearchableTerm($term)) {
             return Product::query()
                 ->whereRaw('1 = 0')
                 ->paginate($perPage);
         }
 
-        return Product::query()
-            ->where('status', 'active')
-            ->tap(fn (Builder $query) => $this->applyStorefrontSearch($query, $term))
+        return $this->storefrontSearchQuery($term)
             ->with(['brand'])
             ->orderBy('name_en')
             ->orderBy('id')
             ->paginate($perPage)
             ->withQueryString();
+    }
+
+    /**
+     * @return EloquentCollection<int, Product>
+     */
+    public function searchPreview(string $term, int $limit = 25): EloquentCollection
+    {
+        $term = trim($term);
+        $limit = max(1, min(25, $limit));
+
+        if (! $this->isSearchableTerm($term)) {
+            return new EloquentCollection;
+        }
+
+        return $this->storefrontSearchQuery($term)
+            ->with(['brand'])
+            ->orderBy('name_en')
+            ->orderBy('id')
+            ->limit($limit)
+            ->get();
+    }
+
+    private function storefrontSearchQuery(string $term): Builder
+    {
+        return Product::query()
+            ->where('status', 'active')
+            ->tap(fn (Builder $query) => $this->applyStorefrontSearch($query, $term));
+    }
+
+    private function isSearchableTerm(string $term): bool
+    {
+        $term = trim($term);
+
+        if ($term === '') {
+            return false;
+        }
+
+        $tokens = $this->searchTokens($term);
+
+        if ($tokens === []) {
+            return mb_strlen($term) >= 2;
+        }
+
+        foreach ($tokens as $token) {
+            if (mb_strlen($token) >= 2) {
+                return true;
+            }
+        }
+
+        return mb_strlen($term) >= 2;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function searchTokens(string $term): array
+    {
+        $parts = preg_split('/\s+/u', trim($term), -1, PREG_SPLIT_NO_EMPTY);
+
+        return is_array($parts) ? array_values($parts) : [];
     }
 
     public function imageUrl(?Product $product): ?string
@@ -72,6 +131,21 @@ class StoreProductService
         }
 
         return $product->name_en;
+    }
+
+    public function localizedBrandName(Product $product): ?string
+    {
+        $brand = $product->brand;
+
+        if ($brand === null) {
+            return null;
+        }
+
+        if (app()->getLocale() === 'ur' && filled($brand->name_ur)) {
+            return $brand->name_ur;
+        }
+
+        return $brand->name_en;
     }
 
     public function formattedRetailPrice(Product $product): ?string
@@ -145,43 +219,64 @@ class StoreProductService
 
     private function applyStorefrontSearch(Builder $query, string $term): void
     {
-        $compact = ! str_contains($term, ' ');
+        $term = trim($term);
 
-        if ($compact && mb_strlen($term) >= 2) {
-            $prefix = $term . '%';
-
-            $query->where(function (Builder $inner) use ($term, $prefix): void {
-                $inner->where('code', $term)
-                    ->orWhere('sku', $term)
-                    ->orWhere('label_code', $term)
-                    ->orWhere('slug', $term)
-                    ->orWhere('code', 'like', $prefix)
-                    ->orWhere('sku', 'like', $prefix)
-                    ->orWhere('label_code', 'like', $prefix)
-                    ->orWhere('name_en', 'like', $prefix)
-                    ->orWhere('name_ur', 'like', $prefix)
-                    ->orWhereHas('brand', function (Builder $brandQuery) use ($prefix): void {
-                        $brandQuery->where('name_en', 'like', $prefix)
-                            ->orWhere('name_ur', 'like', $prefix);
-                    });
-            });
+        if ($term === '') {
+            $query->whereRaw('1 = 0');
 
             return;
         }
 
-        $needle = '%' . $term . '%';
+        $tokens = $this->searchTokens($term);
+        $matchedAnyToken = false;
 
-        $query->where(function (Builder $inner) use ($needle): void {
-            $inner->where('name_en', 'like', $needle)
-                ->orWhere('name_ur', 'like', $needle)
-                ->orWhere('code', 'like', $needle)
-                ->orWhere('sku', 'like', $needle)
-                ->orWhere('label_code', 'like', $needle)
-                ->orWhere('slug', 'like', $needle)
-                ->orWhereHas('brand', function (Builder $brandQuery) use ($needle): void {
-                    $brandQuery->where('name_en', 'like', $needle)
-                        ->orWhere('name_ur', 'like', $needle);
-                });
-        });
+        foreach ($tokens as $token) {
+            if (mb_strlen($token) < 2) {
+                continue;
+            }
+
+            $matchedAnyToken = true;
+            $needle = '%' . $this->escapeLike($token) . '%';
+
+            $query->where(function (Builder $inner) use ($token, $needle): void {
+                $inner->where('name_en', 'like', $needle)
+                    ->orWhere('name_ur', 'like', $needle)
+                    ->orWhere('code', 'like', $needle)
+                    ->orWhere('sku', 'like', $needle)
+                    ->orWhere('label_code', 'like', $needle)
+                    ->orWhere('slug', 'like', $needle)
+                    ->orWhere('code', $token)
+                    ->orWhere('sku', $token)
+                    ->orWhere('label_code', $token)
+                    ->orWhereHas('brand', function (Builder $brandQuery) use ($needle): void {
+                        $brandQuery->where('name_en', 'like', $needle)
+                            ->orWhere('name_ur', 'like', $needle);
+                    });
+            });
+        }
+
+        if (! $matchedAnyToken) {
+            $needle = '%' . $this->escapeLike($term) . '%';
+
+            $query->where(function (Builder $inner) use ($term, $needle): void {
+                $inner->where('name_en', 'like', $needle)
+                    ->orWhere('name_ur', 'like', $needle)
+                    ->orWhere('code', 'like', $needle)
+                    ->orWhere('sku', 'like', $needle)
+                    ->orWhere('label_code', 'like', $needle)
+                    ->orWhere('slug', 'like', $needle)
+                    ->orWhere('code', $term)
+                    ->orWhere('sku', $term)
+                    ->orWhereHas('brand', function (Builder $brandQuery) use ($needle): void {
+                        $brandQuery->where('name_en', 'like', $needle)
+                            ->orWhere('name_ur', 'like', $needle);
+                    });
+            });
+        }
+    }
+
+    private function escapeLike(string $value): string
+    {
+        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
     }
 }

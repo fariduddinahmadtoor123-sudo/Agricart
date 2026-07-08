@@ -5,6 +5,7 @@ namespace App\Services\Sales;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Services\Finance\BankAccountService;
 use App\Services\PricingControls\QuantityPricingEngine;
 use App\Services\Purchasing\PurchaseService;
 use Illuminate\Support\Facades\DB;
@@ -75,7 +76,13 @@ class SaleService
                 $this->adjustStock($billable);
             }
 
-            return $sale->fresh(['items', 'customer', 'cashier']);
+            $sale = $sale->fresh(['items', 'customer', 'cashier']);
+
+            if ($status === Sale::STATUS_COMPLETED) {
+                app(BankAccountService::class)->recordSaleReceiptIfApplicable($sale);
+            }
+
+            return $sale;
         });
     }
 
@@ -105,7 +112,13 @@ class SaleService
                 $this->adjustStock($billable);
             }
 
-            return $sale->fresh(['items', 'customer', 'cashier']);
+            $sale = $sale->fresh(['items', 'customer', 'cashier']);
+
+            if ($status === Sale::STATUS_COMPLETED) {
+                app(BankAccountService::class)->recordSaleReceiptIfApplicable($sale);
+            }
+
+            return $sale;
         });
     }
 

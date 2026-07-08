@@ -1,0 +1,92 @@
+<style>
+    .ag-store-header__search {
+        position: relative;
+        z-index: 40;
+        overflow: visible;
+    }
+    .ag-store-header__search--live .ag-store-header__search-form {
+        position: relative;
+    }
+    .ag-store-header__search--live .ag-store-header__search-btn--submit {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+    .ag-store-header__search--live .ag-store-header__search-input {
+        padding-inline-end: 0.75rem;
+    }
+
+    /* Search results — same grid as category/product cards (works without Vite rebuild) */
+    .ag-store-search-results-grid.ag-store-product-grid {
+        display: grid;
+        gap: 1rem;
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+    .ag-store-search-results-grid .ag-store-product-card {
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        border: 1px solid var(--agricart-border, #d1d5db);
+        background: var(--agricart-surface, #fff);
+    }
+    .ag-store-search-results-grid .ag-store-product-card__image-wrap {
+        position: relative;
+        aspect-ratio: 1;
+        max-height: 11rem;
+        overflow: hidden;
+        border-bottom: 1px solid var(--agricart-border, #d1d5db);
+        background: var(--agricart-bg, #fff);
+    }
+    .ag-store-search-results-grid .ag-store-product-card__image {
+        width: 100%;
+        height: 100%;
+        max-width: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .ag-store-search-results-grid .ag-store-product-card__placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        min-height: 8rem;
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #6b7280;
+    }
+    .ag-store-search-results-grid .ag-store-product-card__body {
+        padding: 0.65rem 0.7rem;
+    }
+    .ag-store-search-results-grid .ag-store-product-card__name {
+        margin: 0;
+        font-size: 0.8125rem;
+        font-weight: 700;
+        line-height: 1.35;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+    }
+    @media (max-width: 72rem) {
+        .ag-store-search-results-grid.ag-store-product-grid {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+    }
+    @media (max-width: 56rem) {
+        .ag-store-search-results-grid.ag-store-product-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+    @media (max-width: 40rem) {
+        .ag-store-search-results-grid.ag-store-product-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+</style>

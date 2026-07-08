@@ -5,10 +5,6 @@
 @section('content')
     <h1 class="ag-store-page-title">{{ __('agricart.storefront.cart.title') }}</h1>
 
-    @if (session('store_status'))
-        <div class="ag-store-alert ag-store-alert--success" role="status">{{ session('store_status') }}</div>
-    @endif
-
     @if ($errors->any())
         <div class="ag-store-alert ag-store-alert--error" role="alert">
             <ul>
@@ -27,6 +23,8 @@
             <table class="ag-store-cart__table">
                 <thead>
                     <tr>
+                        <th class="ag-store-cart__col-sn">{{ __('agricart.storefront.cart.col_sn') }}</th>
+                        <th class="ag-store-cart__col-thumb">{{ __('agricart.storefront.cart.col_image') }}</th>
                         <th>{{ __('agricart.storefront.cart.col_product') }}</th>
                         <th>{{ __('agricart.storefront.cart.col_price') }}</th>
                         <th>{{ __('agricart.storefront.cart.col_quantity') }}</th>
@@ -35,11 +33,24 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($lines as $line)
-                        @php $p = $line['product']; @endphp
+                    @foreach ($lines as $index => $line)
+                        @php
+                            $p = $line['product'];
+                            $thumbUrl = $productService->imageUrl($p);
+                        @endphp
                         <tr>
+                            <td class="ag-store-cart__sn">{{ $index + 1 }}</td>
+                            <td class="ag-store-cart__thumb">
+                                <a href="{{ route('store.product', $p->slug) }}" class="ag-store-cart__thumb-link">
+                                    @if ($thumbUrl)
+                                        <img src="{{ $thumbUrl }}" alt="" class="ag-store-cart__thumb-img" loading="lazy" width="56" height="56" />
+                                    @else
+                                        <span class="ag-store-cart__thumb-placeholder">{{ strtoupper(substr($productService->localizedName($p), 0, 1)) }}</span>
+                                    @endif
+                                </a>
+                            </td>
                             <td class="ag-store-cart__product">
-                                <a href="{{ route('store.product', $p->slug) }}" class="ag-store-cart__name">{{ app(\App\Services\Store\StoreProductService::class)->localizedName($p) }}</a>
+                                <a href="{{ route('store.product', $p->slug) }}" class="ag-store-cart__name">{{ $productService->localizedName($p) }}</a>
                                 @if ($p->brand)
                                     <span class="ag-store-cart__brand">{{ $p->brand->name_en }}</span>
                                 @endif
@@ -65,20 +76,25 @@
                 </tbody>
             </table>
 
-            <div class="ag-store-cart__footer">
-                <p class="ag-store-cart__subtotal">
-                    <span>{{ __('agricart.storefront.cart.subtotal') }}</span>
-                    <strong>{{ __('agricart.storefront.products.price', ['amount' => $subtotal]) }}</strong>
-                </p>
-                <div class="ag-store-cart__actions">
-                    <a href="{{ route('store.home') }}" class="ag-store-btn ag-store-btn--secondary">{{ __('agricart.storefront.cart.continue_shopping') }}</a>
-                    @auth('customer')
-                        <a href="{{ route('store.checkout') }}" class="ag-store-btn ag-store-btn--primary">{{ __('agricart.storefront.cart.checkout') }}</a>
-                    @else
-                        <a href="{{ route('store.customer.login', ['redirect' => route('store.checkout')]) }}" class="ag-store-btn ag-store-btn--primary">
-                            {{ __('agricart.storefront.cart.login_to_checkout') }}
+            <div class="ag-store-cart__footer" style="text-align: end;">
+                <div class="ag-store-cart__summary" style="width: 100%; max-width: 28rem; margin-inline-start: auto;">
+                    <p class="ag-store-cart__subtotal">
+                        <span>{{ __('agricart.storefront.cart.subtotal') }}</span>
+                        <strong>{{ __('agricart.storefront.products.price', ['amount' => $subtotal]) }}</strong>
+                    </p>
+                    <div class="ag-store-cart__actions" dir="ltr">
+                        <a href="{{ route('store.cart.print') }}" target="_blank" rel="noopener" class="ag-store-btn ag-store-btn--secondary ag-store-cart__print">
+                            {{ __('agricart.storefront.cart.print') }}
                         </a>
-                    @endauth
+                        <a href="{{ route('store.home') }}" class="ag-store-btn ag-store-btn--secondary">{{ __('agricart.storefront.cart.continue_shopping') }}</a>
+                        @auth('customer')
+                            <a href="{{ route('store.checkout') }}" class="ag-store-btn ag-store-btn--primary">{{ __('agricart.storefront.cart.checkout') }}</a>
+                        @else
+                            <a href="{{ route('store.customer.login', ['redirect' => route('store.checkout')]) }}" class="ag-store-btn ag-store-btn--primary">
+                                {{ __('agricart.storefront.cart.login_to_checkout') }}
+                            </a>
+                        @endauth
+                    </div>
                 </div>
             </div>
         </div>

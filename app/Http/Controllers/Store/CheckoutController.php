@@ -9,6 +9,7 @@ use App\Services\Sales\SaleService;
 use App\Services\SalesChannels\SalesChannelService;
 use App\Services\Store\StoreCartService;
 use App\Services\Store\StoreLayoutService;
+use App\Services\Store\StoreProductService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,7 @@ use Illuminate\Validation\ValidationException;
 
 class CheckoutController extends Controller
 {
-    public function show(StoreLayoutService $layout, StoreCartService $cart, SalesChannelService $channels): View|RedirectResponse
+    public function show(StoreLayoutService $layout, StoreCartService $cart, SalesChannelService $channels, StoreProductService $productService): View|RedirectResponse
     {
         if (! $channels->onlineStoreAllowsPurchasing()) {
             return redirect()
@@ -45,6 +46,7 @@ class CheckoutController extends Controller
             'lines' => $cart->lines(),
             'subtotal' => $cart->formattedSubtotal(),
             'customer' => $customer,
+            'productService' => $productService,
             'paymentMethods' => collect(SaleService::PAYMENT_METHODS)
                 ->mapWithKeys(fn (string $method): array => [$method => __('pos.payment_methods.' . $method)])
                 ->all(),

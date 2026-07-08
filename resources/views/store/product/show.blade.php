@@ -21,6 +21,13 @@
         </div>
     @endif
 
+    @php
+        $hasSpecs = $product->brand !== null || $identityFacts !== [] || $product->attributes->isNotEmpty() || $product->controls->isNotEmpty();
+        $hasPricing = $priceTable !== [];
+        $hasDescription = $contentSections !== [];
+        $isActive = $product->status === 'active';
+    @endphp
+
     <article class="ag-store-pdp">
         <div class="ag-store-pdp__hero">
             <div class="ag-store-pdp__gallery">
@@ -30,73 +37,67 @@
                 ])
             </div>
 
-            <div class="ag-store-pdp__buy-card">
-                @if ($brand = $presenter->localizedBrandName($product))
-                    <p class="ag-store-pdp__brand">{{ $brand }}</p>
-                @endif
-
+            <div class="ag-store-pdp__side-panel ag-store-pdp__buy-card">
                 <h1 class="ag-store-pdp__title">{{ $productService->localizedName($product) }}</h1>
 
-                @php
-                    $stockQty = $product->stock_qty !== null ? (float) $product->stock_qty : null;
-                @endphp
-                @if ($stockQty !== null)
-                    <p @class([
-                        'ag-store-pdp__stock',
-                        'is-in-stock' => $stockQty > 0,
-                        'is-out' => $stockQty <= 0,
-                    ])>
-                        {{ $stockQty > 0 ? __('agricart.storefront.product.in_stock') : __('agricart.storefront.product.out_of_stock') }}
+                @if (! $isActive)
+                    <p class="ag-store-pdp__status ag-store-pdp__status--deactivated">
+                        {{ __('agricart.storefront.product.deactivated') }}
                     </p>
                 @endif
 
-                @if ($buyPrice)
-                    <div class="ag-store-pdp__price-box">
-                        <span class="ag-store-pdp__price">{{ __('agricart.storefront.products.price', ['amount' => $buyPrice['formatted']]) }}</span>
-                        <span class="ag-store-pdp__price-tier">{{ $buyPrice['tier_label'] }}</span>
-                    </div>
-                @elseif (! ($onlineStoreChannel['show_prices'] ?? true))
-                    <p class="ag-store-pdp__offline-msg">{{ $onlineStoreChannel['offline_message'] ?? __('sales_channels.defaults.offline_message') }}</p>
-                @endif
+                <section class="ag-store-pdp__side-section ag-store-pdp__side-section--specs">
+                    <h2 class="ag-store-pdp__side-section-title">{{ __('agricart.storefront.product.tabs.specifications') }}</h2>
+                    @include('store.components.product-specs', [
+                        'product' => $product,
+                        'presenter' => $presenter,
+                        'identityFacts' => $identityFacts,
+                    ])
+                </section>
 
-                @if ($short = $productService->localizedField($product, 'short_description'))
-                    <p class="ag-store-pdp__excerpt">{!! nl2br(e($short)) !!}</p>
-                @endif
-
-                @if ($onlineStoreChannel['allow_purchase'] ?? true)
-                <form method="post" action="{{ route('store.cart.add') }}" class="ag-store-pdp__cart-form">
-                    @csrf
-                    <input type="hidden" name="product_id" value="{{ $product->id }}" />
-                    <div class="ag-store-pdp__qty-row">
-                        <label class="ag-store-pdp__qty-label" for="product-qty">{{ __('agricart.storefront.product.quantity') }}</label>
-                        <div class="ag-store-pdp__qty-controls">
-                            <input
-                                id="product-qty"
-                                type="number"
-                                name="quantity"
-                                class="ag-store-pdp__qty-input"
-                                value="1"
-                                min="1"
-                                step="1"
-                                required
-                            />
-                            <button type="submit" class="ag-store-btn ag-store-btn--primary ag-store-pdp__add-btn">
-                                {{ __('agricart.storefront.product.add_to_cart') }}
-                            </button>
+                <section class="ag-store-pdp__side-section ag-store-pdp__side-section--buy">
+                    @if ($buyPrice)
+                        <div class="ag-store-pdp__price-box">
+                            <span class="ag-store-pdp__price">{{ __('agricart.storefront.products.price', ['amount' => $buyPrice['formatted']]) }}</span>
+                            <span class="ag-store-pdp__price-tier">{{ $buyPrice['tier_label'] }}</span>
                         </div>
-                    </div>
-                </form>
-                @endif
+                    @elseif (! ($onlineStoreChannel['show_prices'] ?? true))
+                        <p class="ag-store-pdp__offline-msg">{{ $onlineStoreChannel['offline_message'] ?? __('sales_channels.defaults.offline_message') }}</p>
+                    @endif
+
+                    @if ($short = $productService->localizedField($product, 'short_description'))
+                        <p class="ag-store-pdp__excerpt ag-store-pdp__excerpt--side">{!! nl2br(e($short)) !!}</p>
+                    @endif
+
+                    @if ($isActive && ($onlineStoreChannel['allow_purchase'] ?? true))
+                        <form method="post" action="{{ route('store.cart.add') }}" class="ag-store-pdp__cart-form ag-store-pdp__cart-form--side">
+                            @csrf
+                            <input type="hidden" name="product_id" value="{{ $product->id }}" />
+                            <div class="ag-store-pdp__qty-row">
+                                <label class="ag-store-pdp__qty-label" for="product-qty">{{ __('agricart.storefront.product.quantity') }}</label>
+                                <div class="ag-store-pdp__qty-controls">
+                                    <input
+                                        id="product-qty"
+                                        type="number"
+                                        name="quantity"
+                                        class="ag-store-pdp__qty-input"
+                                        value="1"
+                                        min="1"
+                                        step="1"
+                                        required
+                                    />
+                                    <button type="submit" class="ag-store-btn ag-store-btn--primary ag-store-pdp__add-btn">
+                                        {{ __('agricart.storefront.product.add_to_cart') }}
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    @endif
+                </section>
             </div>
         </div>
 
-        @php
-            $hasSpecs = $identityFacts !== [] || $product->attributes->isNotEmpty() || $product->controls->isNotEmpty();
-            $hasPricing = $priceTable !== [];
-            $hasDescription = $contentSections !== [];
-        @endphp
-
-        @if ($hasSpecs || $hasPricing || $hasDescription)
+        @if ($hasPricing || $hasDescription)
             <div class="ag-store-pdp__tabs" data-store-pdp-tabs>
                 <div class="ag-store-pdp__tablist" role="tablist">
                     @if ($hasDescription)
@@ -104,13 +105,8 @@
                             {{ __('agricart.storefront.product.tabs.description') }}
                         </button>
                     @endif
-                    @if ($hasSpecs)
-                        <button type="button" @class(['ag-store-pdp__tab', 'is-active' => ! $hasDescription]) role="tab" aria-selected="{{ $hasDescription ? 'false' : 'true' }}" data-store-pdp-tab="specs">
-                            {{ __('agricart.storefront.product.tabs.specifications') }}
-                        </button>
-                    @endif
                     @if ($hasPricing)
-                        <button type="button" class="ag-store-pdp__tab" role="tab" aria-selected="false" data-store-pdp-tab="pricing">
+                        <button type="button" @class(['ag-store-pdp__tab', 'is-active' => ! $hasDescription]) role="tab" aria-selected="{{ $hasDescription ? 'false' : 'true' }}" data-store-pdp-tab="pricing">
                             {{ __('agricart.storefront.product.tabs.pricing') }}
                         </button>
                     @endif
@@ -129,33 +125,8 @@
                     </div>
                 @endif
 
-                @if ($hasSpecs)
-                    <div @class(['ag-store-pdp__panel', 'is-active' => ! $hasDescription]) role="tabpanel" data-store-pdp-panel="specs">
-                        <dl class="ag-store-pdp__spec-grid">
-                            @foreach ($identityFacts as $fact)
-                                <div class="ag-store-pdp__spec-row">
-                                    <dt>{{ $fact['label'] }}</dt>
-                                    <dd>{{ $fact['value'] }}</dd>
-                                </div>
-                            @endforeach
-                            @foreach ($product->attributes as $attribute)
-                                <div class="ag-store-pdp__spec-row">
-                                    <dt>{{ app()->getLocale() === 'ur' && filled($attribute->name_ur) ? $attribute->name_ur : $attribute->name_en }}</dt>
-                                    <dd>{{ $attribute->pivot->value }}</dd>
-                                </div>
-                            @endforeach
-                            @foreach ($product->controls as $control)
-                                <div class="ag-store-pdp__spec-row">
-                                    <dt>{{ $presenter->localizedControlName($control) }}</dt>
-                                    <dd>{{ $presenter->localizedControlValue($control) ?: '—' }}</dd>
-                                </div>
-                            @endforeach
-                        </dl>
-                    </div>
-                @endif
-
                 @if ($hasPricing)
-                    <div class="ag-store-pdp__panel" role="tabpanel" data-store-pdp-panel="pricing">
+                    <div @class(['ag-store-pdp__panel', 'is-active' => ! $hasDescription]) role="tabpanel" data-store-pdp-panel="pricing">
                         <div class="ag-store-pdp__table-wrap">
                             <table class="ag-store-pdp__price-table">
                                 <thead>

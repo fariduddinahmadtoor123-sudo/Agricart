@@ -10,18 +10,10 @@
                 <span class="ag-store-header__site-name">{{ $settings->localized('site_name') }}</span>
             </a>
 
-            <div class="ag-store-header__search">
-                <form action="{{ route('store.search') }}" method="get" class="ag-store-header__search-form" role="search">
-                    <input
-                        type="search"
-                        name="q"
-                        class="ag-store-header__search-input"
-                        placeholder="{{ $settings->localized('search_placeholder') }}"
-                        value="{{ request('q') }}"
-                    />
-                    <button type="submit" class="ag-store-header__search-btn">{{ __('agricart.storefront.header.search') }}</button>
-                </form>
-            </div>
+            @include('store.components.search-box', [
+                'value' => request('q'),
+                'placeholder' => $settings->localized('search_placeholder'),
+            ])
 
             <div class="ag-store-header__actions">
                 @if ($settings->show_social)

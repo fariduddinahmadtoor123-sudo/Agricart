@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Services\SalesChannels\SalesChannelService;
 use App\Services\Store\StoreCartService;
 use App\Services\Store\StoreLayoutService;
+use App\Services\Store\StoreProductService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,6 +27,31 @@ class CartController extends Controller
             ...$layout->layoutData(),
             'lines' => $cart->lines(),
             'subtotal' => $cart->formattedSubtotal(),
+            'productService' => app(StoreProductService::class),
+        ]);
+    }
+
+    public function print(StoreLayoutService $layout, StoreCartService $cart, SalesChannelService $channels): View|RedirectResponse
+    {
+        if (! $channels->onlineStoreAllowsPurchasing()) {
+            return redirect()
+                ->route('store.home')
+                ->with('store_status', __('agricart.storefront.channel.purchasing_disabled'))
+                ->with('store_status_type', 'warning');
+        }
+
+        if ($cart->isEmpty()) {
+            return redirect()
+                ->route('store.cart')
+                ->with('store_status', __('agricart.storefront.cart.empty'));
+        }
+
+        return view('store.cart.print', [
+            ...$layout->layoutData(),
+            'lines' => $cart->lines(),
+            'subtotal' => $cart->formattedSubtotal(),
+            'productService' => app(StoreProductService::class),
+            'printedAt' => now(),
         ]);
     }
 

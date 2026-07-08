@@ -5,6 +5,7 @@ namespace App\Services\Sales;
 use App\Models\OnlineSaleOrder;
 use App\Models\OnlineSaleOrderItem;
 use App\Models\Product;
+use App\Services\Finance\BankAccountService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -116,7 +117,12 @@ class OnlineSaleOrderService
             'assigned_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'payment_status' => ['required', 'string', Rule::in(SaleService::PAYMENT_STATUSES)],
             'payment_method' => ['required', 'string', Rule::in(SaleService::PAYMENT_METHODS)],
-            'bank_account_id' => ['nullable', 'integer'],
+            'bank_account_id' => [
+                'nullable',
+                'integer',
+                'exists:bank_accounts,id',
+                Rule::requiredIf(($payload['payment_method'] ?? '') === 'bank_transfer'),
+            ],
             'amount_paid' => ['nullable', 'string'],
             'admin_notes' => ['nullable', 'string', 'max:5000'],
             'supplier_ids' => ['nullable', 'array'],
@@ -190,7 +196,11 @@ class OnlineSaleOrderService
 
         app(OnlineOrderDispatchService::class)->enterDispatchQueueIfPaid($order->fresh());
 
-        return $order->fresh(['items', 'customer', 'sale', 'supplierAssignments.supplier', 'assignedUser']);
+        $order = $order->fresh(['items', 'customer', 'sale', 'supplierAssignments.supplier', 'assignedUser']);
+
+        app(BankAccountService::class)->recordOnlineOrderReceiptIfApplicable($order);
+
+        return $order;
     }
 
     /**

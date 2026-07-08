@@ -1,0 +1,106 @@
+<?php
+
+namespace App\Livewire\Finance;
+
+use App\Models\FundTransfer;
+use App\Models\User;
+use App\Services\Finance\FundTransferService;
+use Illuminate\Contracts\View\View;
+use Livewire\Attributes\On;
+use Livewire\Component;
+use Livewire\WithPagination;
+
+class ListFundTransfers extends Component
+{
+    use WithPagination;
+
+    public string $search = '';
+
+    #[On('finance-fund-transfers-saved')]
+    public function refreshList(): void
+    {
+        $this->resetPage();
+    }
+
+    #[On('finance-fund-transfers-search')]
+    public function updateSearch(string $query): void
+    {
+        $this->search = $query;
+        $this->resetPage();
+    }
+
+    public function openCreate(): void
+    {
+        if (! $this->userCan('create')) {
+            return;
+        }
+
+        $this->dispatch(
+            'open-form-panel',
+            title: __('agricart.finance.fund_transfers.actions.add'),
+            resource: __('agricart.nav.finance.cash-bank-transfers'),
+            formKey: 'finance-fund-transfer',
+            mode: 'create',
+        );
+    }
+
+    public function render(): View
+    {
+        $service = app(FundTransferService::class);
+
+        $transfers = FundTransfer::query()
+            ->with(['sourceBankAccount', 'destinationBankAccount', 'destinationSupplier', 'destinationPurchaser'])
+            ->when(filled($this->search), function ($query): void {
+                $needle = '%' . $this->search . '%';
+                $query->where(function ($inner) use ($needle): void {
+                    $inner->where('transfer_number', 'like', $needle)
+                        ->orWhere('notes', 'like', $needle);
+                });
+            })
+            ->orderByDesc('transaction_date')
+            ->orderByDesc('id')
+            ->paginate(20);
+
+        return view('livewire.finance.fund-transfers.list', [
+            'transfers' => $transfers,
+            'money' => fn (float $amount): string => $service->formatMoney($amount),
+            'typeLabel' => fn (FundTransfer $transfer): string => (string) (__('agricart.finance.fund_transfers.types.' . $transfer->transaction_type) ?: $transfer->transaction_type),
+            'sourceLabel' => fn (FundTransfer $transfer): string => $this->sourceLabel($transfer),
+            'destinationLabel' => fn (FundTransfer $transfer): string => $this->destinationLabel($transfer),
+        ]);
+    }
+
+    private function sourceLabel(FundTransfer $transfer): string
+    {
+        if ($transfer->transaction_type === FundTransfer::TYPE_DEPOSIT || $transfer->source_wallet === FundTransfer::WALLET_CASH) {
+            return __('agricart.finance.fund_transfers.source_wallets.cash');
+        }
+
+        return $transfer->sourceBankAccount?->displayName() ?? '—';
+    }
+
+    private function destinationLabel(FundTransfer $transfer): string
+    {
+        return match ($transfer->transaction_type) {
+            FundTransfer::TYPE_DEPOSIT, FundTransfer::TYPE_TRANSFER => $transfer->destinationBankAccount?->displayName() ?? '—',
+            FundTransfer::TYPE_VENDOR_PAYMENT => $transfer->destinationSupplier?->displayBusinessName() ?? '—',
+            FundTransfer::TYPE_EXPENSE_PAYMENT => (string) ($transfer->destinationPurchaser?->name ?? '—'),
+            default => '—',
+        };
+    }
+
+    private function userCan(string $action): bool
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        return $user->hasPermission('finance.' . $action);
+    }
+}

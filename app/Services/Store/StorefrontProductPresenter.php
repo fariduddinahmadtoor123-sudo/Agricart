@@ -8,6 +8,7 @@ use App\Models\QuantityChannelTier;
 use App\Services\PricingControls\ChannelPricingEngine;
 use App\Services\PricingControls\QuantityPricingEngine;
 use App\Services\Sales\SaleService;
+use Illuminate\Support\Facades\Storage;
 
 class StorefrontProductPresenter
 {
@@ -31,6 +32,17 @@ class StorefrontProductPresenter
         }
 
         return $brand->name_en;
+    }
+
+    public function brandImageUrl(Product $product): ?string
+    {
+        $brand = $product->brand;
+
+        if ($brand === null || ! filled($brand->image_path)) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($brand->image_path);
     }
 
     /**
@@ -164,14 +176,6 @@ class StorefrontProductPresenter
 
         if (filled($product->hs_code)) {
             $facts[] = ['key' => 'hs', 'label' => __('agricart.storefront.product.facts.hs_code'), 'value' => $product->hs_code];
-        }
-
-        if ($product->stock_qty !== null) {
-            $facts[] = [
-                'key' => 'stock',
-                'label' => __('agricart.storefront.product.facts.stock'),
-                'value' => $this->saleService->formatQty((float) $product->stock_qty),
-            ];
         }
 
         return $facts;

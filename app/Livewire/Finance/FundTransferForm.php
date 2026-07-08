@@ -1,0 +1,340 @@
+<?php
+
+namespace App\Livewire\Finance;
+
+use App\Models\BankAccount;
+use App\Models\Supplier;
+use App\Models\User;
+use App\Services\Finance\FundTransferService;
+use Illuminate\Contracts\View\View;
+use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\On;
+use Livewire\Component;
+
+class FundTransferForm extends Component
+{
+    public const TYPE_DEPOSIT = 'deposit';
+
+    public const TYPE_TRANSFER = 'transfer';
+
+    public const TYPE_VENDOR_PAYMENT = 'vendor_payment';
+
+    public const TYPE_EXPENSE_PAYMENT = 'expense_payment';
+
+    public const SOURCE_CASH = 'cash';
+
+    public const SOURCE_BANK = 'bank';
+
+    public string $mode = 'create';
+
+    public ?int $transferId = null;
+
+    public string $transaction_type = self::TYPE_DEPOSIT;
+
+    /** @var self::SOURCE_CASH|self::SOURCE_BANK */
+    public string $source_wallet = self::SOURCE_CASH;
+
+    public ?int $source_bank_account_id = null;
+
+    public ?int $destination_bank_account_id = null;
+
+    public ?int $destination_supplier_id = null;
+
+    public ?int $destination_purchaser_id = null;
+
+    public string $amount = '';
+
+    public string $transaction_date = '';
+
+    public string $transaction_time = '';
+
+    public string $transaction_number = '';
+
+    public string $notes = '';
+
+    public bool $saving = false;
+
+    public ?string $statusMessage = null;
+
+    public string $statusType = 'success';
+
+    #[On('finance-fund-transfer-form-open')]
+    public function openForm(?int $transferId = null, ?string $mode = null): void
+    {
+        $this->resetValidation();
+        $this->statusMessage = null;
+        $this->mode = $mode ?? ($transferId ? 'edit' : 'create');
+        $this->transferId = $transferId;
+        $this->resetFormFields();
+    }
+
+    #[On('finance-fund-transfer-form-action')]
+    public function handlePanelAction(string $action): void
+    {
+        if ($action === 'save_close') {
+            if ($this->saving) {
+                return;
+            }
+
+            $this->saveAndClose();
+        }
+    }
+
+    public function updatedTransactionType(): void
+    {
+        $this->applyTypeDefaults();
+    }
+
+    public function updatedSourceWallet(): void
+    {
+        if ($this->source_wallet === self::SOURCE_CASH) {
+            $this->source_bank_account_id = null;
+        }
+    }
+
+    public function saveAndClose(): void
+    {
+        if ($this->saving) {
+            return;
+        }
+
+        $this->validate($this->rules());
+
+        $this->saving = true;
+        $this->dispatch('finance-fund-transfer-form-busy', saving: true);
+
+        try {
+            $transfer = app(FundTransferService::class)->record($this->payload(), auth()->user());
+            $this->transaction_number = $transfer->transfer_number;
+            $this->dispatch('finance-fund-transfers-saved');
+            $this->dispatch('close-form-panel');
+        } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->getMessageBag());
+        } finally {
+            $this->saving = false;
+            $this->dispatch('finance-fund-transfer-form-busy', saving: false);
+        }
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function payload(): array
+    {
+        return [
+            'transaction_type' => $this->transaction_type,
+            'source_wallet' => $this->source_wallet,
+            'source_bank_account_id' => $this->source_bank_account_id,
+            'destination_bank_account_id' => $this->destination_bank_account_id,
+            'destination_supplier_id' => $this->destination_supplier_id,
+            'destination_purchaser_id' => $this->destination_purchaser_id,
+            'amount' => $this->amount,
+            'transaction_date' => $this->transaction_date,
+            'transaction_time' => $this->transaction_time,
+            'notes' => $this->notes,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function rules(): array
+    {
+        $rules = [
+            'transaction_type' => ['required', 'in:deposit,transfer,vendor_payment,expense_payment'],
+            'amount' => ['required', 'numeric', 'min:0.01'],
+            'transaction_date' => ['required', 'date'],
+            'transaction_time' => ['required', 'date_format:H:i'],
+        ];
+
+        if ($this->requiresSourceBank()) {
+            $rules['source_bank_account_id'] = ['required', 'integer', 'exists:bank_accounts,id'];
+        }
+
+        if ($this->requiresDestinationBank()) {
+            $destRules = ['required', 'integer', 'exists:bank_accounts,id'];
+            if ($this->transaction_type === self::TYPE_TRANSFER) {
+                $destRules[] = 'different:source_bank_account_id';
+            }
+            $rules['destination_bank_account_id'] = $destRules;
+        }
+
+        if ($this->transaction_type === self::TYPE_VENDOR_PAYMENT) {
+            $rules['destination_supplier_id'] = ['required', 'integer', 'exists:suppliers,id'];
+        }
+
+        if ($this->transaction_type === self::TYPE_EXPENSE_PAYMENT) {
+            $rules['destination_purchaser_id'] = ['required', 'integer', 'exists:users,id'];
+        }
+
+        return $rules;
+    }
+
+    public function requiresSourceBank(): bool
+    {
+        return match ($this->transaction_type) {
+            self::TYPE_TRANSFER => true,
+            self::TYPE_VENDOR_PAYMENT, self::TYPE_EXPENSE_PAYMENT => $this->source_wallet === self::SOURCE_BANK,
+            default => false,
+        };
+    }
+
+    public function requiresDestinationBank(): bool
+    {
+        return in_array($this->transaction_type, [self::TYPE_DEPOSIT, self::TYPE_TRANSFER], true);
+    }
+
+    public function sourceIsLocked(): bool
+    {
+        return $this->transaction_type === self::TYPE_DEPOSIT;
+    }
+
+    public function destinationIsVendor(): bool
+    {
+        return $this->transaction_type === self::TYPE_VENDOR_PAYMENT;
+    }
+
+    public function destinationIsPurchaser(): bool
+    {
+        return $this->transaction_type === self::TYPE_EXPENSE_PAYMENT;
+    }
+
+    public function render(): View
+    {
+        $bankAccounts = BankAccount::query()
+            ->where('status', BankAccount::STATUS_ACTIVE)
+            ->orderBy('name_en')
+            ->get();
+
+        $destinationBanks = $bankAccounts;
+        if ($this->transaction_type === self::TYPE_TRANSFER && $this->source_bank_account_id) {
+            $destinationBanks = $bankAccounts->where('id', '!=', $this->source_bank_account_id);
+        }
+
+        return view('livewire.finance.fund-transfers.form', [
+            'transactionTypeOptions' => $this->transactionTypeOptions(),
+            'sourceWalletOptions' => $this->sourceWalletOptions(),
+            'bankAccountOptions' => $this->bankAccountOptions($bankAccounts),
+            'destinationBankOptions' => $this->bankAccountOptions($destinationBanks),
+            'supplierOptions' => $this->supplierOptions(),
+            'purchaserOptions' => $this->purchaserOptions(),
+            'formattedDateTime' => $this->formattedDateTime(),
+        ]);
+    }
+
+    private function resetFormFields(): void
+    {
+        $this->transaction_type = self::TYPE_DEPOSIT;
+        $this->amount = '';
+        $this->notes = '';
+        $this->transaction_number = '';
+        $this->transaction_date = now()->format('Y-m-d');
+        $this->transaction_time = now()->format('H:i');
+        $this->applyTypeDefaults();
+    }
+
+    private function applyTypeDefaults(): void
+    {
+        match ($this->transaction_type) {
+            self::TYPE_DEPOSIT => (function (): void {
+                $this->source_wallet = self::SOURCE_CASH;
+                $this->source_bank_account_id = null;
+                $this->destination_supplier_id = null;
+                $this->destination_purchaser_id = null;
+            })(),
+            self::TYPE_TRANSFER => (function (): void {
+                $this->source_wallet = self::SOURCE_BANK;
+                $this->destination_supplier_id = null;
+                $this->destination_purchaser_id = null;
+            })(),
+            self::TYPE_VENDOR_PAYMENT => (function (): void {
+                $this->destination_bank_account_id = null;
+                $this->destination_purchaser_id = null;
+                if ($this->source_wallet === self::SOURCE_CASH) {
+                    $this->source_bank_account_id = null;
+                }
+            })(),
+            self::TYPE_EXPENSE_PAYMENT => (function (): void {
+                $this->destination_bank_account_id = null;
+                $this->destination_supplier_id = null;
+                if ($this->source_wallet === self::SOURCE_CASH) {
+                    $this->source_bank_account_id = null;
+                }
+            })(),
+            default => null,
+        };
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function transactionTypeOptions(): array
+    {
+        return [
+            self::TYPE_DEPOSIT => __('agricart.finance.fund_transfers.types.deposit'),
+            self::TYPE_TRANSFER => __('agricart.finance.fund_transfers.types.transfer'),
+            self::TYPE_VENDOR_PAYMENT => __('agricart.finance.fund_transfers.types.vendor_payment'),
+            self::TYPE_EXPENSE_PAYMENT => __('agricart.finance.fund_transfers.types.expense_payment'),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function sourceWalletOptions(): array
+    {
+        return [
+            self::SOURCE_CASH => __('agricart.finance.fund_transfers.source_wallets.cash'),
+            self::SOURCE_BANK => __('agricart.finance.fund_transfers.source_wallets.bank'),
+        ];
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, BankAccount>|iterable<int, BankAccount>  $accounts
+     * @return array<int, string>
+     */
+    private function bankAccountOptions(iterable $accounts): array
+    {
+        $options = [];
+
+        foreach ($accounts as $account) {
+            $options[$account->id] = $account->displayName() . ($account->displayBankName() ? ' — ' . $account->displayBankName() : '');
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function supplierOptions(): array
+    {
+        return Supplier::query()
+            ->orderBy('business_name_en')
+            ->get()
+            ->mapWithKeys(fn (Supplier $supplier): array => [
+                $supplier->id => $supplier->displayBusinessName(),
+            ])
+            ->all();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function purchaserOptions(): array
+    {
+        return User::query()
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
+    }
+
+    private function formattedDateTime(): string
+    {
+        try {
+            return \Carbon\Carbon::parse($this->transaction_date . ' ' . $this->transaction_time)->format('d M Y, h:i A');
+        } catch (\Throwable) {
+            return '—';
+        }
+    }
+}

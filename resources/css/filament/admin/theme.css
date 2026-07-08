@@ -3272,6 +3272,110 @@ body.agricart-form-panel-open {
     font-weight: 600;
 }
 
+.agricart-finance-bank-form.agricart-purchase-form {
+    gap: 0.5rem;
+}
+
+.agricart-finance-bank-form__stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.agricart-finance-bank-form__row {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    gap: 0.65rem;
+    width: 100%;
+}
+
+.agricart-finance-bank-form__label {
+    display: block;
+    margin: 0;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--agricart-text-muted, #6b7280);
+    line-height: 1.2;
+}
+
+.agricart-finance-bank-form__row .fi-input-wrp {
+    width: 100%;
+}
+
+.agricart-finance-bank-form__error {
+    margin: -0.35rem 0 0;
+    font-size: 0.75rem;
+}
+
+.agricart-finance-bank-form__balance-inline {
+    margin: 0 0 0.35rem;
+    font-size: 0.8125rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+}
+
+.agricart-finance-bank-form__balance-inline strong {
+    font-weight: 700;
+}
+
+.agricart-finance-bank-form__toolbar,
+.agricart-finance-bank-form__history-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.agricart-finance-bank-form__toolbar-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.agricart-finance-bank-form__history-filters {
+    margin-bottom: 0.75rem;
+}
+
+.agricart-finance-bank-form__transfer-actions {
+    margin-top: 0.75rem;
+}
+
+.agricart-finance-bank-form__ledger {
+    font-size: 0.8125rem;
+}
+
+.agricart-finance-fund-transfer-form__type-row {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-end;
+    gap: 0.65rem;
+    width: 100%;
+}
+
+.agricart-finance-fund-transfer-form__type-row > div {
+    flex: 1 1 0;
+    min-width: 0;
+}
+
+.agricart-finance-fund-transfer-form__type-row .fi-input-wrp {
+    width: 100%;
+}
+
+.agricart-finance-fund-transfer-form__col-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    width: 100%;
+}
+
+.agricart-finance-fund-transfer-form__banner {
+    margin: 0 0 0.75rem;
+}
+
 .agricart-staff-advances__form-balance {
     margin-top: 1rem;
     padding: 0.75rem;

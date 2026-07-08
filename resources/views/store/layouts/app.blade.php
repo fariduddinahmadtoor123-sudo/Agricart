@@ -6,6 +6,8 @@
     <title>@yield('title', $settings->localized('site_name') ?? config('app.name'))</title>
     @livewireStyles
     @vite(['resources/css/app.css', 'resources/css/store/theme.css', 'resources/js/store.js'])
+    @include('store.components.search-box-styles')
+    @stack('styles')
 </head>
 <body class="ag-store">
     @if ($settings->top_bar_enabled)
@@ -71,6 +73,7 @@
 
     @livewireScriptConfig
     @livewireScripts
+    @include('store.components.store-search-script')
     @stack('scripts')
 </body>
 </html>

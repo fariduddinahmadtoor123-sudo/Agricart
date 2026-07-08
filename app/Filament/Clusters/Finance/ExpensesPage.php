@@ -13,7 +13,7 @@ class ExpensesPage extends BasePlaceholderPage
 
     protected static ?string $navigationLabel = 'Expenses';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 5;
 
     protected static ?string $slug = 'expenses';
 

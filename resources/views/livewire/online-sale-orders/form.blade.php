@@ -146,7 +146,6 @@
 
     <h3 class="agricart-online-order__section-title">{{ __('order_dispatch.sections.fulfillment') }}</h3>
     @if ($orderId)
-        <p class="agricart-online-order__meta-line">{{ __('order_dispatch.hints.supplier_manual') }}</p>
         <div class="agricart-online-order__print-actions">
             <button type="button" class="agricart-categories__action" wire:click="printPackingSlip">
                 {{ __('online_sale_orders.actions.packing_slip') }}
@@ -176,7 +175,6 @@
     @if ($suggestedSuppliers !== [])
         <div class="agricart-online-order__supplier-block">
             <h3 class="agricart-online-order__section-title">{{ __('order_dispatch.sections.suppliers') }}</h3>
-            <p class="agricart-online-order__meta-line">{{ __('order_dispatch.hints.supplier_flow') }}</p>
             <ul class="agricart-online-order__supplier-list">
                 @foreach ($suggestedSuppliers as $supplier)
                     @php
@@ -261,9 +259,6 @@
     @endif
 
     <h3 class="agricart-online-order__section-title">{{ __('online_sale_orders.sections.admin_payment') }}</h3>
-    @if ($this->canConfirmPayment())
-        <p class="agricart-online-order__meta-line agricart-online-order__payment-hint">{{ __('online_sale_orders.hints.admin_payment') }}</p>
-    @endif
     <div class="agricart-sale-form__status-row agricart-sale-form__status-row--four-fields">
         <div class="agricart-purchase-form__field">
             <label class="agricart-purchase-form__label" for="online-order-payment-method">{{ __('pos.fields.payment_method') }}</label>
