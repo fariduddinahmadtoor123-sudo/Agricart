@@ -2,6 +2,7 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Clusters\BaseAgricartCluster;
 use App\Filament\Concerns\ChecksAgricartPermissions;
 use App\Filament\Concerns\HasTranslatedNavigationLabel;
 use Filament\Pages\Page;
@@ -15,6 +16,53 @@ abstract class BasePlaceholderPage extends Page
     protected string $view = 'filament.pages.placeholder';
 
     protected static bool $shouldRegisterNavigation = false;
+
+    public function mount(): void
+    {
+        if (! static::allowsAccessForComingSoonCluster()) {
+            $this->redirectToComingSoonOverview();
+        }
+    }
+
+    protected function redirectToComingSoonOverview(): void
+    {
+        $cluster = static::getCluster();
+
+        if (! is_string($cluster)) {
+            return;
+        }
+
+        $module = str(class_basename($cluster))->beforeLast('Cluster')->toString();
+        $overviewClass = "App\\Filament\\Clusters\\{$module}\\OverviewPage";
+
+        if (class_exists($overviewClass)) {
+            redirect($overviewClass::getUrl());
+        }
+    }
+
+    protected static function allowsAccessForComingSoonCluster(): bool
+    {
+        $cluster = static::getCluster();
+
+        if (! is_string($cluster) || ! is_subclass_of($cluster, BaseAgricartCluster::class)) {
+            return true;
+        }
+
+        if (! $cluster::isComingSoon()) {
+            return true;
+        }
+
+        return str_ends_with(class_basename(static::class), 'OverviewPage');
+    }
+
+    public function isComingSoonModulePage(): bool
+    {
+        $cluster = static::getCluster();
+
+        return is_string($cluster)
+            && is_subclass_of($cluster, BaseAgricartCluster::class)
+            && $cluster::isComingSoon();
+    }
 
     public function getHeading(): string|Htmlable|null
     {
@@ -44,6 +92,19 @@ abstract class BasePlaceholderPage extends Page
 
     public function getPlaceholderMessage(): string
     {
+        if ($this->isComingSoonModulePage()) {
+            return __('agricart.module_coming_soon.message');
+        }
+
         return __('agricart.placeholder.message');
+    }
+
+    public function getPlaceholderTitle(): ?string
+    {
+        if ($this->isComingSoonModulePage()) {
+            return __('agricart.module_coming_soon.title');
+        }
+
+        return null;
     }
 }

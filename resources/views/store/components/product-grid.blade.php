@@ -68,6 +68,8 @@
                         @endif
                         @if ($price = $productService->formattedRetailPrice($product))
                             <p class="ag-store-product-card__price">{{ __('agricart.storefront.products.price', ['amount' => $price]) }}</p>
+                        @elseif (! ($onlineStoreChannel['show_prices'] ?? true))
+                            <p class="ag-store-product-card__offline-msg">{{ $onlineStoreChannel['offline_message'] ?? __('sales_channels.defaults.offline_message') }}</p>
                         @endif
                     </a>
                 </article>

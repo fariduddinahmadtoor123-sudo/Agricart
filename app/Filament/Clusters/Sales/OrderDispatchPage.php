@@ -1,0 +1,44 @@
+<?php
+
+namespace App\Filament\Clusters\Sales;
+
+use App\Filament\Clusters\SalesCluster;
+use App\Filament\Pages\BaseModulePage;
+use BackedEnum;
+use Filament\Support\Icons\Heroicon;
+use Illuminate\Contracts\Support\Htmlable;
+
+class OrderDispatchPage extends BaseModulePage
+{
+    protected static ?string $cluster = SalesCluster::class;
+
+    protected static ?string $navigationLabel = 'Order Dispatch Queue';
+
+    protected static ?int $navigationSort = 8;
+
+    protected static ?string $slug = 'order-dispatch';
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTruck;
+
+    protected string $view = 'filament.pages.sales.order-dispatch';
+
+    public function getHeading(): string|Htmlable|null
+    {
+        return null;
+    }
+
+    public function getSubheading(): string|Htmlable|null
+    {
+        return null;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getBreadcrumbs(): array
+    {
+        return SalesCluster::unshiftClusterBreadcrumbs([
+            static::getUrl() => static::getNavigationLabel(),
+        ]);
+    }
+}

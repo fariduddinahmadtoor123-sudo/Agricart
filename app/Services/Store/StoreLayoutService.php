@@ -7,6 +7,7 @@ use App\Models\StoreMenuItem;
 use App\Models\StorePage;
 use App\Models\StoreSetting;
 use App\Models\StoreTickerMessage;
+use App\Services\SalesChannels\SalesChannelService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
@@ -29,7 +30,8 @@ class StoreLayoutService
      *     footer_quick_pages: Collection<int, StorePage>,
      *     footer_registration_links: Collection<int, StoreFooterLink>,
      *     footer_registration_pages: Collection<int, StorePage>,
-     *     footer_policy_pages: Collection<int, StorePage>
+     *     footer_policy_pages: Collection<int, StorePage>,
+     *     onlineStoreChannel: array{enabled: bool, show_prices: bool, allow_purchase: bool, offline_message: string, banner_message: ?string}
      * }
      */
     public function layoutData(): array
@@ -50,7 +52,8 @@ class StoreLayoutService
      *     footer_quick_pages: Collection<int, StorePage>,
      *     footer_registration_links: Collection<int, StoreFooterLink>,
      *     footer_registration_pages: Collection<int, StorePage>,
-     *     footer_policy_pages: Collection<int, StorePage>
+     *     footer_policy_pages: Collection<int, StorePage>,
+     *     onlineStoreChannel: array{enabled: bool, show_prices: bool, allow_purchase: bool, offline_message: string, banner_message: ?string}
      * }
      */
     private function buildLayoutData(): array
@@ -146,6 +149,7 @@ class StoreLayoutService
             'footer_registration_pages' => $footerRegistrationPages,
             'footer_registration_entries' => $footerRegistrationEntries,
             'footer_policy_pages' => $footerPolicyPages,
+            'onlineStoreChannel' => app(SalesChannelService::class)->onlineStoreViewState(),
         ];
     }
 

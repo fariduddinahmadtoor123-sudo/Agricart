@@ -99,6 +99,9 @@ abstract class ClusterPageToolbar
             'controls' => 'controls',
             'products' => 'products',
             'users' => 'users',
+            'staff' => 'users',
+            'pay-management' => 'staff-salary',
+            'attendance' => 'staff-attendance',
             'roles' => 'roles',
             'suppliers' => 'suppliers',
             'purchase-planning' => 'purchase-planning',
@@ -109,10 +112,12 @@ abstract class ClusterPageToolbar
             'sales-quotations' => 'sale-quotations',
             'sales-returns' => 'sale-returns',
             'online-orders' => 'online-orders',
+            'order-dispatch' => 'online-orders',
             're-order-center' => 're-order-center',
             'price-control' => 'price-controls',
             'quantity-control' => 'quantity-controls',
             'secret-coding' => 'secret-coding',
+            'sales-channels' => 'sales-channel',
             default => null,
         };
     }

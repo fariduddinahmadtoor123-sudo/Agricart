@@ -4,6 +4,7 @@ namespace App\Services\Store;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Services\SalesChannels\SalesChannelService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Storage;
@@ -75,6 +76,10 @@ class StoreProductService
 
     public function formattedRetailPrice(Product $product): ?string
     {
+        if (! app(SalesChannelService::class)->onlineStoreShowsPrices()) {
+            return null;
+        }
+
         if ($product->retail_price === null || $product->retail_price === '') {
             return null;
         }

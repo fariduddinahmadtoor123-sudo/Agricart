@@ -39,6 +39,29 @@ class PermissionRegistry
         foreach ($modules as $key => [$labelEn, $labelUr]) {
             $permissions = [];
 
+            if ($key === 'staff') {
+                $permissions = [
+                    ['key' => 'staff.view', 'label_en' => 'View staff roster (all employees)', 'label_ur' => 'تمام عملہ کی فہرست دیکھیں'],
+                    ['key' => 'staff.view_self', 'label_en' => 'Self-service (my attendance, payroll, leave)', 'label_ur' => 'ذاتی سروس (میری حاضری، تنخواہ، چھٹی)'],
+                    ['key' => 'staff.create', 'label_en' => 'Add staff members', 'label_ur' => 'عملہ شامل کریں'],
+                    ['key' => 'staff.edit', 'label_en' => 'Edit staff & activate/deactivate', 'label_ur' => 'عملہ ترمیم / فعال / غیر فعال'],
+                    ['key' => 'staff.delete', 'label_en' => 'Delete staff records', 'label_ur' => 'عملہ حذف'],
+                    ['key' => 'staff.attendance.view_all', 'label_en' => 'View all attendance records', 'label_ur' => 'سب کی حاضری دیکھیں'],
+                    ['key' => 'staff.attendance.mark', 'label_en' => 'Mark daily attendance', 'label_ur' => 'روزانہ حاضری لگائیں'],
+                    ['key' => 'staff.payroll.view_all', 'label_en' => 'View all payroll records', 'label_ur' => 'سب کی تنخواہ دیکھیں'],
+                    ['key' => 'staff.leave.view_all', 'label_en' => 'View all leave records', 'label_ur' => 'سب کی چھٹیاں دیکھیں'],
+                    ['key' => 'staff.advances.view_all', 'label_en' => 'View all advance records', 'label_ur' => 'سب کی ایڈوانس دیکھیں'],
+                ];
+
+                $groups[$key] = [
+                    'label_en' => $labelEn,
+                    'label_ur' => $labelUr,
+                    'permissions' => $permissions,
+                ];
+
+                continue;
+            }
+
             foreach ($actions as $action => [$actionEn, $actionUr]) {
                 $permissions[] = [
                     'key' => "{$key}.{$action}",

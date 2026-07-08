@@ -98,6 +98,7 @@
                                     {{ __('online_sale_orders.actions.view_short') }}
                                 </button>
                                 <button type="button" class="agricart-categories__action" wire:click="printOrder({{ $order->id }})">{{ __('online_sale_orders.actions.print_short') }}</button>
+                                <button type="button" class="agricart-categories__action" wire:click="printPackingSlip({{ $order->id }})">{{ __('online_sale_orders.actions.packing_slip_short') }}</button>
                                 @if ($canEdit && ! $order->isLocked())
                                     <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $order->id }})">
                                         {{ __('online_sale_orders.actions.edit_short') }}

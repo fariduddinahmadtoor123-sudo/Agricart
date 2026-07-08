@@ -14,7 +14,7 @@ class SecretCodingPage extends BaseModulePage
 
     protected static ?string $navigationLabel = 'Secret Coding Channel';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 5;
 
     protected static ?string $slug = 'secret-coding';
 

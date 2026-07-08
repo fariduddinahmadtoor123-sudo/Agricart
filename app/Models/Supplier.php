@@ -99,6 +99,19 @@ class Supplier extends Model
         return null;
     }
 
+    public function primaryMobile(): ?string
+    {
+        $contact = $this->primaryContact();
+
+        if ($contact === null) {
+            return null;
+        }
+
+        $mobile = trim((string) ($contact['mobile_number'] ?? ''));
+
+        return $mobile !== '' ? $mobile : null;
+    }
+
     public function primaryContactName(): string
     {
         $contact = $this->primaryContact();

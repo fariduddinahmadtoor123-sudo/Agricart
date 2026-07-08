@@ -6,7 +6,7 @@
 @foreach ($actions as $action)
     @php
         $dispatch = filled($toolbar['livewireComponent'] ?? null)
-            ? "Livewire.dispatchTo(" . json_encode($toolbar['livewireComponent']) . ", " . json_encode($livewirePrefix . '-action') . ", { action: " . json_encode($action['value']) . " })"
+            ? "Livewire.dispatchTo(" . json_encode($toolbar['livewireComponent']) . ", 'handleToolbarAction', { action: " . json_encode($action['value']) . " })"
             : "Livewire.dispatch(" . json_encode($livewirePrefix . '-action') . ", { action: " . json_encode($action['value']) . " })";
     @endphp
     @if (filled($action['tab'] ?? null))

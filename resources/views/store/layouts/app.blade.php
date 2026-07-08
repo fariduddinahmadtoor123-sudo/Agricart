@@ -25,6 +25,14 @@
     @endif
 
     <main class="ag-store-main">
+        @if (! ($onlineStoreChannel['enabled'] ?? true))
+            <div class="ag-store__container ag-store-channel-banner-wrap">
+                <div class="ag-store-channel-banner" role="status">
+                    {{ $onlineStoreChannel['banner_message'] ?? __('sales_channels.defaults.banner_off_en') }}
+                </div>
+            </div>
+        @endif
+
         @if (session('customer_auth_status') && ! request()->routeIs('store.customer.login'))
             <div class="ag-store__container ag-store-flash-banner">
                 <div @class([
@@ -34,6 +42,19 @@
                     'is-warning' => session('customer_auth_status_type') === 'warning',
                 ]) role="status">
                     {{ session('customer_auth_status') }}
+                </div>
+            </div>
+        @endif
+
+        @if (session('store_status') && ! request()->routeIs('store.customer.login'))
+            <div class="ag-store__container ag-store-flash-banner">
+                <div @class([
+                    'ag-store-customer-auth__alert',
+                    'is-danger' => session('store_status_type') === 'danger',
+                    'is-success' => session('store_status_type', 'success') === 'success',
+                    'is-warning' => session('store_status_type') === 'warning',
+                ]) role="status">
+                    {{ session('store_status') }}
                 </div>
             </div>
         @endif

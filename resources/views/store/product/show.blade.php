@@ -55,12 +55,15 @@
                         <span class="ag-store-pdp__price">{{ __('agricart.storefront.products.price', ['amount' => $buyPrice['formatted']]) }}</span>
                         <span class="ag-store-pdp__price-tier">{{ $buyPrice['tier_label'] }}</span>
                     </div>
+                @elseif (! ($onlineStoreChannel['show_prices'] ?? true))
+                    <p class="ag-store-pdp__offline-msg">{{ $onlineStoreChannel['offline_message'] ?? __('sales_channels.defaults.offline_message') }}</p>
                 @endif
 
                 @if ($short = $productService->localizedField($product, 'short_description'))
                     <p class="ag-store-pdp__excerpt">{!! nl2br(e($short)) !!}</p>
                 @endif
 
+                @if ($onlineStoreChannel['allow_purchase'] ?? true)
                 <form method="post" action="{{ route('store.cart.add') }}" class="ag-store-pdp__cart-form">
                     @csrf
                     <input type="hidden" name="product_id" value="{{ $product->id }}" />
@@ -83,6 +86,7 @@
                         </div>
                     </div>
                 </form>
+                @endif
             </div>
         </div>
 

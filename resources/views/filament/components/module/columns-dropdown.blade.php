@@ -5,6 +5,7 @@
     $moduleKey = $moduleKey ?? 'module';
     $interactive = ($toolbar['interactive'] ?? false) === true;
     $livewirePrefix = $toolbar['livewirePrefix'] ?? 'ai-logs';
+    $livewireComponent = $toolbar['livewireComponent'] ?? null;
     $columnDataAttr = $toolbar['columnDataAttr'] ?? 'data-ai-log-column';
 @endphp
 
@@ -18,7 +19,11 @@
         },
         toggleColumn(column, visible) {
             @if ($interactive)
-                window.Livewire.dispatch(@js($livewirePrefix . '-column-toggle'), { column, visible });
+                @if (filled($livewireComponent))
+                    window.Livewire.dispatchTo(@js($livewireComponent), 'toggleColumn', { column, visible });
+                @else
+                    window.Livewire.dispatch(@js($livewirePrefix . '-column-toggle'), { column, visible });
+                @endif
             @endif
         },
     }"

@@ -112,11 +112,15 @@ class OnlineSaleOrderService
 
         $validated = validator($payload, [
             'order_status' => ['required', 'string', Rule::in(OnlineSaleOrder::STATUSES)],
+            'fulfillment_status' => ['nullable', 'string', Rule::in(OnlineSaleOrder::FULFILLMENT_STATUSES)],
+            'assigned_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'payment_status' => ['required', 'string', Rule::in(SaleService::PAYMENT_STATUSES)],
             'payment_method' => ['required', 'string', Rule::in(SaleService::PAYMENT_METHODS)],
             'bank_account_id' => ['nullable', 'integer'],
             'amount_paid' => ['nullable', 'string'],
             'admin_notes' => ['nullable', 'string', 'max:5000'],
+            'supplier_ids' => ['nullable', 'array'],
+            'supplier_ids.*' => ['integer', 'exists:suppliers,id'],
         ])->validate();
 
         if ($validated['payment_method'] !== 'bank_transfer') {
@@ -146,6 +150,8 @@ class OnlineSaleOrderService
 
         $order->fill([
             'order_status' => $orderStatus,
+            'fulfillment_status' => $validated['fulfillment_status'] ?? $order->fulfillment_status,
+            'assigned_user_id' => $validated['assigned_user_id'] ?? null,
             'payment_status' => $validated['payment_status'],
             'payment_method' => $validated['payment_method'],
             'bank_account_id' => $validated['bank_account_id'],
@@ -153,9 +159,38 @@ class OnlineSaleOrderService
             'admin_notes' => $validated['admin_notes'] ?? $order->admin_notes,
         ]);
 
+        if (
+            filled($validated['assigned_user_id'] ?? null)
+            && $order->fulfillment_status === OnlineSaleOrder::FULFILLMENT_AWAITING
+        ) {
+            $order->fulfillment_status = OnlineSaleOrder::FULFILLMENT_ASSIGNED;
+        }
+
         $order->save();
 
-        return $order->fresh(['items', 'customer', 'sale']);
+        $supplierIds = $validated['supplier_ids'] ?? null;
+
+        if (is_array($supplierIds)) {
+            app(OnlineOrderDispatchService::class)->syncSupplierAssignments(
+                $order,
+                $supplierIds,
+                auth()->user(),
+            );
+        }
+
+        $order = $order->fresh(['supplierAssignments']);
+
+        if (isset($payload['supplier_fulfillment']) && is_array($payload['supplier_fulfillment'])) {
+            app(OnlineOrderDispatchService::class)->applySupplierFulfillmentUpdates(
+                $order,
+                $payload['supplier_fulfillment'],
+                is_array($payload['supplier_proof_uploads'] ?? null) ? $payload['supplier_proof_uploads'] : [],
+            );
+        }
+
+        app(OnlineOrderDispatchService::class)->enterDispatchQueueIfPaid($order->fresh());
+
+        return $order->fresh(['items', 'customer', 'sale', 'supplierAssignments.supplier', 'assignedUser']);
     }
 
     /**
@@ -163,7 +198,7 @@ class OnlineSaleOrderService
      */
     public function toFormState(OnlineSaleOrder $order): array
     {
-        $order->loadMissing(['items', 'customer', 'sale']);
+        $order->loadMissing(['items', 'customer', 'sale', 'supplierAssignments']);
 
         $rows = [];
 
@@ -187,6 +222,8 @@ class OnlineSaleOrderService
             'order_date' => $order->order_date?->format('Y-m-d') ?? '',
             'locale' => $order->locale,
             'order_status' => $order->order_status,
+            'fulfillment_status' => (string) ($order->fulfillment_status ?? OnlineSaleOrder::FULFILLMENT_AWAITING),
+            'assigned_user_id' => $order->assigned_user_id,
             'payment_status' => $order->payment_status,
             'customer_payment_method' => (string) ($order->customer_payment_method ?? ''),
             'customer_payment_note' => (string) ($order->customer_payment_note ?? ''),
@@ -203,6 +240,7 @@ class OnlineSaleOrderService
             'customer_notes' => (string) ($order->customer_notes ?? ''),
             'admin_notes' => (string) ($order->admin_notes ?? ''),
             'sale_number' => $order->sale?->sale_number ?? '',
+            'supplier_assignment_ids' => $order->supplierAssignments->pluck('supplier_id')->all(),
             'rows' => $rows,
         ];
     }

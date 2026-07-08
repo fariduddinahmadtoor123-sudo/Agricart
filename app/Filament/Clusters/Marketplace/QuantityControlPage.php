@@ -14,7 +14,7 @@ class QuantityControlPage extends BaseModulePage
 
     protected static ?string $navigationLabel = 'Quantity Channel';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $slug = 'quantity-control';
 

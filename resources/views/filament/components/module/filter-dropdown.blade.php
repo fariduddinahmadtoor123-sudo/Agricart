@@ -6,6 +6,7 @@
     $moduleKey = $moduleKey ?? 'module';
     $interactive = ($toolbar['interactive'] ?? false) === true;
     $livewirePrefix = $toolbar['livewirePrefix'] ?? 'ai-logs';
+    $livewireComponent = $toolbar['livewireComponent'] ?? null;
 @endphp
 
 <div
@@ -18,13 +19,21 @@
         },
         applyFilter(value) {
             @if ($interactive)
-                window.Livewire.dispatch(@js($livewirePrefix . '-filter'), { filter: value });
+                @if (filled($livewireComponent))
+                    window.Livewire.dispatchTo(@js($livewireComponent), 'applyFilter', { filter: value });
+                @else
+                    window.Livewire.dispatch(@js($livewirePrefix . '-filter'), { filter: value });
+                @endif
             @endif
             this.open = false;
         },
         clearFilters() {
             @if ($interactive)
-                window.Livewire.dispatch(@js($livewirePrefix . '-clear-filters'));
+                @if (filled($livewireComponent))
+                    window.Livewire.dispatchTo(@js($livewireComponent), 'clearFilters');
+                @else
+                    window.Livewire.dispatch(@js($livewirePrefix . '-clear-filters'));
+                @endif
             @endif
             this.open = false;
         },

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Services\Sales\OnlineSaleOrderService;
 use App\Services\Sales\SaleService;
+use App\Services\SalesChannels\SalesChannelService;
 use App\Services\Store\StoreCartService;
 use App\Services\Store\StoreLayoutService;
 use Illuminate\Contracts\View\View;
@@ -17,8 +18,15 @@ use Illuminate\Validation\ValidationException;
 
 class CheckoutController extends Controller
 {
-    public function show(StoreLayoutService $layout, StoreCartService $cart): View|RedirectResponse
+    public function show(StoreLayoutService $layout, StoreCartService $cart, SalesChannelService $channels): View|RedirectResponse
     {
+        if (! $channels->onlineStoreAllowsPurchasing()) {
+            return redirect()
+                ->route('store.home')
+                ->with('store_status', __('agricart.storefront.channel.purchasing_disabled'))
+                ->with('store_status_type', 'warning');
+        }
+
         if ($cart->isEmpty()) {
             return redirect()->route('store.cart')->with('store_status', __('agricart.storefront.checkout.cart_empty'));
         }
@@ -43,8 +51,15 @@ class CheckoutController extends Controller
         ]);
     }
 
-    public function place(Request $request, StoreLayoutService $layout, StoreCartService $cart, OnlineSaleOrderService $orders): RedirectResponse
+    public function place(Request $request, StoreLayoutService $layout, StoreCartService $cart, OnlineSaleOrderService $orders, SalesChannelService $channels): RedirectResponse
     {
+        if (! $channels->onlineStoreAllowsPurchasing()) {
+            return redirect()
+                ->route('store.home')
+                ->with('store_status', __('agricart.storefront.channel.purchasing_disabled'))
+                ->with('store_status_type', 'warning');
+        }
+
         if ($cart->isEmpty()) {
             return redirect()->route('store.cart');
         }

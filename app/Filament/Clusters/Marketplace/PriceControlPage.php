@@ -14,7 +14,7 @@ class PriceControlPage extends BaseModulePage
 
     protected static ?string $navigationLabel = 'Price Channel';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 3;
 
     protected static ?string $slug = 'price-control';
 

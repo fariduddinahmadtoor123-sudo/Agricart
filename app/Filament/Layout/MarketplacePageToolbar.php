@@ -2,6 +2,8 @@
 
 namespace App\Filament\Layout;
 
+use App\Models\SalesChannel;
+use App\Services\SalesChannels\SalesChannelCatalog;
 use App\Filament\Clusters\Marketplace\OverviewPage;
 
 class MarketplacePageToolbar extends ClusterPageToolbar
@@ -36,6 +38,7 @@ class MarketplacePageToolbar extends ClusterPageToolbar
             'price-control' => static::priceControlConfig($config),
             'quantity-control' => static::quantityControlConfig($config),
             'secret-coding' => static::secretCodingConfig($config),
+            'sales-channels' => static::salesChannelsConfig($config),
             default => $config,
         };
     }
@@ -107,6 +110,38 @@ class MarketplacePageToolbar extends ClusterPageToolbar
                 ['label' => __('secret_coding.list.col_name_ur'), 'value' => 'name_ur', 'visible' => true],
                 ['label' => __('secret_coding.list.col_mapping'), 'value' => 'digit_mapping', 'visible' => true],
                 ['label' => __('secret_coding.list.col_status'), 'value' => 'status', 'visible' => true],
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     * @return array<string, mixed>
+     */
+    protected static function salesChannelsConfig(array $config): array
+    {
+        $canConfigure = static::userCan('create') || static::userCan('edit');
+        $implementedCount = count(SalesChannelCatalog::implementedSlugs());
+        $registeredCount = SalesChannel::query()
+            ->whereIn('slug', SalesChannelCatalog::implementedSlugs())
+            ->count();
+        $canAdd = $canConfigure && $registeredCount < $implementedCount;
+
+        return [
+            ...$config,
+            'livewirePrefix' => 'sales-channels',
+            'columnDataAttr' => 'data-sales-channel-column',
+            'interactive' => true,
+            'formKey' => 'sales-channel',
+            'addLabel' => $canAdd ? __('sales_channels.actions.add') : null,
+            'filters' => [
+                ['label' => __('sales_channels.filters.on'), 'value' => 'status:on'],
+                ['label' => __('sales_channels.filters.off'), 'value' => 'status:off'],
+            ],
+            'columns' => [
+                ['label' => __('sales_channels.list.col_name'), 'value' => 'name', 'visible' => true],
+                ['label' => __('sales_channels.list.col_status'), 'value' => 'status', 'visible' => true],
+                ['label' => __('sales_channels.list.col_maintenance'), 'value' => 'maintenance', 'visible' => true],
             ],
         ];
     }

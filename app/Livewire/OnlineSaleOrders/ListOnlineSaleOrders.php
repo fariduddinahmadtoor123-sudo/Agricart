@@ -145,13 +145,16 @@ class ListOnlineSaleOrders extends Component
             return;
         }
 
+        $canUpdate = $this->userCan('edit') && ! $order->isLocked();
+        $titleKey = $canUpdate ? 'edit_short' : 'view_short';
+
         $this->dispatch(
             'open-form-panel',
-            title: __('online_sale_orders.actions.view_short') . ': ' . $order->order_number,
+            title: __('online_sale_orders.actions.' . $titleKey) . ': ' . $order->order_number,
             resource: __('agricart.nav.sales.online-orders'),
             formKey: 'online-orders',
             orderId: $orderId,
-            mode: 'view',
+            mode: $canUpdate ? 'edit' : 'view',
         );
     }
 
@@ -182,6 +185,17 @@ class ListOnlineSaleOrders extends Component
         }
 
         $this->dispatch('online-sale-orders-open-print', url: route('admin.online-sale-orders.print', $order));
+    }
+
+    public function printPackingSlip(int $orderId): void
+    {
+        $order = OnlineSaleOrder::query()->find($orderId);
+
+        if ($order === null) {
+            return;
+        }
+
+        $this->dispatch('online-sale-orders-open-print', url: route('admin.online-sale-orders.packing-slip', $order));
     }
 
     public function render(): View

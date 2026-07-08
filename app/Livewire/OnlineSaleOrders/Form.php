@@ -4,8 +4,10 @@ namespace App\Livewire\OnlineSaleOrders;
 
 use App\Models\Customer;
 use App\Models\OnlineSaleOrder;
+use App\Models\OnlineSaleOrderSupplierAssignment;
 use App\Models\User;
 use App\Services\PricingControls\ChannelPricingEngine;
+use App\Services\Sales\OnlineOrderDispatchService;
 use App\Services\Sales\OnlineSaleOrderService;
 use App\Services\Sales\SaleService;
 use App\Services\Sales\SalesBankAccountService;
@@ -14,9 +16,11 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 
 class Form extends Component
 {
+    use WithFileUploads;
     public ?int $orderId = null;
 
     public string $mode = 'view';
@@ -28,6 +32,10 @@ class Form extends Component
     public string $locale = 'en';
 
     public string $order_status = '';
+
+    public string $fulfillment_status = '';
+
+    public ?int $assigned_user_id = null;
 
     public string $payment_status = '';
 
@@ -61,6 +69,22 @@ class Form extends Component
 
     public string $linked_sale_number = '';
 
+    /** @var list<int> */
+    public array $selectedSupplierIds = [];
+
+    /**
+     * @var array<string, array<string, mixed>>
+     */
+    public array $supplierFulfillment = [];
+
+    /**
+     * @var array<int|string, mixed>
+     */
+    public array $supplierProofUploads = [];
+
+    /** @var list<array<string, mixed>> */
+    public array $supplierAssignmentRows = [];
+
     /** @var list<array<string, mixed>> */
     public array $rows = [];
 
@@ -90,6 +114,7 @@ class Form extends Component
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'print' => $this->saveAndPrint(),
+            'packing_print' => $this->printPackingSlip(),
             default => null,
         };
     }
@@ -124,6 +149,127 @@ class Form extends Component
         $this->recalculateBalance();
     }
 
+    public function updatedSelectedSupplierIds(): void
+    {
+        foreach ($this->selectedSupplierIds as $supplierId) {
+            $this->ensureSupplierFulfillmentRow((int) $supplierId);
+        }
+    }
+
+    public function ensureSupplierFulfillmentRow(int $supplierId): void
+    {
+        $key = (string) $supplierId;
+
+        if (isset($this->supplierFulfillment[$key])) {
+            return;
+        }
+
+        $this->supplierFulfillment[$key] = $this->defaultSupplierFulfillmentRow();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function defaultSupplierFulfillmentRow(): array
+    {
+        return [
+            'status' => OnlineSaleOrderSupplierAssignment::STATUS_PENDING,
+            'carrier_name' => '',
+            'tracking_number' => '',
+            'shipping_reference' => '',
+            'supplier_response_notes' => '',
+            'shipping_proof_path' => null,
+            'acknowledged_at' => null,
+            'shipped_at' => null,
+        ];
+    }
+
+    public function updatedAssignedUserId($value): void
+    {
+        if ($value === '' || $value === null) {
+            $this->assigned_user_id = null;
+        } elseif (is_numeric($value)) {
+            $this->assigned_user_id = (int) $value;
+        }
+
+        if ($this->assigned_user_id !== null && $this->fulfillment_status === OnlineSaleOrder::FULFILLMENT_AWAITING) {
+            $this->fulfillment_status = OnlineSaleOrder::FULFILLMENT_ASSIGNED;
+        }
+    }
+
+    public function sendSupplierWhatsApp(int $supplierId): void
+    {
+        if (! $this->canConfirmPayment() || ! $this->orderId) {
+            return;
+        }
+
+        $order = OnlineSaleOrder::query()->with(['supplierAssignments.supplier', 'items'])->find($this->orderId);
+
+        if ($order === null) {
+            return;
+        }
+
+        $dispatch = app(OnlineOrderDispatchService::class);
+        $assignment = $order->supplierAssignments->firstWhere('supplier_id', $supplierId);
+
+        if ($assignment === null) {
+            $dispatch->syncSupplierAssignments($order, [$supplierId], auth()->user());
+            $order->load('supplierAssignments.supplier');
+            $assignment = $order->supplierAssignments->firstWhere('supplier_id', $supplierId);
+        }
+
+        if ($assignment === null) {
+            return;
+        }
+
+        $dispatch->markAssignmentSent($assignment);
+        $url = $dispatch->whatsAppUrlForSupplier($order, $assignment->supplier);
+
+        if ($url !== null) {
+            $this->dispatch('online-order-open-external', url: $url);
+        }
+
+        $this->loadOrder($this->orderId);
+        $this->dispatch('online-sale-orders-saved');
+        $this->dispatch('order-dispatch-saved');
+    }
+
+    public function sendSupplierEmail(int $supplierId): void
+    {
+        if (! $this->canConfirmPayment() || ! $this->orderId) {
+            return;
+        }
+
+        $order = OnlineSaleOrder::query()->with(['supplierAssignments.supplier', 'items'])->find($this->orderId);
+
+        if ($order === null) {
+            return;
+        }
+
+        $dispatch = app(OnlineOrderDispatchService::class);
+        $supplier = $order->supplierAssignments->firstWhere('supplier_id', $supplierId)?->supplier
+            ?? $dispatch->suggestSuppliersForOrder($order)->firstWhere('id', $supplierId);
+
+        if ($supplier === null) {
+            return;
+        }
+
+        $dispatch->syncSupplierAssignments($order, [$supplierId], auth()->user());
+        $assignment = $order->supplierAssignments()->where('supplier_id', $supplierId)->first();
+
+        if ($assignment !== null) {
+            $dispatch->markAssignmentSent($assignment);
+        }
+
+        $url = $dispatch->mailToUrlForSupplier($order, $supplier);
+
+        if ($url !== null) {
+            $this->dispatch('online-order-open-external', url: $url);
+        }
+
+        $this->loadOrder($this->orderId);
+    }
+
     public function displayPrice(string $amount): string
     {
         $amount = trim($amount);
@@ -153,12 +299,21 @@ class Form extends Component
 
     public function isAmountPaidEditable(): bool
     {
-        return $this->payment_status === 'partial' && $this->canEditFields();
+        return $this->payment_status === 'partial' && $this->canConfirmPayment();
+    }
+
+    public function canConfirmPayment(): bool
+    {
+        if ($this->orderId === null || $this->isLocked()) {
+            return false;
+        }
+
+        return $this->userCan('edit');
     }
 
     public function canEditFields(): bool
     {
-        return $this->mode === 'edit' && ! $this->isLocked();
+        return $this->canConfirmPayment() && $this->mode === 'edit';
     }
 
     public function isLocked(): bool
@@ -174,7 +329,13 @@ class Form extends Component
 
     public function isReadonly(): bool
     {
-        return $this->mode === 'view' || ! $this->canEditFields();
+        return ! $this->canConfirmPayment();
+    }
+
+    /** Order lines and header are view-only unless full edit mode (reserved for future). */
+    public function isOrderDetailsReadonly(): bool
+    {
+        return $this->mode === 'view' || ! $this->canConfirmPayment();
     }
 
     public function saveAndClose(): void
@@ -184,9 +345,16 @@ class Form extends Component
         }
     }
 
+    public function printPackingSlip(): void
+    {
+        if ($this->orderId) {
+            $this->dispatch('online-sale-orders-open-print', url: route('admin.online-sale-orders.packing-slip', ['order' => $this->orderId]));
+        }
+    }
+
     public function saveAndPrint(): void
     {
-        if ($this->mode === 'view' || ! $this->canEditFields()) {
+        if (! $this->canConfirmPayment()) {
             if ($this->orderId) {
                 $this->dispatch('online-sale-orders-open-print', url: route('admin.online-sale-orders.print', ['order' => $this->orderId]));
             }
@@ -201,11 +369,7 @@ class Form extends Component
 
     private function persistAdmin(): bool
     {
-        if (! $this->canEditFields()) {
-            return false;
-        }
-
-        if (! $this->userCan('edit') || ! $this->orderId) {
+        if (! $this->canConfirmPayment() || ! $this->orderId) {
             return false;
         }
 
@@ -218,18 +382,35 @@ class Form extends Component
 
         try {
             $order = OnlineSaleOrder::query()->findOrFail($this->orderId);
+            $fulfillmentPayload = [];
+
+            foreach ($this->selectedSupplierIds as $supplierId) {
+                $key = (string) $supplierId;
+
+                if (isset($this->supplierFulfillment[$key])) {
+                    $fulfillmentPayload[$key] = $this->supplierFulfillment[$key];
+                }
+            }
+
             app(OnlineSaleOrderService::class)->updateAdmin($order, [
                 'order_status' => $this->order_status,
+                'fulfillment_status' => $this->fulfillment_status,
+                'assigned_user_id' => $this->assigned_user_id,
                 'payment_status' => $this->payment_status,
                 'payment_method' => $this->payment_method,
                 'bank_account_id' => $this->bank_account_id,
                 'amount_paid' => $this->amount_paid,
                 'admin_notes' => $this->admin_notes,
+                'supplier_ids' => $this->selectedSupplierIds,
+                'supplier_fulfillment' => $fulfillmentPayload,
+                'supplier_proof_uploads' => $this->supplierProofUploads,
             ]);
 
             $this->setStatus(__('online_sale_orders.messages.updated', ['number' => $order->order_number]), 'success');
+            $this->supplierProofUploads = [];
             $this->loadOrder($order->id);
             $this->dispatch('online-sale-orders-saved');
+            $this->dispatch('order-dispatch-saved');
 
             return true;
         } catch (ValidationException $exception) {
@@ -254,8 +435,54 @@ class Form extends Component
             $customer = OnlineSaleOrder::query()->with('customer')->find($this->orderId)?->customer;
         }
 
+        $staffOptions = User::query()
+            ->where('status', User::STATUS_ACTIVE)
+            ->orderBy('name')
+            ->get()
+            ->map(fn (User $user): array => [
+                'id' => $user->id,
+                'label' => $user->name,
+            ])
+            ->all();
+
+        $suggestedSuppliers = [];
+
+        if ($this->orderId) {
+            $orderModel = OnlineSaleOrder::query()->with(['supplierAssignments.supplier'])->find($this->orderId);
+
+            if ($orderModel !== null) {
+                $dispatch = app(OnlineOrderDispatchService::class);
+                $suggested = $dispatch->suggestSuppliersForOrder($orderModel)->keyBy('id');
+
+                foreach ($orderModel->supplierAssignments as $assignment) {
+                    $suggested->put($assignment->supplier_id, $assignment->supplier);
+                }
+
+                foreach ($suggested as $supplier) {
+                    $assignment = $orderModel->supplierAssignments->firstWhere('supplier_id', $supplier->id);
+                    $isAssigned = $assignment !== null
+                        || in_array($supplier->id, $this->selectedSupplierIds, true);
+                    $suggestedSuppliers[] = [
+                        'id' => $supplier->id,
+                        'label' => $supplier->displayBusinessName(),
+                        'is_assigned' => $isAssigned,
+                        'status' => $assignment?->status,
+                        'proof_url' => $assignment?->shippingProofUrl(),
+                    ];
+                }
+            }
+        }
+
         return view('livewire.online-sale-orders.form', [
             'selectedCustomer' => $customer,
+            'staffOptions' => $staffOptions,
+            'suggestedSuppliers' => $suggestedSuppliers,
+            'supplierStatusOptions' => collect(OnlineSaleOrderSupplierAssignment::ADMIN_STATUSES)
+                ->mapWithKeys(fn (string $status): array => [$status => __('order_dispatch.supplier_statuses.' . $status)])
+                ->all(),
+            'fulfillmentStatusOptions' => collect(OnlineSaleOrder::FULFILLMENT_STATUSES)
+                ->mapWithKeys(fn (string $status): array => [$status => __('order_dispatch.fulfillment_statuses.' . $status)])
+                ->all(),
             'paymentOptions' => collect(SaleService::PAYMENT_STATUSES)
                 ->mapWithKeys(fn (string $status): array => [$status => __('pos.payment_statuses.' . $status)])
                 ->all(),
@@ -282,6 +509,8 @@ class Form extends Component
         $this->order_date = (string) $state['order_date'];
         $this->locale = (string) $state['locale'];
         $this->order_status = (string) $state['order_status'];
+        $this->fulfillment_status = (string) ($state['fulfillment_status'] ?? OnlineSaleOrder::FULFILLMENT_AWAITING);
+        $this->assigned_user_id = $state['assigned_user_id'] ? (int) $state['assigned_user_id'] : null;
         $this->payment_status = (string) $state['payment_status'];
         $this->customer_payment_method = (string) $state['customer_payment_method'];
         $this->customer_payment_note = (string) $state['customer_payment_note'];
@@ -298,11 +527,45 @@ class Form extends Component
         $this->customer_notes = (string) $state['customer_notes'];
         $this->admin_notes = (string) $state['admin_notes'];
         $this->linked_sale_number = (string) $state['sale_number'];
+        $this->selectedSupplierIds = array_map('intval', $state['supplier_assignment_ids'] ?? []);
         $this->rows = $state['rows'];
+
+        $order->load('supplierAssignments');
+        $this->supplierFulfillment = [];
+
+        foreach ($order->supplierAssignments as $assignment) {
+            $key = (string) $assignment->supplier_id;
+            $status = $assignment->status;
+
+            if ($status === OnlineSaleOrderSupplierAssignment::STATUS_SENT) {
+                $status = OnlineSaleOrderSupplierAssignment::STATUS_ACKNOWLEDGED;
+            }
+
+            if (! in_array($status, OnlineSaleOrderSupplierAssignment::ADMIN_STATUSES, true)) {
+                $status = OnlineSaleOrderSupplierAssignment::STATUS_PENDING;
+            }
+
+            $this->supplierFulfillment[$key] = [
+                'status' => $status,
+                'carrier_name' => (string) ($assignment->carrier_name ?? ''),
+                'tracking_number' => (string) ($assignment->tracking_number ?? ''),
+                'shipping_reference' => (string) ($assignment->shipping_reference ?? ''),
+                'supplier_response_notes' => (string) ($assignment->supplier_response_notes ?? ''),
+                'shipping_proof_path' => $assignment->shipping_proof_path,
+                'acknowledged_at' => $assignment->acknowledged_at?->format('Y-m-d H:i'),
+                'shipped_at' => $assignment->shipped_at?->format('Y-m-d H:i'),
+            ];
+        }
+
+        foreach ($this->selectedSupplierIds as $supplierId) {
+            $this->ensureSupplierFulfillmentRow((int) $supplierId);
+        }
 
         if ($this->payment_method === '' && $this->customer_payment_method !== '') {
             $this->payment_method = $this->customer_payment_method;
         }
+
+        $this->recalculateBalance();
     }
 
     private function recalculateBalance(): void
@@ -395,6 +658,8 @@ class Form extends Component
             'order_date',
             'locale',
             'order_status',
+            'fulfillment_status',
+            'assigned_user_id',
             'payment_status',
             'customer_payment_method',
             'customer_payment_note',
@@ -411,6 +676,10 @@ class Form extends Component
             'customer_notes',
             'admin_notes',
             'linked_sale_number',
+            'selectedSupplierIds',
+            'supplierFulfillment',
+            'supplierProofUploads',
+            'supplierAssignmentRows',
             'rows',
             'statusMessage',
         ]);

@@ -11,6 +11,17 @@ abstract class BaseAgricartCluster extends Cluster
 {
     protected static bool $shouldRegisterSubNavigation = false;
 
+    public static function isComingSoon(): bool
+    {
+        $slug = static::$slug ?? '';
+
+        if ($slug === '') {
+            return false;
+        }
+
+        return in_array($slug, config('agricart.modules_coming_soon', []), true);
+    }
+
     public static function canAccess(): bool
     {
         $user = auth()->user();

@@ -2,8 +2,10 @@
 
 namespace App\Livewire\Users;
 
+use App\Enums\CategoryAiStatus;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Access\UserEnrichmentService;
 use App\Services\Access\UserService;
 use App\Support\PakistaniBanks;
 use Illuminate\Contracts\View\View;
@@ -23,9 +25,14 @@ class Form extends Component
 
     public string $mode = 'create';
 
+    /** @var 'settings'|'staff' */
+    public string $formContext = 'settings';
+
     public string $user_number = '';
 
     public string $name = '';
+
+    public string $name_ur = '';
 
     public ?int $role_id = null;
 
@@ -35,18 +42,20 @@ class Form extends Component
 
     public string $address = '';
 
+    public string $address_ur = '';
+
     public string $password = '';
 
     public string $password_confirmation = '';
 
-    /** @var list<array{contact_person: string, phone_number: string}> */
+    /** @var list<array{contact_person: string, contact_person_ur: string, phone_number: string}> */
     public array $phoneRows = [
-        ['contact_person' => '', 'phone_number' => ''],
+        ['contact_person' => '', 'contact_person_ur' => '', 'phone_number' => ''],
     ];
 
-    /** @var list<array{bank_name: string, account_title: string, account_number: string}> */
+    /** @var list<array{bank_name: string, account_title: string, account_title_ur: string, account_number: string}> */
     public array $bankRows = [
-        ['bank_name' => '', 'account_title' => '', 'account_number' => ''],
+        ['bank_name' => '', 'account_title' => '', 'account_title_ur' => '', 'account_number' => ''],
     ];
 
     /** @var array<int, string> */
@@ -72,19 +81,29 @@ class Form extends Component
 
     public bool $saving = false;
 
+    public bool $enriching = false;
+
+    public string $ai_status = 'none';
+
+    public bool $suppressAiEnrich = false;
+
     public ?string $statusMessage = null;
 
     public string $statusType = 'success';
 
     #[On('user-form-open')]
-    public function openForm(?int $userId = null, string $mode = 'create'): void
+    public function openForm(?int $userId = null, string $mode = 'create', string $formContext = 'settings'): void
     {
+        $this->formContext = $formContext === 'staff' ? 'staff' : 'settings';
         $this->resetForm();
         $this->mode = $mode;
         $this->userId = $userId;
 
         if ($userId) {
-            $this->loadUser($userId);
+            if (! $this->loadUser($userId)) {
+                $this->userId = null;
+                $this->mode = 'create';
+            }
         }
     }
 
@@ -94,8 +113,176 @@ class Form extends Component
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'save_next' => $this->saveAndAddNext(),
+            'ai' => $this->enrichWithAi(),
             default => null,
         };
+    }
+
+    public function updated($property): void
+    {
+        if ($this->suppressAiEnrich || $this->isReadonly() || $this->enriching) {
+            return;
+        }
+
+        if (preg_match('/^(name_ur|name|address_ur|address)$/', (string) $property)) {
+            $this->maybeAutoEnrichFromField();
+
+            return;
+        }
+
+        if (preg_match('/^phoneRows\.\d+\.(contact_person_ur|contact_person)$/', (string) $property)
+            || preg_match('/^bankRows\.\d+\.account_title(_ur)?$/', (string) $property)) {
+            $this->maybeAutoEnrichFromField();
+        }
+    }
+
+    public function enrichWithAi(bool $fromAuto = false): void
+    {
+        if ($this->isReadonly()) {
+            return;
+        }
+
+        $this->enriching = true;
+        $this->ai_status = CategoryAiStatus::Pending->value;
+        if (! $fromAuto) {
+            $this->statusMessage = null;
+        }
+        $this->dispatchBusyState();
+
+        try {
+            $result = app(UserEnrichmentService::class)->enrich($this->enrichmentPayload());
+
+            if (! $result['success']) {
+                $this->ai_status = CategoryAiStatus::Failed->value;
+                if (! $fromAuto || ! str_contains($result['message'], __('agricart.users.ai.input_required'))) {
+                    $this->setStatus($result['message'], $fromAuto ? 'warning' : 'danger');
+                }
+
+                return;
+            }
+
+            $this->applyEnrichmentData($result['data'] ?? [], $fromAuto);
+            $this->ai_status = CategoryAiStatus::Enriched->value;
+
+            if (! $fromAuto) {
+                $this->setStatus($result['message'], 'success');
+            }
+        } catch (\Throwable) {
+            $this->ai_status = CategoryAiStatus::Failed->value;
+            if (! $fromAuto) {
+                $this->setStatus(__('agricart.users.ai.failed'), 'danger');
+            }
+        } finally {
+            $this->enriching = false;
+            $this->dispatchBusyState();
+        }
+    }
+
+    private function maybeAutoEnrichFromField(): void
+    {
+        $this->enrichWithAi(fromAuto: true);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function enrichmentPayload(): array
+    {
+        return [
+            'name_en' => $this->name,
+            'name_ur' => $this->name_ur,
+            'address_en' => $this->address,
+            'address_ur' => $this->address_ur,
+            'phone_rows' => $this->phoneRows,
+            'bank_rows' => $this->bankRows,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function applyEnrichmentData(array $data, bool $fromAuto = false): void
+    {
+        $this->suppressAiEnrich = true;
+
+        if (filled($data['name_en'] ?? null) && blank($this->name)) {
+            $this->name = (string) $data['name_en'];
+        }
+
+        if (filled($data['name_ur'] ?? null) && blank($this->name_ur)) {
+            $this->name_ur = (string) $data['name_ur'];
+        }
+
+        if (filled($data['address_en'] ?? null) && blank($this->address)) {
+            $this->address = (string) $data['address_en'];
+        }
+
+        if (filled($data['address_ur'] ?? null) && blank($this->address_ur)) {
+            $this->address_ur = (string) $data['address_ur'];
+        }
+
+        if (isset($data['phone_rows']) && is_array($data['phone_rows'])) {
+            $this->mergePhoneEnrichmentRows($data['phone_rows']);
+        }
+
+        if (isset($data['bank_rows']) && is_array($data['bank_rows'])) {
+            $this->mergeBankEnrichmentRows($data['bank_rows']);
+        }
+
+        $this->suppressAiEnrich = false;
+    }
+
+    /**
+     * @param  list<mixed>  $rows
+     */
+    private function mergePhoneEnrichmentRows(array $rows): void
+    {
+        foreach ($rows as $index => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            if (! isset($this->phoneRows[$index])) {
+                $this->phoneRows[] = ['contact_person' => '', 'contact_person_ur' => '', 'phone_number' => ''];
+            }
+
+            if (filled($row['contact_person'] ?? null) && blank($this->phoneRows[$index]['contact_person'] ?? '')) {
+                $this->phoneRows[$index]['contact_person'] = (string) $row['contact_person'];
+            }
+
+            if (filled($row['contact_person_ur'] ?? null) && blank($this->phoneRows[$index]['contact_person_ur'] ?? '')) {
+                $this->phoneRows[$index]['contact_person_ur'] = (string) $row['contact_person_ur'];
+            }
+
+            if (filled($row['phone_number'] ?? null) && blank($this->phoneRows[$index]['phone_number'])) {
+                $this->phoneRows[$index]['phone_number'] = (string) $row['phone_number'];
+            }
+        }
+    }
+
+    /**
+     * @param  list<mixed>  $rows
+     */
+    private function mergeBankEnrichmentRows(array $rows): void
+    {
+        foreach ($rows as $index => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            if (! isset($this->bankRows[$index])) {
+                $this->bankRows[] = ['bank_name' => '', 'account_title' => '', 'account_title_ur' => '', 'account_number' => ''];
+                $this->bankSearches[] = '';
+            }
+
+            if (filled($row['account_title'] ?? null) && blank($this->bankRows[$index]['account_title'] ?? '')) {
+                $this->bankRows[$index]['account_title'] = (string) $row['account_title'];
+            }
+
+            if (filled($row['account_title_ur'] ?? null) && blank($this->bankRows[$index]['account_title_ur'] ?? '')) {
+                $this->bankRows[$index]['account_title_ur'] = (string) $row['account_title_ur'];
+            }
+        }
     }
 
     public function updatedProfilePhotoUpload(): void
@@ -131,7 +318,7 @@ class Form extends Component
             return;
         }
 
-        $this->phoneRows[] = ['contact_person' => '', 'phone_number' => ''];
+        $this->phoneRows[] = ['contact_person' => '', 'contact_person_ur' => '', 'phone_number' => ''];
     }
 
     public function removePhoneRow(int $index): void
@@ -150,7 +337,7 @@ class Form extends Component
             return;
         }
 
-        $this->bankRows[] = ['bank_name' => '', 'account_title' => '', 'account_number' => ''];
+        $this->bankRows[] = ['bank_name' => '', 'account_title' => '', 'account_title_ur' => '', 'account_number' => ''];
         $this->bankSearches[] = '';
     }
 
@@ -190,6 +377,7 @@ class Form extends Component
     {
         if ($this->persist()) {
             $this->dispatch('users-saved');
+            $this->dispatch('staff-members-saved');
             $this->dispatch('close-form-panel');
         }
     }
@@ -198,6 +386,7 @@ class Form extends Component
     {
         if ($this->persist()) {
             $this->dispatch('users-saved');
+            $this->dispatch('staff-members-saved');
             $this->resetForm();
         }
     }
@@ -209,9 +398,13 @@ class Form extends Component
 
     public function render(): View
     {
+        $statuses = $this->formContext === 'staff'
+            ? [User::STATUS_ACTIVE, User::STATUS_INACTIVE]
+            : UserService::statuses();
+
         return view('livewire.users.form', [
             'roleOptions' => Role::query()->orderBy('name')->pluck('name', 'id')->all(),
-            'statusOptions' => collect(UserService::statuses())
+            'statusOptions' => collect($statuses)
                 ->mapWithKeys(fn (string $status): array => [
                     $status => __("agricart.users.statuses.{$status}"),
                 ])
@@ -254,7 +447,7 @@ class Form extends Component
 
         $user = auth()->user();
 
-        if (! $user instanceof \App\Models\User || ! $user->hasPermission('settings.users.manage')) {
+        if (! $user instanceof \App\Models\User || ! $this->canManageForm()) {
             $this->setStatus(__('agricart.access.denied'), 'danger');
 
             return false;
@@ -265,10 +458,15 @@ class Form extends Component
         $this->dispatchBusyState();
 
         try {
+            $allowedStatuses = $this->formContext === 'staff'
+                ? [User::STATUS_ACTIVE, User::STATUS_INACTIVE]
+                : UserService::statuses();
+
             $rules = [
                 'name' => ['required', 'string', 'max:255'],
+                'name_ur' => ['nullable', 'string', 'max:255'],
                 'role_id' => ['required', 'integer', 'exists:roles,id'],
-                'status' => ['required', Rule::in(UserService::statuses())],
+                'status' => ['required', Rule::in($allowedStatuses)],
                 'email' => [
                     'required',
                     'email',
@@ -276,10 +474,13 @@ class Form extends Component
                     Rule::unique('users', 'email')->ignore($this->userId),
                 ],
                 'address' => ['nullable', 'string', 'max:2000'],
+                'address_ur' => ['nullable', 'string', 'max:2000'],
                 'phoneRows.*.phone_number' => ['nullable', 'string', 'max:30'],
                 'phoneRows.*.contact_person' => ['nullable', 'string', 'max:255'],
+                'phoneRows.*.contact_person_ur' => ['nullable', 'string', 'max:255'],
                 'bankRows.*.bank_name' => ['nullable', 'string', 'max:255'],
                 'bankRows.*.account_title' => ['nullable', 'string', 'max:255'],
+                'bankRows.*.account_title_ur' => ['nullable', 'string', 'max:255'],
                 'bankRows.*.account_number' => ['nullable', 'string', 'max:64'],
                 'profilePhotoUpload' => ['nullable', 'image', 'max:5120'],
                 'cnicFrontUpload' => ['nullable', 'image', 'max:5120'],
@@ -301,10 +502,12 @@ class Form extends Component
             $payload = [
                 'user_number' => filled($this->user_number) ? $this->user_number : null,
                 'name' => $this->name,
+                'name_ur' => $this->name_ur ?: null,
                 'role_id' => $this->role_id,
                 'status' => $this->status,
                 'email' => $this->email,
                 'address' => $this->address ?: null,
+                'address_ur' => $this->address_ur ?: null,
                 'phone_numbers' => $service->normalizePhoneRows($this->phoneRows),
                 'bank_accounts' => $service->normalizeBankRows($this->bankRows),
                 'profile_photo_path' => $this->storedProfilePhotoPath,
@@ -320,7 +523,10 @@ class Form extends Component
                 $user = User::query()->findOrFail($this->userId);
                 $user = $service->update($user, $payload);
                 $this->user_number = (string) ($user->user_number ?? '');
-                $this->setStatus(__('agricart.users.messages.updated', ['name' => $this->name]), 'success');
+                $messageKey = $this->formContext === 'staff'
+                    ? 'agricart.staff.members.messages.updated'
+                    : 'agricart.users.messages.updated';
+                $this->setStatus(__($messageKey, ['name' => $this->name]), 'success');
             } else {
                 $user = $service->create($payload);
                 $this->userId = $user->id;
@@ -328,13 +534,19 @@ class Form extends Component
                 $this->mode = 'edit';
                 $this->password = '';
                 $this->password_confirmation = '';
-                $this->setStatus(__('agricart.users.messages.created', ['name' => $this->name]), 'success');
+                $messageKey = $this->formContext === 'staff'
+                    ? 'agricart.staff.members.messages.created'
+                    : 'agricart.users.messages.created';
+                $this->setStatus(__($messageKey, ['name' => $this->name]), 'success');
             }
 
             return true;
         } catch (ValidationException $exception) {
             $message = collect($exception->errors())->flatten()->first();
-            $this->setStatus($message ?: __('agricart.users.messages.save_failed'), 'danger');
+            $failedKey = $this->formContext === 'staff'
+                ? 'agricart.staff.members.messages.save_failed'
+                : 'agricart.users.messages.save_failed';
+            $this->setStatus($message ?: __($failedKey), 'danger');
 
             return false;
         } catch (\Throwable $exception) {
@@ -347,33 +559,43 @@ class Form extends Component
         }
     }
 
-    private function loadUser(int $userId): void
+    private function loadUser(int $userId): bool
     {
         $user = User::query()->findOrFail($userId);
 
+        if ($this->formContext === 'staff' && ! in_array($user->status, [User::STATUS_ACTIVE, User::STATUS_INACTIVE], true)) {
+            $this->setStatus(__('agricart.staff.members.messages.not_on_roster'), 'danger');
+
+            return false;
+        }
+
         $this->user_number = (string) ($user->user_number ?? '');
         $this->name = $user->name;
+        $this->name_ur = (string) ($user->name_ur ?? '');
         $this->role_id = $user->role_id;
         $this->status = $user->status ?? 'active';
         $this->email = $user->email;
         $this->address = (string) ($user->address ?? '');
+        $this->address_ur = (string) ($user->address_ur ?? '');
 
         $phones = is_array($user->phone_numbers) ? $user->phone_numbers : [];
         $this->phoneRows = $phones !== []
             ? array_values(array_map(static fn (array $row): array => [
                 'contact_person' => (string) ($row['contact_person'] ?? ''),
+                'contact_person_ur' => (string) ($row['contact_person_ur'] ?? ''),
                 'phone_number' => (string) ($row['phone_number'] ?? ''),
             ], $phones))
-            : [['contact_person' => '', 'phone_number' => '']];
+            : [['contact_person' => '', 'contact_person_ur' => '', 'phone_number' => '']];
 
         $banks = is_array($user->bank_accounts) ? $user->bank_accounts : [];
         $this->bankRows = $banks !== []
             ? array_values(array_map(static fn (array $row): array => [
                 'bank_name' => (string) ($row['bank_name'] ?? ''),
                 'account_title' => (string) ($row['account_title'] ?? ''),
+                'account_title_ur' => (string) ($row['account_title_ur'] ?? ''),
                 'account_number' => (string) ($row['account_number'] ?? ''),
             ], $banks))
-            : [['bank_name' => '', 'account_title' => '', 'account_number' => '']];
+            : [['bank_name' => '', 'account_title' => '', 'account_title_ur' => '', 'account_number' => '']];
 
         $this->bankSearches = array_fill(0, count($this->bankRows), '');
 
@@ -383,6 +605,8 @@ class Form extends Component
         $this->profilePhotoPreviewUrl = $this->storageUrl($user->profile_photo_path);
         $this->cnicFrontPreviewUrl = $this->storageUrl($user->cnic_front_path);
         $this->cnicBackPreviewUrl = $this->storageUrl($user->cnic_back_path);
+
+        return true;
     }
 
     private function persistUploadedFiles(): void
@@ -417,10 +641,12 @@ class Form extends Component
             'userId',
             'user_number',
             'name',
+            'name_ur',
             'role_id',
             'status',
             'email',
             'address',
+            'address_ur',
             'password',
             'password_confirmation',
             'profilePhotoUpload',
@@ -436,13 +662,41 @@ class Form extends Component
         ]);
 
         $this->mode = 'create';
-        $this->status = User::STATUS_PENDING;
+        $this->status = $this->formContext === 'staff' ? User::STATUS_ACTIVE : User::STATUS_PENDING;
         $this->statusType = 'success';
         $this->saving = false;
-        $this->phoneRows = [['contact_person' => '', 'phone_number' => '']];
-        $this->bankRows = [['bank_name' => '', 'account_title' => '', 'account_number' => '']];
+        $this->phoneRows = [['contact_person' => '', 'contact_person_ur' => '', 'phone_number' => '']];
+        $this->bankRows = [['bank_name' => '', 'account_title' => '', 'account_title_ur' => '', 'account_number' => '']];
         $this->bankSearches = [''];
-        $this->assignDefaultRole();
+
+        if ($this->formContext === 'settings') {
+            $this->assignDefaultRole();
+        } else {
+            $this->role_id = null;
+        }
+    }
+
+    private function canManageForm(): bool
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        if ($this->formContext === 'staff') {
+            if ($this->userId) {
+                return $user->hasPermission('staff.edit');
+            }
+
+            return $user->hasPermission('staff.create') || $user->hasPermission('staff.edit');
+        }
+
+        return $user->hasPermission('settings.users.manage');
     }
 
     private function assignDefaultRole(): void
@@ -466,6 +720,6 @@ class Form extends Component
 
     private function dispatchBusyState(): void
     {
-        $this->dispatch('user-form-busy', saving: $this->saving);
+        $this->dispatch('user-form-busy', enriching: $this->enriching, saving: $this->saving);
     }
 }

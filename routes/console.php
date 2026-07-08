@@ -48,3 +48,10 @@ Artisan::command('online-orders:demo', function (): void {
     $this->info('Created demo online order: ' . $order->order_number . ' (total ' . $saleService->formatMoney((float) $order->total_amount) . ')');
 })->purpose('Create a sample online sale order for admin UI testing');
 
+Artisan::command('staff:attendance-default-day', function (): void {
+    $date = now()->startOfDay();
+    $created = app(\App\Services\Staff\StaffAttendanceService::class)->ensureDefaultAbsencesForDate($date);
+
+    $this->info('Staff attendance day defaults for ' . $date->toDateString() . ': ' . $created . ' record(s) created.');
+})->purpose('Mark all roster staff absent for today when no record exists (run daily after midnight)');
+

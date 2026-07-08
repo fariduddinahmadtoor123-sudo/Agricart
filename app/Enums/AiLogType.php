@@ -17,6 +17,7 @@ enum AiLogType: string
     case CompanyProfileEnrichment = 'company_profile_enrichment';
     case SupplierEnrichment = 'supplier_enrichment';
     case CustomerEnrichment = 'customer_enrichment';
+    case UserEnrichment = 'user_enrichment';
 
     public function label(): string
     {
@@ -34,6 +35,7 @@ enum AiLogType: string
             self::CompanyProfileEnrichment => __('agricart.ai.logs.types.company_profile_enrichment'),
             self::SupplierEnrichment => __('agricart.ai.logs.types.supplier_enrichment'),
             self::CustomerEnrichment => __('agricart.ai.logs.types.customer_enrichment'),
+            self::UserEnrichment => __('agricart.ai.logs.types.user_enrichment'),
         };
     }
 }

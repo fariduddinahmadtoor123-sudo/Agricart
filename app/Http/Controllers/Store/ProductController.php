@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Store;
 
 use App\Http\Controllers\Controller;
+use App\Services\SalesChannels\SalesChannelService;
 use App\Services\Store\StoreCategoryService;
 use App\Services\Store\StorefrontProductPresenter;
 use App\Services\Store\StoreLayoutService;
@@ -11,7 +12,7 @@ use Illuminate\Contracts\View\View;
 
 class ProductController extends Controller
 {
-    public function show(string $slug, StoreLayoutService $layout, StoreProductService $products, StoreCategoryService $categories, StorefrontProductPresenter $presenter): View
+    public function show(string $slug, StoreLayoutService $layout, StoreProductService $products, StoreCategoryService $categories, StorefrontProductPresenter $presenter, SalesChannelService $channels): View
     {
         $product = $products->findActiveBySlug($slug);
 
@@ -20,7 +21,12 @@ class ProductController extends Controller
         }
 
         $defaultQty = 1.0;
-        $buyPrice = $presenter->priceForQuantity($product, $defaultQty);
+        $buyPrice = $channels->onlineStoreShowsPrices()
+            ? $presenter->priceForQuantity($product, $defaultQty)
+            : null;
+        $priceTable = $channels->onlineStoreShowsPrices()
+            ? $presenter->quantityPriceTable($product)
+            : [];
 
         return view('store.product.show', [
             ...$layout->layoutData(),
@@ -30,7 +36,7 @@ class ProductController extends Controller
             'categoryService' => $categories,
             'imageUrls' => $products->allImageUrls($product),
             'buyPrice' => $buyPrice,
-            'priceTable' => $presenter->quantityPriceTable($product),
+            'priceTable' => $priceTable,
             'identityFacts' => $presenter->identityFacts($product),
             'contentSections' => $presenter->contentSections($product),
         ]);

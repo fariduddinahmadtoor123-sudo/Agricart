@@ -2410,3 +2410,24 @@ html[dir='rtl'] .ag-store-footer__col--map {
 .ag-store-pagination span[aria-disabled="true"] {
     opacity: 0.45;
 }
+
+.ag-store-channel-banner-wrap {
+    padding-top: 0.75rem;
+}
+
+.ag-store-channel-banner {
+    padding: 0.65rem 0.85rem;
+    border: 1px solid #93c5fd;
+    background: #eff6ff;
+    color: #1e3a8a;
+    font-size: 0.875rem;
+    line-height: 1.45;
+}
+
+.ag-store-product-card__offline-msg,
+.ag-store-pdp__offline-msg {
+    margin: 0.35rem 0 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--agricart-muted);
+}

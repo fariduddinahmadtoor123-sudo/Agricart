@@ -115,8 +115,8 @@ class UserService
     }
 
     /**
-     * @param  list<array{contact_person?: string, phone_number?: string}>  $rows
-     * @return list<array{contact_person: string, phone_number: string}>
+     * @param  list<array{contact_person?: string, contact_person_ur?: string, phone_number?: string}>  $rows
+     * @return list<array{contact_person: string, contact_person_ur: string, phone_number: string}>
      */
     public function normalizePhoneRows(array $rows): array
     {
@@ -124,6 +124,7 @@ class UserService
             array_map(static function (array $row): array {
                 return [
                     'contact_person' => trim((string) ($row['contact_person'] ?? '')),
+                    'contact_person_ur' => trim((string) ($row['contact_person_ur'] ?? '')),
                     'phone_number' => trim((string) ($row['phone_number'] ?? '')),
                 ];
             }, $rows),
@@ -132,8 +133,8 @@ class UserService
     }
 
     /**
-     * @param  list<array{bank_name?: string, account_title?: string, account_number?: string}>  $rows
-     * @return list<array{bank_name: string, account_title: string, account_number: string}>
+     * @param  list<array{bank_name?: string, account_title?: string, account_title_ur?: string, account_number?: string}>  $rows
+     * @return list<array{bank_name: string, account_title: string, account_title_ur: string, account_number: string}>
      */
     public function normalizeBankRows(array $rows): array
     {
@@ -142,6 +143,7 @@ class UserService
                 return [
                     'bank_name' => trim((string) ($row['bank_name'] ?? '')),
                     'account_title' => trim((string) ($row['account_title'] ?? '')),
+                    'account_title_ur' => trim((string) ($row['account_title_ur'] ?? '')),
                     'account_number' => trim((string) ($row['account_number'] ?? '')),
                 ];
             }, $rows),
@@ -172,6 +174,7 @@ class UserService
     {
         $rules = [
             'name' => ['required', 'string', 'max:255'],
+            'name_ur' => ['nullable', 'string', 'max:255'],
             'email' => [
                 'required',
                 'email',
@@ -179,12 +182,15 @@ class UserService
                 Rule::unique('users', 'email')->ignore($exceptId),
             ],
             'address' => ['nullable', 'string', 'max:2000'],
+            'address_ur' => ['nullable', 'string', 'max:2000'],
             'phone_numbers' => ['nullable', 'array'],
             'phone_numbers.*.contact_person' => ['nullable', 'string', 'max:255'],
+            'phone_numbers.*.contact_person_ur' => ['nullable', 'string', 'max:255'],
             'phone_numbers.*.phone_number' => ['nullable', 'string', 'max:30'],
             'bank_accounts' => ['nullable', 'array'],
             'bank_accounts.*.bank_name' => ['nullable', 'string', 'max:255'],
             'bank_accounts.*.account_title' => ['nullable', 'string', 'max:255'],
+            'bank_accounts.*.account_title_ur' => ['nullable', 'string', 'max:255'],
             'bank_accounts.*.account_number' => ['nullable', 'string', 'max:64'],
             'profile_photo_path' => ['nullable', 'string', 'max:500'],
             'cnic_front_path' => ['nullable', 'string', 'max:500'],
@@ -236,6 +242,7 @@ class UserService
                 Rule::unique('users', 'user_number')->ignore($exceptId),
             ],
             'name' => ['required', 'string', 'max:255'],
+            'name_ur' => ['nullable', 'string', 'max:255'],
             'role_id' => ['required', 'integer', 'exists:roles,id'],
             'status' => ['required', 'string', Rule::in(self::statuses())],
             'email' => [
@@ -245,12 +252,15 @@ class UserService
                 Rule::unique('users', 'email')->ignore($exceptId),
             ],
             'address' => ['nullable', 'string', 'max:2000'],
+            'address_ur' => ['nullable', 'string', 'max:2000'],
             'phone_numbers' => ['nullable', 'array'],
             'phone_numbers.*.contact_person' => ['nullable', 'string', 'max:255'],
+            'phone_numbers.*.contact_person_ur' => ['nullable', 'string', 'max:255'],
             'phone_numbers.*.phone_number' => ['nullable', 'string', 'max:30'],
             'bank_accounts' => ['nullable', 'array'],
             'bank_accounts.*.bank_name' => ['nullable', 'string', 'max:255'],
             'bank_accounts.*.account_title' => ['nullable', 'string', 'max:255'],
+            'bank_accounts.*.account_title_ur' => ['nullable', 'string', 'max:255'],
             'bank_accounts.*.account_number' => ['nullable', 'string', 'max:64'],
             'profile_photo_path' => ['nullable', 'string', 'max:500'],
             'cnic_front_path' => ['nullable', 'string', 'max:500'],

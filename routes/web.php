@@ -10,11 +10,12 @@ use App\Http\Controllers\Store\HomeController;
 use App\Http\Controllers\Store\PageController;
 use App\Http\Controllers\Store\ProductController;
 use App\Http\Controllers\Store\SearchController;
+use App\Http\Middleware\BlockOnlineStoreMaintenance;
 use App\Http\Middleware\SetAgricartLocale;
 use App\Filament\Layout\TopbarActions;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware([SetAgricartLocale::class])->group(function (): void {
+Route::middleware([SetAgricartLocale::class, BlockOnlineStoreMaintenance::class])->group(function (): void {
     Route::get('/', [HomeController::class, 'index'])->name('store.home');
     Route::get('/login', [CustomerAuthController::class, 'show'])
         ->middleware('guest:customer')
@@ -95,4 +96,6 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
         ->name('admin.sale-returns.print');
     Route::get('/online-sale-orders/{order}/print', [\App\Http\Controllers\Admin\OnlineSaleOrderPrintController::class, 'show'])
         ->name('admin.online-sale-orders.print');
+    Route::get('/online-sale-orders/{order}/packing-slip', [\App\Http\Controllers\Admin\OnlineSaleOrderPackingSlipPrintController::class, 'show'])
+        ->name('admin.online-sale-orders.packing-slip');
 });

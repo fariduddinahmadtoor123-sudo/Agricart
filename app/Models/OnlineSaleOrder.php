@@ -18,6 +18,37 @@ class OnlineSaleOrder extends Model
 
     public const STATUS_CANCELLED = 'cancelled';
 
+    public const FULFILLMENT_AWAITING = 'awaiting_assignment';
+
+    public const FULFILLMENT_ASSIGNED = 'assigned';
+
+    public const FULFILLMENT_SOURCING = 'sourcing';
+
+    public const FULFILLMENT_PICKING = 'picking_packing';
+
+    public const FULFILLMENT_READY = 'ready_to_ship';
+
+    public const FULFILLMENT_TRANSIT = 'in_transit';
+
+    public const FULFILLMENT_OUT = 'out_for_delivery';
+
+    public const FULFILLMENT_DELIVERED = 'delivered';
+
+    public const FULFILLMENT_ON_HOLD = 'on_hold';
+
+    /** @var list<string> */
+    public const FULFILLMENT_STATUSES = [
+        self::FULFILLMENT_AWAITING,
+        self::FULFILLMENT_ASSIGNED,
+        self::FULFILLMENT_SOURCING,
+        self::FULFILLMENT_PICKING,
+        self::FULFILLMENT_READY,
+        self::FULFILLMENT_TRANSIT,
+        self::FULFILLMENT_OUT,
+        self::FULFILLMENT_DELIVERED,
+        self::FULFILLMENT_ON_HOLD,
+    ];
+
     /** @var list<string> */
     public const STATUSES = [
         self::STATUS_PENDING,
@@ -35,6 +66,7 @@ class OnlineSaleOrder extends Model
         'order_date',
         'locale',
         'order_status',
+        'fulfillment_status',
         'payment_status',
         'customer_payment_method',
         'customer_payment_note',
@@ -51,6 +83,7 @@ class OnlineSaleOrder extends Model
         'admin_notes',
         'converted_at',
         'converted_by_id',
+        'assigned_user_id',
     ];
 
     /**
@@ -80,6 +113,16 @@ class OnlineSaleOrder extends Model
     public function convertedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'converted_by_id');
+    }
+
+    public function assignedUser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_user_id');
+    }
+
+    public function supplierAssignments(): HasMany
+    {
+        return $this->hasMany(OnlineSaleOrderSupplierAssignment::class);
     }
 
     public function items(): HasMany

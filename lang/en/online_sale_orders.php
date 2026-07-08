@@ -4,8 +4,10 @@ return [
     'actions' => [
         'view_short' => 'View',
         'edit_short' => 'Edit',
-        'print' => 'Save & Print',
-        'print_short' => 'Print',
+        'print' => 'Save & Print invoice',
+        'print_short' => 'Invoice',
+        'packing_slip' => 'Packing list',
+        'packing_slip_short' => 'Packing',
     ],
 
     'fields' => [
@@ -50,6 +52,7 @@ return [
 
     'hints' => [
         'admin_notes' => 'Internal notes for staff…',
+        'admin_payment' => 'Confirm how payment was received (method, status, and amount). Save when done.',
         'converted_locked' => 'This order is linked to a completed POS sale and cannot be edited here.',
     ],
 

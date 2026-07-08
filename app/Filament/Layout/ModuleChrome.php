@@ -71,6 +71,7 @@ class ModuleChrome
                 'subNavigation' => LogisticsSubNavigation::class,
                 'toolbar' => LogisticsPageToolbar::class,
                 'navLabel' => 'Logistics',
+                'comingSoon' => true,
             ],
             [
                 'key' => 'service',
@@ -78,6 +79,7 @@ class ModuleChrome
                 'subNavigation' => ServiceSubNavigation::class,
                 'toolbar' => ServicePageToolbar::class,
                 'navLabel' => 'Service',
+                'comingSoon' => true,
             ],
             [
                 'key' => 'reports',

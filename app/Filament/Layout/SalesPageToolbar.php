@@ -3,8 +3,10 @@
 namespace App\Filament\Layout;
 
 use App\Filament\Clusters\Sales\OverviewPage;
-use App\Models\Sale;
 use App\Models\OnlineSaleOrder;
+use App\Models\Sale;
+use App\Models\Supplier;
+use App\Models\User;
 use App\Services\Sales\SaleQuotationService;
 use App\Services\Sales\SaleService;
 
@@ -123,6 +125,27 @@ class SalesPageToolbar extends ClusterPageToolbar
                     ['label' => __('online_sale_orders.list.col_customer_payment'), 'value' => 'customer_payment_method', 'visible' => true],
                     ['label' => __('online_sale_orders.list.col_order_date'), 'value' => 'order_date', 'visible' => true],
                     ['label' => __('online_sale_orders.list.col_created'), 'value' => 'created_at', 'visible' => true],
+                ],
+            ],
+            'order-dispatch' => [
+                ...$config,
+                'livewirePrefix' => 'order-dispatch',
+                'columnDataAttr' => 'data-order-dispatch-column',
+                'interactive' => true,
+                'formKey' => 'online-orders',
+                'addLabel' => null,
+                'compactAddButton' => false,
+                'filterGroups' => static::orderDispatchFilterGroups(),
+                'filters' => [],
+                'columns' => [
+                    ['label' => __('online_sale_orders.list.col_number'), 'value' => 'order_number', 'visible' => true],
+                    ['label' => __('online_sale_orders.list.col_customer'), 'value' => 'customer', 'visible' => true],
+                    ['label' => __('online_sale_orders.list.col_total'), 'value' => 'total_amount', 'visible' => true],
+                    ['label' => __('order_dispatch.list.col_fulfillment'), 'value' => 'fulfillment_status', 'visible' => true],
+                    ['label' => __('order_dispatch.list.col_staff'), 'value' => 'assigned_user', 'visible' => true],
+                    ['label' => __('order_dispatch.list.col_suppliers'), 'value' => 'suppliers', 'visible' => true],
+                    ['label' => __('online_sale_orders.list.col_order_date'), 'value' => 'order_date', 'visible' => true],
+                    ['label' => __('online_sale_orders.list.col_created'), 'value' => 'created_at', 'visible' => false],
                 ],
             ],
             default => $config,
@@ -253,6 +276,54 @@ class SalesPageToolbar extends ClusterPageToolbar
             [
                 'label' => __('pos.filters.payment'),
                 'filters' => $paymentFilters,
+            ],
+        ];
+    }
+
+    /**
+     * @return list<array{label: string, filters: list<array{label: string, value: string}>}>
+     */
+    protected static function orderDispatchFilterGroups(): array
+    {
+        $staffFilters = [];
+
+        foreach (User::query()->where('status', User::STATUS_ACTIVE)->orderBy('name')->get() as $user) {
+            $staffFilters[] = [
+                'label' => $user->name,
+                'value' => 'staff:' . $user->id,
+            ];
+        }
+
+        $supplierFilters = [];
+
+        foreach (Supplier::query()->where('status', 'active')->orderBy('business_name_en')->get() as $supplier) {
+            $supplierFilters[] = [
+                'label' => $supplier->displayBusinessName(),
+                'value' => 'supplier:' . $supplier->id,
+            ];
+        }
+
+        $fulfillmentFilters = [];
+
+        foreach (OnlineSaleOrder::FULFILLMENT_STATUSES as $status) {
+            $fulfillmentFilters[] = [
+                'label' => __('order_dispatch.fulfillment_statuses.' . $status),
+                'value' => 'fulfillment:' . $status,
+            ];
+        }
+
+        return [
+            [
+                'label' => __('order_dispatch.filters.staff'),
+                'filters' => $staffFilters,
+            ],
+            [
+                'label' => __('order_dispatch.filters.supplier'),
+                'filters' => $supplierFilters,
+            ],
+            [
+                'label' => __('order_dispatch.filters.fulfillment'),
+                'filters' => $fulfillmentFilters,
             ],
         ];
     }

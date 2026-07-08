@@ -2,6 +2,7 @@
 
 namespace App\Filament\Layout;
 
+use App\Filament\Clusters\BaseAgricartCluster;
 use Filament\Pages\Page;
 
 abstract class ClusterSubNavigation
@@ -38,6 +39,16 @@ abstract class ClusterSubNavigation
 
         foreach (static::clusterClass()::getClusteredComponents() as $component) {
             if (! is_subclass_of($component, Page::class) || ! $component::canAccess()) {
+                continue;
+            }
+
+            $clusterClass = static::clusterClass();
+
+            if (
+                is_subclass_of($clusterClass, BaseAgricartCluster::class)
+                && $clusterClass::isComingSoon()
+                && ! str_ends_with(class_basename($component), 'OverviewPage')
+            ) {
                 continue;
             }
 

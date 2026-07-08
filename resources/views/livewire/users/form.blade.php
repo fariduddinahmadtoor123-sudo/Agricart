@@ -10,13 +10,19 @@
     x-init="
         $watch('$wire.saving', (value) => {
             window.dispatchEvent(new CustomEvent('user-form-busy', {
-                detail: { saving: !!value },
+                detail: { saving: !!value, enriching: !!$wire.enriching },
+                bubbles: true,
+            }));
+        });
+        $watch('$wire.enriching', (value) => {
+            window.dispatchEvent(new CustomEvent('user-form-busy', {
+                detail: { saving: !!$wire.saving, enriching: !!value },
                 bubbles: true,
             }));
         });
     "
     x-on:user-form-action.window="$wire.handlePanelAction($event.detail.action)"
-    x-on:user-form-open.window="$wire.openForm($event.detail.userId ?? null, $event.detail.mode ?? 'create')"
+    x-on:user-form-open.window="$wire.openForm($event.detail.userId ?? null, $event.detail.mode ?? 'create', $event.detail.formContext ?? 'settings')"
 >
     @if ($statusMessage)
         <div @class([
@@ -35,16 +41,6 @@
                 <label class="agricart-form-panel__label">{{ __('agricart.users.fields.user_number') }}</label>
                 <x-filament::input.wrapper>
                     <input type="text" value="{{ $user_number ?: __('agricart.users.hints.auto_on_save') }}" class="fi-input" readonly />
-                </x-filament::input.wrapper>
-            </div>
-
-            <div class="agricart-form-panel__field">
-                <label class="agricart-form-panel__label" for="agricart-user-name">
-                    {{ __('agricart.users.fields.name') }}
-                    <span class="agricart-form-panel__required">*</span>
-                </label>
-                <x-filament::input.wrapper>
-                    <input id="agricart-user-name" type="text" wire:model="name" class="fi-input" @disabled($readonly) />
                 </x-filament::input.wrapper>
             </div>
 
@@ -89,13 +85,6 @@
                 </x-filament::input.wrapper>
             </div>
 
-            <div class="agricart-form-panel__field">
-                <label class="agricart-form-panel__label" for="agricart-user-address">{{ __('agricart.users.fields.address') }}</label>
-                <x-filament::input.wrapper>
-                    <input id="agricart-user-address" type="text" wire:model="address" class="fi-input" @disabled($readonly) />
-                </x-filament::input.wrapper>
-            </div>
-
             @if ($mode === 'create')
                 <div class="agricart-form-panel__field">
                     <label class="agricart-form-panel__label" for="agricart-user-password">
@@ -128,6 +117,44 @@
         </div>
     </section>
 
+    <section class="agricart-form-panel__section agricart-user-form__section agricart-supplier-form">
+        <h3 class="agricart-form-panel__section-title">{{ __('agricart.users.sections.bilingual') }}</h3>
+        <p class="agricart-customer-form__hint">{{ __('agricart.users.hints.bilingual_ai') }}</p>
+
+        <div class="agricart-supplier-form__locale-row agricart-supplier-form__locale-row--en">
+            <div class="agricart-form-panel__field">
+                <label class="agricart-form-panel__label" for="agricart-user-name-en">
+                    {{ __('agricart.users.fields.name_en') }}
+                    <span class="agricart-form-panel__required">*</span>
+                </label>
+                <x-filament::input.wrapper>
+                    <input id="agricart-user-name-en" type="text" wire:model.blur="name" class="fi-input" @disabled($readonly) />
+                </x-filament::input.wrapper>
+            </div>
+            <div class="agricart-form-panel__field agricart-user-form__field--wide">
+                <label class="agricart-form-panel__label" for="agricart-user-address-en">{{ __('agricart.users.fields.address_en') }}</label>
+                <x-filament::input.wrapper>
+                    <input id="agricart-user-address-en" type="text" wire:model.blur="address" class="fi-input" @disabled($readonly) />
+                </x-filament::input.wrapper>
+            </div>
+        </div>
+
+        <div class="agricart-supplier-form__locale-row agricart-supplier-form__locale-row--ur">
+            <div class="agricart-form-panel__field">
+                <label class="agricart-form-panel__label" for="agricart-user-name-ur">{{ __('agricart.users.fields.name_ur') }}</label>
+                <x-filament::input.wrapper>
+                    <input id="agricart-user-name-ur" type="text" wire:model.blur="name_ur" dir="rtl" class="fi-input" @disabled($readonly) />
+                </x-filament::input.wrapper>
+            </div>
+            <div class="agricart-form-panel__field agricart-user-form__field--wide">
+                <label class="agricart-form-panel__label" for="agricart-user-address-ur">{{ __('agricart.users.fields.address_ur') }}</label>
+                <x-filament::input.wrapper>
+                    <input id="agricart-user-address-ur" type="text" wire:model.blur="address_ur" dir="rtl" class="fi-input" @disabled($readonly) />
+                </x-filament::input.wrapper>
+            </div>
+        </div>
+    </section>
+
     <section class="agricart-form-panel__section agricart-user-form__section">
         <div class="agricart-user-form__contacts-split">
             <div class="agricart-user-form__contacts-column">
@@ -136,16 +163,22 @@
                 </div>
 
                 <div class="agricart-user-form__repeatable-headings">
-                    <span class="agricart-form-panel__label">{{ __('agricart.users.fields.contact_person') }}</span>
+                    <span class="agricart-form-panel__label">{{ __('agricart.users.fields.contact_person_en') }}</span>
+                    <span class="agricart-form-panel__label">{{ __('agricart.users.fields.contact_person_ur') }}</span>
                     <span class="agricart-form-panel__label">{{ __('agricart.users.fields.phone_number') }}</span>
                     <span class="agricart-user-form__repeatable-spacer" aria-hidden="true"></span>
                 </div>
 
                 @foreach ($phoneRows as $index => $row)
-                    <div class="agricart-user-form__repeatable-row" wire:key="user-phone-{{ $index }}">
+                    <div class="agricart-user-form__repeatable-row agricart-user-form__repeatable-row--phones" wire:key="user-phone-{{ $index }}">
                         <div class="agricart-form-panel__field">
                             <x-filament::input.wrapper>
-                                <input type="text" wire:model="phoneRows.{{ $index }}.contact_person" class="fi-input" placeholder="{{ __('agricart.users.hints.contact_person') }}" @disabled($readonly) />
+                                <input type="text" wire:model.blur="phoneRows.{{ $index }}.contact_person" class="fi-input" placeholder="{{ __('agricart.users.hints.contact_person') }}" @disabled($readonly) />
+                            </x-filament::input.wrapper>
+                        </div>
+                        <div class="agricart-form-panel__field">
+                            <x-filament::input.wrapper>
+                                <input type="text" wire:model.blur="phoneRows.{{ $index }}.contact_person_ur" dir="rtl" class="fi-input" placeholder="{{ __('agricart.users.hints.contact_person_ur') }}" @disabled($readonly) />
                             </x-filament::input.wrapper>
                         </div>
                         <div class="agricart-form-panel__field">
@@ -172,7 +205,8 @@
 
                 <div class="agricart-user-form__bank-headings">
                     <span class="agricart-form-panel__label">{{ __('agricart.users.fields.bank_name') }}</span>
-                    <span class="agricart-form-panel__label">{{ __('agricart.users.fields.account_title') }}</span>
+                    <span class="agricart-form-panel__label">{{ __('agricart.users.fields.account_title_en') }}</span>
+                    <span class="agricart-form-panel__label">{{ __('agricart.users.fields.account_title_ur') }}</span>
                     <span class="agricart-form-panel__label">{{ __('agricart.users.fields.account_number') }}</span>
                     <span class="agricart-user-form__repeatable-spacer" aria-hidden="true"></span>
                 </div>
@@ -219,7 +253,12 @@
                         </div>
                         <div class="agricart-form-panel__field">
                             <x-filament::input.wrapper>
-                                <input type="text" wire:model="bankRows.{{ $index }}.account_title" class="fi-input" @disabled($readonly) />
+                                <input type="text" wire:model.blur="bankRows.{{ $index }}.account_title" class="fi-input" @disabled($readonly) />
+                            </x-filament::input.wrapper>
+                        </div>
+                        <div class="agricart-form-panel__field">
+                            <x-filament::input.wrapper>
+                                <input type="text" wire:model.blur="bankRows.{{ $index }}.account_title_ur" dir="rtl" class="fi-input" @disabled($readonly) />
                             </x-filament::input.wrapper>
                         </div>
                         <div class="agricart-form-panel__field">

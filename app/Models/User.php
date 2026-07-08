@@ -19,12 +19,14 @@ use Illuminate\Support\Str;
 #[Fillable([
     'user_number',
     'name',
+    'name_ur',
     'role_id',
     'status',
     'rejection_reason',
     'rejected_at',
     'email',
     'address',
+    'address_ur',
     'password',
     'phone_numbers',
     'bank_accounts',
@@ -130,6 +132,10 @@ class User extends Authenticatable implements FilamentUser
     public function defaultAdminHomeUrl(): string
     {
         foreach (ModuleChrome::modules() as $module) {
+            if (in_array($module['key'], config('agricart.modules_coming_soon', []), true)) {
+                continue;
+            }
+
             $subNavigationClass = $module['subNavigation'];
             $clusterClass = $subNavigationClass::clusterClass();
 

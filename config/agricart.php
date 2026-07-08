@@ -41,4 +41,14 @@ return [
     'inventory' => [
         'allow_overselling' => filter_var(env('AGRICART_ALLOW_OVERSELLING', true), FILTER_VALIDATE_BOOL),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Modules shown as "Coming soon" (sidebar muted; only overview page opens)
+    |--------------------------------------------------------------------------
+    */
+    'modules_coming_soon' => [
+        'logistics',
+        'service',
+    ],
 ];

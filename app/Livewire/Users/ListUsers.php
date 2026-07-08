@@ -20,6 +20,7 @@ class ListUsers extends Component
     public string $statusFilter = '';
 
     #[On('users-saved')]
+    #[On('staff-members-saved')]
     public function refreshList(): void
     {
         $this->resetPage();

@@ -4,8 +4,10 @@ return [
     'actions' => [
         'view_short' => 'دیکھیں',
         'edit_short' => 'ترمیم',
-        'print' => 'محفوظ اور پرنٹ',
-        'print_short' => 'پرنٹ',
+        'print' => 'محفوظ اور انوائس پرنٹ',
+        'print_short' => 'انوائس',
+        'packing_slip' => 'پیکنگ لسٹ',
+        'packing_slip_short' => 'پیکنگ',
     ],
 
     'fields' => [
@@ -50,6 +52,7 @@ return [
 
     'hints' => [
         'admin_notes' => 'اسٹاف کے لیے اندرونی نوٹس…',
+        'admin_payment' => 'ادائیگی کی تصدیق کریں (طریقہ، سٹیٹس، رقم)۔ مکمل ہونے پر محفوظ کریں۔',
         'converted_locked' => 'یہ آرڈر مکمل POS سیل سے منسلک ہے — یہاں ترمیم نہیں ہو سکتی۔',
     ],
 
