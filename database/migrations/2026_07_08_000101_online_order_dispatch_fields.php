@@ -18,16 +18,16 @@ return new class extends Migration
 
         Schema::create('online_sale_order_supplier_assignments', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('online_sale_order_id')->constrained('online_sale_orders')->cascadeOnDelete();
-            $table->foreignId('supplier_id')->constrained('suppliers')->cascadeOnDelete();
+            $table->foreignId('online_sale_order_id')->constrained('online_sale_orders', 'id', 'ososa_order_fk')->cascadeOnDelete();
+            $table->foreignId('supplier_id')->constrained('suppliers', 'id', 'ososa_supplier_fk')->cascadeOnDelete();
             $table->string('status', 32)->default('pending');
             $table->timestamp('sent_at')->nullable();
             $table->text('notes')->nullable();
             $table->foreignId('assigned_by_id')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
-            $table->unique(['online_sale_order_id', 'supplier_id']);
-            $table->index(['supplier_id', 'status']);
+            $table->unique(['online_sale_order_id', 'supplier_id'], 'ososa_order_supplier_unq');
+            $table->index(['supplier_id', 'status'], 'ososa_supplier_status_idx');
         });
     }
 

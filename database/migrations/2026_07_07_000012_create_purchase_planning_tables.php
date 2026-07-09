@@ -21,7 +21,7 @@ return new class extends Migration
 
         Schema::create('purchase_planning_items', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('purchase_planning_sheet_id')->constrained('purchase_planning_sheets')->cascadeOnDelete();
+            $table->foreignId('purchase_planning_sheet_id')->constrained('purchase_planning_sheets', 'id', 'pp_items_sheet_fk')->cascadeOnDelete();
             $table->foreignId('product_id')->nullable()->constrained('products')->nullOnDelete();
             $table->unsignedInteger('sort_order')->default(0);
             $table->string('product_name_en');
@@ -35,7 +35,7 @@ return new class extends Migration
             $table->string('sale_price')->nullable();
             $table->timestamps();
 
-            $table->index(['purchase_planning_sheet_id', 'sort_order']);
+            $table->index(['purchase_planning_sheet_id', 'sort_order'], 'pp_items_sheet_sort_idx');
         });
     }
 

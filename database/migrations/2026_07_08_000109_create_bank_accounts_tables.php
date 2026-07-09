@@ -36,7 +36,7 @@ return new class extends Migration
             $table->string('direction', 8);
             $table->decimal('amount', 14, 2);
             $table->date('transaction_date');
-            $table->foreignId('counterparty_bank_account_id')->nullable()->constrained('bank_accounts')->nullOnDelete();
+            $table->foreignId('counterparty_bank_account_id')->nullable()->constrained('bank_accounts', 'id', 'bat_counterparty_acct_fk')->nullOnDelete();
             $table->foreignId('supplier_id')->nullable()->constrained('suppliers')->nullOnDelete();
             $table->foreignId('sale_id')->nullable()->constrained('sales')->nullOnDelete();
             $table->uuid('transfer_group')->nullable();
@@ -45,7 +45,7 @@ return new class extends Migration
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
 
-            $table->index(['bank_account_id', 'transaction_date']);
+            $table->index(['bank_account_id', 'transaction_date'], 'bat_acct_date_idx');
             $table->index('sale_id');
             $table->index('transfer_group');
         });

@@ -14,7 +14,7 @@ return new class extends Migration
             $table->string('transaction_type', 32);
             $table->string('source_wallet', 16)->nullable();
             $table->foreignId('source_bank_account_id')->nullable()->constrained('bank_accounts')->nullOnDelete();
-            $table->foreignId('destination_bank_account_id')->nullable()->constrained('bank_accounts')->nullOnDelete();
+            $table->foreignId('destination_bank_account_id')->nullable()->constrained('bank_accounts', 'id', 'ft_dest_bank_fk')->nullOnDelete();
             $table->foreignId('destination_supplier_id')->nullable()->constrained('suppliers')->nullOnDelete();
             $table->foreignId('destination_purchaser_id')->nullable()->constrained('users')->nullOnDelete();
             $table->decimal('amount', 14, 2);
@@ -43,7 +43,7 @@ return new class extends Migration
         });
 
         Schema::table('bank_account_transactions', function (Blueprint $table) {
-            $table->foreignId('fund_transfer_id')->nullable()->after('online_sale_order_id')->constrained('fund_transfers')->nullOnDelete();
+            $table->foreignId('fund_transfer_id')->nullable()->after('online_sale_order_id')->constrained('fund_transfers', 'id', 'bat_fund_transfer_fk')->nullOnDelete();
         });
     }
 

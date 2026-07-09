@@ -25,7 +25,7 @@ return new class extends Migration
 
         Schema::create('purchase_payment_summary_items', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('purchase_payment_summary_id')->constrained('purchase_payment_summaries')->cascadeOnDelete();
+            $table->foreignId('purchase_payment_summary_id')->constrained('purchase_payment_summaries', 'id', 'pps_items_summary_fk')->cascadeOnDelete();
             $table->foreignId('supplier_id')->nullable()->constrained('suppliers')->nullOnDelete();
             $table->unsignedInteger('sort_order')->default(0);
             $table->boolean('is_manual')->default(false);
@@ -37,7 +37,7 @@ return new class extends Migration
             $table->string('line_status', 16)->nullable();
             $table->timestamps();
 
-            $table->index(['purchase_payment_summary_id', 'sort_order']);
+            $table->index(['purchase_payment_summary_id', 'sort_order'], 'pps_items_summary_sort_idx');
         });
     }
 

@@ -12,7 +12,7 @@ return new class extends Migration
             $table->foreignId('online_sale_order_id')
                 ->nullable()
                 ->after('sale_id')
-                ->constrained('online_sale_orders')
+                ->constrained('online_sale_orders', 'id', 'bat_online_order_fk')
                 ->nullOnDelete();
 
             $table->index('online_sale_order_id');
