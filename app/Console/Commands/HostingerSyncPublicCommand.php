@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
+use Symfony\Component\Finder\Finder;
+use Symfony\Component\Finder\SplFileInfo;
 
 class HostingerSyncPublicCommand extends Command
 {
@@ -52,7 +54,7 @@ class HostingerSyncPublicCommand extends Command
         $copied = 0;
         $skipped = 0;
 
-        foreach (File::allFiles($source) as $file) {
+        foreach ($this->publicFiles($source) as $file) {
             $relative = $file->getRelativePathname();
 
             if ($this->shouldSkip($relative)) {
@@ -83,6 +85,12 @@ class HostingerSyncPublicCommand extends Command
 
         $this->components->info("Done. {$copied} file(s) synced, {$skipped} skipped (e.g. public/storage).");
 
+        if (! $this->option('dry-run') && ! File::exists($target.DIRECTORY_SEPARATOR.'.htaccess')) {
+            $this->components->error('public_html/.htaccess is missing after sync — source public/.htaccess must exist.');
+
+            return self::FAILURE;
+        }
+
         if (! File::exists($target.'/laravel-root.php') && ! File::exists($source.'/laravel-root.php')) {
             $this->components->warn('If the site shows "application root not found", copy public/laravel-root.php.example to public_html/laravel-root.php with your app path.');
         }
@@ -92,6 +100,20 @@ class HostingerSyncPublicCommand extends Command
         }
 
         return self::SUCCESS;
+    }
+
+    /**
+     * All files under public/, including dotfiles (.htaccess).
+     *
+     * @return iterable<int, SplFileInfo>
+     */
+    protected function publicFiles(string $source): iterable
+    {
+        return Finder::create()
+            ->files()
+            ->ignoreDotFiles(false)
+            ->ignoreVCS(true)
+            ->in($source);
     }
 
     protected function shouldSkip(string $relative): bool

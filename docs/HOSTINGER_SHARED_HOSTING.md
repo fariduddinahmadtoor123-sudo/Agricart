@@ -136,7 +136,7 @@ See also [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md).
 
 | Command | Purpose |
 |---------|---------|
-| `php artisan hostinger:sync-public` | Copy `public/` → `HOSTINGER_PUBLIC_HTML` |
+| `php artisan hostinger:sync-public` | Copy `public/` → `HOSTINGER_PUBLIC_HTML` (includes `.htaccess` and other dotfiles) |
 | `php artisan hostinger:sync-public --dry-run` | Preview files |
 | `php artisan hostinger:verify` | Test Laravel root resolution |
 | `php artisan deploy:preflight` | Includes `hostinger:verify` when `HOSTINGER_PUBLIC_HTML` is set |
