@@ -33,15 +33,18 @@ This guide covers deploying Agricart (Laravel 13, Filament admin, online store a
 
 ## Document root (critical)
 
-**Industry standard:** point the vhost document root to **`/path/to/agricart/public`**.
+**VPS / Laragon:** point the vhost document root to **`/path/to/agricart/public`**.
 
-### Hostinger (hPanel)
+**Hostinger (fixed `public_html`):** use Laravel’s split layout — repo **outside** `public_html`, sync `public/` with `php artisan hostinger:sync-public`. Full guide: **[HOSTINGER_SHARED_HOSTING.md](./HOSTINGER_SHARED_HOSTING.md)**.
 
-1. Upload the full project **outside** `public_html` when possible, e.g. `/home/username/agricart/`.
-2. Set the domain document root to `agricart/public` (Hostinger allows custom document roots on many plans).
-3. If you must use `public_html`, either:
-   - Move only `public/*` into `public_html` and adjust `index.php` paths (not recommended), or
-   - Place the app above `public_html` and symlink `public_html` → `agricart/public` **only if** `symlink()` is allowed in hPanel (often it is for user symlinks, while PHP `link()` may still be disabled).
+### Hostinger (hPanel) — summary
+
+1. Clone Git to e.g. `/home/username/agricart/` (never into `public_html` alone).
+2. Set `HOSTINGER_PUBLIC_HTML` in `.env` to your `public_html` path.
+3. After each deploy: `php artisan hostinger:sync-public` and `php artisan hostinger:verify`.
+4. `public/index.php` resolves the app root automatically (same file works on VPS when docroot is `public/`).
+
+If custom document root **is** available, you may still point it at `agricart/public` and skip sync — optional.
 
 Never expose `storage/`, `.env`, or `vendor/` as browsable URLs.
 
@@ -292,6 +295,8 @@ No change to application code required beyond env and compose file.
 | Command | Purpose |
 |---------|---------|
 | `php artisan deploy:preflight` | Migration identifier audit + storefront/storage/assets checks |
+| `php artisan hostinger:sync-public` | Copy `public/` to `HOSTINGER_PUBLIC_HTML` (shared hosting) |
+| `php artisan hostinger:verify` | Validate Laravel root from web directory |
 | `php artisan store:preflight` | Store channel, APP_URL, storage mode, Vite manifest |
 | `php artisan migrations:audit-identifiers` | MySQL 64-char name audit |
 | `php artisan storage:link` | VPS symlink `public/storage` |

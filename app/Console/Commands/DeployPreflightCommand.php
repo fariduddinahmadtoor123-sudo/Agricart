@@ -37,6 +37,15 @@ class DeployPreflightCommand extends Command
         $storeExit = Artisan::call('store:preflight', $args);
         $this->output->write(Artisan::output());
 
+        if (filled(config('hostinger.public_html'))) {
+            $hostingerExit = Artisan::call('hostinger:verify');
+            $this->output->write(Artisan::output());
+
+            if ($hostingerExit !== self::SUCCESS) {
+                return self::FAILURE;
+            }
+        }
+
         return $storeExit === self::SUCCESS ? self::SUCCESS : self::FAILURE;
     }
 }
