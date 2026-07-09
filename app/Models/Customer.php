@@ -5,7 +5,10 @@ namespace App\Models;
 use App\Enums\CategoryAiStatus;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Auth\Passwords\CanResetPassword;
+use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
@@ -42,9 +45,9 @@ use Illuminate\Support\Facades\Storage;
     'ai_status',
 ])]
 #[Hidden(['password', 'remember_token'])]
-class Customer extends Authenticatable
+class Customer extends Authenticatable implements CanResetPasswordContract
 {
-    use HasFactory, Notifiable;
+    use CanResetPassword, HasFactory, Notifiable;
 
     public const CHANNEL_ONLINE = 'online';
 
@@ -145,6 +148,11 @@ class Customer extends Authenticatable
         return filled($this->profile_photo_path)
             ? Storage::disk('public')->url($this->profile_photo_path)
             : null;
+    }
+
+    public function onlineSaleOrders(): HasMany
+    {
+        return $this->hasMany(OnlineSaleOrder::class);
     }
 
     /**

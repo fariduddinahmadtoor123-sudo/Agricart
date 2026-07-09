@@ -7,7 +7,9 @@ use App\Models\Customer;
 use App\Services\Sales\OnlineSaleOrderService;
 use App\Services\Sales\SaleService;
 use App\Services\SalesChannels\SalesChannelService;
+use App\Services\Store\CustomerService;
 use App\Services\Store\StoreCartService;
+use App\Services\Store\StoreCustomerOrderAccess;
 use App\Services\Store\StoreLayoutService;
 use App\Services\Store\StoreProductService;
 use Illuminate\Contracts\View\View;
@@ -50,10 +52,11 @@ class CheckoutController extends Controller
             'paymentMethods' => collect(SaleService::PAYMENT_METHODS)
                 ->mapWithKeys(fn (string $method): array => [$method => __('pos.payment_methods.' . $method)])
                 ->all(),
+            'provinces' => config('pakistani_provinces', []),
         ]);
     }
 
-    public function place(Request $request, StoreLayoutService $layout, StoreCartService $cart, OnlineSaleOrderService $orders, SalesChannelService $channels): RedirectResponse
+    public function place(Request $request, StoreLayoutService $layout, StoreCartService $cart, OnlineSaleOrderService $orders, SalesChannelService $channels, CustomerService $customers): RedirectResponse
     {
         if (! $channels->onlineStoreAllowsPurchasing()) {
             return redirect()
@@ -79,6 +82,12 @@ class CheckoutController extends Controller
             'customer_notes' => ['nullable', 'string', 'max:5000'],
         ]);
 
+        $shipping = $customers->validateCheckoutShipping($request->all());
+
+        if ($request->boolean('save_address_to_profile')) {
+            $customers->syncProfileAddressFromCheckout($customer, $shipping['address']);
+        }
+
         try {
             $saleService = app(SaleService::class);
 
@@ -102,14 +111,10 @@ class CheckoutController extends Controller
                 'customer_payment_method' => $validated['customer_payment_method'],
                 'customer_payment_note' => $validated['customer_payment_note'] ?? null,
                 'customer_notes' => $validated['customer_notes'] ?? null,
-                'ship_contact_name' => $customer->displayLabel(),
-                'ship_phone' => $customer->primaryPhone(),
-                'ship_address' => trim(collect([
-                    $customer->address_line1,
-                    $customer->address_line2,
-                    app()->getLocale() === 'ur' && filled($customer->address_ur) ? $customer->address_ur : $customer->address_en,
-                ])->filter()->implode(', ')) ?: null,
-                'ship_city' => $customer->city ?? $customer->city_en,
+                'ship_contact_name' => $shipping['ship_contact_name'],
+                'ship_phone' => $shipping['ship_phone'],
+                'ship_address' => $shipping['ship_address'],
+                'ship_city' => $shipping['ship_city'],
                 'rows' => $cart->checkoutRows(),
             ]);
 
@@ -125,11 +130,14 @@ class CheckoutController extends Controller
         }
     }
 
-    public function success(string $order, StoreLayoutService $layout): View
+    public function success(Request $request, string $order, StoreLayoutService $layout, StoreCustomerOrderAccess $orderAccess): View
     {
+        $model = $orderAccess->resolveCheckoutSuccessOrNotFound($request, $order);
+
         return view('store.checkout.success', [
             ...$layout->layoutData(),
-            'orderNumber' => $order,
+            'orderNumber' => $model->order_number,
+            'order' => $model,
         ]);
     }
 }

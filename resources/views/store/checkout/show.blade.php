@@ -62,14 +62,57 @@
                 <span class="ag-store-checkout__customer-label">{{ __('agricart.storefront.checkout.customer') }}</span>
                 <p class="ag-store-checkout__customer">
                     <strong>{{ $customer->displayLabel() }}</strong>
-                    @if (filled($customer->primaryPhone()))
-                        <span class="ag-store-checkout__customer-phone">{{ $customer->primaryPhone() }}</span>
+                    @if (filled($customer->email))
+                        <span class="ag-store-checkout__customer-phone">{{ $customer->email }}</span>
                     @endif
                 </p>
             </div>
 
             <form method="post" action="{{ route('store.checkout.place') }}" class="ag-store-checkout__form">
                 @csrf
+
+                <fieldset class="ag-store-checkout__fieldset">
+                    <legend class="ag-store-checkout__legend">{{ __('agricart.storefront.checkout.shipping_heading') }}</legend>
+
+                    <label class="ag-store-checkout__field">
+                        <span class="ag-store-checkout__label">{{ __('agricart.storefront.checkout.ship_contact_name') }}</span>
+                        <input
+                            type="text"
+                            name="ship_contact_name"
+                            class="ag-store-checkout__input"
+                            value="{{ old('ship_contact_name', $customer->displayLabel()) }}"
+                            autocomplete="name"
+                            required
+                        />
+                        @error('ship_contact_name') <span class="ag-store-checkout__error">{{ $message }}</span> @enderror
+                    </label>
+
+                    <label class="ag-store-checkout__field">
+                        <span class="ag-store-checkout__label">{{ __('agricart.customer.fields.phone') }}</span>
+                        <input
+                            type="tel"
+                            name="ship_phone"
+                            class="ag-store-checkout__input"
+                            value="{{ old('ship_phone', $customer->primaryPhone()) }}"
+                            autocomplete="tel"
+                            required
+                        />
+                        @error('ship_phone') <span class="ag-store-checkout__error">{{ $message }}</span> @enderror
+                    </label>
+
+                    @include('store.components.customer-address-fields', [
+                        'customer' => $customer,
+                        'idPrefix' => 'checkout',
+                        'inputClass' => 'ag-store-checkout__input',
+                        'gridClass' => 'ag-store-checkout__address-grid',
+                        'provinces' => $provinces,
+                    ])
+
+                    <label class="ag-store-checkout__checkbox">
+                        <input type="checkbox" name="save_address_to_profile" value="1" @checked(old('save_address_to_profile', true)) />
+                        <span>{{ __('agricart.storefront.checkout.save_address_to_profile') }}</span>
+                    </label>
+                </fieldset>
 
                 <fieldset class="ag-store-checkout__fieldset">
                     <legend class="ag-store-checkout__legend">{{ __('agricart.storefront.checkout.payment_method') }}</legend>

@@ -8,6 +8,9 @@
             <header class="ag-store-account__head">
                 <h1 class="ag-store-customer-auth__title">{{ __('agricart.customer.auth.profile_heading') }}</h1>
                 <p class="ag-store-customer-auth__lead">{{ __('agricart.customer.auth.profile_lead') }}</p>
+                <p class="ag-store-account__nav">
+                    <a href="{{ route('store.customer.orders') }}" class="ag-store-orders__link">{{ __('agricart.customer.auth.my_orders') }}</a>
+                </p>
             </header>
 
             @if (session('customer_auth_status'))
@@ -51,6 +54,19 @@
                 </div>
 
                 <button type="submit" class="ag-store-customer-auth__submit">{{ __('agricart.customer.auth.profile_save') }}</button>
+            </form>
+
+            <form method="post" action="{{ route('store.customer.account.address') }}" class="ag-store-customer-auth__form ag-store-account__section">
+                @csrf
+                <h2 class="ag-store-customer-auth__section-title">{{ __('agricart.customer.auth.section_address') }}</h2>
+
+                @include('store.components.customer-address-fields', [
+                    'customer' => $customer,
+                    'idPrefix' => 'account',
+                    'provinces' => config('pakistani_provinces', []),
+                ])
+
+                <button type="submit" class="ag-store-customer-auth__submit">{{ __('agricart.customer.auth.address_save') }}</button>
             </form>
 
             <form method="post" action="{{ route('store.customer.account.password') }}" class="ag-store-customer-auth__form ag-store-account__section">

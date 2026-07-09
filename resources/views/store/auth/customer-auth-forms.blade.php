@@ -90,6 +90,12 @@
                         <span>{{ __('agricart.customer.auth.remember_me') }}</span>
                     </label>
 
+                    <p class="ag-store-customer-auth__forgot">
+                        <a href="{{ route('store.customer.password.request') }}" class="ag-store-customer-auth__switch-link">
+                            {{ __('agricart.customer.auth.forgot_password_link') }}
+                        </a>
+                    </p>
+
                     <button type="submit" class="ag-store-customer-auth__submit">
                         {{ __('agricart.customer.auth.login_submit') }}
                     </button>

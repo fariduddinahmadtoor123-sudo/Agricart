@@ -18,6 +18,9 @@
     </summary>
     <div class="ag-store-header__user-menu">
         <p class="ag-store-header__user-email">{{ $customer->email }}</p>
+        <a href="{{ route('store.customer.orders') }}" class="ag-store-header__user-link">
+            {{ __('agricart.customer.auth.my_orders') }}
+        </a>
         <a href="{{ route('store.customer.account') }}" class="ag-store-header__user-link">
             {{ __('agricart.customer.auth.my_profile') }}
         </a>

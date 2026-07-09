@@ -6,6 +6,8 @@ use App\Http\Controllers\Store\CategoryController;
 use App\Http\Controllers\Store\CheckoutController;
 use App\Http\Controllers\Store\CustomerAuthController;
 use App\Http\Controllers\Store\CustomerLogoutController;
+use App\Http\Controllers\Store\CustomerOrderController;
+use App\Http\Controllers\Store\CustomerPasswordResetController;
 use App\Http\Controllers\Store\CustomerProfileController;
 use App\Http\Controllers\Store\HomeController;
 use App\Http\Controllers\Store\PageController;
@@ -27,13 +29,26 @@ Route::middleware([SetAgricartLocale::class, BlockOnlineStoreMaintenance::class]
     Route::post('/customer-register', [CustomerAuthController::class, 'register'])
         ->middleware('guest:customer')
         ->name('store.customer.register.submit');
+    Route::middleware('guest:customer')->group(function (): void {
+        Route::get('/forgot-password', [CustomerPasswordResetController::class, 'create'])
+            ->name('store.customer.password.request');
+        Route::post('/forgot-password', [CustomerPasswordResetController::class, 'store'])
+            ->name('store.customer.password.email');
+        Route::get('/reset-password/{token}', [CustomerPasswordResetController::class, 'edit'])
+            ->name('store.customer.password.reset');
+        Route::post('/reset-password', [CustomerPasswordResetController::class, 'update'])
+            ->name('store.customer.password.update');
+    });
     Route::post('/logout', CustomerLogoutController::class)
         ->middleware('auth:customer')
         ->name('store.customer.logout');
     Route::middleware('auth:customer')->group(function (): void {
         Route::get('/account', [CustomerProfileController::class, 'show'])->name('store.customer.account');
         Route::post('/account/profile', [CustomerProfileController::class, 'updateProfile'])->name('store.customer.account.profile');
+        Route::post('/account/address', [CustomerProfileController::class, 'updateAddress'])->name('store.customer.account.address');
         Route::post('/account/password', [CustomerProfileController::class, 'updatePassword'])->name('store.customer.account.password');
+        Route::get('/account/orders', [CustomerOrderController::class, 'index'])->name('store.customer.orders');
+        Route::get('/account/orders/{order}', [CustomerOrderController::class, 'show'])->name('store.customer.orders.show');
     });
     Route::get('/register', [\App\Http\Controllers\Store\RegisterController::class, 'show'])->name('auth.register');
     Route::get('/staff-register', [\App\Http\Controllers\Store\StaffRegisterController::class, 'show'])

@@ -11,6 +11,11 @@
             <strong><code>{{ $orderNumber }}</code></strong>
         </p>
         <p class="ag-store-checkout-success__hint">{{ __('agricart.storefront.checkout.success_hint') }}</p>
-        <a href="{{ route('store.home') }}" class="ag-store-btn ag-store-btn--primary">{{ __('agricart.storefront.cart.continue_shopping') }}</a>
+        <div class="ag-store-checkout-success__actions">
+            @auth('customer')
+                <a href="{{ route('store.customer.orders.show', $orderNumber) }}" class="ag-store-btn ag-store-btn--primary">{{ __('agricart.customer.orders.view_this_order') }}</a>
+            @endauth
+            <a href="{{ route('store.home') }}" class="ag-store-btn ag-store-btn--secondary">{{ __('agricart.storefront.cart.continue_shopping') }}</a>
+        </div>
     </div>
 @endsection

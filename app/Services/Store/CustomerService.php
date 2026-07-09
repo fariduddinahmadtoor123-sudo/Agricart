@@ -157,4 +157,111 @@ class CustomerService
         $customer->password = $validated['password'];
         $customer->save();
     }
+
+    /**
+     * @return array<string, list<string|\Illuminate\Validation\Rules\Unique>>
+     */
+    public function addressValidationRules(): array
+    {
+        return [
+            'address_line1' => ['required', 'string', 'max:255'],
+            'address_line2' => ['nullable', 'string', 'max:255'],
+            'city' => ['required', 'string', 'max:120'],
+            'state' => ['required', 'string', 'max:120'],
+            'postal_code' => ['nullable', 'string', 'max:20'],
+            'country' => ['nullable', 'string', 'max:120'],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function updateAuthenticatedAddress(Customer $customer, array $data): Customer
+    {
+        $validated = validator($data, $this->addressValidationRules())->validate();
+
+        $customer->fill([
+            'address_line1' => $validated['address_line1'],
+            'address_line2' => $validated['address_line2'] ?? null,
+            'city' => $validated['city'],
+            'city_en' => $validated['city'],
+            'state' => $validated['state'],
+            'postal_code' => $validated['postal_code'] ?? null,
+            'country' => $validated['country'] ?? 'Pakistan',
+        ]);
+        $customer->save();
+
+        return $customer;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{
+     *     ship_contact_name: string,
+     *     ship_phone: string,
+     *     ship_address: string|null,
+     *     ship_city: string|null,
+     *     address: array<string, mixed>
+     * }
+     */
+    public function validateCheckoutShipping(array $data): array
+    {
+        $rules = array_merge([
+            'ship_contact_name' => ['required', 'string', 'max:200'],
+            'ship_phone' => ['required', 'string', 'max:30'],
+        ], $this->addressValidationRules());
+
+        $validated = validator($data, $rules)->validate();
+
+        $addressBlock = Arr::only($validated, [
+            'address_line1',
+            'address_line2',
+            'city',
+            'state',
+            'postal_code',
+            'country',
+        ]);
+
+        return [
+            'ship_contact_name' => $validated['ship_contact_name'],
+            'ship_phone' => $validated['ship_phone'],
+            'ship_address' => $this->formatShipAddress($addressBlock),
+            'ship_city' => $validated['city'],
+            'address' => $addressBlock,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $address
+     */
+    public function syncProfileAddressFromCheckout(Customer $customer, array $address): void
+    {
+        $validated = validator($address, $this->addressValidationRules())->validate();
+
+        $customer->fill([
+            'address_line1' => $validated['address_line1'],
+            'address_line2' => $validated['address_line2'] ?? null,
+            'city' => $validated['city'],
+            'city_en' => $validated['city'],
+            'state' => $validated['state'],
+            'postal_code' => $validated['postal_code'] ?? null,
+            'country' => $validated['country'] ?? 'Pakistan',
+        ]);
+        $customer->save();
+    }
+
+    /**
+     * @param  array<string, mixed>  $address
+     */
+    public function formatShipAddress(array $address): ?string
+    {
+        $lines = collect([
+            $address['address_line1'] ?? null,
+            $address['address_line2'] ?? null,
+            filled($address['state'] ?? null) ? ($address['state'] . (filled($address['postal_code'] ?? null) ? ' ' . $address['postal_code'] : '')) : ($address['postal_code'] ?? null),
+            $address['country'] ?? null,
+        ])->filter(fn ($line) => filled($line))->implode(', ');
+
+        return $lines !== '' ? $lines : null;
+    }
 }

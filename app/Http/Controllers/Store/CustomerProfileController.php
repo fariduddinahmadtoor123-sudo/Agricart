@@ -38,4 +38,14 @@ class CustomerProfileController extends Controller
             ->with('customer_auth_status', __('agricart.customer.auth.password_updated'))
             ->with('customer_auth_status_type', 'success');
     }
+
+    public function updateAddress(Request $request, CustomerService $customers): RedirectResponse
+    {
+        $customers->updateAuthenticatedAddress($request->user('customer'), $request->all());
+
+        return redirect()
+            ->route('store.customer.account')
+            ->with('customer_auth_status', __('agricart.customer.auth.address_updated'))
+            ->with('customer_auth_status_type', 'success');
+    }
 }
