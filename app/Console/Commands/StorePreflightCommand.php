@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\SalesChannel;
 use App\Services\SalesChannels\SalesChannelService;
+use App\Support\PublicStorage;
 use Illuminate\Console\Command;
 use Illuminate\Database\Migrations\Migrator;
 use Illuminate\Support\Facades\Artisan;
@@ -57,8 +58,12 @@ class StorePreflightCommand extends Command
             $this->components->twoColumnDetail('Secure session cookies', $secureCookies ? '<fg=green>on</>' : 'off (OK for local HTTP)');
         }
 
-        if (! File::exists(public_path('storage')) && ! File::isLink(public_path('storage'))) {
-            $this->components->error('public/storage is missing — run: php artisan storage:link');
+        if (PublicStorage::symlinkAvailable()) {
+            $this->components->twoColumnDetail('storage:link', '<fg=green>symlink OK</>');
+        } elseif (PublicStorage::shouldServeViaApplication()) {
+            $this->components->twoColumnDetail('storage:link', 'no symlink — serving via Laravel (FILESYSTEM_PUBLIC_SERVE)');
+        } elseif (! File::exists(public_path('storage'))) {
+            $this->components->error('public/storage is missing — run: php artisan storage:link or set FILESYSTEM_PUBLIC_SERVE=auto');
             $failures++;
 
             if ($this->option('link-storage')) {
@@ -66,7 +71,15 @@ class StorePreflightCommand extends Command
                 $this->line(Artisan::output());
             }
         } else {
-            $this->components->twoColumnDetail('storage:link', '<fg=green>OK</>');
+            $this->components->error('public/storage exists but is not a symlink and application serving is disabled.');
+            $failures++;
+        }
+
+        $this->components->twoColumnDetail('Public media mode', PublicStorage::deploymentModeLabel());
+
+        if (! PublicStorage::symlinkAvailable() && ! PublicStorage::shouldServeViaApplication()) {
+            $this->components->error('No symlink and FILESYSTEM_PUBLIC_SERVE is false — images will 404. Set FILESYSTEM_PUBLIC_SERVE=auto on shared hosting.');
+            $failures++;
         }
 
         if (! File::exists(public_path('build/manifest.json'))) {

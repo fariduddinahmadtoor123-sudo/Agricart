@@ -1,5 +1,13 @@
 <?php
 
+$publicServeMode = strtolower(trim((string) env('FILESYSTEM_PUBLIC_SERVE', 'auto')));
+
+$servePublicDiskViaApplication = match (true) {
+    in_array($publicServeMode, ['1', 'true', 'yes', 'on'], true) => true,
+    in_array($publicServeMode, ['0', 'false', 'no', 'off'], true) => false,
+    default => ! is_link(public_path('storage')),
+};
+
 return [
 
     /*
@@ -17,23 +25,39 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Filesystem Disks
+    | Public disk URL strategy (shared hosting)
     |--------------------------------------------------------------------------
     |
-    | Below you may configure as many filesystem disks as necessary, and you
-    | may even configure multiple disks for the same driver. Examples for
-    | most supported storage drivers are configured here for reference.
+    | When PHP symlink()/link() is disabled (common on shared hosting), set
+    | FILESYSTEM_PUBLIC_SERVE=auto or true. Laravel registers /storage/* on
+    | the public disk (see disks.public.serve). On VPS with storage:link, use
+    | false or auto (detects symlink and skips the route).
     |
-    | Supported drivers: "local", "ftp", "sftp", "s3"
+    | Values: auto | true | false
     |
     */
+
+    'public_serve_via_application' => env('FILESYSTEM_PUBLIC_SERVE', 'auto'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Upload / media disk
+    |--------------------------------------------------------------------------
+    |
+    | All catalog, store, and document uploads use this disk. Keep "public" for
+    | local storage; set to "s3" when using object storage (requires
+    | league/flysystem-aws-s3-v3 and AWS_* env vars).
+    |
+    */
+
+    'media_disk' => env('FILESYSTEM_MEDIA_DISK', 'public'),
 
     'disks' => [
 
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],
@@ -43,6 +67,7 @@ return [
             'root' => storage_path('app/public'),
             'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
             'visibility' => 'public',
+            'serve' => $servePublicDiskViaApplication,
             'throw' => false,
             'report' => false,
         ],
