@@ -6,6 +6,7 @@ use App\Http\Controllers\Store\CategoryController;
 use App\Http\Controllers\Store\CheckoutController;
 use App\Http\Controllers\Store\CustomerAuthController;
 use App\Http\Controllers\Store\CustomerLogoutController;
+use App\Http\Controllers\Store\CustomerProfileController;
 use App\Http\Controllers\Store\HomeController;
 use App\Http\Controllers\Store\PageController;
 use App\Http\Controllers\Store\ProductController;
@@ -29,6 +30,11 @@ Route::middleware([SetAgricartLocale::class, BlockOnlineStoreMaintenance::class]
     Route::post('/logout', CustomerLogoutController::class)
         ->middleware('auth:customer')
         ->name('store.customer.logout');
+    Route::middleware('auth:customer')->group(function (): void {
+        Route::get('/account', [CustomerProfileController::class, 'show'])->name('store.customer.account');
+        Route::post('/account/profile', [CustomerProfileController::class, 'updateProfile'])->name('store.customer.account.profile');
+        Route::post('/account/password', [CustomerProfileController::class, 'updatePassword'])->name('store.customer.account.password');
+    });
     Route::get('/register', [\App\Http\Controllers\Store\RegisterController::class, 'show'])->name('auth.register');
     Route::get('/staff-register', [\App\Http\Controllers\Store\StaffRegisterController::class, 'show'])
         ->name('auth.staff.register');

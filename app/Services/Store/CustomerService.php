@@ -5,6 +5,7 @@ namespace App\Services\Store;
 use App\Models\Customer;
 use App\Services\Contacts\CustomerService as ContactCustomerService;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -98,5 +99,62 @@ class CustomerService
         }
 
         return $validated;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function updateAuthenticatedProfile(Customer $customer, array $data): Customer
+    {
+        $validated = validator($data, [
+            'first_name' => ['required', 'string', 'max:100'],
+            'last_name' => ['required', 'string', 'max:100'],
+            'email' => ['required', 'email', 'max:255', Rule::unique('customers', 'email')->ignore($customer->id)],
+            'phone' => ['required', 'string', 'max:30'],
+        ])->validate();
+
+        $existing = app(ContactCustomerService::class)->findByPhone((string) $validated['phone'], $customer->id);
+
+        if ($existing !== null) {
+            throw ValidationException::withMessages([
+                'phone' => [__('agricart.customer.auth.phone_exists')],
+            ]);
+        }
+
+        $displayName = trim($validated['first_name'] . ' ' . $validated['last_name']);
+
+        $customer->fill([
+            'first_name' => $validated['first_name'],
+            'last_name' => $validated['last_name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'],
+            'display_name' => $displayName,
+            'name_en' => $displayName,
+            'contacts' => [['mobile_number' => $validated['phone']]],
+        ]);
+        $customer->save();
+
+        return $customer;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function updateAuthenticatedPassword(Customer $customer, array $data): void
+    {
+        $validated = validator($data, [
+            'current_password' => ['required', 'string'],
+            'password' => ['required', 'string', 'min:8', 'same:password_confirmation'],
+            'password_confirmation' => ['required', 'string'],
+        ])->validate();
+
+        if (! Hash::check($validated['current_password'], $customer->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => [__('agricart.customer.auth.current_password_invalid')],
+            ]);
+        }
+
+        $customer->password = $validated['password'];
+        $customer->save();
     }
 }

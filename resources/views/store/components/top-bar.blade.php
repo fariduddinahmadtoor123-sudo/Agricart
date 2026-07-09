@@ -13,6 +13,10 @@
                         <span class="ag-store-topbar__text">{{ $settings->localized('top_bar_right') }}</span>
                     @endif
 
+                    @include('store.components.locale-switcher', [
+                        'wrapperClass' => 'ag-store-topbar__locale',
+                    ])
+
                     @if ($settings->show_social_top_bar)
                         @include('store.components.social-links', [
                             'wrapperClass' => 'ag-store-topbar__social',

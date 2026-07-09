@@ -2,12 +2,15 @@
     <div class="ag-store__container">
         <div class="ag-store-header__inner">
             <a href="{{ route('store.home') }}" class="ag-store-header__brand">
-                @if ($logo_url)
-                    <img src="{{ $logo_url }}" alt="" class="ag-store-header__logo" />
+                @php
+                    $brandLogoUrl = $settings->displayLogoUrl();
+                    $siteName = $settings->localized('site_name') ?? config('app.name');
+                @endphp
+                @if ($brandLogoUrl)
+                    <img src="{{ $brandLogoUrl }}" alt="{{ $siteName }}" class="ag-store-header__logo" />
                 @else
-                    <span class="ag-store-header__logo-fallback">{{ strtoupper(substr($settings->localized('site_name') ?? 'A', 0, 1)) }}</span>
+                    <span class="ag-store-header__site-name ag-store-header__site-name--solo">{{ $siteName }}</span>
                 @endif
-                <span class="ag-store-header__site-name">{{ $settings->localized('site_name') }}</span>
             </a>
 
             @include('store.components.search-box', [
@@ -23,24 +26,14 @@
                     ])
                 @endif
 
-                <div class="ag-store-header__locale">
-                    <a href="{{ route('agricart.locale', ['locale' => 'en', 'redirect' => request()->getRequestUri()]) }}" @class(['ag-store-header__locale-link', 'is-active' => app()->getLocale() === 'en'])>EN</a>
-                    <a href="{{ route('agricart.locale', ['locale' => 'ur', 'redirect' => request()->getRequestUri()]) }}" @class(['ag-store-header__locale-link', 'is-active' => app()->getLocale() === 'ur'])>UR</a>
-                </div>
-
                 @if ($settings->show_auth_links)
                     <div class="ag-store-header__auth">
                         @auth('customer')
-                            <span class="ag-store-header__auth-user" title="{{ auth('customer')->user()->email }}">
-                                {{ auth('customer')->user()->displayLabel() }}
-                            </span>
-                            <form method="post" action="{{ route('store.customer.logout') }}" class="ag-store-header__logout-form">
-                                @csrf
-                                <button type="submit" class="ag-store-header__auth-link">{{ __('agricart.customer.auth.logout') }}</button>
-                            </form>
+                            @include('store.components.header-user-menu')
                         @else
-                            <a href="{{ $settings->resolvedCustomerLoginUrl() }}" class="ag-store-header__auth-link">{{ __('agricart.storefront.header.login') }}</a>
-                            <a href="{{ $settings->resolvedCustomerRegisterUrl() }}" class="ag-store-header__auth-link ag-store-header__auth-link--primary">{{ __('agricart.storefront.header.register') }}</a>
+                            <a href="{{ $settings->resolvedCustomerLoginUrl() }}" class="ag-store-header__auth-inline">{{ __('agricart.storefront.header.login') }}</a>
+                            <span class="ag-store-header__auth-sep" aria-hidden="true">/</span>
+                            <a href="{{ $settings->resolvedCustomerRegisterUrl() }}" class="ag-store-header__auth-inline">{{ __('agricart.storefront.header.register') }}</a>
                         @endauth
                     </div>
                 @endif

@@ -35,7 +35,7 @@
             </div>
         @endif
 
-        @if (session('customer_auth_status') && ! request()->routeIs('store.customer.login'))
+        @if (session('customer_auth_status') && ! request()->routeIs('store.customer.login', 'store.customer.account'))
             <div class="ag-store__container ag-store-flash-banner">
                 <div @class([
                     'ag-store-customer-auth__alert',

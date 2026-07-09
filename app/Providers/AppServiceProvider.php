@@ -21,6 +21,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (parse_url((string) config('app.url'), PHP_URL_SCHEME) === 'https') {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         View::composer('store.components.header', function ($view): void {
             $view->with('cartItemCount', app(StoreCartService::class)->totalQuantity());
         });

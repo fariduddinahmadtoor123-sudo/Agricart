@@ -3,7 +3,7 @@
     $isUr = $locale === 'ur';
     $storeName = $settings->localized('site_name') ?? config('app.name');
     $storePhone = filled($settings->top_bar_phone ?? null) ? (string) $settings->top_bar_phone : '';
-    $logoUrl = $logo_url ?? null;
+    $logoUrl = $settings->displayLogoUrl();
     $printedLabel = $printedAt->format('d M Y, h:i A');
 @endphp
 <!DOCTYPE html>

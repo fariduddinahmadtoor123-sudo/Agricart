@@ -11,6 +11,7 @@
 
     <section class="agricart-store-admin__card">
         <h3 class="agricart-store-admin__title">{{ __('agricart.store.admin.overview.category_grid') }}</h3>
+        <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.overview.category_grid_heading_hint') }}</p>
 
         <form wire:submit="save" class="agricart-store-admin__form">
             <label class="agricart-store-admin__checkbox">

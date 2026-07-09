@@ -18,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ->timezone(config('app.timezone'));
     })
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->trustProxies(at: env('TRUSTED_PROXIES', '*'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
