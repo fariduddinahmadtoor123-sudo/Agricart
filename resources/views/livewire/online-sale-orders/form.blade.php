@@ -142,6 +142,47 @@
         @if (filled($customer_payment_note))
             <p class="agricart-online-order__meta-line">{{ $customer_payment_note }}</p>
         @endif
+        @if (filled($customer_payment_reference))
+            <p class="agricart-online-order__meta-line">
+                <span class="agricart-sale-form__top-label">{{ __('online_sale_orders.fields.customer_payment_reference') }}</span>
+                <strong><code>{{ $customer_payment_reference }}</code></strong>
+            </p>
+        @endif
+        @if (filled($customer_payment_proof_status) && $customer_payment_proof_status !== 'none')
+            <p class="agricart-online-order__meta-line">
+                <span class="agricart-sale-form__top-label">{{ __('online_sale_orders.fields.payment_proof_status') }}</span>
+                <strong>{{ __('online_sale_orders.payment_proof_statuses.' . $customer_payment_proof_status) }}</strong>
+            </p>
+        @endif
+        @if (filled($customer_bank_receipt_url))
+            <div class="agricart-online-order__customer-receipt">
+                <p class="agricart-sale-form__top-label">{{ __('online_sale_orders.fields.customer_bank_receipt') }}</p>
+                @if ($this->customerBankReceiptIsPreviewable())
+                    <a href="{{ $customer_bank_receipt_url }}" target="_blank" rel="noopener" class="agricart-online-order__receipt-preview-link">
+                        <img src="{{ $customer_bank_receipt_url }}" alt="" class="agricart-online-order__receipt-preview" />
+                    </a>
+                @endif
+                <a href="{{ $customer_bank_receipt_url }}" target="_blank" rel="noopener" class="agricart-online-order__proof-link">
+                    {{ __('online_sale_orders.actions.view_customer_receipt') }}
+                </a>
+            </div>
+        @endif
+        @if (filled($payment_proof_rejection_note))
+            <p class="agricart-online-order__meta-line agricart-online-order__meta-line--reject">{{ $payment_proof_rejection_note }}</p>
+        @endif
+        @if ($this->canConfirmPayment() && $customer_payment_proof_status === 'submitted')
+            <div class="agricart-online-order__proof-actions">
+                <button type="button" class="agricart-categories__action is-primary" wire:click="verifyCustomerPaymentProof" wire:loading.attr="disabled">
+                    {{ __('online_sale_orders.actions.verify_payment') }}
+                </button>
+                <div class="agricart-online-order__reject-row">
+                    <input type="text" class="agricart-purchase-form__input agricart-purchase-form__input--compact" wire:model="payment_proof_reject_input" placeholder="{{ __('online_sale_orders.hints.reject_payment_note') }}" />
+                    <button type="button" class="agricart-categories__action is-danger" wire:click="rejectCustomerPaymentProof" wire:loading.attr="disabled">
+                        {{ __('online_sale_orders.actions.reject_payment') }}
+                    </button>
+                </div>
+            </div>
+        @endif
     </div>
 
     <h3 class="agricart-online-order__section-title">{{ __('order_dispatch.sections.fulfillment') }}</h3>

@@ -51,4 +51,15 @@ return [
         'logistics',
         'service',
     ],
+
+    'sms' => [
+        'driver' => env('AGRICART_SMS_DRIVER', 'log'),
+    ],
+
+    'online_store' => [
+        'order_notifications' => [
+            'email' => filter_var(env('AGRICART_ORDER_EMAIL_NOTIFY', true), FILTER_VALIDATE_BOOL),
+            'sms' => filter_var(env('AGRICART_ORDER_SMS_NOTIFY', true), FILTER_VALIDATE_BOOL),
+        ],
+    ],
 ];

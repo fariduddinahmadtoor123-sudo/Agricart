@@ -43,6 +43,16 @@ class Form extends Component
 
     public string $customer_payment_note = '';
 
+    public string $customer_payment_reference = '';
+
+    public string $customer_payment_proof_status = '';
+
+    public string $customer_bank_receipt_url = '';
+
+    public string $payment_proof_rejection_note = '';
+
+    public string $payment_proof_reject_input = '';
+
     public string $payment_method = '';
 
     public ?int $bank_account_id = null;
@@ -338,6 +348,17 @@ class Form extends Component
         return $this->mode === 'view' || ! $this->canConfirmPayment();
     }
 
+    public function customerBankReceiptIsPreviewable(): bool
+    {
+        if ($this->orderId === null) {
+            return false;
+        }
+
+        $order = OnlineSaleOrder::query()->find($this->orderId);
+
+        return $order?->customerBankReceiptIsImage() ?? false;
+    }
+
     public function saveAndClose(): void
     {
         if ($this->persistAdmin()) {
@@ -364,6 +385,75 @@ class Form extends Component
 
         if ($this->persistAdmin()) {
             $this->dispatch('online-sale-orders-open-print', url: route('admin.online-sale-orders.print', ['order' => $this->orderId]));
+        }
+    }
+
+    public function verifyCustomerPaymentProof(): void
+    {
+        if (! $this->canConfirmPayment() || ! $this->orderId) {
+            return;
+        }
+
+        if ($this->customer_payment_proof_status !== OnlineSaleOrder::PROOF_SUBMITTED) {
+            $this->setStatus(__('online_sale_orders.messages.proof_not_submitted'), 'warning');
+
+            return;
+        }
+
+        $this->saving = true;
+        $this->dispatchBusyState();
+
+        try {
+            $order = OnlineSaleOrder::query()->findOrFail($this->orderId);
+            app(OnlineSaleOrderService::class)->verifyCustomerPaymentProof($order, auth()->user());
+            $this->setStatus(__('online_sale_orders.messages.proof_verified'), 'success');
+            $this->loadOrder($this->orderId);
+            $this->dispatch('online-sale-orders-saved');
+        } catch (ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first() ?? __('online_sale_orders.messages.save_failed');
+            $this->setStatus((string) $message, 'error');
+        } catch (\Throwable) {
+            $this->setStatus(__('online_sale_orders.messages.save_failed'), 'error');
+        } finally {
+            $this->saving = false;
+            $this->dispatchBusyState();
+        }
+    }
+
+    public function rejectCustomerPaymentProof(): void
+    {
+        if (! $this->canConfirmPayment() || ! $this->orderId) {
+            return;
+        }
+
+        if ($this->customer_payment_proof_status !== OnlineSaleOrder::PROOF_SUBMITTED) {
+            $this->setStatus(__('online_sale_orders.messages.proof_not_submitted'), 'warning');
+
+            return;
+        }
+
+        $this->saving = true;
+        $this->dispatchBusyState();
+
+        try {
+            $order = OnlineSaleOrder::query()->findOrFail($this->orderId);
+            app(OnlineSaleOrderService::class)->rejectCustomerPaymentProof(
+                $order,
+                auth()->user(),
+                $this->payment_proof_reject_input !== '' ? $this->payment_proof_reject_input : null,
+            );
+            $this->payment_proof_reject_input = '';
+            $this->setStatus(__('online_sale_orders.messages.proof_rejected'), 'success');
+            $this->loadOrder($this->orderId);
+            $this->dispatch('online-sale-orders-saved');
+        } catch (ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first() ?? __('online_sale_orders.messages.save_failed');
+            $this->setStatus((string) $message, 'error');
+        } catch (\Throwable) {
+            $this->setStatus(__('online_sale_orders.messages.save_failed'), 'error');
+        } finally {
+            $this->saving = false;
+            $this->dispatchBusyState();
         }
     }
 
@@ -514,6 +604,10 @@ class Form extends Component
         $this->payment_status = (string) $state['payment_status'];
         $this->customer_payment_method = (string) $state['customer_payment_method'];
         $this->customer_payment_note = (string) $state['customer_payment_note'];
+        $this->customer_payment_reference = (string) ($state['customer_payment_reference'] ?? '');
+        $this->customer_payment_proof_status = (string) ($state['customer_payment_proof_status'] ?? '');
+        $this->customer_bank_receipt_url = (string) ($state['customer_bank_receipt_url'] ?? '');
+        $this->payment_proof_rejection_note = (string) ($state['payment_proof_rejection_note'] ?? '');
         $this->payment_method = (string) $state['payment_method'];
         $this->bank_account_id = $state['bank_account_id'] ? (int) $state['bank_account_id'] : null;
         $this->amount_paid = (string) $state['amount_paid'];
@@ -663,6 +757,11 @@ class Form extends Component
             'payment_status',
             'customer_payment_method',
             'customer_payment_note',
+            'customer_payment_reference',
+            'customer_payment_proof_status',
+            'customer_bank_receipt_url',
+            'payment_proof_rejection_note',
+            'payment_proof_reject_input',
             'payment_method',
             'bank_account_id',
             'amount_paid',

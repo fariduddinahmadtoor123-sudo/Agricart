@@ -7,6 +7,7 @@ use App\Http\Controllers\Store\CheckoutController;
 use App\Http\Controllers\Store\CustomerAuthController;
 use App\Http\Controllers\Store\CustomerLogoutController;
 use App\Http\Controllers\Store\CustomerOrderController;
+use App\Http\Controllers\Store\CustomerOrderPaymentController;
 use App\Http\Controllers\Store\CustomerPasswordResetController;
 use App\Http\Controllers\Store\CustomerProfileController;
 use App\Http\Controllers\Store\HomeController;
@@ -49,6 +50,8 @@ Route::middleware([SetAgricartLocale::class, BlockOnlineStoreMaintenance::class]
         Route::post('/account/password', [CustomerProfileController::class, 'updatePassword'])->name('store.customer.account.password');
         Route::get('/account/orders', [CustomerOrderController::class, 'index'])->name('store.customer.orders');
         Route::get('/account/orders/{order}', [CustomerOrderController::class, 'show'])->name('store.customer.orders.show');
+        Route::post('/account/orders/{order}/payment-proof', [CustomerOrderPaymentController::class, 'store'])
+            ->name('store.customer.orders.payment-proof');
     });
     Route::get('/register', [\App\Http\Controllers\Store\RegisterController::class, 'show'])->name('auth.register');
     Route::get('/staff-register', [\App\Http\Controllers\Store\StaffRegisterController::class, 'show'])

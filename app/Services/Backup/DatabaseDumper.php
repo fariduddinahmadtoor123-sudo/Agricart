@@ -8,6 +8,11 @@ use Illuminate\Validation\ValidationException;
 
 class DatabaseDumper
 {
+    public function __construct(
+        private readonly MysqlCliToolResolver $cliTools,
+        private readonly PhpMysqlDumper $phpDumper,
+    ) {}
+
     public function dumpTo(string $targetPath): void
     {
         $connection = config('database.default');
@@ -50,13 +55,63 @@ class DatabaseDumper
      */
     private function dumpMysql(string $targetPath, array $config): void
     {
+        $method = (string) config('backup.mysql_dump_method', 'auto');
+
+        if ($method === 'php') {
+            $this->phpDumper->dumpTo($targetPath, $config);
+
+            return;
+        }
+
+        $binary = $this->cliTools->resolveMysqldump();
+
+        if ($method === 'cli') {
+            if ($binary === null) {
+                throw ValidationException::withMessages([
+                    'backup' => __('agricart.backups.messages.dump_cli_unavailable'),
+                ]);
+            }
+
+            $this->dumpMysqlViaCli($targetPath, $config, $binary);
+            $this->assertDumpFile($targetPath);
+
+            return;
+        }
+
+        if ($binary !== null) {
+            try {
+                $this->dumpMysqlViaCli($targetPath, $config, $binary);
+                $this->assertDumpFile($targetPath);
+
+                return;
+            } catch (ValidationException) {
+                @unlink($targetPath);
+            }
+        }
+
+        $this->phpDumper->dumpTo($targetPath, $config);
+    }
+
+    private function assertDumpFile(string $targetPath): void
+    {
+        if (! is_file($targetPath) || filesize($targetPath) === 0) {
+            throw ValidationException::withMessages([
+                'backup' => __('agricart.backups.messages.dump_failed'),
+            ]);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    private function dumpMysqlViaCli(string $targetPath, array $config, string $binary): void
+    {
         $credentialsFile = $this->writeMysqlCredentialsFile(
             (string) ($config['username'] ?? ''),
             (string) ($config['password'] ?? ''),
         );
 
         try {
-            $binary = (string) config('backup.mysqldump', 'mysqldump');
             $database = (string) ($config['database'] ?? '');
             $host = (string) ($config['host'] ?? '127.0.0.1');
             $port = (string) ($config['port'] ?? '3306');
@@ -74,7 +129,9 @@ class DatabaseDumper
                 $database,
             ]);
 
-            if (! $result->successful() || ! is_file($targetPath) || filesize($targetPath) === 0) {
+            if (! $result->successful()) {
+                @unlink($targetPath);
+
                 throw ValidationException::withMessages([
                     'backup' => __('agricart.backups.messages.dump_failed'),
                 ]);
@@ -87,6 +144,13 @@ class DatabaseDumper
     private function writeMysqlCredentialsFile(string $username, string $password): string
     {
         $path = tempnam(sys_get_temp_dir(), 'agricart-mysql-');
+
+        if ($path === false) {
+            throw ValidationException::withMessages([
+                'backup' => __('agricart.backups.messages.dump_failed'),
+            ]);
+        }
+
         $contents = "[client]\nuser=\"{$username}\"\npassword=\"{$password}\"\n";
         file_put_contents($path, $contents);
 

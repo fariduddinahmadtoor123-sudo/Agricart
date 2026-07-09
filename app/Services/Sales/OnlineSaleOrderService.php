@@ -2,9 +2,11 @@
 
 namespace App\Services\Sales;
 
+use App\Models\Customer;
 use App\Models\OnlineSaleOrder;
 use App\Models\OnlineSaleOrderItem;
 use App\Models\Product;
+use App\Models\User;
 use App\Services\Finance\BankAccountService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -45,6 +47,7 @@ class OnlineSaleOrderService
             'locale' => ['nullable', 'string', Rule::in(self::LOCALES)],
             'customer_payment_method' => ['nullable', 'string', Rule::in(SaleService::PAYMENT_METHODS)],
             'customer_payment_note' => ['nullable', 'string', 'max:2000'],
+            'customer_payment_reference' => ['nullable', 'string', 'max:128'],
             'customer_notes' => ['nullable', 'string', 'max:5000'],
             'ship_contact_name' => ['nullable', 'string', 'max:255'],
             'ship_phone' => ['nullable', 'string', 'max:64'],
@@ -68,6 +71,10 @@ class OnlineSaleOrderService
         return DB::transaction(function () use ($validated, $rows): OnlineSaleOrder {
             $subtotal = $this->subtotalFromRows($rows);
             $total = $subtotal;
+            $paymentMethod = $validated['customer_payment_method'] ?? null;
+            $proofStatus = $paymentMethod === 'bank_transfer'
+                ? OnlineSaleOrder::PROOF_AWAITING
+                : OnlineSaleOrder::PROOF_NONE;
 
             $order = OnlineSaleOrder::query()->create([
                 'order_number' => $this->nextOrderNumber(),
@@ -76,8 +83,10 @@ class OnlineSaleOrderService
                 'locale' => $this->normalizeLocale((string) ($validated['locale'] ?? 'en')),
                 'order_status' => OnlineSaleOrder::STATUS_PENDING,
                 'payment_status' => 'unpaid',
-                'customer_payment_method' => $validated['customer_payment_method'] ?? null,
+                'customer_payment_method' => $paymentMethod,
                 'customer_payment_note' => $validated['customer_payment_note'] ?? null,
+                'customer_payment_reference' => $validated['customer_payment_reference'] ?? null,
+                'customer_payment_proof_status' => $proofStatus,
                 'subtotal' => $subtotal,
                 'total_amount' => $total,
                 'amount_paid' => 0,
@@ -96,8 +105,129 @@ class OnlineSaleOrderService
                 ]);
             }
 
-            return $order->fresh(['items', 'customer']);
+            $order = $order->fresh(['items', 'customer']);
+
+            app(\App\Services\Store\OnlineStoreOrderNotifier::class)->orderPlaced($order);
+
+            return $order;
         });
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    public function submitCustomerPaymentProof(OnlineSaleOrder $order, Customer $customer, array $payload): OnlineSaleOrder
+    {
+        if ((int) $order->customer_id !== (int) $customer->id) {
+            throw ValidationException::withMessages([
+                'order' => [__('agricart.customer.orders.payment_forbidden')],
+            ]);
+        }
+
+        if ($order->isLocked() || $order->order_status === OnlineSaleOrder::STATUS_CANCELLED) {
+            throw ValidationException::withMessages([
+                'order' => [__('agricart.customer.orders.payment_closed')],
+            ]);
+        }
+
+        if ($order->customer_payment_proof_status === OnlineSaleOrder::PROOF_VERIFIED) {
+            throw ValidationException::withMessages([
+                'order' => [__('agricart.customer.orders.payment_already_verified')],
+            ]);
+        }
+
+        if (! in_array($order->customer_payment_proof_status, [
+            OnlineSaleOrder::PROOF_AWAITING,
+            OnlineSaleOrder::PROOF_SUBMITTED,
+            OnlineSaleOrder::PROOF_REJECTED,
+        ], true)) {
+            throw ValidationException::withMessages([
+                'order' => [__('agricart.customer.orders.payment_closed')],
+            ]);
+        }
+
+        if ((string) $order->customer_payment_method !== 'bank_transfer') {
+            throw ValidationException::withMessages([
+                'payment' => [__('agricart.customer.orders.payment_not_bank')],
+            ]);
+        }
+
+        $validated = validator($payload, [
+            'customer_payment_reference' => ['nullable', 'string', 'max:128'],
+            'bank_receipt' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
+        ])->validate();
+
+        $reference = trim((string) ($validated['customer_payment_reference'] ?? ''));
+        $upload = $validated['bank_receipt'] ?? null;
+
+        if ($reference === '' && $upload === null && ! filled($order->customer_bank_receipt_path)) {
+            throw ValidationException::withMessages([
+                'bank_receipt' => [__('agricart.customer.orders.payment_proof_required')],
+            ]);
+        }
+
+        if ($reference !== '') {
+            $order->customer_payment_reference = $reference;
+        }
+
+        if ($upload !== null) {
+            $path = $upload->store('online-orders/customer-receipts/' . $order->id, 'public');
+            $order->customer_bank_receipt_path = $path;
+        }
+
+        $order->customer_payment_proof_status = OnlineSaleOrder::PROOF_SUBMITTED;
+        $order->payment_proof_rejection_note = null;
+        $order->save();
+
+        return $order->fresh();
+    }
+
+    public function verifyCustomerPaymentProof(OnlineSaleOrder $order, User $reviewer): OnlineSaleOrder
+    {
+        if ($order->isLocked()) {
+            throw ValidationException::withMessages([
+                'order' => [__('online_sale_orders.validation.converted_locked')],
+            ]);
+        }
+
+        $order->customer_payment_proof_status = OnlineSaleOrder::PROOF_VERIFIED;
+        $order->payment_proof_rejection_note = null;
+        $order->payment_proof_reviewed_at = now();
+        $order->payment_proof_reviewed_by_id = $reviewer->id;
+        $order->payment_status = 'paid';
+        $order->amount_paid = $order->total_amount;
+
+        if ($order->payment_method === '' || $order->payment_method === null) {
+            $order->payment_method = $order->customer_payment_method ?: 'bank_transfer';
+        }
+
+        if ($order->order_status === OnlineSaleOrder::STATUS_PENDING) {
+            $order->order_status = OnlineSaleOrder::STATUS_PAYMENT_RECEIVED;
+        }
+
+        $order->save();
+
+        app(OnlineOrderDispatchService::class)->enterDispatchQueueIfPaid($order->fresh());
+        app(BankAccountService::class)->recordOnlineOrderReceiptIfApplicable($order->fresh());
+
+        return $order->fresh(['items', 'customer', 'paymentProofReviewedBy']);
+    }
+
+    public function rejectCustomerPaymentProof(OnlineSaleOrder $order, User $reviewer, ?string $note = null): OnlineSaleOrder
+    {
+        if ($order->isLocked()) {
+            throw ValidationException::withMessages([
+                'order' => [__('online_sale_orders.validation.converted_locked')],
+            ]);
+        }
+
+        $order->customer_payment_proof_status = OnlineSaleOrder::PROOF_REJECTED;
+        $order->payment_proof_rejection_note = filled($note) ? trim($note) : null;
+        $order->payment_proof_reviewed_at = now();
+        $order->payment_proof_reviewed_by_id = $reviewer->id;
+        $order->save();
+
+        return $order->fresh(['paymentProofReviewedBy']);
     }
 
     /**
@@ -237,6 +367,10 @@ class OnlineSaleOrderService
             'payment_status' => $order->payment_status,
             'customer_payment_method' => (string) ($order->customer_payment_method ?? ''),
             'customer_payment_note' => (string) ($order->customer_payment_note ?? ''),
+            'customer_payment_reference' => (string) ($order->customer_payment_reference ?? ''),
+            'customer_payment_proof_status' => (string) ($order->customer_payment_proof_status ?? OnlineSaleOrder::PROOF_NONE),
+            'customer_bank_receipt_url' => $order->customerBankReceiptUrl(),
+            'payment_proof_rejection_note' => (string) ($order->payment_proof_rejection_note ?? ''),
             'payment_method' => (string) ($order->payment_method ?? ''),
             'bank_account_id' => $order->bank_account_id,
             'subtotal' => $this->saleService->formatMoney((float) $order->subtotal),

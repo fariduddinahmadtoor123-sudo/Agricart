@@ -28,6 +28,22 @@
                 </p>
             </header>
 
+            @if (session('customer_auth_status'))
+                <div @class([
+                    'ag-store-customer-auth__alert',
+                    'is-success' => session('customer_auth_status_type', 'success') === 'success',
+                    'is-danger' => session('customer_auth_status_type') === 'danger',
+                ]) role="alert">
+                    {{ session('customer_auth_status') }}
+                </div>
+            @endif
+
+            @if ($errors->any())
+                <div class="ag-store-customer-auth__alert is-danger" role="alert">
+                    {{ $errors->first() }}
+                </div>
+            @endif
+
             <section class="ag-store-orders__detail-card">
                 <h2 class="ag-store-orders__section-title">{{ __('agricart.customer.orders.shipping') }}</h2>
                 <dl class="ag-store-orders__meta ag-store-orders__meta--grid">
@@ -79,9 +95,58 @@
                 <section class="ag-store-orders__detail-card">
                     <h2 class="ag-store-orders__section-title">{{ __('agricart.storefront.checkout.payment_method') }}</h2>
                     <p class="ag-store-orders__payment-method">{{ __('pos.payment_methods.' . $order->customer_payment_method) }}</p>
+                    @if (filled($order->customer_payment_reference))
+                        <p class="ag-store-orders__note">
+                            <strong>{{ __('agricart.storefront.checkout.payment_reference') }}:</strong>
+                            {{ $order->customer_payment_reference }}
+                        </p>
+                    @endif
                     @if (filled($order->customer_payment_note))
                         <p class="ag-store-orders__note">{{ $order->customer_payment_note }}</p>
                     @endif
+                    @if (filled($order->customer_payment_proof_status) && $order->customer_payment_proof_status !== \App\Models\OnlineSaleOrder::PROOF_NONE)
+                        <p class="ag-store-orders__proof-status">
+                            {{ __('online_sale_orders.payment_proof_statuses.' . $order->customer_payment_proof_status) }}
+                        </p>
+                    @endif
+                    @if (filled($order->payment_proof_rejection_note))
+                        <p class="ag-store-orders__note ag-store-orders__note--reject">{{ $order->payment_proof_rejection_note }}</p>
+                    @endif
+                </section>
+            @endif
+
+            @if ($order->requiresCustomerPaymentProof())
+                <section class="ag-store-orders__detail-card ag-store-orders__payment-proof">
+                    <h2 class="ag-store-orders__section-title">{{ __('agricart.customer.orders.upload_receipt_heading') }}</h2>
+                    <p class="ag-store-customer-auth__lead">{{ __('agricart.customer.orders.upload_receipt_lead') }}</p>
+
+                    @if ($order->customerBankReceiptUrl())
+                        <p class="ag-store-orders__note">
+                            <a href="{{ $order->customerBankReceiptUrl() }}" class="ag-store-orders__link" target="_blank" rel="noopener">
+                                {{ __('agricart.customer.orders.view_uploaded_receipt') }}
+                            </a>
+                        </p>
+                    @endif
+
+                    <form method="post" action="{{ route('store.customer.orders.payment-proof', $order->order_number) }}" enctype="multipart/form-data" class="ag-store-checkout__form">
+                        @csrf
+                        <label class="ag-store-checkout__field">
+                            <span class="ag-store-checkout__label">{{ __('agricart.storefront.checkout.payment_reference') }}</span>
+                            <input
+                                type="text"
+                                name="customer_payment_reference"
+                                class="ag-store-checkout__input"
+                                value="{{ old('customer_payment_reference', $order->customer_payment_reference) }}"
+                                autocomplete="off"
+                            />
+                        </label>
+                        <label class="ag-store-checkout__field">
+                            <span class="ag-store-checkout__label">{{ __('agricart.customer.orders.bank_receipt_file') }}</span>
+                            <input type="file" name="bank_receipt" class="ag-store-checkout__input" accept="image/jpeg,image/png,image/webp,application/pdf" />
+                            <span class="ag-store-orders__file-hint">{{ __('agricart.customer.orders.bank_receipt_hint') }}</span>
+                        </label>
+                        <button type="submit" class="ag-store-btn ag-store-btn--primary">{{ __('agricart.customer.orders.submit_payment_proof') }}</button>
+                    </form>
                 </section>
             @endif
         </div>

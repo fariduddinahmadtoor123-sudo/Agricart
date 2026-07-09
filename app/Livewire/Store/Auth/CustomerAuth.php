@@ -4,6 +4,7 @@ namespace App\Livewire\Store\Auth;
 
 use App\Models\Customer;
 use App\Services\Store\CustomerService;
+use App\Services\Store\StoreCartService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -108,6 +109,9 @@ class CustomerAuth extends Component
                 ]);
             }
 
+            $sessionCart = session()->get(StoreCartService::SESSION_KEY, []);
+            $sessionCart = is_array($sessionCart) ? $sessionCart : [];
+
             if (! Auth::guard('customer')->attempt([
                 'email' => $this->loginEmail,
                 'password' => $this->loginPassword,
@@ -119,6 +123,8 @@ class CustomerAuth extends Component
             }
 
             session()->regenerate();
+
+            app(StoreCartService::class)->mergeAfterCustomerLogin($customer->id, $sessionCart);
 
             $this->redirectToIntended(route('store.home'));
         } catch (ValidationException $exception) {
@@ -140,6 +146,9 @@ class CustomerAuth extends Component
         $this->statusMessage = null;
 
         try {
+            $sessionCart = session()->get(StoreCartService::SESSION_KEY, []);
+            $sessionCart = is_array($sessionCart) ? $sessionCart : [];
+
             app(CustomerService::class)->register([
                 'first_name' => $this->first_name,
                 'last_name' => $this->last_name,
@@ -173,6 +182,12 @@ class CustomerAuth extends Component
             }
 
             session()->regenerate();
+
+            $customer = Customer::query()->where('email', $this->email)->first();
+
+            if ($customer instanceof Customer) {
+                app(StoreCartService::class)->mergeAfterCustomerLogin($customer->id, $sessionCart);
+            }
 
             $this->redirectToIntended(route('store.home'));
         } catch (ValidationException $exception) {

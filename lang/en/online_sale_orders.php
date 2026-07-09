@@ -8,6 +8,9 @@ return [
         'print_short' => 'Invoice',
         'packing_slip' => 'Packing list',
         'packing_slip_short' => 'Packing',
+        'view_customer_receipt' => 'View customer receipt',
+        'verify_payment' => 'Verify payment',
+        'reject_payment' => 'Reject',
     ],
 
     'fields' => [
@@ -16,6 +19,9 @@ return [
         'order_status' => 'Order Status',
         'pos_invoice' => 'POS Invoice',
         'customer_payment_method' => 'Customer selected',
+        'customer_payment_reference' => 'Transaction reference',
+        'payment_proof_status' => 'Receipt status',
+        'customer_bank_receipt' => 'Customer receipt upload',
         'customer_notes' => 'Customer notes',
         'admin_notes' => 'Admin notes',
         'subtotal' => 'Subtotal',
@@ -54,6 +60,15 @@ return [
         'admin_notes' => 'Internal notes for staff…',
         'admin_payment' => 'Confirm how payment was received (method, status, and amount). Save when done.',
         'converted_locked' => 'This order is linked to a completed POS sale and cannot be edited here.',
+        'reject_payment_note' => 'Reason for customer (optional)',
+    ],
+
+    'payment_proof_statuses' => [
+        'none' => 'Not required',
+        'awaiting_receipt' => 'Awaiting receipt',
+        'submitted' => 'Submitted — pending review',
+        'verified' => 'Verified',
+        'rejected' => 'Rejected — resubmit',
     ],
 
     'list' => [
@@ -76,6 +91,9 @@ return [
         'updated' => 'Order :number updated.',
         'save_failed' => 'Could not save the order.',
         'order_status_required' => 'Select an order status.',
+        'proof_not_submitted' => 'No customer receipt is pending review.',
+        'proof_verified' => 'Customer payment verified.',
+        'proof_rejected' => 'Customer payment proof rejected.',
     ],
 
     'validation' => [

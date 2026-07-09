@@ -8,6 +8,9 @@ return [
         'print_short' => 'انوائس',
         'packing_slip' => 'پیکنگ لسٹ',
         'packing_slip_short' => 'پیکنگ',
+        'view_customer_receipt' => 'گاہک کی رسید دیکھیں',
+        'verify_payment' => 'ادائیگی تصدیق کریں',
+        'reject_payment' => 'مسترد',
     ],
 
     'fields' => [
@@ -16,6 +19,9 @@ return [
         'order_status' => 'آرڈر سٹیٹس',
         'pos_invoice' => 'POS انوائس',
         'customer_payment_method' => 'گاہک نے بتایا',
+        'customer_payment_reference' => 'ٹرانزیکشن حوالہ',
+        'payment_proof_status' => 'رسید کی حیثیت',
+        'customer_bank_receipt' => 'گاہک کی اپلوڈ شدہ رسید',
         'customer_notes' => 'گاہک کے نوٹس',
         'admin_notes' => 'ایڈمن نوٹس',
         'subtotal' => 'ذیلی کل',
@@ -54,6 +60,15 @@ return [
         'admin_notes' => 'اسٹاف کے لیے اندرونی نوٹس…',
         'admin_payment' => 'ادائیگی کی تصدیق کریں (طریقہ، سٹیٹس، رقم)۔ مکمل ہونے پر محفوظ کریں۔',
         'converted_locked' => 'یہ آرڈر مکمل POS سیل سے منسلک ہے — یہاں ترمیم نہیں ہو سکتی۔',
+        'reject_payment_note' => 'گاہک کے لیے وجہ (اختیاری)',
+    ],
+
+    'payment_proof_statuses' => [
+        'none' => 'ضروری نہیں',
+        'awaiting_receipt' => 'رسید کا انتظار',
+        'submitted' => 'جمع — جائزے میں',
+        'verified' => 'تصدیق شدہ',
+        'rejected' => 'مسترد — دوبارہ بھیجیں',
     ],
 
     'list' => [
@@ -76,6 +91,9 @@ return [
         'updated' => 'آرڈر :number اپ ڈیٹ ہو گیا۔',
         'save_failed' => 'آرڈر محفوظ نہیں ہو سکا۔',
         'order_status_required' => 'آرڈر سٹیٹس منتخب کریں۔',
+        'proof_not_submitted' => 'جائزے کے لیے کوئی رسید زیر التوا نہیں۔',
+        'proof_verified' => 'گاہک کی ادائیگی تصدیق ہو گئی۔',
+        'proof_rejected' => 'گاہک کی رسید مسترد کر دی گئی۔',
     ],
 
     'validation' => [

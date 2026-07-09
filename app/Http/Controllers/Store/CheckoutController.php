@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Store;
 
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
+use App\Models\OnlineSaleOrder;
 use App\Services\Sales\OnlineSaleOrderService;
 use App\Services\Sales\SaleService;
 use App\Services\SalesChannels\SalesChannelService;
@@ -79,7 +80,9 @@ class CheckoutController extends Controller
         $validated = $request->validate([
             'customer_payment_method' => ['required', 'string', Rule::in(SaleService::PAYMENT_METHODS)],
             'customer_payment_note' => ['nullable', 'string', 'max:2000'],
+            'customer_payment_reference' => ['nullable', 'string', 'max:128'],
             'customer_notes' => ['nullable', 'string', 'max:5000'],
+            'bank_receipt' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
         ]);
 
         $shipping = $customers->validateCheckoutShipping($request->all());
@@ -110,6 +113,7 @@ class CheckoutController extends Controller
                 'locale' => app()->getLocale(),
                 'customer_payment_method' => $validated['customer_payment_method'],
                 'customer_payment_note' => $validated['customer_payment_note'] ?? null,
+                'customer_payment_reference' => $validated['customer_payment_reference'] ?? null,
                 'customer_notes' => $validated['customer_notes'] ?? null,
                 'ship_contact_name' => $shipping['ship_contact_name'],
                 'ship_phone' => $shipping['ship_phone'],
@@ -117,6 +121,17 @@ class CheckoutController extends Controller
                 'ship_city' => $shipping['ship_city'],
                 'rows' => $cart->checkoutRows(),
             ]);
+
+            if ($validated['customer_payment_method'] === 'bank_transfer' && $request->hasFile('bank_receipt')) {
+                $path = $request->file('bank_receipt')->store(
+                    'online-orders/customer-receipts/' . $order->id,
+                    'public',
+                );
+                $order->update([
+                    'customer_bank_receipt_path' => $path,
+                    'customer_payment_proof_status' => OnlineSaleOrder::PROOF_SUBMITTED,
+                ]);
+            }
 
             $cart->clear();
 

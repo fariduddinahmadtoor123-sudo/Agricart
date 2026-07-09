@@ -9556,6 +9556,56 @@ body.agricart-price-tags-panel-open {
     font-size: 0.85rem;
 }
 
+.agricart-online-order__customer-receipt {
+    margin-top: 0.65rem;
+    padding: 0.75rem;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-bg);
+}
+
+.agricart-online-order__receipt-preview-link {
+    display: block;
+    margin: 0.5rem 0;
+    max-width: 16rem;
+}
+
+.agricart-online-order__receipt-preview {
+    display: block;
+    width: 100%;
+    max-height: 14rem;
+    object-fit: contain;
+    border: 1px solid var(--agricart-border);
+    background: #fff;
+}
+
+.agricart-online-order__proof-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-top: 0.75rem;
+}
+
+.agricart-online-order__reject-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.agricart-online-order__reject-row .agricart-purchase-form__input {
+    flex: 1 1 12rem;
+    min-width: 0;
+}
+
+.agricart-online-order__meta-line--reject {
+    color: #991b1b;
+}
+
+.agricart-categories__action.is-danger {
+    border-color: #fecaca;
+    color: #991b1b;
+}
+
 .agricart-online-order__supplier-actions {
     display: inline-flex;
     gap: 0.35rem;

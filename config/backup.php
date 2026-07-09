@@ -21,11 +21,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | MySQL tools (Laragon example: C:\laragon\bin\mysql\mysql-8.4\bin\mysqldump.exe)
+    | MySQL CLI tools (optional — auto-detected on VPS; shared hosting uses PHP)
     |--------------------------------------------------------------------------
+    |
+    | Leave MYSQLDUMP_PATH / MYSQL_PATH unset on Hostinger unless support gives
+    | you explicit paths. BACKUP_MYSQL_*_METHOD: auto | cli | php
+    |
     */
-    'mysqldump' => env('MYSQLDUMP_PATH', 'mysqldump'),
-    'mysql' => env('MYSQL_PATH', 'mysql'),
+    'mysqldump' => env('MYSQLDUMP_PATH'),
+    'mysql' => env('MYSQL_PATH'),
+    'mysql_dump_method' => env('BACKUP_MYSQL_DUMP_METHOD', 'auto'),
+    'mysql_import_method' => env('BACKUP_MYSQL_IMPORT_METHOD', 'auto'),
 
     /*
     |--------------------------------------------------------------------------

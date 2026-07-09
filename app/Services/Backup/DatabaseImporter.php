@@ -8,6 +8,11 @@ use Illuminate\Validation\ValidationException;
 
 class DatabaseImporter
 {
+    public function __construct(
+        private readonly MysqlCliToolResolver $cliTools,
+        private readonly PhpMysqlImporter $phpImporter,
+    ) {}
+
     public function importFrom(string $sourcePath): void
     {
         if (! is_file($sourcePath)) {
@@ -50,13 +55,54 @@ class DatabaseImporter
      */
     private function importMysql(string $sourcePath, array $config): void
     {
+        $method = (string) config('backup.mysql_import_method', 'auto');
+
+        if ($method === 'php') {
+            $this->phpImporter->importFrom($sourcePath);
+
+            return;
+        }
+
+        $binary = $this->cliTools->resolveMysql();
+
+        if ($method === 'cli' || $binary !== null) {
+            if ($binary === null) {
+                throw ValidationException::withMessages([
+                    'restore' => __('agricart.backups.messages.restore_cli_unavailable'),
+                ]);
+            }
+
+            try {
+                $this->importMysqlViaCli($sourcePath, $config, $binary);
+
+                return;
+            } catch (ValidationException $exception) {
+                if ($method === 'cli') {
+                    throw $exception;
+                }
+            }
+        }
+
+        if ($method === 'cli') {
+            throw ValidationException::withMessages([
+                'restore' => __('agricart.backups.messages.restore_failed'),
+            ]);
+        }
+
+        $this->phpImporter->importFrom($sourcePath);
+    }
+
+    /**
+     * @param  array<string, mixed>  $config
+     */
+    private function importMysqlViaCli(string $sourcePath, array $config, string $binary): void
+    {
         $credentialsFile = $this->writeMysqlCredentialsFile(
             (string) ($config['username'] ?? ''),
             (string) ($config['password'] ?? ''),
         );
 
         try {
-            $binary = (string) config('backup.mysql', 'mysql');
             $database = (string) ($config['database'] ?? '');
             $host = (string) ($config['host'] ?? '127.0.0.1');
             $port = (string) ($config['port'] ?? '3306');
@@ -84,6 +130,13 @@ class DatabaseImporter
     private function writeMysqlCredentialsFile(string $username, string $password): string
     {
         $path = tempnam(sys_get_temp_dir(), 'agricart-mysql-');
+
+        if ($path === false) {
+            throw ValidationException::withMessages([
+                'restore' => __('agricart.backups.messages.restore_failed'),
+            ]);
+        }
+
         $contents = "[client]\nuser=\"{$username}\"\npassword=\"{$password}\"\n";
         file_put_contents($path, $contents);
 

@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Models\Customer;
 use App\Services\Store\StoreCartService;
+use App\Contracts\Store\SmsSender;
+use App\Services\Store\LogSmsSender;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -15,7 +17,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(SmsSender::class, function (): SmsSender {
+            $driver = (string) config('agricart.sms.driver', 'log');
+
+            return match ($driver) {
+                'log' => new LogSmsSender,
+                default => new LogSmsSender,
+            };
+        });
     }
 
     /**

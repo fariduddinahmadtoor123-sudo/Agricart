@@ -11,6 +11,11 @@
             <strong><code>{{ $orderNumber }}</code></strong>
         </p>
         <p class="ag-store-checkout-success__hint">{{ __('agricart.storefront.checkout.success_hint') }}</p>
+        @isset($order)
+            @if ($order->customer_payment_method === 'bank_transfer' && $order->needsBankReceiptUpload())
+                <p class="ag-store-checkout-success__bank-notice">{{ __('agricart.storefront.checkout.success_upload_receipt') }}</p>
+            @endif
+        @endisset
         <div class="ag-store-checkout-success__actions">
             @auth('customer')
                 <a href="{{ route('store.customer.orders.show', $orderNumber) }}" class="ag-store-btn ag-store-btn--primary">{{ __('agricart.customer.orders.view_this_order') }}</a>

@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
+use Illuminate\Support\Facades\Storage;
+
 class OnlineSaleOrder extends Model
 {
     public const STATUS_PENDING = 'pending';
@@ -17,6 +19,25 @@ class OnlineSaleOrder extends Model
     public const STATUS_CONVERTED = 'converted';
 
     public const STATUS_CANCELLED = 'cancelled';
+
+    public const PROOF_NONE = 'none';
+
+    public const PROOF_AWAITING = 'awaiting_receipt';
+
+    public const PROOF_SUBMITTED = 'submitted';
+
+    public const PROOF_VERIFIED = 'verified';
+
+    public const PROOF_REJECTED = 'rejected';
+
+    /** @var list<string> */
+    public const PAYMENT_PROOF_STATUSES = [
+        self::PROOF_NONE,
+        self::PROOF_AWAITING,
+        self::PROOF_SUBMITTED,
+        self::PROOF_VERIFIED,
+        self::PROOF_REJECTED,
+    ];
 
     public const FULFILLMENT_AWAITING = 'awaiting_assignment';
 
@@ -70,6 +91,12 @@ class OnlineSaleOrder extends Model
         'payment_status',
         'customer_payment_method',
         'customer_payment_note',
+        'customer_payment_reference',
+        'customer_bank_receipt_path',
+        'customer_payment_proof_status',
+        'payment_proof_rejection_note',
+        'payment_proof_reviewed_at',
+        'payment_proof_reviewed_by_id',
         'payment_method',
         'bank_account_id',
         'subtotal',
@@ -97,6 +124,7 @@ class OnlineSaleOrder extends Model
             'total_amount' => 'decimal:2',
             'amount_paid' => 'decimal:2',
             'converted_at' => 'datetime',
+            'payment_proof_reviewed_at' => 'datetime',
         ];
     }
 
@@ -120,6 +148,62 @@ class OnlineSaleOrder extends Model
         return $this->belongsTo(User::class, 'assigned_user_id');
     }
 
+    public function paymentProofReviewedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'payment_proof_reviewed_by_id');
+    }
+
+    public function customerBankReceiptUrl(): ?string
+    {
+        return filled($this->customer_bank_receipt_path)
+            ? Storage::disk('public')->url($this->customer_bank_receipt_path)
+            : null;
+    }
+
+    public function requiresCustomerPaymentProof(): bool
+    {
+        if ((string) $this->customer_payment_method !== 'bank_transfer') {
+            return false;
+        }
+
+        if ($this->order_status === self::STATUS_CANCELLED) {
+            return false;
+        }
+
+        if ($this->customer_payment_proof_status === self::PROOF_VERIFIED) {
+            return false;
+        }
+
+        if ($this->customer_payment_proof_status === self::PROOF_SUBMITTED
+            && ! filled($this->customer_bank_receipt_path)) {
+            return true;
+        }
+
+        return in_array($this->customer_payment_proof_status, [
+            self::PROOF_AWAITING,
+            self::PROOF_REJECTED,
+        ], true);
+    }
+
+    public function customerBankReceiptIsImage(): bool
+    {
+        if (! filled($this->customer_bank_receipt_path)) {
+            return false;
+        }
+
+        return (bool) preg_match('/\.(jpe?g|png|webp)$/i', (string) $this->customer_bank_receipt_path);
+    }
+
+    public function needsBankReceiptUpload(): bool
+    {
+        return $this->requiresCustomerPaymentProof();
+    }
+
+    public function isLocked(): bool
+    {
+        return $this->order_status === self::STATUS_CONVERTED && $this->sale_id !== null;
+    }
+
     public function supplierAssignments(): HasMany
     {
         return $this->hasMany(OnlineSaleOrderSupplierAssignment::class);
@@ -128,10 +212,5 @@ class OnlineSaleOrder extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OnlineSaleOrderItem::class)->orderBy('sort_order');
-    }
-
-    public function isLocked(): bool
-    {
-        return $this->order_status === self::STATUS_CONVERTED && $this->sale_id !== null;
     }
 }

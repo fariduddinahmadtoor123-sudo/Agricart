@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Store;
 use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Services\Store\CustomerService;
+use App\Services\Store\StoreCartService;
 use App\Services\Store\StoreLayoutService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -29,7 +30,7 @@ class CustomerAuthController extends Controller
         ]);
     }
 
-    public function login(Request $request): RedirectResponse
+    public function login(Request $request, StoreCartService $cart): RedirectResponse
     {
         $validated = $request->validate([
             'login_email' => ['required', 'email'],
@@ -40,6 +41,9 @@ class CustomerAuthController extends Controller
         $email = $validated['login_email'];
         $password = $validated['login_password'];
         $remember = (bool) ($validated['remember'] ?? false);
+
+        $sessionCart = $request->session()->get(StoreCartService::SESSION_KEY, []);
+        $sessionCart = is_array($sessionCart) ? $sessionCart : [];
 
         $customer = Customer::query()->where('email', $email)->first();
 
@@ -57,6 +61,8 @@ class CustomerAuthController extends Controller
 
         $request->session()->regenerate();
 
+        $cart->mergeAfterCustomerLogin($customer->id, $sessionCart);
+
         $intended = $request->session()->pull('url.intended', route('store.home'));
 
         if (! is_string($intended) || ! str_starts_with($intended, '/') || str_starts_with($intended, '//')) {
@@ -68,8 +74,11 @@ class CustomerAuthController extends Controller
             ->with('customer_auth_status_type', 'success');
     }
 
-    public function register(Request $request, CustomerService $customers): RedirectResponse
+    public function register(Request $request, CustomerService $customers, StoreCartService $cart): RedirectResponse
     {
+        $sessionCart = $request->session()->get(StoreCartService::SESSION_KEY, []);
+        $sessionCart = is_array($sessionCart) ? $sessionCart : [];
+
         try {
             $customer = $customers->register([
                 'first_name' => (string) $request->input('first_name'),
@@ -116,6 +125,8 @@ class CustomerAuthController extends Controller
         }
 
         $request->session()->regenerate();
+
+        $cart->mergeAfterCustomerLogin($customer->id, $sessionCart);
 
         $intended = $request->session()->pull('url.intended', route('store.home'));
 

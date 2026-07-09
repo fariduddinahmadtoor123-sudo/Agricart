@@ -2,16 +2,18 @@
 
 namespace App\Services\Store;
 
+use App\Models\CustomerStoreCart;
 use App\Models\Product;
 use App\Services\PricingControls\ChannelPricingEngine;
 use App\Services\PricingControls\QuantityPricingEngine;
 use App\Services\Sales\SaleService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\ValidationException;
 
 class StoreCartService
 {
-    private const SESSION_KEY = 'agricart_store_cart';
+    public const SESSION_KEY = 'agricart_store_cart';
 
     public function __construct(
         private readonly QuantityPricingEngine $quantityPricing,
@@ -109,6 +111,47 @@ class StoreCartService
     public function clear(): void
     {
         Session::forget(self::SESSION_KEY);
+
+        $customerId = $this->authenticatedCustomerId();
+
+        if ($customerId !== null) {
+            CustomerStoreCart::query()->where('customer_id', $customerId)->delete();
+        }
+    }
+
+    /**
+     * Persist the current session cart to the customer account (e.g. before logout).
+     */
+    public function persistForAuthenticatedCustomer(): void
+    {
+        $customerId = $this->authenticatedCustomerId();
+
+        if ($customerId === null) {
+            return;
+        }
+
+        $this->writeCustomerCart($customerId, $this->rawItems());
+    }
+
+    /**
+     * Merge session cart with saved cart after login / registration.
+     *
+     * @param  list<array{product_id: int, quantity: string}>  $sessionItemsBeforeLogin
+     */
+    public function mergeAfterCustomerLogin(int $customerId, array $sessionItemsBeforeLogin = []): void
+    {
+        $saved = $this->readCustomerCart($customerId);
+        $merged = $this->mergeItemLists($saved, $this->normalizeRawItems($sessionItemsBeforeLogin));
+
+        if ($merged === []) {
+            Session::forget(self::SESSION_KEY);
+            CustomerStoreCart::query()->where('customer_id', $customerId)->delete();
+
+            return;
+        }
+
+        Session::put(self::SESSION_KEY, $merged);
+        $this->writeCustomerCart($customerId, $merged);
     }
 
     /**
@@ -218,9 +261,38 @@ class StoreCartService
         $items = Session::get(self::SESSION_KEY, []);
 
         if (! is_array($items)) {
+            $items = [];
+        }
+
+        $normalized = $this->normalizeRawItems($items);
+
+        if ($normalized !== []) {
+            return $normalized;
+        }
+
+        $customerId = $this->authenticatedCustomerId();
+
+        if ($customerId === null) {
             return [];
         }
 
+        $saved = $this->readCustomerCart($customerId);
+
+        if ($saved === []) {
+            return [];
+        }
+
+        Session::put(self::SESSION_KEY, $saved);
+
+        return $saved;
+    }
+
+    /**
+     * @param  list<array{product_id?: mixed, quantity?: mixed}>  $items
+     * @return list<array{product_id: int, quantity: string}>
+     */
+    private function normalizeRawItems(array $items): array
+    {
         $normalized = [];
 
         foreach ($items as $item) {
@@ -243,6 +315,80 @@ class StoreCartService
     private function persist(array $items): void
     {
         Session::put(self::SESSION_KEY, $items);
+
+        $customerId = $this->authenticatedCustomerId();
+
+        if ($customerId !== null) {
+            $this->writeCustomerCart($customerId, $items);
+        }
+    }
+
+    private function authenticatedCustomerId(): ?int
+    {
+        $id = Auth::guard('customer')->id();
+
+        return is_numeric($id) ? (int) $id : null;
+    }
+
+    /**
+     * @return list<array{product_id: int, quantity: string}>
+     */
+    private function readCustomerCart(int $customerId): array
+    {
+        $row = CustomerStoreCart::query()->where('customer_id', $customerId)->first();
+
+        if ($row === null || ! is_array($row->items)) {
+            return [];
+        }
+
+        return $this->normalizeRawItems($row->items);
+    }
+
+    /**
+     * @param  list<array{product_id: int, quantity: string}>  $items
+     */
+    private function writeCustomerCart(int $customerId, array $items): void
+    {
+        if ($items === []) {
+            CustomerStoreCart::query()->where('customer_id', $customerId)->delete();
+
+            return;
+        }
+
+        CustomerStoreCart::query()->updateOrCreate(
+            ['customer_id' => $customerId],
+            ['items' => $items],
+        );
+    }
+
+    /**
+     * @param  list<array{product_id: int, quantity: string}>  $base
+     * @param  list<array{product_id: int, quantity: string}>  $incoming
+     * @return list<array{product_id: int, quantity: string}>
+     */
+    private function mergeItemLists(array $base, array $incoming): array
+    {
+        $byProduct = [];
+
+        foreach (array_merge($base, $incoming) as $item) {
+            $productId = (int) $item['product_id'];
+            $qty = $this->saleService->numeric((string) $item['quantity']);
+
+            if ($qty <= 0) {
+                continue;
+            }
+
+            if (isset($byProduct[$productId])) {
+                $qty += $this->saleService->numeric((string) $byProduct[$productId]['quantity']);
+            }
+
+            $byProduct[$productId] = [
+                'product_id' => $productId,
+                'quantity' => $this->saleService->formatQty($qty),
+            ];
+        }
+
+        return array_values($byProduct);
     }
 
     private function findActiveProduct(int $productId): Product
