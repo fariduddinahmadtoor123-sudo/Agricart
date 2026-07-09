@@ -22,16 +22,19 @@
                     <div class="ag-store-product-card__media" data-store-product-card>
                         <a href="{{ $productUrl }}" class="ag-store-product-card__image-link">
                             <div class="ag-store-product-card__image-wrap">
+                                <span class="ag-store-product-card__placeholder" aria-hidden="true">{{ strtoupper(substr($productService->localizedName($product), 0, 1)) }}</span>
                                 @if ($imageUrls !== [])
                                     <img
                                         src="{{ $imageUrls[0] }}"
                                         alt=""
                                         class="ag-store-product-card__image"
                                         data-store-product-card-main
+                                        width="320"
+                                        height="320"
+                                        decoding="async"
                                         loading="lazy"
+                                        onerror="this.classList.add('is-failed')"
                                     />
-                                @else
-                                    <span class="ag-store-product-card__placeholder">{{ strtoupper(substr($productService->localizedName($product), 0, 1)) }}</span>
                                 @endif
 
                                 @if (count($imageUrls) > 1)

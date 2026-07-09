@@ -223,15 +223,40 @@
 }
 
 @media (max-width: 48rem) {
+    .ag-store-topbar {
+        font-size: 0.75rem;
+    }
+
     .ag-store-topbar__inner {
         grid-template-columns: 1fr;
-        text-align: center;
+        gap: 0.25rem;
+        padding-block: 0.35rem;
+        min-height: 0;
     }
 
     .ag-store-topbar__left,
     .ag-store-topbar__center,
     .ag-store-topbar__right {
         text-align: center;
+    }
+
+    .ag-store-topbar__contact {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 40rem) {
+    .ag-store-ticker {
+        min-height: 2rem;
+    }
+
+    .ag-store-ticker__content {
+        font-size: 0.75rem;
+        padding-inline: 0.75rem;
+    }
+
+    .ag-store-ticker__item + .ag-store-ticker__item::before {
+        margin-inline: 0.5rem;
     }
 }
 
@@ -758,13 +783,53 @@
 
 @media (max-width: 64rem) {
     .ag-store-header__inner {
-        flex-direction: column;
-        align-items: stretch;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        grid-template-areas:
+            'brand actions'
+            'search search';
+        align-items: center;
+        gap: 0.5rem 0.75rem;
+        padding-block: 0.625rem;
+    }
+
+    .ag-store-header__brand {
+        grid-area: brand;
+        justify-self: start;
+    }
+
+    .ag-store-header__search {
+        grid-area: search;
+        flex: none;
+        width: 100%;
+        min-width: 0;
     }
 
     .ag-store-header__actions {
+        grid-area: actions;
         margin-inline-start: 0;
-        justify-content: space-between;
+        justify-content: flex-end;
+        flex-wrap: nowrap;
+        gap: 0.5rem;
+    }
+}
+
+@media (max-width: 40rem) {
+    .ag-store-header__logo {
+        max-width: 7.5rem;
+        height: 2.5rem;
+    }
+
+    .ag-store-header__cart > span:not(.ag-store-header__cart-count) {
+        display: none;
+    }
+
+    .ag-store-header__auth-inline {
+        font-size: 0.75rem;
+    }
+
+    .ag-store-header__social {
+        display: none;
     }
 }
 
@@ -865,19 +930,17 @@
 }
 
 .ag-store-category-card__image-wrap {
+    position: relative;
     aspect-ratio: 1;
     background: var(--agricart-bg);
     border-bottom: 1px solid var(--agricart-border);
     overflow: hidden;
 }
 
-.ag-store-category-card__image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
 .ag-store-category-card__placeholder {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -886,6 +949,18 @@
     color: var(--agricart-muted);
     font-size: 2rem;
     font-weight: 700;
+}
+
+.ag-store-category-card__image {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.ag-store-category-card__image.is-failed {
+    display: none;
 }
 
 .ag-store-category-card__name {
@@ -1034,12 +1109,21 @@
 }
 
 .ag-store-product-card__image {
+    position: relative;
+    z-index: 1;
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
+.ag-store-product-card__image.is-failed {
+    display: none;
+}
+
 .ag-store-product-card__placeholder {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
     display: flex;
     align-items: center;
     justify-content: center;

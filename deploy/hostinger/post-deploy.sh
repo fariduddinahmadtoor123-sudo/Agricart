@@ -12,6 +12,7 @@ composer install --no-dev --optimize-autoloader
 
 php artisan migrate --force
 php artisan hostinger:sync-public
+php artisan hostinger:sync-storage
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
