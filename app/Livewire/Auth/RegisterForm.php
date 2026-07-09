@@ -55,6 +55,8 @@ class RegisterForm extends Component
 
     public bool $submitted = false;
 
+    public bool $bootstrapOwnerRegistered = false;
+
     public bool $isResubmit = false;
 
     public ?string $statusMessage = null;
@@ -160,7 +162,7 @@ class RegisterForm extends Component
 
             $service = app(UserService::class);
 
-            $service->registerPublic([
+            $user = $service->registerPublic([
                 'name' => $this->name,
                 'email' => $this->email,
                 'address' => $this->address ?: null,
@@ -171,6 +173,8 @@ class RegisterForm extends Component
                 'cnic_front_path' => $this->storeUpload($this->cnicFrontUpload, 'users/cnic'),
                 'cnic_back_path' => $this->storeUpload($this->cnicBackUpload, 'users/cnic'),
             ]);
+
+            $this->bootstrapOwnerRegistered = $user->isSuperAdmin() && $user->status === User::STATUS_ACTIVE;
 
             $this->submitted = true;
         } catch (ValidationException $exception) {

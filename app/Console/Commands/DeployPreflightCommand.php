@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\Access\BootstrapSuperAdminService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Artisan;
 
@@ -44,6 +45,12 @@ class DeployPreflightCommand extends Command
             if ($hostingerExit !== self::SUCCESS) {
                 return self::FAILURE;
             }
+        }
+
+        $bootstrap = app(BootstrapSuperAdminService::class);
+
+        if (! $bootstrap->hasSuperAdminUser()) {
+            $this->components->warn('No Super Admin user — run: php artisan agricart:repair-bootstrap-owner your@email.com');
         }
 
         return $storeExit === self::SUCCESS ? self::SUCCESS : self::FAILURE;

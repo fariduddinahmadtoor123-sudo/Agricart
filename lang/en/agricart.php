@@ -23,6 +23,7 @@ return [
         'register_saving' => 'Submitting…',
         'register_success_title' => 'Application Submitted',
         'register_success_text' => 'Your account is under approval. You will be able to sign in after an administrator approves your application.',
+        'register_bootstrap_success_text' => 'You are the first system owner. Your Super Admin account is active — sign in at the admin login page.',
         'register_failed' => 'Could not submit your application. Please check the form and try again.',
         'register_resubmit_hint' => 'If your application was rejected, submit the form again with the same email address to reapply. Update the details that need correction.',
         'register_resubmit_success_text' => 'Your updated application has been submitted and is under review again.',

@@ -55,11 +55,21 @@ class UserService
         }
 
         $validated = $this->validatePublicRegistration($data);
-        $validated['status'] = User::STATUS_PENDING;
-        $validated['role_id'] = null;
         $validated['user_number'] = $this->nextUserNumber();
 
-        return User::query()->create($validated);
+        $bootstrap = app(BootstrapSuperAdminService::class);
+
+        if ($bootstrap->shouldPromoteToBootstrapOwner()) {
+            $validated['status'] = User::STATUS_ACTIVE;
+            $validated['role_id'] = $bootstrap->superAdminRole()->id;
+        } else {
+            $validated['status'] = User::STATUS_PENDING;
+            $validated['role_id'] = null;
+        }
+
+        $user = User::query()->create($validated);
+
+        return $user->fresh(['role']);
     }
 
     /**
@@ -74,10 +84,18 @@ class UserService
         }
 
         $validated = $this->validatePublicRegistration($data, $user->id);
-        $validated['status'] = User::STATUS_PENDING;
         $validated['rejection_reason'] = null;
         $validated['rejected_at'] = null;
-        $validated['role_id'] = null;
+
+        $bootstrap = app(BootstrapSuperAdminService::class);
+
+        if ($bootstrap->shouldPromoteToBootstrapOwner()) {
+            $validated['status'] = User::STATUS_ACTIVE;
+            $validated['role_id'] = $bootstrap->superAdminRole()->id;
+        } else {
+            $validated['status'] = User::STATUS_PENDING;
+            $validated['role_id'] = null;
+        }
 
         $this->replaceStoredFiles($user, $validated);
 

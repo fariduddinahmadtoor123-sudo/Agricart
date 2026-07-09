@@ -2,7 +2,15 @@
     @if ($submitted)
         <div class="ag-store-register__success">
             <h2>{{ __('agricart.auth.register_success_title') }}</h2>
-            <p>{{ $isResubmit ? __('agricart.auth.register_resubmit_success_text') : __('agricart.auth.register_success_text') }}</p>
+            <p>
+                @if ($bootstrapOwnerRegistered)
+                    {{ __('agricart.auth.register_bootstrap_success_text') }}
+                @elseif ($isResubmit)
+                    {{ __('agricart.auth.register_resubmit_success_text') }}
+                @else
+                    {{ __('agricart.auth.register_success_text') }}
+                @endif
+            </p>
             <a href="{{ url('/admin/login') }}" class="ag-store-register__btn">{{ __('agricart.auth.login_link') }}</a>
         </div>
     @else

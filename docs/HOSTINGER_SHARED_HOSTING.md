@@ -99,6 +99,8 @@ Run from the **application root** (`agricart/`), not from `public_html`:
 git pull origin developer
 composer install --no-dev --optimize-autoloader
 php artisan migrate --force
+php artisan db:seed --class=Database\\Seeders\\RolesAndPermissionsSeeder --force
+php artisan agricart:repair-bootstrap-owner your@email.com
 php artisan hostinger:sync-public
 php artisan config:cache
 php artisan route:cache
