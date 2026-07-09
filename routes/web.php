@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\BackupDownloadController;
+use App\Http\Controllers\Admin\BackupUploadController;
 use App\Http\Controllers\Store\CartController;
 use App\Http\Controllers\Store\CategoryController;
 use App\Http\Controllers\Store\CheckoutController;
@@ -98,6 +99,8 @@ Route::middleware('web')->get('/ai/status', function () {
 Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
     Route::get('/backups/{backupId}/download', [BackupDownloadController::class, 'download'])
         ->name('admin.backups.download');
+    Route::post('/backups/upload', [BackupUploadController::class, 'store'])
+        ->name('admin.backups.upload');
     Route::get('/backups/export/{type}', [BackupDownloadController::class, 'exportCsv'])
         ->whereIn('type', ['products', 'categories'])
         ->name('admin.backups.export');

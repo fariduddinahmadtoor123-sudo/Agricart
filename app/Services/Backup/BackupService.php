@@ -200,6 +200,75 @@ class BackupService
         return $entry;
     }
 
+    public function incomingDirectoryAbsolute(): string
+    {
+        $base = dirname($this->absolutePath('placeholder.zip'));
+        $subdir = trim((string) config('backup.incoming_subdir', 'incoming'), '/');
+        $path = $base.DIRECTORY_SEPARATOR.$subdir;
+
+        File::ensureDirectoryExists($path);
+        File::ensureDirectoryExists($path.DIRECTORY_SEPARATOR.'processed');
+
+        return $path;
+    }
+
+    /**
+     * Import .zip files placed in the incoming folder (FTP / file manager).
+     *
+     * @return list<array{filename: string, ok: bool, message: string}>
+     */
+    public function importIncomingArchives(): array
+    {
+        set_time_limit(0);
+
+        $incoming = $this->incomingDirectoryAbsolute();
+        $processed = $incoming.DIRECTORY_SEPARATOR.'processed';
+        $results = [];
+
+        foreach (glob($incoming.DIRECTORY_SEPARATOR.'*.zip') ?: [] as $zipPath) {
+            $name = basename($zipPath);
+
+            try {
+                $entry = $this->importFromUpload($zipPath);
+                $processedPath = $processed.DIRECTORY_SEPARATOR.$name;
+
+                if (is_file($processedPath)) {
+                    $processedPath = $processed.DIRECTORY_SEPARATOR.pathinfo($name, PATHINFO_FILENAME)
+                        .'_'.now()->format('His').'.zip';
+                }
+
+                if (! @rename($zipPath, $processedPath)) {
+                    @unlink($zipPath);
+                }
+
+                $results[] = [
+                    'filename' => $name,
+                    'ok' => true,
+                    'message' => __('agricart.backups.messages.incoming_imported', [
+                        'name' => $name,
+                        'id' => $entry->id,
+                    ]),
+                ];
+            } catch (ValidationException $exception) {
+                $results[] = [
+                    'filename' => $name,
+                    'ok' => false,
+                    'message' => collect($exception->errors())->flatten()->first() ?: $name,
+                ];
+            } catch (\Throwable $exception) {
+                report($exception);
+
+                $results[] = [
+                    'filename' => $name,
+                    'ok' => false,
+                    'message' => __('agricart.backups.messages.incoming_failed', ['name' => $name]),
+                ];
+            }
+        }
+
+        return $results;
+    }
+
     public function delete(string $id): void
     {
         $path = $this->absolutePath($id . '.zip');

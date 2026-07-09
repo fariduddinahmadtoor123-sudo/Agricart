@@ -38,4 +38,48 @@ readonly class BackupEntry
 
         return round($bytes / (1024 * 1024 * 1024), 2) . ' GB';
     }
+
+    public static function phpRequestBodyLimitBytes(): int
+    {
+        return min(
+            self::parseIniSize(ini_get('upload_max_filesize')),
+            self::parseIniSize(ini_get('post_max_size')),
+        );
+    }
+
+    public static function effectiveUploadLimitBytes(): int
+    {
+        $configured = (int) config('backup.max_file_bytes', 0);
+
+        if ($configured <= 0) {
+            return self::phpRequestBodyLimitBytes();
+        }
+
+        return min($configured, self::phpRequestBodyLimitBytes());
+    }
+
+    public static function parseIniSize(string|false $value): int
+    {
+        if (! is_string($value) || $value === '') {
+            return 0;
+        }
+
+        $value = trim($value);
+        $unit = strtolower(substr($value, -1));
+        $number = (float) $value;
+
+        if ($unit === 'g') {
+            return (int) round($number * 1024 * 1024 * 1024);
+        }
+
+        if ($unit === 'm') {
+            return (int) round($number * 1024 * 1024);
+        }
+
+        if ($unit === 'k') {
+            return (int) round($number * 1024);
+        }
+
+        return (int) round((float) $value);
+    }
 }

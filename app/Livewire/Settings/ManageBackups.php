@@ -9,15 +9,9 @@ use App\Services\Backup\RestoreService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
-use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
-use Livewire\WithFileUploads;
 
 class ManageBackups extends Component
 {
-    use WithFileUploads;
-
-    public ?TemporaryUploadedFile $uploadFile = null;
-
     public ?string $flashMessage = null;
 
     public string $flashType = 'success';
@@ -30,6 +24,14 @@ class ManageBackups extends Component
 
     public bool $restoreSafetyBackup = true;
 
+    public function mount(): void
+    {
+        if (session()->has('backup_upload_message')) {
+            $this->flashMessage = (string) session('backup_upload_message');
+            $this->flashType = (string) session('backup_upload_type', 'success');
+        }
+    }
+
     public function createFull(): void
     {
         $this->runBackup(BackupService::TYPE_FULL);
@@ -40,37 +42,48 @@ class ManageBackups extends Component
         $this->runBackup(BackupService::TYPE_DATABASE);
     }
 
-    public function uploadBackup(): void
+    public function importIncoming(): void
     {
         if (! $this->canManage()) {
             return;
         }
 
-        $maxKilobytes = (int) ceil((int) config('backup.max_file_bytes', 0) / 1024);
-
-        $this->validate([
-            'uploadFile' => ['required', 'file', 'mimes:zip', 'max:' . max(1, $maxKilobytes)],
-        ], [], [
-            'uploadFile' => __('agricart.backups.upload.field_label'),
-        ]);
-
         $this->busy = true;
         $this->flashMessage = null;
 
         try {
-            $entry = app(BackupService::class)->importFromUpload(
-                (string) $this->uploadFile->getRealPath(),
-            );
+            $results = app(BackupService::class)->importIncomingArchives();
 
-            $this->uploadFile = null;
-            $this->flash(__('agricart.backups.messages.imported', [
-                'type' => __('agricart.backups.types.' . $entry->type),
-                'size' => $entry->formattedSize(),
-            ]), 'success');
-        } catch (ValidationException $exception) {
-            $this->flash(collect($exception->errors())->flatten()->first() ?: __('agricart.backups.messages.upload_failed'), 'danger');
+            if ($results === []) {
+                $this->flash(__('agricart.backups.messages.incoming_empty'), 'warning');
+
+                return;
+            }
+
+            $failed = array_filter($results, fn (array $row): bool => ! $row['ok']);
+            $succeeded = array_filter($results, fn (array $row): bool => $row['ok']);
+
+            if ($succeeded !== [] && $failed === []) {
+                $this->flash(__('agricart.backups.messages.incoming_batch_ok', [
+                    'count' => count($succeeded),
+                ]), 'success');
+
+                return;
+            }
+
+            if ($succeeded === [] && $failed !== []) {
+                $this->flash($failed[array_key_first($failed)]['message'], 'danger');
+
+                return;
+            }
+
+            $this->flash(__('agricart.backups.messages.incoming_batch_mixed', [
+                'ok' => count($succeeded),
+                'failed' => count($failed),
+            ]), 'warning');
         } catch (\Throwable $exception) {
-            $this->flash($exception->getMessage(), 'danger');
+            report($exception);
+            $this->flash(__('agricart.backups.messages.upload_failed'), 'danger');
         } finally {
             $this->busy = false;
         }
@@ -141,6 +154,12 @@ class ManageBackups extends Component
             'totalSize' => BackupEntry::formatBytes($service->totalSizeBytes()),
             'retentionCount' => (int) config('backup.retention_count', 10),
             'maxFileSize' => BackupEntry::formatBytes((int) config('backup.max_file_bytes')),
+            'effectiveUploadLimit' => BackupEntry::formatBytes(BackupEntry::effectiveUploadLimitBytes()),
+            'phpUploadLimit' => BackupEntry::formatBytes(BackupEntry::phpRequestBodyLimitBytes()),
+            'uploadLimitBelowBackupMax' => BackupEntry::effectiveUploadLimitBytes() < (int) config('backup.max_file_bytes'),
+            'uploadUrl' => route('admin.backups.upload'),
+            'incomingPath' => app(BackupService::class)->incomingDirectoryAbsolute(),
+            'databaseDriver' => config('database.connections.'.config('database.default').'.driver'),
             'productsExportUrl' => route('admin.backups.export', ['type' => 'products']),
             'categoriesExportUrl' => route('admin.backups.export', ['type' => 'categories']),
         ]);

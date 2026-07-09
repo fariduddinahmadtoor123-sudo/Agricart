@@ -87,8 +87,16 @@ class RestoreService
 
     private function resolveDatabaseFile(string $workDir): ?string
     {
+        $driver = config('database.connections.'.config('database.default').'.driver');
+
+        if ($driver === 'sqlite') {
+            $path = $workDir.DIRECTORY_SEPARATOR.'database.sqlite';
+
+            return is_file($path) ? $path : null;
+        }
+
         foreach (['database.sql', 'database.sqlite'] as $name) {
-            $path = $workDir . DIRECTORY_SEPARATOR . $name;
+            $path = $workDir.DIRECTORY_SEPARATOR.$name;
 
             if (is_file($path)) {
                 return $path;

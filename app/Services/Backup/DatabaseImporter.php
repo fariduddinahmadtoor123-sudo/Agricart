@@ -41,6 +41,18 @@ class DatabaseImporter
 
     private function importSqlite(string $sourcePath, string $databasePath): void
     {
+        if ($this->looksLikeMysqlDump($sourcePath)) {
+            throw ValidationException::withMessages([
+                'restore' => __('agricart.backups.messages.sqlite_mysql_backup_mismatch'),
+            ]);
+        }
+
+        if (! $this->looksLikeSqliteDatabase($sourcePath)) {
+            throw ValidationException::withMessages([
+                'restore' => __('agricart.backups.messages.sqlite_invalid_file'),
+            ]);
+        }
+
         File::ensureDirectoryExists(dirname($databasePath));
 
         if (! copy($sourcePath, $databasePath)) {
@@ -48,6 +60,29 @@ class DatabaseImporter
                 'restore' => __('agricart.backups.messages.restore_failed'),
             ]);
         }
+    }
+
+    private function looksLikeSqliteDatabase(string $path): bool
+    {
+        $header = @file_get_contents($path, false, null, 0, 16);
+
+        return is_string($header) && str_starts_with($header, 'SQLite format 3');
+    }
+
+    private function looksLikeMysqlDump(string $path): bool
+    {
+        $sample = @file_get_contents($path, false, null, 0, 256);
+
+        if (! is_string($sample) || $sample === '') {
+            return false;
+        }
+
+        $trimmed = ltrim($sample);
+
+        return str_starts_with($trimmed, '--')
+            || str_starts_with($trimmed, '/*')
+            || str_contains($sample, 'CREATE TABLE')
+            || str_contains($sample, 'mysqldump');
     }
 
     /**
