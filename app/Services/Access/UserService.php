@@ -59,7 +59,7 @@ class UserService
 
         $bootstrap = app(BootstrapSuperAdminService::class);
 
-        if ($bootstrap->shouldPromoteToBootstrapOwner()) {
+        if ($bootstrap->isFirstUserRegistration()) {
             $validated['status'] = User::STATUS_ACTIVE;
             $validated['role_id'] = $bootstrap->superAdminRole()->id;
         } else {
@@ -69,7 +69,7 @@ class UserService
 
         $user = User::query()->create($validated);
 
-        return $user->fresh(['role']);
+        return $bootstrap->assignBootstrapOwnerIfEligible($user->fresh(['role']));
     }
 
     /**
@@ -89,7 +89,7 @@ class UserService
 
         $bootstrap = app(BootstrapSuperAdminService::class);
 
-        if ($bootstrap->shouldPromoteToBootstrapOwner()) {
+        if ($bootstrap->isFirstUserRegistration() || $bootstrap->canAssignBootstrapOwner($user)) {
             $validated['status'] = User::STATUS_ACTIVE;
             $validated['role_id'] = $bootstrap->superAdminRole()->id;
         } else {
@@ -101,7 +101,7 @@ class UserService
 
         $user->update($validated);
 
-        return $user->fresh(['role']);
+        return $bootstrap->assignBootstrapOwnerIfEligible($user->fresh(['role']));
     }
 
     /**

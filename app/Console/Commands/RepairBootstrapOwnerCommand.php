@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\User;
 use App\Services\Access\BootstrapSuperAdminService;
 use Illuminate\Console\Command;
 
@@ -23,6 +24,19 @@ class RepairBootstrapOwnerCommand extends Command
         $user = $bootstrap->repairOwner(is_string($email) ? $email : null);
 
         if ($user === null) {
+            $candidate = filled($email)
+                ? User::query()->where('email', $email)->first()
+                : User::query()->orderBy('id')->first();
+
+            if ($candidate instanceof User) {
+                $user = $bootstrap->assignBootstrapOwnerIfEligible($candidate);
+                if ($user->isSuperAdmin()) {
+                    $this->components->info("Super Admin assigned to {$user->email} (user #{$user->id}).");
+
+                    return self::SUCCESS;
+                }
+            }
+
             $this->components->error('No user found to promote. Register first or pass an email address.');
 
             return self::FAILURE;

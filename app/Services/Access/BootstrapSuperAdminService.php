@@ -5,7 +5,6 @@ namespace App\Services\Access;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schema;
 
 class BootstrapSuperAdminService
@@ -24,6 +23,38 @@ class BootstrapSuperAdminService
     public function shouldPromoteToBootstrapOwner(): bool
     {
         return ! $this->hasSuperAdminUser();
+    }
+
+    /**
+     * True when this registration creates the very first row in users (system owner).
+     */
+    public function isFirstUserRegistration(): bool
+    {
+        return ! User::query()->exists();
+    }
+
+    public function canAssignBootstrapOwner(User $user): bool
+    {
+        if ($this->hasSuperAdminUser() || $user->role_id !== null) {
+            return false;
+        }
+
+        if (! in_array($user->status, [User::STATUS_ACTIVE, User::STATUS_PENDING], true)) {
+            return false;
+        }
+
+        $firstUserId = User::query()->orderBy('id')->value('id');
+
+        return $firstUserId !== null && (int) $firstUserId === (int) $user->id;
+    }
+
+    public function assignBootstrapOwnerIfEligible(User $user): User
+    {
+        if (! $this->canAssignBootstrapOwner($user)) {
+            return $user;
+        }
+
+        return $this->promoteToBootstrapOwner($user);
     }
 
     public function superAdminRole(): Role
@@ -86,9 +117,6 @@ class BootstrapSuperAdminService
             return;
         }
 
-        Artisan::call('db:seed', [
-            '--class' => RolesAndPermissionsSeeder::class,
-            '--force' => true,
-        ]);
+        app(RolesAndPermissionsSeeder::class)->run();
     }
 }

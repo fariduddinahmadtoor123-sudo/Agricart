@@ -3,6 +3,7 @@
 namespace App\Filament\Auth;
 
 use App\Models\User;
+use App\Services\Access\BootstrapSuperAdminService;
 use Filament\Auth\Http\Responses\Contracts\LoginResponse;
 use Filament\Auth\Pages\Login as BaseLogin;
 use Illuminate\Support\Facades\Hash;
@@ -21,6 +22,8 @@ class Login extends BaseLogin
             $user = User::query()->where('email', $email)->first();
 
             if ($user instanceof User && Hash::check($password, $user->password)) {
+                $user = app(BootstrapSuperAdminService::class)->assignBootstrapOwnerIfEligible($user);
+
                 $message = $user->loginBlockedMessage();
 
                 if ($message !== null) {
