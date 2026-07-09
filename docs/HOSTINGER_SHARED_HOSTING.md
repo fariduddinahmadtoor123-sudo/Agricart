@@ -25,7 +25,7 @@ Example (adjust paths to your Hostinger account):
         ├── .htaccess
         ├── resolve-laravel-root.php
         ├── agricart-laravel-root.php
-        └── build/               ← from npm run build
+        └── build/               ← committed in Git (no npm on server)
 ```
 
 Common alternative: `public_html` at `/home/USERNAME/public_html` with repo at `/home/USERNAME/agricart`. The resolver walks upward and looks for a sibling folder named `agricart` (or `Agricart`).
@@ -43,8 +43,9 @@ Optional: copy `deploy/hostinger/app-root.htaccess` to `agricart/.htaccess` so A
 
    ```bash
    composer install --no-dev --optimize-autoloader
-   npm ci && npm run build
    ```
+
+   Vite output (`public/build/`) is **tracked in Git** — you do not need Node.js on Hostinger. Rebuild locally only when frontend sources change.
 
 3. **Environment:** copy `.env.example` → `.env`, set production values (MySQL, `APP_URL`, `FILESYSTEM_PUBLIC_SERVE=auto`, etc.).
 4. **Application key & database:**
@@ -97,7 +98,6 @@ Run from the **application root** (`agricart/`), not from `public_html`:
 ```bash
 git pull origin developer
 composer install --no-dev --optimize-autoloader
-npm ci && npm run build
 php artisan migrate --force
 php artisan hostinger:sync-public
 php artisan config:cache
@@ -160,7 +160,7 @@ No codebase fork required.
 |-------|--------|
 | Plain text “application root not found” | Fix `laravel-root.php` or repo folder name; run `hostinger:verify` |
 | 500 after deploy | Check `storage/` permissions; `APP_KEY`; Laravel log in `agricart/storage/logs` |
-| CSS/JS missing | `npm run build` then `hostinger:sync-public` |
+| CSS/JS missing | `git pull` + `hostinger:sync-public`; or run `npm run build` locally, commit `public/build`, push |
 | Images 404 | `FILESYSTEM_PUBLIC_SERVE=auto`; files in `storage/app/public` |
 | Admin 419 | Session driver, HTTPS, `TRUSTED_PROXIES=*` |
 

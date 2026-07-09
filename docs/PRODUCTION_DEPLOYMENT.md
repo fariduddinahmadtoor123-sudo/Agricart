@@ -13,7 +13,7 @@ This guide covers deploying Agricart (Laravel 13, Filament admin, online store a
 | Private files | `storage/app/private` | Local disk; not exposed via `/storage`. |
 | Public uploads | `storage/app/public` | Products, categories, logos, documents, etc. |
 | Public URL | `{APP_URL}/storage/{path}` | Symlink **or** Laravel route (see below). |
-| Compiled assets | `public/build/` | Vite manifest; build on deploy (not in git). |
+| Compiled assets | `public/build/` | **Committed to Git** for Hostinger / no-npm deploys; run `npm run build` locally when CSS/JS changes and commit. |
 | Admin panel | `{APP_URL}/admin` | Filament |
 | Storefront | `{APP_URL}/` | Online store routes |
 
@@ -165,11 +165,10 @@ Helper: `App\Support\MediaDisk` reads `FILESYSTEM_MEDIA_DISK` for future S3 migr
 
 ```bash
 composer install --no-dev --optimize-autoloader
-npm ci
-npm run build
+npm ci && npm run build   # optional on server if public/build is committed in Git
 ```
 
-Upload/deploy the project (git pull, FTP, or Hostinger Git). **Include `public/build/`** if the server has no Node.js.
+Upload/deploy the project (git pull). **`public/build/` is in the repository** so shared hosting works without Node.js. After changing `resources/css` or `resources/js`, rebuild locally and commit `public/build`.
 
 ### 2. Server bootstrap
 

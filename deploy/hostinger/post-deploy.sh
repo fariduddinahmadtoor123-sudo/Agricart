@@ -7,12 +7,8 @@ BRANCH="${DEPLOY_BRANCH:-developer}"
 git pull origin "$BRANCH"
 composer install --no-dev --optimize-autoloader
 
-if command -v npm >/dev/null 2>&1; then
-  npm ci
-  npm run build
-else
-  echo "npm not found — ensure public/build was built before deploy."
-fi
+# Skip when public/build is committed (default). Uncomment if you stopped tracking build output:
+# npm ci && npm run build
 
 php artisan migrate --force
 php artisan hostinger:sync-public

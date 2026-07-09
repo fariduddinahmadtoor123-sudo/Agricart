@@ -89,11 +89,14 @@ class StorePreflightCommand extends Command
             $this->components->twoColumnDetail('npm run build', '<fg=green>manifest present</>');
         }
 
+        $buildInGit = File::exists(base_path('.gitignore'))
+            && ! str_contains(File::get(base_path('.gitignore')), '/public/build');
+
         $this->components->twoColumnDetail(
             'public/build in git',
-            File::exists(base_path('.git'))
-                ? '<fg=yellow>ignored — rebuild on server after each deploy</>'
-                : 'n/a',
+            $buildInGit
+                ? '<fg=green>yes — git pull deploys Vite assets (no npm on server)</>'
+                : '<fg=yellow>ignored — run npm run build on deploy</>',
         );
 
         if (Schema::hasTable('migrations')) {
