@@ -67,6 +67,7 @@ return [
         'portal_later' => 'Optional for now. When enabled, the supplier can sign in later to view ledgers and account details.',
         'address_ur_panel' => 'Urdu address (auto-filled where possible)',
         'city_manual' => 'Enter city name',
+        'primary_contact_required' => 'Primary contact name and mobile number are required (marked *).',
     ],
 
     'statuses' => [

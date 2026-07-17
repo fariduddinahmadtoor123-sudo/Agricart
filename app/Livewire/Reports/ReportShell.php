@@ -3,8 +3,11 @@
 namespace App\Livewire\Reports;
 
 use App\Services\Reports\CustomerLedgerReportService;
+use App\Services\Reports\ProfitLossReportService;
 use App\Services\Reports\ReportCatalog;
+use App\Services\Reports\SalesSummaryReportService;
 use App\Services\Reports\StockReportService;
+use App\Services\Reports\SupplierLedgerReportService;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -23,6 +26,12 @@ class ReportShell extends Component
     public string $stockFilter = 'all';
 
     public string $categoryFilter = 'all';
+
+    public string $channelFilter = 'all';
+
+    public string $groupByFilter = 'day';
+
+    public string $resultFilter = 'all';
 
     /** @var list<string> */
     public array $visibleColumns = [];
@@ -101,6 +110,32 @@ class ReportShell extends Component
             return;
         }
 
+        if ($this->isSalesSummaryReport()) {
+            if ($field === 'period') {
+                $this->periodFilter = $value;
+            } elseif ($field === 'channel') {
+                $this->channelFilter = $value;
+            } elseif ($field === 'group') {
+                $this->groupByFilter = $value;
+            }
+
+            $this->loadSalesSummaryReport();
+
+            return;
+        }
+
+        if ($this->isProfitLossReport()) {
+            if ($field === 'period') {
+                $this->periodFilter = $value;
+            } elseif ($field === 'result') {
+                $this->resultFilter = $value;
+            }
+
+            $this->loadProfitLossReport();
+
+            return;
+        }
+
         if ($field === 'period') {
             $this->periodFilter = $value;
         } else {
@@ -119,6 +154,9 @@ class ReportShell extends Component
         $this->secondaryFilter = '';
         $this->stockFilter = 'all';
         $this->categoryFilter = 'all';
+        $this->channelFilter = 'all';
+        $this->groupByFilter = 'day';
+        $this->resultFilter = 'all';
         $this->search = '';
 
         if ($this->isLiveReport()) {
@@ -167,7 +205,14 @@ class ReportShell extends Component
     {
         if ($this->isLiveReport()) {
             $this->loadLiveReport();
-            $this->statusMessage = __($this->isStockReport() ? 'reports.messages.stock_loaded' : 'reports.messages.customer_ledger_loaded', [
+            $messageKey = match (true) {
+                $this->isStockReport() => 'reports.messages.stock_loaded',
+                $this->isSalesSummaryReport() => 'reports.messages.sales_summary_loaded',
+                $this->isProfitLossReport() => 'reports.messages.profit_loss_loaded',
+                $this->isSupplierLedgerReport() => 'reports.messages.supplier_ledger_loaded',
+                default => 'reports.messages.customer_ledger_loaded',
+            };
+            $this->statusMessage = __($messageKey, [
                 'count' => count($this->rows),
             ]);
             $this->statusType = 'success';
@@ -179,23 +224,41 @@ class ReportShell extends Component
         $this->statusType = 'info';
     }
 
-    public function openCustomerLedger(int $customerId): void
+    public function openLedgerDetail(int $partyId): void
     {
-        if (! $this->isCustomerLedgerReport()) {
+        if ($this->isCustomerLedgerReport()) {
+            $this->ledgerDetail = app(CustomerLedgerReportService::class)->history(
+                $partyId,
+                $this->periodFilter !== '' ? $this->periodFilter : null,
+            );
+            $this->ledgerDetailOpen = true;
+
             return;
         }
 
-        $this->ledgerDetail = app(CustomerLedgerReportService::class)->history(
-            $customerId,
-            $this->periodFilter !== '' ? $this->periodFilter : null,
-        );
-        $this->ledgerDetailOpen = true;
+        if ($this->isSupplierLedgerReport()) {
+            $this->ledgerDetail = app(SupplierLedgerReportService::class)->history(
+                $partyId,
+                $this->periodFilter !== '' ? $this->periodFilter : null,
+            );
+            $this->ledgerDetailOpen = true;
+        }
+    }
+
+    public function openCustomerLedger(int $customerId): void
+    {
+        $this->openLedgerDetail($customerId);
+    }
+
+    public function closeLedgerDetail(): void
+    {
+        $this->ledgerDetailOpen = false;
+        $this->ledgerDetail = null;
     }
 
     public function closeCustomerLedger(): void
     {
-        $this->ledgerDetailOpen = false;
-        $this->ledgerDetail = null;
+        $this->closeLedgerDetail();
     }
 
     public function exportCsv(): ?StreamedResponse
@@ -208,9 +271,13 @@ class ReportShell extends Component
             $this->loadLiveReport();
         }
 
-        $matrix = $this->isStockReport()
-            ? app(StockReportService::class)->csvMatrix($this->rows, $this->visibleColumns)
-            : app(CustomerLedgerReportService::class)->csvMatrix($this->rows, $this->visibleColumns);
+        $matrix = match (true) {
+            $this->isStockReport() => app(StockReportService::class)->csvMatrix($this->rows, $this->visibleColumns),
+            $this->isSalesSummaryReport() => app(SalesSummaryReportService::class)->csvMatrix($this->rows, $this->visibleColumns),
+            $this->isProfitLossReport() => app(ProfitLossReportService::class)->csvMatrix($this->rows, $this->visibleColumns),
+            $this->isSupplierLedgerReport() => app(SupplierLedgerReportService::class)->csvMatrix($this->rows, $this->visibleColumns),
+            default => app(CustomerLedgerReportService::class)->csvMatrix($this->rows, $this->visibleColumns),
+        };
         $filename = $this->reportKey.'-'.now()->format('Y_m_d_His').'.csv';
 
         return response()->streamDownload(function () use ($matrix): void {
@@ -259,6 +326,59 @@ class ReportShell extends Component
             return $filters;
         }
 
+        if ($this->isSalesSummaryReport()) {
+            if (filled($this->periodFilter)) {
+                $filters[] = [
+                    'field' => 'period',
+                    'label' => __('reports.filters.active_period', [
+                        'period' => __('reports.filters.period_'.$this->periodFilter),
+                    ]),
+                ];
+            }
+
+            if (filled($this->channelFilter) && $this->channelFilter !== 'all') {
+                $filters[] = [
+                    'field' => 'channel',
+                    'label' => __('reports.filters.active_channel', [
+                        'channel' => __('reports.filters.channel_'.$this->channelFilter),
+                    ]),
+                ];
+            }
+
+            if (filled($this->groupByFilter) && $this->groupByFilter !== 'day') {
+                $filters[] = [
+                    'field' => 'group',
+                    'label' => __('reports.filters.active_group', [
+                        'group' => __('reports.filters.group_'.$this->groupByFilter),
+                    ]),
+                ];
+            }
+
+            return $filters;
+        }
+
+        if ($this->isProfitLossReport()) {
+            if (filled($this->periodFilter)) {
+                $filters[] = [
+                    'field' => 'period',
+                    'label' => __('reports.filters.active_period', [
+                        'period' => __('reports.filters.period_'.$this->periodFilter),
+                    ]),
+                ];
+            }
+
+            if (filled($this->resultFilter) && $this->resultFilter !== 'all') {
+                $filters[] = [
+                    'field' => 'result',
+                    'label' => __('reports.filters.active_result', [
+                        'result' => __('reports.filters.result_'.$this->resultFilter),
+                    ]),
+                ];
+            }
+
+            return $filters;
+        }
+
         if (filled($this->periodFilter)) {
             $filters[] = [
                 'field' => 'period',
@@ -286,6 +406,19 @@ class ReportShell extends Component
                 || ($this->categoryFilter !== '' && $this->categoryFilter !== 'all');
         }
 
+        if ($this->isSalesSummaryReport()) {
+            return filled($this->search)
+                || filled($this->periodFilter)
+                || ($this->channelFilter !== '' && $this->channelFilter !== 'all')
+                || ($this->groupByFilter !== '' && $this->groupByFilter !== 'day');
+        }
+
+        if ($this->isProfitLossReport()) {
+            return filled($this->search)
+                || filled($this->periodFilter)
+                || ($this->resultFilter !== '' && $this->resultFilter !== 'all');
+        }
+
         return filled($this->search)
             || filled($this->periodFilter)
             || filled($this->secondaryFilter);
@@ -300,6 +433,29 @@ class ReportShell extends Component
                 default => null,
             };
             $this->loadStockReport();
+
+            return;
+        }
+
+        if ($this->isSalesSummaryReport()) {
+            match ($field) {
+                'period' => $this->periodFilter = '',
+                'channel' => $this->channelFilter = 'all',
+                'group' => $this->groupByFilter = 'day',
+                default => null,
+            };
+            $this->loadSalesSummaryReport();
+
+            return;
+        }
+
+        if ($this->isProfitLossReport()) {
+            match ($field) {
+                'period' => $this->periodFilter = '',
+                'result' => $this->resultFilter = 'all',
+                default => null,
+            };
+            $this->loadProfitLossReport();
 
             return;
         }
@@ -338,9 +494,32 @@ class ReportShell extends Component
         return $this->reportKey === 'customer-ledger';
     }
 
+    protected function isSupplierLedgerReport(): bool
+    {
+        return $this->reportKey === 'supplier-ledger';
+    }
+
+    protected function isSalesSummaryReport(): bool
+    {
+        return $this->reportKey === 'sales-summary';
+    }
+
+    protected function isProfitLossReport(): bool
+    {
+        return $this->reportKey === 'profit-loss';
+    }
+
+    protected function isPartyLedgerReport(): bool
+    {
+        return $this->isCustomerLedgerReport() || $this->isSupplierLedgerReport();
+    }
+
     protected function isLiveReport(): bool
     {
-        return $this->isStockReport() || $this->isCustomerLedgerReport();
+        return $this->isStockReport()
+            || $this->isPartyLedgerReport()
+            || $this->isSalesSummaryReport()
+            || $this->isProfitLossReport();
     }
 
     protected function loadLiveReport(): void
@@ -351,8 +530,26 @@ class ReportShell extends Component
             return;
         }
 
+        if ($this->isSalesSummaryReport()) {
+            $this->loadSalesSummaryReport();
+
+            return;
+        }
+
+        if ($this->isProfitLossReport()) {
+            $this->loadProfitLossReport();
+
+            return;
+        }
+
         if ($this->isCustomerLedgerReport()) {
             $this->loadCustomerLedgerReport();
+
+            return;
+        }
+
+        if ($this->isSupplierLedgerReport()) {
+            $this->loadSupplierLedgerReport();
         }
     }
 
@@ -381,6 +578,52 @@ class ReportShell extends Component
             $this->search !== '' ? $this->search : null,
             $this->periodFilter !== '' ? $this->periodFilter : null,
             $partyFilter !== '' ? $partyFilter : 'all',
+        );
+
+        $this->rows = $payload['rows'];
+        $this->kpis = $payload['kpis'];
+        $this->reportLoaded = true;
+    }
+
+    protected function loadSupplierLedgerReport(): void
+    {
+        $partyFilter = 'all';
+
+        if (str_starts_with($this->secondaryFilter, 'supplier:')) {
+            [, $partyFilter] = explode(':', $this->secondaryFilter, 2);
+        }
+
+        $payload = app(SupplierLedgerReportService::class)->build(
+            $this->search !== '' ? $this->search : null,
+            $this->periodFilter !== '' ? $this->periodFilter : null,
+            $partyFilter !== '' ? $partyFilter : 'all',
+        );
+
+        $this->rows = $payload['rows'];
+        $this->kpis = $payload['kpis'];
+        $this->reportLoaded = true;
+    }
+
+    protected function loadSalesSummaryReport(): void
+    {
+        $payload = app(SalesSummaryReportService::class)->build(
+            $this->search !== '' ? $this->search : null,
+            $this->periodFilter !== '' ? $this->periodFilter : null,
+            $this->channelFilter !== '' ? $this->channelFilter : 'all',
+            $this->groupByFilter !== '' ? $this->groupByFilter : 'day',
+        );
+
+        $this->rows = $payload['rows'];
+        $this->kpis = $payload['kpis'];
+        $this->reportLoaded = true;
+    }
+
+    protected function loadProfitLossReport(): void
+    {
+        $payload = app(ProfitLossReportService::class)->build(
+            $this->search !== '' ? $this->search : null,
+            $this->periodFilter !== '' ? $this->periodFilter : null,
+            $this->resultFilter !== '' ? $this->resultFilter : 'all',
         );
 
         $this->rows = $payload['rows'];
@@ -431,6 +674,10 @@ class ReportShell extends Component
             'columnDataAttr' => 'data-report-'.str_replace('-', '-', $this->reportKey).'-column',
             'isStockReport' => $this->isStockReport(),
             'isCustomerLedgerReport' => $this->isCustomerLedgerReport(),
+            'isSupplierLedgerReport' => $this->isSupplierLedgerReport(),
+            'isSalesSummaryReport' => $this->isSalesSummaryReport(),
+            'isProfitLossReport' => $this->isProfitLossReport(),
+            'isPartyLedgerReport' => $this->isPartyLedgerReport(),
             'isLiveReport' => $this->isLiveReport(),
         ]);
     }

@@ -3,6 +3,7 @@
 namespace App\Support\Documentation;
 
 use App\Filament\Clusters\BaseAgricartCluster;
+use App\Filament\Layout\ClusterSubNavigation;
 use App\Filament\Layout\ModuleChrome;
 use App\Filament\Pages\BaseModulePage;
 use App\Filament\Pages\BasePlaceholderPage;
@@ -24,10 +25,6 @@ class DocumentationRegistry
         $modules = [];
 
         foreach (ModuleChrome::modules() as $module) {
-            if ($module['key'] === 'docs') {
-                continue;
-            }
-
             $modules[] = [
                 'key' => $module['key'],
                 'label' => AgricartTranslator::module($module['key']),
@@ -55,7 +52,7 @@ class DocumentationRegistry
             return [];
         }
 
-        /** @var class-string<\App\Filament\Layout\ClusterSubNavigation> $subNavigationClass */
+        /** @var class-string<ClusterSubNavigation> $subNavigationClass */
         $subNavigationClass = $module['subNavigation'];
         $clusterClass = $subNavigationClass::clusterClass();
         $comingSoon = (bool) ($module['comingSoon'] ?? false);
@@ -83,6 +80,7 @@ class DocumentationRegistry
                 'label' => $component::getNavigationLabel(),
                 'implemented' => static::pageIsImplemented($component),
                 'documented' => static::hasArticle($moduleKey, $slug, 'en') || static::hasArticle($moduleKey, $slug, 'ur'),
+                'has_brief' => static::pageHasAnyBrief($moduleKey, $slug),
                 'sort' => $component::getNavigationSort() ?? 0,
             ];
         }
@@ -94,12 +92,150 @@ class DocumentationRegistry
 
     protected static function translationPrefix(string $moduleKey): string
     {
-        return 'docs/modules/' . $moduleKey;
+        return 'docs/modules/'.$moduleKey;
     }
 
     public static function hasArticle(string $moduleKey, string $pageKey, ?string $locale = null): bool
     {
-        return Lang::has(static::translationPrefix($moduleKey) . '.' . $pageKey . '.sections', $locale);
+        return Lang::has(static::translationPrefix($moduleKey).'.'.$pageKey.'.sections', $locale);
+    }
+
+    protected static function briefPrefix(string $moduleKey): string
+    {
+        return 'docs/briefs/'.$moduleKey;
+    }
+
+    /**
+     * Brief kinds for a Filament page: typically list + form, or a single page brief.
+     *
+     * @return list<string>
+     */
+    public static function briefKinds(string $moduleKey, string $pageKey, ?string $locale = null): array
+    {
+        $kinds = [];
+
+        foreach (['list', 'form', 'page'] as $kind) {
+            if (
+                static::hasBrief($moduleKey, $pageKey, $kind, $locale)
+                || static::hasBrief($moduleKey, $pageKey, $kind, 'ur')
+                || static::hasBrief($moduleKey, $pageKey, $kind, 'en')
+            ) {
+                $kinds[] = $kind;
+            }
+        }
+
+        if ($kinds === [] && static::hasArticle($moduleKey, $pageKey, $locale)) {
+            $kinds[] = 'page';
+        }
+
+        return $kinds;
+    }
+
+    public static function hasBrief(string $moduleKey, string $pageKey, string $kind = 'page', ?string $locale = null): bool
+    {
+        return Lang::has(static::briefPrefix($moduleKey).'.'.$pageKey.'.'.$kind.'.prompt', $locale);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public static function brief(string $moduleKey, string $pageKey, string $kind = 'page', ?string $locale = null): ?array
+    {
+        $key = static::briefPrefix($moduleKey).'.'.$pageKey.'.'.$kind;
+        $locales = array_values(array_unique(array_filter([$locale, 'ur', 'en'])));
+
+        foreach ($locales as $try) {
+            $hand = null;
+
+            if (Lang::has($key, $try)) {
+                $data = __($key, [], $try);
+
+                if (is_array($data)) {
+                    $hand = $data;
+                }
+            }
+
+            $guide = static::article($moduleKey, $pageKey, $try);
+            $base = is_array($guide)
+                ? DocumentationBriefBuilder::fromGuide($moduleKey, $pageKey, $guide, $try)
+                : null;
+
+            if ($hand !== null) {
+                return $base !== null
+                    ? static::mergeBrief($base, $hand)
+                    : static::ensureSkeleton($hand, $try);
+            }
+
+            if ($kind === 'page' && $base !== null) {
+                return $base;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Overlay a hand-written brief on top of the guide-derived skeleton so every
+     * page shares the same handbook sections. Hand-authored keys always win.
+     *
+     * @param  array<string, mixed>  $base
+     * @param  array<string, mixed>  $hand
+     * @return array<string, mixed>
+     */
+    protected static function mergeBrief(array $base, array $hand): array
+    {
+        foreach ($hand as $key => $value) {
+            if (is_array($value) && $value === [] && ($base[$key] ?? null)) {
+                // Hand brief left the section empty; keep the guide-derived content.
+                continue;
+            }
+
+            $base[$key] = $value;
+        }
+
+        return $base;
+    }
+
+    /**
+     * Guarantee the full handbook section skeleton exists on a hand brief that
+     * has no backing guide (placeholders where the team has not filled content).
+     *
+     * @param  array<string, mixed>  $hand
+     * @return array<string, mixed>
+     */
+    protected static function ensureSkeleton(array $hand, string $locale): array
+    {
+        $placeholders = array_fill(0, 5, $locale === 'ur' ? '— بعد میں بھریں —' : '— To be filled later —');
+
+        $defaults = [
+            'ui_flow' => [],
+            'functional_requirements' => [],
+            'fields' => [],
+            'validation' => [],
+            'database' => [],
+            'api' => [],
+            'permissions' => [],
+            'edge_cases' => [],
+            'business_rules' => $placeholders,
+            'non_functional_requirements' => $placeholders,
+            'dependencies' => [],
+            'technical' => [],
+            'improvements' => [],
+        ];
+
+        foreach ($defaults as $key => $value) {
+            if (! array_key_exists($key, $hand)) {
+                $hand[$key] = $value;
+            }
+        }
+
+        return $hand;
+    }
+
+    public static function pageHasAnyBrief(string $moduleKey, string $pageKey): bool
+    {
+        return static::briefKinds($moduleKey, $pageKey, 'ur') !== []
+            || static::briefKinds($moduleKey, $pageKey, 'en') !== [];
     }
 
     /**
@@ -107,7 +243,7 @@ class DocumentationRegistry
      */
     public static function article(string $moduleKey, string $pageKey, ?string $locale = null): ?array
     {
-        $key = static::translationPrefix($moduleKey) . '.' . $pageKey;
+        $key = static::translationPrefix($moduleKey).'.'.$pageKey;
 
         if (! Lang::has($key, $locale)) {
             return null;

@@ -6,8 +6,8 @@
 
 <div
     class="agricart-supplier-form agricart-user-form"
-    x-on:supplier-form-action.window="$wire.handlePanelAction($event.detail.action)"
-    x-on:supplier-form-open.window="$wire.openForm($event.detail.supplierId ?? null, $event.detail.mode ?? 'create')"
+    x-on:supplier-form-action.window="$wire.handlePanelAction($event.detail.action ?? $event.detail?.[0]?.action)"
+    x-on:supplier-form-open.window="$wire.openForm($event.detail.supplierId ?? $event.detail?.[0]?.supplierId ?? null, $event.detail.mode ?? $event.detail?.[0]?.mode ?? 'create')"
 >
     @if ($statusMessage)
         <div @class([
@@ -125,10 +125,13 @@
                     {{ __('suppliers.fields.business_name_en') }}
                     <span class="agricart-form-panel__required">*</span>
                 </label>
-                <x-filament::input.wrapper>
-                    <input id="sp-business-en" type="text" wire:model.live.debounce.300ms="business_name_en" class="fi-input" @disabled($readonly) />
-                </x-filament::input.wrapper>
-            </div>
+                    <x-filament::input.wrapper>
+                        <input id="sp-business-en" type="text" wire:model.live.debounce.300ms="business_name_en" class="fi-input" @disabled($readonly) />
+                    </x-filament::input.wrapper>
+                    @error('business_name_en')
+                        <p class="agricart-form-panel__error">{{ $message }}</p>
+                    @enderror
+                </div>
 
             <div class="agricart-form-panel__field">
                 <label class="agricart-form-panel__label" for="sp-country">
@@ -162,6 +165,9 @@
                             @endforeach
                         </select>
                     </x-filament::input.wrapper>
+                    @error('city_key')
+                        <p class="agricart-form-panel__error">{{ $message }}</p>
+                    @enderror
                 </div>
             @else
                 <div class="agricart-form-panel__field">
@@ -180,10 +186,13 @@
                     {{ __('suppliers.fields.address_en') }}
                     <span class="agricart-form-panel__required">*</span>
                 </label>
-                <x-filament::input.wrapper>
-                    <input id="sp-address-en" type="text" wire:model.live.debounce.300ms="address_en" class="fi-input" @disabled($readonly) />
-                </x-filament::input.wrapper>
-            </div>
+                    <x-filament::input.wrapper>
+                        <input id="sp-address-en" type="text" wire:model.live.debounce.300ms="address_en" class="fi-input" @disabled($readonly) />
+                    </x-filament::input.wrapper>
+                    @error('address_en')
+                        <p class="agricart-form-panel__error">{{ $message }}</p>
+                    @enderror
+                </div>
         </div>
 
         <div class="agricart-supplier-form__locale-row agricart-supplier-form__locale-row--ur">
@@ -220,6 +229,10 @@
             </div>
         </div>
 
+        <p class="agricart-supplier-form__contacts-hint">
+            {{ __('suppliers.hints.primary_contact_required') }}
+        </p>
+
         @foreach ($contactRows as $index => $row)
             <div class="agricart-company-profile-form__contact-row agricart-supplier-form__contact-row" wire:key="supplier-contact-{{ $index }}">
                 <x-filament::input.wrapper>
@@ -227,7 +240,7 @@
                         type="text"
                         wire:model.live.debounce.300ms="contactRows.{{ $index }}.contact_name_en"
                         class="fi-input"
-                        placeholder="{{ __('suppliers.fields.contact_name_en') }}"
+                        placeholder="{{ __('suppliers.fields.contact_name_en') }}{{ $index === 0 ? ' *' : '' }}"
                         @disabled($readonly)
                     />
                 </x-filament::input.wrapper>
@@ -246,7 +259,7 @@
                         type="text"
                         wire:model.live.debounce.300ms="contactRows.{{ $index }}.mobile_number"
                         class="fi-input"
-                        placeholder="{{ __('suppliers.fields.mobile_number') }}"
+                        placeholder="{{ __('suppliers.fields.mobile_number') }}{{ $index === 0 ? ' *' : '' }}"
                         @disabled($readonly)
                     />
                 </x-filament::input.wrapper>
@@ -257,6 +270,12 @@
                     <button type="button" class="agricart-company-profile-form__mini-btn is-remove" wire:click="removeContactRow({{ $index }})" title="{{ __('suppliers.actions.remove') }}" @disabled($readonly)>×</button>
                 @endif
             </div>
+            @error('contactRows.'.$index.'.contact_name_en')
+                <p class="agricart-form-panel__error">{{ $message }}</p>
+            @enderror
+            @error('contactRows.'.$index.'.mobile_number')
+                <p class="agricart-form-panel__error">{{ $message }}</p>
+            @enderror
         @endforeach
 
         @foreach ($bankRows as $index => $row)

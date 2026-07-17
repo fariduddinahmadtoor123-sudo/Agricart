@@ -19,7 +19,15 @@ class DocumentationShell extends Component
     public string $pageKey = '';
 
     #[Url(as: 'lang')]
-    public string $localeTab = 'en';
+    public string $localeTab = 'ur';
+
+    /** guide = detailed rebuild docs, brief = simple Urdu handoff for new build */
+    #[Url(as: 'mode')]
+    public string $viewMode = 'brief';
+
+    /** list | form | page */
+    #[Url(as: 'kind')]
+    public string $briefKind = '';
 
     public function mount(): void
     {
@@ -32,8 +40,14 @@ class DocumentationShell extends Component
         }
 
         if (! in_array($this->localeTab, ['en', 'ur'], true)) {
-            $this->localeTab = 'en';
+            $this->localeTab = 'ur';
         }
+
+        if (! in_array($this->viewMode, ['guide', 'brief'], true)) {
+            $this->viewMode = 'brief';
+        }
+
+        $this->syncBriefKind();
     }
 
     public function selectModule(string $moduleKey): void
@@ -44,6 +58,8 @@ class DocumentationShell extends Component
 
         $this->moduleKey = $moduleKey;
         $this->pageKey = DocumentationRegistry::defaultPageKey($moduleKey);
+        $this->briefKind = '';
+        $this->syncBriefKind();
     }
 
     public function selectPage(string $pageKey): void
@@ -53,6 +69,8 @@ class DocumentationShell extends Component
         }
 
         $this->pageKey = $pageKey;
+        $this->briefKind = '';
+        $this->syncBriefKind();
     }
 
     public function setLocaleTab(string $tab): void
@@ -62,6 +80,28 @@ class DocumentationShell extends Component
         }
 
         $this->localeTab = $tab;
+        $this->syncBriefKind();
+    }
+
+    public function setViewMode(string $mode): void
+    {
+        if (! in_array($mode, ['guide', 'brief'], true)) {
+            return;
+        }
+
+        $this->viewMode = $mode;
+        $this->syncBriefKind();
+    }
+
+    public function setBriefKind(string $kind): void
+    {
+        $kinds = DocumentationRegistry::briefKinds($this->moduleKey, $this->pageKey, $this->localeTab);
+
+        if (! in_array($kind, $kinds, true)) {
+            return;
+        }
+
+        $this->briefKind = $kind;
     }
 
     public function downloadPagePdf(DocumentationPdfExporter $exporter): StreamedResponse
@@ -69,7 +109,7 @@ class DocumentationShell extends Component
         $payload = $exporter->page($this->moduleKey, $this->pageKey, $this->localeTab);
 
         return response()->streamDownload(
-            fn () => print($payload['pdf']->output()),
+            fn () => print ($payload['pdf']->output()),
             $payload['filename'],
             ['Content-Type' => 'application/pdf'],
         );
@@ -80,7 +120,7 @@ class DocumentationShell extends Component
         $payload = $exporter->module($this->moduleKey, $this->localeTab);
 
         return response()->streamDownload(
-            fn () => print($payload['pdf']->output()),
+            fn () => print ($payload['pdf']->output()),
             $payload['filename'],
             ['Content-Type' => 'application/pdf'],
         );
@@ -91,7 +131,45 @@ class DocumentationShell extends Component
         $payload = $exporter->book($this->localeTab);
 
         return response()->streamDownload(
-            fn () => print($payload['pdf']->output()),
+            fn () => print ($payload['pdf']->output()),
+            $payload['filename'],
+            ['Content-Type' => 'application/pdf'],
+        );
+    }
+
+    public function downloadBriefPagePdf(DocumentationPdfExporter $exporter): StreamedResponse
+    {
+        $payload = $exporter->briefPage(
+            $this->moduleKey,
+            $this->pageKey,
+            $this->localeTab,
+            $this->briefKind !== '' ? $this->briefKind : null,
+        );
+
+        return response()->streamDownload(
+            fn () => print ($payload['pdf']->output()),
+            $payload['filename'],
+            ['Content-Type' => 'application/pdf'],
+        );
+    }
+
+    public function downloadBriefModulePdf(DocumentationPdfExporter $exporter): StreamedResponse
+    {
+        $payload = $exporter->briefModule($this->moduleKey, $this->localeTab);
+
+        return response()->streamDownload(
+            fn () => print ($payload['pdf']->output()),
+            $payload['filename'],
+            ['Content-Type' => 'application/pdf'],
+        );
+    }
+
+    public function downloadBriefBookPdf(DocumentationPdfExporter $exporter): StreamedResponse
+    {
+        $payload = $exporter->briefBook($this->localeTab);
+
+        return response()->streamDownload(
+            fn () => print ($payload['pdf']->output()),
             $payload['filename'],
             ['Content-Type' => 'application/pdf'],
         );
@@ -113,6 +191,7 @@ class DocumentationShell extends Component
             'label' => DocumentationRegistry::pageLabel($this->moduleKey, $this->pageKey),
             'implemented' => false,
             'documented' => false,
+            'has_brief' => false,
             'sort' => 0,
         ];
     }
@@ -125,9 +204,44 @@ class DocumentationShell extends Component
         return DocumentationRegistry::article($this->moduleKey, $this->pageKey, $this->localeTab);
     }
 
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function brief(): ?array
+    {
+        if ($this->briefKind === '') {
+            return null;
+        }
+
+        return DocumentationRegistry::brief($this->moduleKey, $this->pageKey, $this->briefKind, $this->localeTab);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function briefKinds(): array
+    {
+        return DocumentationRegistry::briefKinds($this->moduleKey, $this->pageKey, $this->localeTab);
+    }
+
     public function guideUrl(string $moduleKey, string $pageKey): string
     {
         return GuidePage::guideUrl($moduleKey, $pageKey);
+    }
+
+    protected function syncBriefKind(): void
+    {
+        $kinds = $this->briefKinds();
+
+        if ($kinds === []) {
+            $this->briefKind = '';
+
+            return;
+        }
+
+        if ($this->briefKind === '' || ! in_array($this->briefKind, $kinds, true)) {
+            $this->briefKind = in_array('form', $kinds, true) ? 'form' : $kinds[0];
+        }
     }
 
     public function render(): View
@@ -137,6 +251,8 @@ class DocumentationShell extends Component
             'pages' => DocumentationRegistry::pagesForModule($this->moduleKey),
             'meta' => $this->pageMeta(),
             'article' => $this->article(),
+            'brief' => $this->brief(),
+            'briefKinds' => $this->briefKinds(),
         ]);
     }
 }

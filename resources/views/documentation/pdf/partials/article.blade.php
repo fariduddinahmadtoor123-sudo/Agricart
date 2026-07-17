@@ -12,13 +12,13 @@
 @if ($meta !== [])
     <div class="meta-box">
         @if (! empty($meta['routes']))
-            <p><strong>{{ __('documentation.meta.routes', [], $locale) }}:</strong> {{ implode(', ', (array) $meta['routes']) }}</p>
+            <p><strong>{{ $labels['routes'] }}:</strong> {{ implode(', ', (array) $meta['routes']) }}</p>
         @endif
         @if (! empty($meta['permissions']))
-            <p><strong>{{ __('documentation.meta.permissions', [], $locale) }}:</strong> {{ implode(', ', (array) $meta['permissions']) }}</p>
+            <p><strong>{{ $labels['permissions'] }}:</strong> {{ implode(', ', (array) $meta['permissions']) }}</p>
         @endif
         @if (! empty($meta['related']))
-            <p><strong>{{ __('documentation.meta.related', [], $locale) }}:</strong> {{ implode(', ', (array) $meta['related']) }}</p>
+            <p><strong>{{ $labels['related'] }}:</strong> {{ implode(', ', (array) $meta['related']) }}</p>
         @endif
     </div>
 @endif
@@ -58,11 +58,11 @@
             <table>
                 <thead>
                     <tr>
-                        <th>{{ __('documentation.fields.name', [], $locale) }}</th>
-                        <th>{{ __('documentation.fields.label', [], $locale) }}</th>
-                        <th>{{ __('documentation.fields.type', [], $locale) }}</th>
-                        <th>{{ __('documentation.fields.required', [], $locale) }}</th>
-                        <th>{{ __('documentation.fields.rules', [], $locale) }}</th>
+                        <th>{{ $labels['field_name'] }}</th>
+                        <th>{{ $labels['field_label'] }}</th>
+                        <th>{{ $labels['field_type'] }}</th>
+                        <th>{{ $labels['field_required'] }}</th>
+                        <th>{{ $labels['field_rules'] }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -77,7 +77,7 @@
                             <td><code>{{ $field['name'] ?? '' }}</code></td>
                             <td>{{ $field['label'] ?? '' }}</td>
                             <td>{{ $field['type'] ?? '' }}</td>
-                            <td>{{ ! empty($field['required']) ? __('documentation.fields.yes', [], $locale) : __('documentation.fields.no', [], $locale) }}</td>
+                            <td>{{ ! empty($field['required']) ? $labels['yes'] : $labels['no'] }}</td>
                             <td>{{ $rules }}</td>
                         </tr>
                     @endforeach

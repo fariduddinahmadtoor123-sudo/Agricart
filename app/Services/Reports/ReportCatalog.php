@@ -92,7 +92,23 @@ class ReportCatalog
                 'columns' => $columns,
                 'defaultVisibleColumns' => $visible,
             ],
-            'sales-summary', 'seasonal-sales' => [
+            'sales-summary' => [
+                'filters' => [],
+                'filterGroups' => [
+                    ...static::commonFilterGroups(),
+                    [
+                        'label' => __('reports.filters.channel'),
+                        'filters' => static::salesChannelFilters(),
+                    ],
+                    [
+                        'label' => __('reports.filters.group_by'),
+                        'filters' => static::salesGroupFilters(),
+                    ],
+                ],
+                'columns' => $columns,
+                'defaultVisibleColumns' => $visible,
+            ],
+            'seasonal-sales' => [
                 'filters' => static::salesChannelFilters(),
                 'filterGroups' => static::commonFilterGroups(),
                 'columns' => $columns,
@@ -100,7 +116,13 @@ class ReportCatalog
             ],
             'profit-loss' => [
                 'filters' => [],
-                'filterGroups' => static::commonFilterGroups(),
+                'filterGroups' => [
+                    ...static::commonFilterGroups(),
+                    [
+                        'label' => __('reports.filters.result'),
+                        'filters' => static::profitResultFilters(),
+                    ],
+                ],
                 'columns' => $columns,
                 'defaultVisibleColumns' => $visible,
             ],
@@ -177,12 +199,38 @@ class ReportCatalog
     /**
      * @return list<array{label: string, value: string}>
      */
+    protected static function salesGroupFilters(): array
+    {
+        return [
+            ['label' => __('reports.filters.group_day'), 'value' => 'group:day'],
+            ['label' => __('reports.filters.group_month'), 'value' => 'group:month'],
+            ['label' => __('reports.filters.group_category'), 'value' => 'group:category'],
+            ['label' => __('reports.filters.group_customer'), 'value' => 'group:customer'],
+            ['label' => __('reports.filters.group_product'), 'value' => 'group:product'],
+        ];
+    }
+
+    /**
+     * @return list<array{label: string, value: string}>
+     */
     protected static function salesChannelFilters(): array
     {
         return [
             ['label' => __('reports.filters.channel_all'), 'value' => 'channel:all'],
             ['label' => __('reports.filters.channel_pos'), 'value' => 'channel:pos'],
             ['label' => __('reports.filters.channel_online'), 'value' => 'channel:online'],
+        ];
+    }
+
+    /**
+     * @return list<array{label: string, value: string}>
+     */
+    protected static function profitResultFilters(): array
+    {
+        return [
+            ['label' => __('reports.filters.result_all'), 'value' => 'result:all'],
+            ['label' => __('reports.filters.result_profit'), 'value' => 'result:profit'],
+            ['label' => __('reports.filters.result_loss'), 'value' => 'result:loss'],
         ];
     }
 
@@ -255,18 +303,25 @@ class ReportCatalog
                 ['label' => __('reports.columns.balance'), 'value' => 'balance', 'visible' => true],
             ],
             'sales-summary' => [
-                ['label' => __('reports.columns.period'), 'value' => 'period', 'visible' => true],
-                ['label' => __('reports.columns.channel'), 'value' => 'channel', 'visible' => true],
+                ['label' => __('reports.columns.group'), 'value' => 'group', 'visible' => true],
                 ['label' => __('reports.columns.invoices'), 'value' => 'invoices', 'visible' => true],
                 ['label' => __('reports.columns.gross_sales'), 'value' => 'gross_sales', 'visible' => true],
                 ['label' => __('reports.columns.returns'), 'value' => 'returns', 'visible' => true],
                 ['label' => __('reports.columns.net_sales'), 'value' => 'net_sales', 'visible' => true],
+                ['label' => __('reports.columns.avg_ticket'), 'value' => 'avg_ticket', 'visible' => true],
+                ['label' => __('reports.columns.channel'), 'value' => 'channel', 'visible' => false],
             ],
             'profit-loss' => [
-                ['label' => __('reports.columns.line'), 'value' => 'line', 'visible' => true],
-                ['label' => __('reports.columns.section'), 'value' => 'section', 'visible' => false],
-                ['label' => __('reports.columns.amount'), 'value' => 'amount', 'visible' => true],
-                ['label' => __('reports.columns.percent'), 'value' => 'percent', 'visible' => false],
+                ['label' => __('reports.columns.invoice'), 'value' => 'invoice', 'visible' => true],
+                ['label' => __('reports.columns.date'), 'value' => 'date', 'visible' => true],
+                ['label' => __('reports.columns.customer'), 'value' => 'customer', 'visible' => true],
+                ['label' => __('reports.columns.net_sales'), 'value' => 'net_sales', 'visible' => true],
+                ['label' => __('reports.columns.cogs'), 'value' => 'cogs', 'visible' => true],
+                ['label' => __('reports.columns.profit'), 'value' => 'profit', 'visible' => true],
+                ['label' => __('reports.columns.margin'), 'value' => 'margin', 'visible' => true],
+                ['label' => __('reports.columns.result'), 'value' => 'result', 'visible' => true],
+                ['label' => __('reports.columns.gross_sales'), 'value' => 'gross_sales', 'visible' => false],
+                ['label' => __('reports.columns.returns'), 'value' => 'returns', 'visible' => false],
             ],
             'expense-report' => [
                 ['label' => __('reports.columns.date'), 'value' => 'date', 'visible' => true],

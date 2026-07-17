@@ -7,6 +7,7 @@ use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\ReorderQueueBatch;
 use App\Models\ReorderQueueItem;
+use App\Models\Sale;
 use App\Services\PricingControls\SecretCodingEngine;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -173,7 +174,7 @@ class ReorderService
             }
 
             $product->update([
-                'stock_qty' => round($this->numericStock($product) + $qty, 2),
+                'stock_qty' => round($this->rawStock($product) + $qty, 2),
             ]);
 
             $fulfilledProductIds[] = $product->id;
@@ -208,7 +209,7 @@ class ReorderService
             }
 
             $product->update([
-                'stock_qty' => max(0, round($this->numericStock($product) - $qty, 2)),
+                'stock_qty' => round($this->rawStock($product) - $qty, 2),
             ]);
         }
     }
@@ -220,6 +221,65 @@ class ReorderService
 
         $this->reversePurchaseStock($before);
         $this->applyPurchaseStock($after);
+    }
+
+    /**
+     * Rebuild on-hand stock from purchases, completed sales, and returns.
+     *
+     * @return array{product_id: int, stock_qty: float}
+     */
+    public function rebuildProductStock(Product $product): array
+    {
+        $productId = (int) $product->id;
+
+        $purchased = (float) (DB::table('purchase_items')
+            ->join('purchases', 'purchases.id', '=', 'purchase_items.purchase_id')
+            ->where('purchase_items.product_id', $productId)
+            ->whereIn('purchases.delivery_status', [Purchase::DELIVERY_RECEIVED, Purchase::DELIVERY_PARTIAL])
+            ->selectRaw($this->castSumExpression('purchase_items.purchase_qty').' as total')
+            ->value('total') ?? 0);
+
+        $sold = (float) (DB::table('sale_items')
+            ->join('sales', 'sales.id', '=', 'sale_items.sale_id')
+            ->where('sale_items.product_id', $productId)
+            ->where('sales.status', Sale::STATUS_COMPLETED)
+            ->selectRaw($this->castSumExpression('sale_items.quantity').' as total')
+            ->value('total') ?? 0);
+
+        $returned = (float) (DB::table('sale_return_items')
+            ->where('sale_return_items.product_id', $productId)
+            ->selectRaw($this->castSumExpression('sale_return_items.return_quantity').' as total')
+            ->value('total') ?? 0);
+
+        $stock = round($purchased - $sold + $returned, 2);
+
+        $product->update(['stock_qty' => $stock]);
+
+        return [
+            'product_id' => $productId,
+            'stock_qty' => $stock,
+        ];
+    }
+
+    /**
+     * @return list<array{product_id: int, stock_qty: float}>
+     */
+    public function rebuildAllProductStock(): array
+    {
+        $results = [];
+
+        Product::query()->orderBy('id')->each(function (Product $product) use (&$results): void {
+            $results[] = $this->rebuildProductStock($product);
+        });
+
+        return $results;
+    }
+
+    private function castSumExpression(string $column): string
+    {
+        $cast = DB::connection()->getDriverName() === 'sqlite' ? 'REAL' : 'DECIMAL(14,4)';
+
+        return "COALESCE(SUM(CAST({$column} AS {$cast})), 0)";
     }
 
     public function needsReorder(Product $product): bool
@@ -391,7 +451,16 @@ class ReorderService
 
     private function numericStock(Product $product): float
     {
-        return max(0, $this->numericValue($product->stock_qty));
+        return max(0, $this->rawStock($product));
+    }
+
+    /**
+     * On-hand for inventory mutations — keep negative balances so a later
+     * purchase does not erase prior oversell quantity.
+     */
+    private function rawStock(Product $product): float
+    {
+        return $this->numericValue($product->stock_qty);
     }
 
     private function numericValue(mixed $value): float

@@ -24,12 +24,15 @@ class GuidePage extends BaseModulePage
 
     protected string $view = 'filament.pages.docs.guide';
 
-    public static function guideUrl(string $moduleKey, string $pageKey): string
+    public static function guideUrl(string $moduleKey, string $pageKey, array $extra = []): string
     {
-        return static::getUrl() . '?' . http_build_query([
+        return static::getUrl() . '?' . http_build_query(array_filter([
             'm' => $moduleKey,
             'p' => $pageKey,
-        ]);
+            'mode' => $extra['mode'] ?? 'brief',
+            'lang' => $extra['lang'] ?? 'ur',
+            'kind' => $extra['kind'] ?? null,
+        ]));
     }
 
     public function getHeading(): string|Htmlable|null

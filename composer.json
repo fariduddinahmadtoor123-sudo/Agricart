@@ -12,6 +12,7 @@
         "filament/filament": "4.11.8",
         "laravel/framework": "^13.8",
         "laravel/tinker": "^3.0",
+        "mpdf/mpdf": "^8.3",
         "picqer/php-barcode-generator": "^3.2"
     },
     "require-dev": {

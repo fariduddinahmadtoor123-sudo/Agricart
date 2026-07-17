@@ -10275,8 +10275,279 @@ body.agricart-price-tags-panel-open {
     flex-shrink: 0;
 }
 
-.agricart-docs-shell__dot.is-documented {
+.agricart-docs-shell__dot.is-brief {
+    background: #0ea5e9;
+}
+
+.agricart-docs-shell__header-left {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.agricart-docs-shell__mode-tabs,
+.agricart-docs-shell__kind-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.agricart-docs-shell__mode-tab,
+.agricart-docs-shell__kind-tab {
+    padding: 0.35rem 0.7rem;
+    border: 1px solid var(--agricart-border);
+    background: #f4f5f7;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.agricart-docs-shell__mode-tab.is-active,
+.agricart-docs-shell__kind-tab.is-active {
+    background: #e8f3d4;
+    border-color: #83B735;
+    color: #3d5c16;
+}
+
+.agricart-docs-shell__kind-tabs {
+    margin-bottom: 0.85rem;
+}
+
+.agricart-docs-shell__howto {
+    margin-bottom: 0.85rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--agricart-border);
+    background: #f4f5f7;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--gray-700);
+}
+
+.agricart-docs-brief__title {
+    margin: 0 0 0.45rem;
+    font-size: 1.3rem;
+    font-weight: 800;
+}
+
+.agricart-docs-brief__summary {
+    margin: 0 0 1rem;
+    color: var(--gray-600);
+    line-height: 1.5;
+}
+
+.agricart-docs-brief__box {
+    margin-bottom: 1rem;
+    border: 1px solid #cbd5e1;
+    background: #fff;
+}
+
+.agricart-docs-brief__box-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.7rem 0.85rem;
+    border-bottom: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.agricart-docs-brief__box-head h2 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.agricart-docs-brief__box-body {
+    padding: 0.85rem;
+}
+
+.agricart-docs-brief__box-body > p {
+    margin: 0 0 0.55rem;
+    line-height: 1.65;
+}
+
+.agricart-docs-brief__section-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    padding: 0 0.3rem;
     background: #83B735;
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.agricart-docs-brief__box--current {
+    border-inline-start: 4px solid #83B735;
+}
+
+.agricart-docs-brief__box--improve {
+    border-color: #f6d277;
+    border-inline-start: 4px solid #FBBC34;
+    background: #fffdf5;
+}
+
+.agricart-docs-brief__box--improve .agricart-docs-brief__box-head {
+    background: #fff8e6;
+}
+
+.agricart-docs-brief__box--improve .agricart-docs-brief__section-number {
+    background: #FBBC34;
+    color: #0F172A;
+}
+
+.agricart-docs-brief__box--prompt {
+    border-color: #94a3b8;
+    border-inline-start: 4px solid #0F172A;
+    background: #f8fafc;
+}
+
+.agricart-docs-brief__box--prompt .agricart-docs-brief__box-head {
+    background: #eef2f7;
+}
+
+.agricart-docs-brief__box--prompt .agricart-docs-brief__section-number {
+    background: #0F172A;
+}
+
+.agricart-docs-brief__inner-box {
+    margin-top: 0.75rem;
+    padding: 0.7rem 0.8rem;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+}
+
+.agricart-docs-brief__inner-box h3 {
+    margin: 0 0 0.45rem;
+    font-size: 0.9rem;
+    font-weight: 800;
+}
+
+.agricart-docs-brief__inner-box--tech {
+    background: #fff;
+}
+
+.agricart-docs-brief__placeholder {
+    margin: 0;
+    color: #64748B;
+    font-style: italic;
+}
+
+.agricart-docs-brief__hint {
+    font-size: 0.85rem;
+    color: var(--gray-600);
+    margin: 0 0 0.65rem;
+}
+
+.agricart-docs-brief__improve-grid {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.agricart-docs-brief__improve-card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 0.45rem;
+    padding: 0.65rem 0.7rem;
+    border: 1px solid #f0d78a;
+    background: #fff;
+    line-height: 1.45;
+}
+
+.agricart-docs-brief__improve-text {
+    flex: 1 1 12rem;
+}
+
+.agricart-docs-brief__tick {
+    font-weight: 700;
+}
+
+.agricart-docs-brief__tag {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.1rem 0.35rem;
+    border: 1px solid var(--agricart-border);
+    background: #fff;
+}
+
+.agricart-docs-brief__tag.is-keep { border-color: #83B735; color: #3d5c16; }
+.agricart-docs-brief__tag.is-add { border-color: #0ea5e9; color: #0369a1; }
+.agricart-docs-brief__tag.is-remove { border-color: #ef4444; color: #b91c1c; }
+.agricart-docs-brief__tag.is-optional { color: #64748b; }
+
+.agricart-docs-brief__fields {
+    margin: 0;
+    padding-inline-start: 1.1rem;
+    line-height: 1.55;
+}
+
+.agricart-docs-brief__fields li {
+    margin-bottom: 0.35rem;
+}
+
+.agricart-docs-brief__fields code {
+    font-size: 0.85em;
+    padding: 0 0.25rem;
+    background: #F4F5F7;
+    border: 1px solid #EBEDF0;
+}
+
+.agricart-docs-brief__spec-list {
+    margin: 0;
+    padding-inline-start: 1.2rem;
+    line-height: 1.55;
+}
+
+.agricart-docs-brief__spec-list li {
+    margin-bottom: 0.35rem;
+}
+
+.agricart-docs-brief__prompt-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.agricart-docs-brief__prompt-header h2 {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.agricart-docs-brief__copy {
+    padding: 0.35rem 0.75rem;
+    border: 1px solid #6f9c2c;
+    background: #83B735;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+
+.agricart-docs-brief__prompt {
+    margin: 0.5rem 0 0;
+    padding: 0.75rem;
+    background: #fff;
+    border: 1px solid var(--agricart-border);
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: Arial, sans-serif;
+    font-size: 0.85rem;
+    line-height: 1.55;
+}
+
+/* Back-compat for older class names still referenced elsewhere */
+.agricart-docs-brief__section {
+    margin-bottom: 1.15rem;
 }
 
 .agricart-docs-shell__dot.is-live {

@@ -163,6 +163,16 @@ class ExpensePaymentService
             ]);
         }
 
+        if ($validated['source_wallet'] === ExpensePayment::WALLET_BANK) {
+            $bank = BankAccount::query()->find($validated['bank_account_id']);
+
+            if ($bank === null || ! $bank->isActive()) {
+                throw ValidationException::withMessages([
+                    'bank_account_id' => [__('agricart.finance.expense_payments.messages.bank_required')],
+                ]);
+            }
+        }
+
         return $validated;
     }
 }

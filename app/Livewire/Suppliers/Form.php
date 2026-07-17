@@ -526,7 +526,10 @@ class Form extends Component
 
             return true;
         } catch (ValidationException $exception) {
-            throw $exception;
+            $message = collect($exception->errors())->flatten()->first();
+            $this->setStatus($message ?: __('suppliers.messages.save_failed'), 'danger');
+
+            return false;
         } catch (\Throwable $exception) {
             $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
 

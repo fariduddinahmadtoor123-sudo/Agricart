@@ -8,15 +8,16 @@ use Tests\TestCase;
 
 class DocumentationRegistryTest extends TestCase
 {
-    public function test_modules_exclude_docs_and_match_chrome_order(): void
+    public function test_modules_include_all_sidebar_modules_in_chrome_order(): void
     {
         $keys = array_column(DocumentationRegistry::modules(), 'key');
 
-        $this->assertNotContains('docs', $keys);
+        $this->assertCount(15, $keys);
         $this->assertSame('dashboard', $keys[0] ?? null);
         $this->assertContains('catalog', $keys);
         $this->assertContains('finance', $keys);
         $this->assertContains('settings', $keys);
+        $this->assertSame('docs', $keys[14] ?? null);
     }
 
     public function test_catalog_categories_article_loads_in_english_and_urdu(): void

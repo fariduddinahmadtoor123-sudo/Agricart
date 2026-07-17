@@ -6,12 +6,7 @@
         </div>
 
         <div class="agricart-docs-overview__actions">
-            <a href="{{ \App\Filament\Clusters\Docs\GuidePage::guideUrl(
-                \App\Support\Documentation\DocumentationRegistry::defaultModuleKey(),
-                \App\Support\Documentation\DocumentationRegistry::defaultPageKey(
-                    \App\Support\Documentation\DocumentationRegistry::defaultModuleKey()
-                )
-            ) }}" class="agricart-docs-overview__cta">
+            <a href="{{ \App\Filament\Clusters\Docs\GuidePage::guideUrl('contacts', 'customers', ['mode' => 'brief', 'lang' => 'ur', 'kind' => 'form']) }}" class="agricart-docs-overview__cta">
                 {{ __('documentation.overview.open_guide') }}
             </a>
         </div>

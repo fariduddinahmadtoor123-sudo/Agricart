@@ -4,13 +4,9 @@
     <meta charset="utf-8">
     <title>{{ $title }}</title>
     <style>
-        @page {
-            margin: 28px 32px;
-        }
-
         body {
-            font-family: DejaVu Sans, sans-serif;
-            font-size: 11px;
+            font-family: arial, sans-serif;
+            font-size: 11pt;
             color: #0F172A;
             line-height: 1.45;
         }
@@ -133,7 +129,7 @@
         }
 
         code {
-            font-family: DejaVu Sans, sans-serif;
+            font-family: arial, sans-serif;
             font-size: 9px;
         }
 
@@ -156,18 +152,18 @@
         <div class="cover__brand">Agricart</div>
         <div class="cover__title">{{ $title }}</div>
         @if (! empty($moduleLabel) && $scope === 'module')
-            <p class="cover__meta">{{ __('documentation.pdf.module_subtitle', ['module' => $moduleLabel], $locale) }}</p>
+            <p class="cover__meta">{{ $labels['module_subtitle'] }}</p>
         @endif
         <p class="cover__meta">
-            {{ __('documentation.pdf.generated_at', ['date' => $generatedAt], $locale) }}
-            · {{ $locale === 'ur' ? __('documentation.locale.urdu', [], $locale) : __('documentation.locale.english', [], $locale) }}
+            {{ $labels['generated_at'] }}
+            · {{ $labels['language'] }}
         </p>
-        <p class="cover__meta">{{ __('documentation.pdf.scope_' . $scope, [], $locale) }}</p>
+        <p class="cover__meta">{{ $labels['scope'] }}</p>
     </div>
 
     @if (count($chapters) > 1)
         <div class="toc">
-            <h1>{{ __('documentation.pdf.toc', [], $locale) }}</h1>
+            <h1>{{ $labels['toc'] }}</h1>
             @foreach ($chapters as $index => $chapter)
                 <div class="toc__item">
                     {{ $index + 1 }}.
@@ -191,13 +187,14 @@
                 @include('documentation.pdf.partials.article', [
                     'article' => $chapter['article'],
                     'locale' => $locale,
+                    'labels' => $labels,
                 ])
             @else
                 <p class="fallback">
                     @if ($chapter['implemented'])
-                        {{ __('documentation.fallback.implemented_pending', [], $locale) }}
+                        {{ $labels['implemented_pending'] }}
                     @else
-                        {{ __('documentation.fallback.not_implemented', [], $locale) }}
+                        {{ $labels['not_implemented'] }}
                     @endif
                 </p>
             @endif
@@ -205,7 +202,7 @@
     @endforeach
 
     <div class="footer-note">
-        {{ __('documentation.pdf.footer', [], $locale) }}
+        {{ $labels['footer'] }}
     </div>
 </body>
 </html>

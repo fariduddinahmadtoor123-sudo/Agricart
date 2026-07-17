@@ -206,6 +206,7 @@ class Terminal extends Component
             $sale = $service->complete([
                 'customer_id' => $this->customer_id,
                 'sale_date' => $this->sale_date,
+                'locale' => $service->normalizeLocale(app()->getLocale()),
                 'payment_method' => $this->payment_method,
                 'payment_status' => $service->resolvePaymentStatus($total, $paid),
                 'price_display' => $this->price_display,

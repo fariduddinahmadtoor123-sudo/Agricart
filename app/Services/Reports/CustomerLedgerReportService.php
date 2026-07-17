@@ -306,6 +306,12 @@ class CustomerLedgerReportService
                 'phone' => $customer->primaryPhone() ?: '—',
                 'number' => (string) ($customer->customer_number ?: '—'),
             ],
+            'party' => [
+                'id' => $customer->id,
+                'name' => $customer->displayLabel(),
+                'phone' => $customer->primaryPhone() ?: '—',
+                'number' => (string) ($customer->customer_number ?: '—'),
+            ],
             'summary' => [
                 'opening' => $this->formatMoney($opening),
                 'debit' => $this->formatMoney($movement['debit']),
