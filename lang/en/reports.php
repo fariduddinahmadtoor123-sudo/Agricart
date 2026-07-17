@@ -3,18 +3,22 @@
 return [
     'actions' => [
         'view_report' => 'View report',
-        'export' => 'Export',
+        'export' => 'Export CSV',
+        'open_catalog' => 'Open catalog',
     ],
 
     'messages' => [
         'view_report_pending' => 'Report preview is not wired yet. Filters and columns are saved — data will load in the next step for this report.',
+        'stock_loaded' => 'Stock report updated — :count product(s).',
     ],
 
     'list' => [
         'clear_filters' => 'Clear filters',
         'col_actions' => 'Actions',
         'shell_hint' => 'Choose filters, then click View report. The table below will show live data as each report is implemented.',
+        'stock_hint' => 'Live on-hand stock. Use filters for low / out of stock / reorder, or pick a category. Export CSV anytime.',
         'empty_preview' => 'No rows yet — run View report after we connect this report to your data.',
+        'empty_stock' => 'No products match these filters.',
     ],
 
     'filters' => [
@@ -26,6 +30,16 @@ return [
         'period_year' => 'This year',
         'period_custom' => 'Custom range',
         'active_period' => 'Period: :period',
+        'category' => 'Category',
+        'category_all' => 'All categories',
+        'active_category' => 'Category: :category',
+        'stock_status' => 'Stock status',
+        'stock_all' => 'All stock statuses',
+        'stock_in' => 'In stock',
+        'stock_low' => 'Low stock',
+        'stock_out' => 'Out of stock',
+        'stock_reorder' => 'On reorder list',
+        'active_stock' => 'Stock: :status',
         'all_parties' => 'All parties',
         'with_balance' => 'With balance',
         'zero_balance' => 'Zero balance',
@@ -49,7 +63,9 @@ return [
         'on_hand' => 'On hand',
         'reserved' => 'Reserved',
         'available' => 'Available',
+        'alert_qty' => 'Alert qty',
         'unit' => 'Unit',
+        'stock_status' => 'Status',
         'customer' => 'Customer',
         'supplier' => 'Supplier',
         'phone' => 'Phone',
@@ -81,10 +97,25 @@ return [
         'purchase_value' => 'Purchase value',
     ],
 
+    'stock' => [
+        'kpis_aria' => 'Stock summary',
+        'kpi_total_skus' => 'SKUs',
+        'kpi_in_stock' => 'In stock',
+        'kpi_low_stock' => 'Low stock',
+        'kpi_out_of_stock' => 'Out of stock',
+        'kpi_on_reorder' => 'On reorder',
+        'kpi_total_on_hand' => 'Total on hand',
+        'status' => [
+            'in' => 'In stock',
+            'low' => 'Low',
+            'out' => 'Out',
+        ],
+    ],
+
     'overview' => [
         'lead' => 'Open a report, set filters and columns, then View report. We will implement each report one by one.',
         'descriptions' => [
-            'stock-report' => 'On-hand and available stock by product.',
+            'stock-report' => 'On-hand and available stock by product, with low / out / reorder filters.',
             'customer-ledger' => 'Customer balances and movement.',
             'supplier-ledger' => 'Supplier balances and movement.',
             'sales-summary' => 'Sales totals by period and channel.',

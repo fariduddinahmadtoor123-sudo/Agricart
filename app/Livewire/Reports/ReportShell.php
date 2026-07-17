@@ -3,8 +3,11 @@
 namespace App\Livewire\Reports;
 
 use App\Services\Reports\ReportCatalog;
+use App\Services\Reports\StockReportService;
 use Illuminate\Contracts\View\View;
+use Livewire\Attributes\On;
 use Livewire\Component;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportShell extends Component
 {
@@ -16,8 +19,20 @@ class ReportShell extends Component
 
     public string $secondaryFilter = '';
 
+    public string $stockFilter = 'all';
+
+    public string $categoryFilter = 'all';
+
     /** @var list<string> */
     public array $visibleColumns = [];
+
+    /** @var list<array<string, mixed>> */
+    public array $rows = [];
+
+    /** @var array<string, int|float|string> */
+    public array $kpis = [];
+
+    public bool $reportLoaded = false;
 
     public ?string $statusMessage = null;
 
@@ -28,16 +43,30 @@ class ReportShell extends Component
         $this->reportKey = $reportKey;
         $definition = ReportCatalog::definition($reportKey);
         $this->visibleColumns = $definition['defaultVisibleColumns'] ?? ['product'];
+
+        if ($this->isStockReport()) {
+            $this->loadStockReport();
+        }
     }
 
+    #[On('updateSearch')]
     public function updateSearch(string $query): void
     {
         $this->search = $query;
+
+        if ($this->isStockReport()) {
+            $this->loadStockReport();
+        }
     }
 
+    #[On('clearSearch')]
     public function clearSearch(): void
     {
         $this->search = '';
+
+        if ($this->isStockReport()) {
+            $this->loadStockReport();
+        }
     }
 
     public function clearFiltersAndSearch(): void
@@ -45,6 +74,7 @@ class ReportShell extends Component
         $this->clearFilters();
     }
 
+    #[On('applyFilter')]
     public function applyFilter(string $filter): void
     {
         if (! str_contains($filter, ':')) {
@@ -53,6 +83,18 @@ class ReportShell extends Component
 
         [$field, $value] = explode(':', $filter, 2);
 
+        if ($this->isStockReport()) {
+            if ($field === 'stock') {
+                $this->stockFilter = $value;
+            } elseif ($field === 'category') {
+                $this->categoryFilter = $value;
+            }
+
+            $this->loadStockReport();
+
+            return;
+        }
+
         if ($field === 'period') {
             $this->periodFilter = $value;
         } else {
@@ -60,13 +102,21 @@ class ReportShell extends Component
         }
     }
 
+    #[On('clearFilters')]
     public function clearFilters(): void
     {
         $this->periodFilter = '';
         $this->secondaryFilter = '';
+        $this->stockFilter = 'all';
+        $this->categoryFilter = 'all';
         $this->search = '';
+
+        if ($this->isStockReport()) {
+            $this->loadStockReport();
+        }
     }
 
+    #[On('toggleColumn')]
     public function toggleColumn(string $column, bool $visible): void
     {
         if ($visible && ! in_array($column, $this->visibleColumns, true)) {
@@ -84,20 +134,72 @@ class ReportShell extends Component
             $this->visibleColumns = [$this->columnDefinitions()[0]['value'] ?? 'product'];
         }
 
-        $this->dispatch($this->eventPrefix() . '-columns-sync', columns: $this->visibleColumns);
+        $this->dispatch($this->eventPrefix().'-columns-sync', columns: $this->visibleColumns);
     }
 
-    public function handleToolbarAction(string $action): void
+    #[On('handleToolbarAction')]
+    public function handleToolbarAction(string $action): mixed
     {
         if ($action === 'view_report') {
             $this->viewReport();
+
+            return null;
         }
+
+        if ($action === 'export_csv') {
+            return $this->exportCsv();
+        }
+
+        return null;
     }
 
     public function viewReport(): void
     {
+        if ($this->isStockReport()) {
+            $this->loadStockReport();
+            $this->statusMessage = __('reports.messages.stock_loaded', [
+                'count' => count($this->rows),
+            ]);
+            $this->statusType = 'success';
+
+            return;
+        }
+
         $this->statusMessage = __('reports.messages.view_report_pending');
         $this->statusType = 'info';
+    }
+
+    public function exportCsv(): ?StreamedResponse
+    {
+        if (! $this->isStockReport()) {
+            return null;
+        }
+
+        if (! $this->reportLoaded) {
+            $this->loadStockReport();
+        }
+
+        $service = app(StockReportService::class);
+        $matrix = $service->csvMatrix($this->rows, $this->visibleColumns);
+        $filename = 'stock-report-'.now()->format('Y_m_d_His').'.csv';
+
+        return response()->streamDownload(function () use ($matrix): void {
+            $handle = fopen('php://output', 'w');
+
+            if ($handle === false) {
+                return;
+            }
+
+            fwrite($handle, "\xEF\xBB\xBF");
+
+            foreach ($matrix as $line) {
+                fputcsv($handle, $line);
+            }
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     /**
@@ -107,11 +209,31 @@ class ReportShell extends Component
     {
         $filters = [];
 
+        if ($this->isStockReport()) {
+            if (filled($this->stockFilter) && $this->stockFilter !== 'all') {
+                $filters[] = [
+                    'field' => 'stock',
+                    'label' => __('reports.filters.active_stock', [
+                        'status' => __('reports.filters.stock_'.$this->stockFilter),
+                    ]),
+                ];
+            }
+
+            if (filled($this->categoryFilter) && $this->categoryFilter !== 'all') {
+                $filters[] = [
+                    'field' => 'category',
+                    'label' => $this->categoryFilterLabel(),
+                ];
+            }
+
+            return $filters;
+        }
+
         if (filled($this->periodFilter)) {
             $filters[] = [
                 'field' => 'period',
                 'label' => __('reports.filters.active_period', [
-                    'period' => __('reports.filters.period_' . $this->periodFilter),
+                    'period' => __('reports.filters.period_'.$this->periodFilter),
                 ]),
             ];
         }
@@ -128,6 +250,12 @@ class ReportShell extends Component
 
     public function hasListConstraints(): bool
     {
+        if ($this->isStockReport()) {
+            return filled($this->search)
+                || ($this->stockFilter !== '' && $this->stockFilter !== 'all')
+                || ($this->categoryFilter !== '' && $this->categoryFilter !== 'all');
+        }
+
         return filled($this->search)
             || filled($this->periodFilter)
             || filled($this->secondaryFilter);
@@ -135,6 +263,17 @@ class ReportShell extends Component
 
     public function removeFilter(string $field): void
     {
+        if ($this->isStockReport()) {
+            match ($field) {
+                'stock' => $this->stockFilter = 'all',
+                'category' => $this->categoryFilter = 'all',
+                default => null,
+            };
+            $this->loadStockReport();
+
+            return;
+        }
+
         match ($field) {
             'period' => $this->periodFilter = '',
             'secondary' => $this->secondaryFilter = '',
@@ -153,6 +292,40 @@ class ReportShell extends Component
     protected function eventPrefix(): string
     {
         return ReportCatalog::eventPrefix($this->reportKey);
+    }
+
+    protected function isStockReport(): bool
+    {
+        return $this->reportKey === 'stock-report';
+    }
+
+    protected function loadStockReport(): void
+    {
+        $payload = app(StockReportService::class)->build(
+            $this->search !== '' ? $this->search : null,
+            $this->stockFilter !== '' ? $this->stockFilter : 'all',
+            $this->categoryFilter !== '' ? $this->categoryFilter : 'all',
+        );
+
+        $this->rows = $payload['rows'];
+        $this->kpis = $payload['kpis'];
+        $this->reportLoaded = true;
+    }
+
+    protected function categoryFilterLabel(): string
+    {
+        $needle = 'category:'.$this->categoryFilter;
+        $definition = ReportCatalog::definition($this->reportKey);
+
+        foreach (collect($definition['filterGroups'] ?? [])->flatMap(fn (array $g) => $g['filters'] ?? []) as $option) {
+            if (($option['value'] ?? '') === $needle) {
+                return __('reports.filters.active_category', [
+                    'category' => (string) ($option['label'] ?? $this->categoryFilter),
+                ]);
+            }
+        }
+
+        return __('reports.filters.active_category', ['category' => $this->categoryFilter]);
     }
 
     protected function secondaryFilterLabel(): string
@@ -179,7 +352,8 @@ class ReportShell extends Component
             'columns' => $this->columnDefinitions(),
             'activeFilters' => $this->activeFilters(),
             'hasListConstraints' => $this->hasListConstraints(),
-            'columnDataAttr' => 'data-report-' . str_replace('-', '-', $this->reportKey) . '-column',
+            'columnDataAttr' => 'data-report-'.str_replace('-', '-', $this->reportKey).'-column',
+            'isStockReport' => $this->isStockReport(),
         ]);
     }
 }

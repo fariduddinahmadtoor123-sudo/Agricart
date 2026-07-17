@@ -15,8 +15,8 @@ return new class extends Migration
             $table->string('status')->default('active');
             $table->string('name_en');
             $table->string('name_ur');
-            $table->string('value_en');
-            $table->string('value_ur');
+            $table->string('value_en', 1000);
+            $table->string('value_ur', 1000);
             $table->string('ai_status')->default('none');
             $table->timestamps();
         });

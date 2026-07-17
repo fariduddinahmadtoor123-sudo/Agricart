@@ -36,6 +36,7 @@
     x-data="{
         isOpen: false,
         minimized: false,
+        backdropPressed: false,
         size: 'normal',
         title: @js($formPanelDefaults['addRecord']),
         resourceLabel: @js($formPanelDefaults['record']),
@@ -425,6 +426,7 @@
 
             this.isOpen = true;
             this.minimized = false;
+            this.backdropPressed = false;
             this.size = ['ai-settings', 'ai-log-detail', 'categories', 'brands', 'units', 'packing-units', 'attributes', 'controls', 'products', 'users', 'staff', 'roles', 'company-profile', 'suppliers', 'customers', 'staff-salary', 'staff-attendance', 'staff-advance', 'staff-leave', 'staff-payroll', 'finance-bank', 'finance-fund-transfer', 'purchase-planning', 'purchase-payment-summary', 'purchase-quotations', 'purchases', 'sales', 'sale-quotations', 'sale-returns', 'online-orders', 'price-controls', 'quantity-controls', 'secret-coding', 'sales-channel'].includes(this.formKey) ? 'stretched' : 'normal';
             document.body.classList.add('agricart-form-panel-open');
 
@@ -439,6 +441,7 @@
 
             this.isOpen = false;
             this.minimized = false;
+            this.backdropPressed = false;
             this.size = 'normal';
             this.formKey = null;
             this.categoryAiEnriching = false;
@@ -1029,8 +1032,41 @@
                 'agricart-form-panel--wide': this.formKey === 'ai-settings' || this.formKey === 'ai-log-detail' || this.formKey === 'categories' || this.formKey === 'brands' || this.formKey === 'units' || this.formKey === 'packing-units' || this.formKey === 'attributes' || this.formKey === 'controls' || this.formKey === 'products' || this.formKey === 'users' || this.formKey === 'staff' || this.formKey === 'roles' || this.formKey === 'company-profile' || this.formKey === 'suppliers' || this.formKey === 'customers' || this.formKey === 'purchase-planning' || this.formKey === 'purchase-payment-summary' || this.formKey === 'purchase-quotations' || this.formKey === 'purchases' || this.formKey === 'sales' || this.formKey === 'sale-quotations' || this.formKey === 'sale-returns' || this.formKey === 'online-orders' || this.formKey === 'price-controls' || this.formKey === 'quantity-controls' || this.formKey === 'secret-coding' || this.formKey === 'sales-channel' || this.formKey === 'staff-salary' || this.formKey === 'staff-attendance' || this.formKey === 'staff-advance' || this.formKey === 'staff-leave' || this.formKey === 'staff-payroll' || this.formKey === 'finance-bank' || this.formKey === 'finance-fund-transfer',
             };
         },
+        hasTextSelection() {
+            return (window.getSelection()?.toString() || '').trim() !== '';
+        },
+        requestCloseFromBackdrop() {
+            // Industry standard: only close when the press started on the dimmed
+            // backdrop — not when the user was selecting / copying text in the form.
+            if (! this.backdropPressed) {
+                return;
+            }
+
+            this.backdropPressed = false;
+
+            if (this.hasTextSelection()) {
+                return;
+            }
+
+            this.close();
+        },
+        requestCloseFromEscape(event) {
+            if (! this.isOpen || this.minimized) {
+                return;
+            }
+
+            // Keep the panel open while copying (Ctrl/Cmd held) or text is selected.
+            if (event?.ctrlKey || event?.metaKey || event?.altKey || this.hasTextSelection()) {
+                return;
+            }
+
+            this.close();
+        },
+        enhanceStatusAlerts() {
+            window.agricartEnhanceFormPanelAlerts?.(this.$el?.querySelector?.('.agricart-form-panel__body'));
+        },
     }"
-    x-on:open-form-panel.window="open($event.detail)"
+    x-on:open-form-panel.window="open($event.detail); $nextTick(() => enhanceStatusAlerts())"
     x-on:close-form-panel.window="close()"
     x-on:category-form-busy.window="categoryAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); categorySaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:brand-form-busy.window="brandAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); brandSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
@@ -1059,7 +1095,10 @@
     x-on:staff-advance-form-busy.window="staffAdvanceSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:finance-bank-form-busy.window="financeBankSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:finance-fund-transfer-form-busy.window="financeFundTransferSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
-    x-on:keydown.escape.window="if (isOpen && !minimized) close()"
+    x-on:keydown.escape.window="requestCloseFromEscape($event)"
+    x-effect="if (isOpen && !minimized) { $nextTick(() => enhanceStatusAlerts()) }"
+    data-agricart-copy-label="{{ __('agricart.actions.copy') }}"
+    data-agricart-copied-label="{{ __('agricart.actions.copied') }}"
 >
     {{-- Backdrop + panel --}}
     <div
@@ -1067,11 +1106,13 @@
         x-show="isOpen && !minimized"
         x-transition.opacity
         class="agricart-form-panel-overlay"
-        x-on:click.self="close()"
+        x-on:pointerdown.self="backdropPressed = true"
+        x-on:click.self="requestCloseFromBackdrop()"
     >
         <div
             class="agricart-form-panel"
             x-bind:class="panelClasses()"
+            x-on:pointerdown="backdropPressed = false"
             x-on:click.stop
             role="dialog"
             aria-modal="true"
@@ -1450,6 +1491,108 @@
                     window.open(url, '_blank');
                 }
             });
+        });
+
+        const alertSelector = [
+            '.agricart-category-form__alert',
+            '.agricart-user-form__alert',
+            '.agricart-product-form__alert',
+            '.agricart-ai-form__alert',
+            '.agricart-purchase-form__status',
+            '.agricart-planning-form__status',
+        ].join(', ');
+
+        window.agricartEnhanceFormPanelAlerts = function (root) {
+            if (! root) {
+                return;
+            }
+
+            const panelRoot = root.closest('[data-agricart-copy-label]') || document.querySelector('[data-agricart-copy-label]');
+            const copyLabel = panelRoot?.getAttribute('data-agricart-copy-label') || 'Copy';
+            const copiedLabel = panelRoot?.getAttribute('data-agricart-copied-label') || 'Copied';
+
+            root.querySelectorAll(alertSelector).forEach((alert) => {
+                if (alert.dataset.agricartCopyReady === '1') {
+                    return;
+                }
+
+                alert.dataset.agricartCopyReady = '1';
+                alert.classList.add('agricart-status-alert');
+
+                const text = document.createElement('div');
+                text.className = 'agricart-status-alert__text';
+
+                while (alert.firstChild) {
+                    text.appendChild(alert.firstChild);
+                }
+
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'agricart-status-alert__copy';
+                button.textContent = copyLabel;
+                button.setAttribute('aria-label', copyLabel);
+
+                button.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+
+                    const value = (text.innerText || '').trim();
+
+                    if (! value) {
+                        return;
+                    }
+
+                    const markCopied = () => {
+                        button.textContent = copiedLabel;
+                        button.classList.add('is-copied');
+                        window.setTimeout(() => {
+                            button.textContent = copyLabel;
+                            button.classList.remove('is-copied');
+                        }, 1500);
+                    };
+
+                    if (navigator.clipboard?.writeText) {
+                        navigator.clipboard.writeText(value).then(markCopied).catch(() => {
+                            // Fallback below.
+                            const range = document.createRange();
+                            range.selectNodeContents(text);
+                            const selection = window.getSelection();
+                            selection?.removeAllRanges();
+                            selection?.addRange(range);
+                            try {
+                                document.execCommand('copy');
+                                markCopied();
+                            } catch (error) {
+                                // Leave text selected so the user can Ctrl+C.
+                            }
+                        });
+
+                        return;
+                    }
+
+                    const range = document.createRange();
+                    range.selectNodeContents(text);
+                    const selection = window.getSelection();
+                    selection?.removeAllRanges();
+                    selection?.addRange(range);
+
+                    try {
+                        document.execCommand('copy');
+                        markCopied();
+                    } catch (error) {
+                        // Selection remains for manual Ctrl+C.
+                    }
+                });
+
+                alert.appendChild(text);
+                alert.appendChild(button);
+            });
+        };
+
+        document.addEventListener('livewire:morph.updated', () => {
+            window.agricartEnhanceFormPanelAlerts(
+                document.querySelector('.agricart-form-panel__body'),
+            );
         });
     })();
 </script>

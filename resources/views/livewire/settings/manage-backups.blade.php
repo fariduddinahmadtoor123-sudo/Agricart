@@ -52,6 +52,7 @@
                 <li>{{ __('agricart.backups.compatibility.mysql_ok') }}</li>
             @endif
             <li>{{ __('agricart.backups.compatibility.flow') }}</li>
+            <li>{{ __('agricart.backups.compatibility.ai_keys_note') }}</li>
         </ul>
     </section>
 

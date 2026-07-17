@@ -85,7 +85,7 @@ class Form extends Component
         } catch (\Throwable $exception) {
             $this->models = [];
             $this->modelsLoaded = false;
-            $this->setStatus($exception->getMessage(), 'danger');
+            $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
         } finally {
             $this->loadingModels = false;
         }
@@ -124,7 +124,7 @@ class Form extends Component
 
             $this->setStatus($result['message'], $result['success'] ? 'success' : 'danger');
         } catch (\Throwable $exception) {
-            $this->setStatus($exception->getMessage(), 'danger');
+            $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
         } finally {
             $this->testing = false;
         }
@@ -149,7 +149,7 @@ class Form extends Component
             $this->dispatch('ai-settings-saved');
             $this->dispatch('close-form-panel');
         } catch (\Throwable $exception) {
-            $this->setStatus($exception->getMessage(), 'danger');
+            $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
         } finally {
             $this->saving = false;
         }

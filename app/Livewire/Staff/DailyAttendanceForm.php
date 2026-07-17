@@ -160,7 +160,7 @@ class DailyAttendanceForm extends Component
 
             return false;
         } catch (\Throwable $exception) {
-            $this->setStatus($exception->getMessage(), 'danger');
+            $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
 
             return false;
         } finally {

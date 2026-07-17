@@ -81,7 +81,7 @@ class OpenRouterClient implements AiProviderClient
         } catch (\Throwable $exception) {
             return [
                 'success' => false,
-                'message' => $exception->getMessage(),
+                'message' => \App\Support\FriendlyError::message($exception),
                 'http_status' => null,
             ];
         }
@@ -152,7 +152,7 @@ class OpenRouterClient implements AiProviderClient
         } catch (\Throwable $exception) {
             return [
                 'success' => false,
-                'message' => $exception->getMessage(),
+                'message' => \App\Support\FriendlyError::message($exception),
                 'response' => null,
                 'http_status' => null,
             ];

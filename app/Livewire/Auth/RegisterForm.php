@@ -182,7 +182,7 @@ class RegisterForm extends Component
             $this->statusMessage = $message ?: __('agricart.auth.register_failed');
             $this->statusType = 'danger';
         } catch (\Throwable $exception) {
-            $this->statusMessage = $exception->getMessage();
+            $this->statusMessage = \App\Support\FriendlyError::message($exception);
             $this->statusType = 'danger';
         } finally {
             $this->saving = false;

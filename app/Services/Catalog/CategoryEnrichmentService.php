@@ -38,6 +38,13 @@ class CategoryEnrichmentService
             ];
         }
 
+        if (! $configuration->hasUsableApiKey()) {
+            return [
+                'success' => false,
+                'message' => __('agricart.ai.messages.api_key_reenter'),
+            ];
+        }
+
         if ($configuration->isPaused()) {
             return [
                 'success' => false,

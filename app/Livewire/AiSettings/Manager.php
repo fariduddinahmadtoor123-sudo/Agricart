@@ -64,7 +64,7 @@ class Manager extends Component
             }
         } catch (\Throwable $exception) {
             $this->testStatus = 'danger';
-            $this->testMessage = $exception->getMessage();
+            $this->testMessage = \App\Support\FriendlyError::message($exception);
         } finally {
             $this->testingPrompt = false;
         }

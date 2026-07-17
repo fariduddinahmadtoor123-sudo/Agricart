@@ -129,10 +129,15 @@ class ManageBackups extends Component
             $this->restoreConfirm = '';
 
             $merged = (int) session()->pull('backup_restore_merged_logins', 0);
+            $clearedAi = (int) session()->pull('backup_restore_cleared_ai_keys', 0);
             $message = __('agricart.backups.messages.restored');
 
             if ($merged > 0) {
                 $message .= ' '.__('agricart.backups.messages.restored_logins_merged', ['count' => $merged]);
+            }
+
+            if ($clearedAi > 0) {
+                $message .= ' '.__('agricart.backups.messages.restored_ai_keys_cleared', ['count' => $clearedAi]);
             }
 
             $bootstrapEmail = (string) config('backup.bootstrap_admin.email', '');
@@ -143,11 +148,11 @@ class ManageBackups extends Component
                 ]);
             }
 
-            $this->flash($message, 'success');
+            $this->flash($message, $clearedAi > 0 ? 'warning' : 'success');
         } catch (ValidationException $exception) {
             $this->flash(collect($exception->errors())->flatten()->first() ?: __('agricart.backups.messages.restore_failed'), 'danger');
         } catch (\Throwable $exception) {
-            $this->flash($exception->getMessage(), 'danger');
+            $this->flash(\App\Support\FriendlyError::message($exception), 'danger');
         } finally {
             $this->busy = false;
         }
@@ -208,7 +213,7 @@ class ManageBackups extends Component
         } catch (ValidationException $exception) {
             $this->flash(collect($exception->errors())->flatten()->first() ?: __('agricart.backups.messages.create_failed'), 'danger');
         } catch (\Throwable $exception) {
-            $this->flash($exception->getMessage(), 'danger');
+            $this->flash(\App\Support\FriendlyError::message($exception), 'danger');
         } finally {
             $this->busy = false;
         }

@@ -16,10 +16,58 @@ class AiConfigurationService
 
     public function active(): ?AiConfiguration
     {
-        return AiConfiguration::query()
+        $configuration = AiConfiguration::query()
             ->where('is_active', true)
             ->latest('id')
             ->first();
+
+        if ($configuration === null) {
+            return null;
+        }
+
+        if ($configuration->hasCorruptApiKey()) {
+            $this->markApiKeyUnreadable($configuration);
+
+            return null;
+        }
+
+        if (! $configuration->hasUsableApiKey()) {
+            return null;
+        }
+
+        return $configuration;
+    }
+
+    /**
+     * After restoring a backup from another environment, ciphertext may not
+     * decrypt with this machine's APP_KEY. Clear those keys so the UI asks
+     * the user to paste the API key again instead of throwing "MAC is invalid".
+     */
+    public function sanitizeUnreadableApiKeys(): int
+    {
+        $cleared = 0;
+
+        foreach (AiConfiguration::query()->get() as $configuration) {
+            if (! $configuration->hasCorruptApiKey()) {
+                continue;
+            }
+
+            $this->markApiKeyUnreadable($configuration);
+            $cleared++;
+        }
+
+        return $cleared;
+    }
+
+    private function markApiKeyUnreadable(AiConfiguration $configuration): void
+    {
+        $configuration->forceFill([
+            'api_key' => '',
+            'is_active' => false,
+            'connection_status' => 'failed',
+            'last_test_message' => __('agricart.ai.messages.api_key_reenter'),
+            'last_tested_at' => now(),
+        ])->save();
     }
 
     /**

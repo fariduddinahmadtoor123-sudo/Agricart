@@ -91,8 +91,8 @@ class ControlService
             'status' => ['nullable', 'string', 'in:active,inactive'],
             'name_en' => ['required', 'string', 'max:128'],
             'name_ur' => ['required', 'string', 'max:128'],
-            'value_en' => ['required', 'string', 'max:255'],
-            'value_ur' => ['required', 'string', 'max:255'],
+            'value_en' => ['required', 'string', 'max:1000'],
+            'value_ur' => ['required', 'string', 'max:1000'],
             'ai_status' => ['nullable', 'string', 'in:none,pending,enriched,failed,manual'],
         ];
 

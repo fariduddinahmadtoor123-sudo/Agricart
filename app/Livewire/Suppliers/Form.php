@@ -326,7 +326,7 @@ class Form extends Component
             $this->setStatus($result['message'], 'success');
         } catch (\Throwable $exception) {
             $this->ai_status = CategoryAiStatus::Failed->value;
-            $this->setStatus($exception->getMessage(), 'danger');
+            $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
         } finally {
             $this->enriching = false;
             $this->dispatchBusyState();
@@ -528,7 +528,7 @@ class Form extends Component
         } catch (ValidationException $exception) {
             throw $exception;
         } catch (\Throwable $exception) {
-            $this->setStatus($exception->getMessage() ?: __('suppliers.messages.save_failed'), 'danger');
+            $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
 
             return false;
         } finally {

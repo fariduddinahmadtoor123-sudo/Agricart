@@ -16,6 +16,19 @@ return [
         'denied' => 'آپ کو یہ عمل کرنے کی اجازت نہیں ہے۔',
     ],
 
+    'actions' => [
+        'copy' => 'کاپی',
+        'copied' => 'کاپی ہو گیا',
+    ],
+
+    'errors' => [
+        'generic' => 'کچھ غلط ہو گیا۔ دوبارہ کوشش کریں — اگر بار بار ہو تو تفصیل سسٹم لاگ میں محفوظ ہے۔',
+        'decrypt' => 'کوئی محفوظ خفیہ چیز (جیسے AI API key) اس انسٹالیشن پر پڑھی نہیں جا سکتی — عام طور پر دوسرے سرور کے backup restore کے بعد ایسا ہوتا ہے۔ Settings → AI میں key دوبارہ درج کریں۔',
+        'connection' => 'سرور / انٹرنیٹ سے رابطہ نہیں ہو سکا۔ کنکشن چیک کر کے دوبارہ کوشش کریں۔',
+        'database' => 'محفوظ کرتے وقت ڈیٹابیس کا مسئلہ آیا۔ دوبارہ کوشش کریں — بار بار ہو تو سپورٹ سے رابطہ کریں۔',
+        'storage' => 'فائل پڑھی یا لکھی نہیں جا سکی (ڈسک اجازت یا جگہ کا مسئلہ)۔ دوبارہ کوشش کریں۔',
+    ],
+
     'auth' => [
         'register_title' => 'عملہ رجسٹریشن',
         'register_lead' => 'اپنی تفصیلات جمع کروائیں۔ ایڈمن منظوری کے بعد آپ لاگ ان کر سکیں گے۔',
@@ -294,6 +307,7 @@ return [
             'request_failed' => 'درخواست ناکام، کوڈ :status',
             'paused' => 'AI روکا ہوا ہے۔ پرامپٹ کے لیے دوبارہ شروع کریں۔',
             'paused_notice' => 'صارف نے AI روک دیا۔',
+            'api_key_reenter' => 'محفوظ AI API key اس انسٹالیشن پر پڑھی نہیں جا سکتی (عام طور پر دوسرے سرور سے backup restore کے بعد)۔ Settings → AI کھولیں، پرانی کنکشن اگر ہو تو ڈیلیٹ کریں، اور API key دوبارہ چسپاں کریں۔',
         ],
         'logs' => [
             'clear_filters' => 'تمام فلٹر ہٹائیں',
@@ -1613,6 +1627,7 @@ return [
             'sqlite_warning' => 'SQLite صرف فوری dev/tests کے لیے ہے۔ ہوسٹنگ بیک اپ میں MySQL (database.sql) ہوتا ہے۔ restore سے پہلے لوکل .env میں MySQL کریں — php database/scripts/setup_local_mysql.php',
             'mysql_ok' => 'MySQL/MariaDB — Hostinger بیک اپ (database.sql + فائلیں) سے میل کھاتا ہے۔',
             'flow' => 'ٹیسٹ: A پر بیک اپ → zip ڈاؤن لوڈ/کاپی → B پر import → Restore۔ فل بیک اپ restore پر ڈیٹابیس اور public uploads بدل دیتا ہے۔',
+            'ai_keys_note' => 'AI API keys ہر سرور کی APP_KEY سے encrypt ہوتی ہیں۔ دوسرے سرور سے restore کے بعد Settings → AI میں API key دوبارہ درج کریں (پاس ورڈز الگ ہیں اور چلتے رہتے ہیں)۔',
         ],
         'incoming' => [
             'large_files' => 'ایپ فی zip :size تک اجازت دیتی ہے۔ براؤزر PHP حد سے محدود ہے؛ بڑی zip کے لیے incoming فولڈر استعمال کریں۔',
@@ -1662,6 +1677,7 @@ return [
             'delete_confirm' => 'یہ بیک اپ فائل حذف کریں؟',
             'restored' => 'بیک اپ کامیابی سے restore ہو گیا۔',
             'restored_logins_merged' => 'ریسٹور سے پہلے والے :count لوکل لاگ اِن محفوظ رکھے گئے۔',
+            'restored_ai_keys_cleared' => ':count AI API key(s) یہاں decrypt نہیں ہو سکیں — Settings → AI میں دوبارہ درج کریں۔',
             'restored_bootstrap_admin' => 'Bootstrap admin دستیاب: :email',
             'restore_failed' => 'restore ناکام۔ credentials، logs اور PHP time limits چیک کریں۔',
             'restore_cli_unavailable' => 'اس سرور پر mysql client نہیں۔ BACKUP_MYSQL_IMPORT_METHOD=php استعمال کریں یا auto رکھیں۔',

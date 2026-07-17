@@ -156,7 +156,7 @@ class Form extends Component
             $this->setStatus($result['message'], 'success');
         } catch (\Throwable $exception) {
             $this->ai_status = CategoryAiStatus::Failed->value;
-            $this->setStatus($exception->getMessage(), 'danger');
+            $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
         } finally {
             $this->enriching = false;
             $this->dispatchBusyState();
@@ -250,7 +250,7 @@ class Form extends Component
 
             return false;
         } catch (\Throwable $exception) {
-            $this->setStatus($exception->getMessage(), 'danger');
+            $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
 
             return false;
         } finally {

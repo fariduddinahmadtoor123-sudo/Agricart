@@ -1,7 +1,5 @@
 <?php
 
-$backupMaxKilobytes = max(1, (int) ceil((int) env('BACKUP_MAX_FILE_BYTES', 2 * 1024 * 1024 * 1024) / 1024));
-
 return [
 
     /*
@@ -26,19 +24,24 @@ return [
 
     /*
     |---------------------------------------------------------------------------
-    | Temporary File Uploads (aligned with config/backup.php max file size)
+    | Temporary File Uploads
     |---------------------------------------------------------------------------
+    |
+    | Global rules apply to EVERY Livewire upload (category/product images,
+    | CNIC scans, etc.) — do NOT restrict to zip here. Backup zip uploads go
+    | through BackupUploadController (direct HTTP), which validates mimes:zip
+    | and the backup size limit itself.
     */
 
     'temporary_file_upload' => [
         'disk' => null,
-        'rules' => ['required', 'file', 'mimes:zip', 'max:'.$backupMaxKilobytes],
+        'rules' => ['required', 'file', 'max:12288'],
         'directory' => null,
         'middleware' => null,
         'preview_mimes' => [
             'png', 'gif', 'bmp', 'svg', 'wav', 'mp4',
             'mov', 'avi', 'wmv', 'mp3', 'm4a',
-            'jpg', 'jpeg', 'mpga', 'webp', 'wma', 'zip',
+            'jpg', 'jpeg', 'mpga', 'webp', 'wma',
         ],
         'max_upload_time' => 30,
         'cleanup' => true,

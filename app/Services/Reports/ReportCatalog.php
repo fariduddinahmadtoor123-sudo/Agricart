@@ -55,7 +55,16 @@ class ReportCatalog
         return match ($reportKey) {
             'stock-report' => [
                 'filters' => [],
-                'filterGroups' => static::commonFilterGroups(),
+                'filterGroups' => [
+                    [
+                        'label' => __('reports.filters.stock_status'),
+                        'filters' => static::stockStatusFilters(),
+                    ],
+                    [
+                        'label' => __('reports.filters.category'),
+                        'filters' => app(StockReportService::class)->categoryFilterOptions(),
+                    ],
+                ],
                 'columns' => $columns,
                 'defaultVisibleColumns' => $visible,
             ],
@@ -116,6 +125,20 @@ class ReportCatalog
                     ['label' => __('reports.filters.period_custom'), 'value' => 'period:custom'],
                 ],
             ],
+        ];
+    }
+
+    /**
+     * @return list<array{label: string, value: string}>
+     */
+    protected static function stockStatusFilters(): array
+    {
+        return [
+            ['label' => __('reports.filters.stock_all'), 'value' => 'stock:all'],
+            ['label' => __('reports.filters.stock_in'), 'value' => 'stock:in'],
+            ['label' => __('reports.filters.stock_low'), 'value' => 'stock:low'],
+            ['label' => __('reports.filters.stock_out'), 'value' => 'stock:out'],
+            ['label' => __('reports.filters.stock_reorder'), 'value' => 'stock:reorder'],
         ];
     }
 
@@ -193,7 +216,9 @@ class ReportCatalog
                 ['label' => __('reports.columns.on_hand'), 'value' => 'on_hand', 'visible' => true],
                 ['label' => __('reports.columns.reserved'), 'value' => 'reserved', 'visible' => false],
                 ['label' => __('reports.columns.available'), 'value' => 'available', 'visible' => true],
+                ['label' => __('reports.columns.alert_qty'), 'value' => 'alert_qty', 'visible' => true],
                 ['label' => __('reports.columns.unit'), 'value' => 'unit', 'visible' => false],
+                ['label' => __('reports.columns.stock_status'), 'value' => 'stock_status', 'visible' => true],
             ],
             'customer-ledger' => [
                 ['label' => __('reports.columns.customer'), 'value' => 'customer', 'visible' => true],

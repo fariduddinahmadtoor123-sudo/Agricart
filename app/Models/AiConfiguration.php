@@ -3,7 +3,10 @@
 namespace App\Models;
 
 use App\Enums\AiProvider;
+use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Crypt;
 
 class AiConfiguration extends Model
 {
@@ -28,10 +31,65 @@ class AiConfiguration extends Model
     {
         return [
             'provider' => AiProvider::class,
-            'api_key' => 'encrypted',
             'is_active' => 'boolean',
             'last_tested_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Encrypt/decrypt with graceful handling when APP_KEY no longer matches
+     * (e.g. after restoring a backup from another environment).
+     */
+    protected function apiKey(): Attribute
+    {
+        return Attribute::make(
+            get: function (?string $value): ?string {
+                if ($value === null || $value === '') {
+                    return null;
+                }
+
+                try {
+                    // Match Laravel's built-in `encrypted` cast (Crypt::encrypt/decrypt).
+                    $plain = Crypt::decrypt($value);
+
+                    if (! is_string($plain) || $plain === '') {
+                        return null;
+                    }
+
+                    return $plain;
+                } catch (DecryptException) {
+                    return null;
+                }
+            },
+            set: function (?string $value): string {
+                return Crypt::encrypt((string) ($value ?? ''));
+            },
+        );
+    }
+
+    public function hasUsableApiKey(): bool
+    {
+        return filled($this->api_key);
+    }
+
+    /**
+     * True when a ciphertext exists but cannot be decrypted with the current APP_KEY.
+     */
+    public function hasCorruptApiKey(): bool
+    {
+        $raw = $this->getRawOriginal('api_key');
+
+        if (! is_string($raw) || $raw === '') {
+            return false;
+        }
+
+        try {
+            Crypt::decrypt($raw);
+
+            return false;
+        } catch (DecryptException) {
+            return true;
+        }
     }
 
     public function isConnected(): bool

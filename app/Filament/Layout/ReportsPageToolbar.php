@@ -59,25 +59,38 @@ class ReportsPageToolbar extends ClusterPageToolbar
 
         $prefix = ReportCatalog::eventPrefix($reportKey);
 
+        $toolbarActions = static::userCan('view') ? [
+            [
+                'label' => __('reports.actions.view_report'),
+                'value' => 'view_report',
+                'color' => 'primary',
+                'outlined' => false,
+                'icon' => Heroicon::OutlinedDocumentChartBar,
+                'compact' => false,
+            ],
+        ] : [];
+
+        if ($reportKey === 'stock-report' && static::userCan('view')) {
+            $toolbarActions[] = [
+                'label' => __('reports.actions.export'),
+                'value' => 'export_csv',
+                'color' => 'gray',
+                'outlined' => true,
+                'icon' => Heroicon::OutlinedArrowDownTray,
+                'compact' => false,
+            ];
+        }
+
         return [
             ...$config,
             'livewirePrefix' => $prefix,
             'livewireComponent' => 'reports.report-shell',
-            'columnDataAttr' => 'data-report-' . $reportKey . '-column',
+            'columnDataAttr' => 'data-report-'.$reportKey.'-column',
             'interactive' => true,
             'filters' => $definition['filters'],
             'filterGroups' => $definition['filterGroups'] ?? [],
             'columns' => $definition['columns'],
-            'toolbarActions' => static::userCan('view') ? [
-                [
-                    'label' => __('reports.actions.view_report'),
-                    'value' => 'view_report',
-                    'color' => 'primary',
-                    'outlined' => false,
-                    'icon' => Heroicon::OutlinedDocumentChartBar,
-                    'compact' => false,
-                ],
-            ] : [],
+            'toolbarActions' => $toolbarActions,
         ];
     }
 }

@@ -16,6 +16,19 @@ return [
         'denied' => 'You do not have permission to perform this action.',
     ],
 
+    'actions' => [
+        'copy' => 'Copy',
+        'copied' => 'Copied',
+    ],
+
+    'errors' => [
+        'generic' => 'Something went wrong. Please try again — if it keeps happening, the details are saved in the system log.',
+        'decrypt' => 'A saved secret (like an AI API key) cannot be read on this installation — this usually happens after restoring a backup from another server. Re-enter the key in Settings → AI.',
+        'connection' => 'Could not reach the server / internet. Check your connection and try again.',
+        'database' => 'A database problem occurred while saving. Please try again — if it keeps happening, contact support.',
+        'storage' => 'A file could not be read or written (disk permission or space issue). Please try again.',
+    ],
+
     'auth' => [
         'register_title' => 'Staff Registration',
         'register_lead' => 'Submit your details. An administrator will review your application before you can sign in.',
@@ -294,6 +307,7 @@ return [
             'request_failed' => 'Request failed with status :status',
             'paused' => 'AI is paused. Resume to send prompts.',
             'paused_notice' => 'AI paused by user.',
+            'api_key_reenter' => 'The saved AI API key cannot be read on this installation (usually after restoring a backup from another server). Open Settings → AI, delete the old connection if needed, and paste your API key again.',
         ],
         'logs' => [
             'clear_filters' => 'Clear all filters',
@@ -1613,6 +1627,7 @@ return [
             'sqlite_warning' => 'SQLite is for quick dev/tests only. Hosting backups contain MySQL (database.sql). Switch local .env to MySQL before restore — run php database/scripts/setup_local_mysql.php',
             'mysql_ok' => 'MySQL/MariaDB — matches Hostinger backups (database.sql + files).',
             'flow' => 'Test cycle: backup on A → download or copy zip → import on B → Restore. Full backup replaces database and public uploads on restore.',
+            'ai_keys_note' => 'AI API keys are encrypted with each server\'s APP_KEY. After restoring a backup from another server, re-enter the API key in Settings → AI (passwords/logins are separate and stay usable).',
         ],
         'incoming' => [
             'large_files' => 'App allows up to :size per zip. Browser upload is still limited by PHP; use the incoming folder for large archives.',
@@ -1662,6 +1677,7 @@ return [
             'delete_confirm' => 'Delete this backup file?',
             'restored' => 'Backup restored successfully.',
             'restored_logins_merged' => ':count local login account(s) were kept from before restore.',
+            'restored_ai_keys_cleared' => ':count AI API key(s) could not be decrypted here — re-enter them in Settings → AI.',
             'restored_bootstrap_admin' => 'Bootstrap admin available: :email',
             'restore_failed' => 'Restore failed. Check server logs, database credentials, and PHP time limits.',
             'restore_cli_unavailable' => 'The mysql client is not available on this server. Use BACKUP_MYSQL_IMPORT_METHOD=php or leave it on auto (default).',

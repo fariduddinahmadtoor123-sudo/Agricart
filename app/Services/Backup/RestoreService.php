@@ -91,6 +91,8 @@ class RestoreService
             $this->localLogins->ensureBootstrapAdmin();
             $this->invalidateAuthSessions();
 
+            $clearedAiKeys = app(\App\Services\Ai\AiConfigurationService::class)->sanitizeUnreadableApiKeys();
+
             Artisan::call('up');
             Artisan::call('cache:clear');
             CatalogCache::forgetOverviewStats();
@@ -99,6 +101,10 @@ class RestoreService
             // Stash merge count for UI flash (optional).
             if ($merged > 0) {
                 session()->flash('backup_restore_merged_logins', $merged);
+            }
+
+            if ($clearedAiKeys > 0) {
+                session()->flash('backup_restore_cleared_ai_keys', $clearedAiKeys);
             }
         } catch (\Throwable $exception) {
             Artisan::call('up');

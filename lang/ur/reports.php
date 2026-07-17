@@ -3,18 +3,22 @@
 return [
     'actions' => [
         'view_report' => 'رپورٹ دیکھیں',
-        'export' => 'ایکسپورٹ',
+        'export' => 'CSV ایکسپورٹ',
+        'open_catalog' => 'کیٹلاگ کھولیں',
     ],
 
     'messages' => [
         'view_report_pending' => 'رپورٹ preview ابھی منسلک نہیں۔ فلٹر/کالم تیار ہیں — اگلے مرحلے میں ڈیٹا آئے گا۔',
+        'stock_loaded' => 'اسٹاک رپورٹ اپ ڈیٹ — :count پروڈکٹ(س)۔',
     ],
 
     'list' => [
         'clear_filters' => 'فلٹر صاف',
         'col_actions' => 'عمل',
         'shell_hint' => 'فلٹر منتخب کریں، پھر «رپورٹ دیکھیں»۔ جیسے جیسے ہر رپورٹ بنے گی، ٹیبل میں ڈیٹا آئے گا۔',
+        'stock_hint' => 'زندہ اسٹاک۔ کم / ختم / ری آرڈر فلٹر یا کیٹگری منتخب کریں۔ CSV جب چاہیں ایکسپورٹ کریں۔',
         'empty_preview' => 'ابھی قطار نہیں — ڈیٹا جوڑنے کے بعد View report چلائیں۔',
+        'empty_stock' => 'ان فلٹرز سے کوئی پروڈکٹ نہیں ملا۔',
     ],
 
     'filters' => [
@@ -26,6 +30,16 @@ return [
         'period_year' => 'سال',
         'period_custom' => 'اپنی تاریخ',
         'active_period' => 'مدت: :period',
+        'category' => 'کیٹگری',
+        'category_all' => 'تمام کیٹگریز',
+        'active_category' => 'کیٹگری: :category',
+        'stock_status' => 'اسٹاک حالت',
+        'stock_all' => 'تمام اسٹاک حالات',
+        'stock_in' => 'موجود',
+        'stock_low' => 'کم اسٹاک',
+        'stock_out' => 'ختم',
+        'stock_reorder' => 'ری آرڈر فہرست',
+        'active_stock' => 'اسٹاک: :status',
         'all_parties' => 'تمام',
         'with_balance' => 'بیلنس والے',
         'zero_balance' => 'صفر بیلنس',
@@ -49,7 +63,9 @@ return [
         'on_hand' => 'موجود',
         'reserved' => 'محفوظ',
         'available' => 'دستیاب',
+        'alert_qty' => 'الرٹ مقدار',
         'unit' => 'اکائی',
+        'stock_status' => 'حالت',
         'customer' => 'کسٹمر',
         'supplier' => 'سپلائر',
         'phone' => 'فون',
@@ -81,10 +97,25 @@ return [
         'purchase_value' => 'خرید رقم',
     ],
 
+    'stock' => [
+        'kpis_aria' => 'اسٹاک خلاصہ',
+        'kpi_total_skus' => 'SKUs',
+        'kpi_in_stock' => 'موجود',
+        'kpi_low_stock' => 'کم اسٹاک',
+        'kpi_out_of_stock' => 'ختم',
+        'kpi_on_reorder' => 'ری آرڈر',
+        'kpi_total_on_hand' => 'کل موجود',
+        'status' => [
+            'in' => 'موجود',
+            'low' => 'کم',
+            'out' => 'ختم',
+        ],
+    ],
+
     'overview' => [
         'lead' => 'رپورٹ کھولیں، فلٹر/کالم سیٹ کریں، پھر View report۔ ہر رپورٹ الگ مرحلے میں مکمل ہوگی۔',
         'descriptions' => [
-            'stock-report' => 'پروڈکٹ کے مطابق اسٹاک۔',
+            'stock-report' => 'پروڈکٹ اسٹاک — کم / ختم / ری آرڈر فلٹرز کے ساتھ۔',
             'customer-ledger' => 'کسٹمر بیلنس و حرکت۔',
             'supplier-ledger' => 'سپلائر بیلنس و حرکت۔',
             'sales-summary' => 'مدت و چینل کے مطابق سیل۔',
