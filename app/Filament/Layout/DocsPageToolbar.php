@@ -25,4 +25,24 @@ class DocsPageToolbar extends ClusterPageToolbar
     {
         return 'docs';
     }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public static function config(): ?array
+    {
+        $config = parent::config();
+
+        if ($config === null) {
+            return null;
+        }
+
+        return [
+            ...$config,
+            'addLabel' => null,
+            'hideSearch' => true,
+            'hideFilters' => true,
+            'hideColumns' => true,
+        ];
+    }
 }

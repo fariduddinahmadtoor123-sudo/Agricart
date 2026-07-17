@@ -130,7 +130,7 @@ return [
             'printing' => 'Print', 'permission' => 'Permission',
             'users' => 'Users', 'backups' => 'Backups',
         ],
-        'docs' => ['overview' => 'Overview', 'articles' => 'Articles'],
+        'docs' => ['overview' => 'Overview', 'guide' => 'User Guide'],
     ],
 
     'toolbar' => [

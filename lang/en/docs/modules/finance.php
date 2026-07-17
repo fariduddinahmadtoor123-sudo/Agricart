@@ -1,0 +1,222 @@
+<?php
+
+$field = static fn (string $name, string $label, string $type, bool $required, string $rules): array => compact('name', 'label', 'type', 'required', 'rules');
+
+return [
+    'overview' => [
+        'title' => 'Finance & Accounts — Overview',
+        'summary' => 'Cash, bank, transfers, and the three-tier expense model: categories → heads → posted payments.',
+        'meta' => [
+            'title' => 'Finance & Accounts',
+            'summary' => 'Rebuild map for wallets, ledgers, expenses, and financial reporting.',
+            'routes' => ['/admin/finance/overview'],
+            'permissions' => ['finance.view'],
+            'related' => ['purchasing', 'sales', 'reports', 'settings'],
+        ],
+        'sections' => [
+            ['id' => 'purpose', 'type' => 'purpose', 'heading' => 'Purpose', 'paragraphs' => [
+                'Finance records controlled movements of business money. Bank accounts and the cash book are wallets; transfers and expense payments create immutable ledger consequences.',
+                'The expense tree is deliberately three tier: category classifies, expense head identifies the recurring account or obligation, and EXPAY payment records the amount and posts cash or bank.',
+            ]],
+            ['id' => 'fields', 'type' => 'fields', 'heading' => 'Core records', 'fields' => [
+                $field('expense_categories', 'Categories', 'master', true, 'Operating or other classification; no transaction amount.'),
+                $field('expenses', 'Expense heads', 'master', true, 'Belongs to one category; EXP-#####; no amount.'),
+                $field('expense_payments', 'Payments', 'posted transaction', true, 'EXPAY-#####; amount/date/wallet become locked after posting.'),
+                $field('bank_accounts / cash_book_transactions', 'Wallet ledgers', 'ledger', true, 'Balances derive from posted debit/credit or IN/OUT entries.'),
+            ]],
+            ['id' => 'workflows', 'type' => 'workflows', 'heading' => 'Operating workflow', 'steps' => [
+                'Create active expense categories and reusable expense heads.',
+                'Register active company bank accounts and their opening balances.',
+                'Record an expense payment against a head; select Cash or an active Bank account.',
+                'Use Cash / Bank Transfers for deposits, bank-to-bank transfers, vendor payments, or purchaser/staff expense funding.',
+                'Reconcile wallet ledgers, then consume posted transactions through Reports → Profit & Loss and ledger reports.',
+            ]],
+            ['id' => 'ai', 'type' => 'ai', 'heading' => 'AI boundary', 'paragraphs' => [
+                'AI may enrich bilingual master data such as an expense head. It must never infer amounts, wallets, dates, balances, or post accounting entries.',
+            ]],
+            ['id' => 'rules', 'type' => 'rules', 'heading' => 'Access and accounting rules', 'list' => [
+                'RBAC uses User::hasPermission("finance.view|create|edit|delete"); Super Admin bypasses.',
+                'All money posting belongs inside a database transaction and an appropriate Cache::lock critical section.',
+                'Master deletion is blocked when dependent records exist; posted payments are not deletable.',
+            ]],
+            ['id' => 'integrations', 'type' => 'integrations', 'heading' => 'Integrations', 'list' => [
+                'Purchasing and suppliers produce payable-related movements.',
+                'Sales and online orders can credit bank/cash ledgers.',
+                'Reports reads posted expense_payments and ledger transactions; expense heads alone do not affect P&L.',
+                'Settings → Permissions controls finance.* access.',
+            ]],
+            ['id' => 'rebuild_notes', 'type' => 'rebuild_notes', 'heading' => 'Rebuild notes', 'list' => [
+                'Preserve the three-tier expense design; do not add amount or payment date to expenses.',
+                'Cash Book and Financial Reports cluster pages are placeholders today; implement them as read-only projections over existing ledgers rather than parallel transaction stores.',
+                'Unify all finance list/form actions behind the finance.* permission family and audit every posted mutation.',
+            ]],
+            ['id' => 'acceptance', 'type' => 'acceptance', 'heading' => 'Acceptance', 'acceptance' => [
+                'A head save never changes a wallet balance.',
+                'An EXPAY save creates exactly one payment and one matching cash OUT or bank debit atomically.',
+                'Concurrent posts cannot overdraw or duplicate a wallet movement.',
+                'P&L expense totals are based on posted payments in the selected period.',
+            ]],
+            ['id' => 'technical', 'type' => 'technical', 'heading' => 'Technical map', 'classes' => [
+                'cluster' => 'App\\Filament\\Clusters\\Finance',
+                'services' => ['App\\Services\\Finance\\CashBookService', 'App\\Services\\Finance\\BankAccountService', 'App\\Services\\Finance\\ExpensePaymentService', 'App\\Services\\Finance\\FundTransferService'],
+                'tables' => ['expense_categories', 'expenses', 'expense_payments', 'bank_accounts', 'bank_account_transactions', 'cash_book_transactions', 'fund_transfers'],
+            ]],
+        ],
+    ],
+
+    'bank-accounts' => [
+        'title' => 'Bank Accounts',
+        'summary' => 'Company bank-wallet masters and their posted transaction histories.',
+        'meta' => ['routes' => ['/admin/finance/bank-accounts'], 'permissions' => ['finance.view', 'finance.create', 'finance.edit', 'finance.delete'], 'related' => ['cash-bank-transfers', 'expense-payments', 'cash-book', 'financial-reports']],
+        'sections' => [
+            ['id' => 'purpose', 'type' => 'purpose', 'heading' => 'Purpose', 'paragraphs' => ['Register each real company account once. The account master identifies the wallet; BankAccountTransaction rows provide its movements and computed balance.']],
+            ['id' => 'fields', 'type' => 'fields', 'heading' => 'Fields', 'fields' => [
+                $field('account_code', 'Account code', 'string', false, 'Auto-generated when blank; unique internal identifier.'),
+                $field('name_en / name_ur', 'Display name', 'string', true, 'Bilingual wallet label.'),
+                $field('bank_key / bank_name_en / bank_name_ur', 'Bank', 'key + strings', true, 'Pakistani bank lookup with localized names.'),
+                $field('account_title', 'Account title', 'string', true, 'Legal account-holder title.'),
+                $field('account_number / iban', 'Identifiers', 'string', false, 'Identifier type is iban, account_number, or till_id; duplicate account number is rejected.'),
+                $field('opening_balance', 'Opening balance', 'decimal(2)', false, 'Defaults to 0; posts an opening ledger entry on create.'),
+                $field('currency / status / notes', 'Controls', 'string', false, 'Currency defaults PKR; status active|inactive.'),
+            ]],
+            ['id' => 'workflows', 'type' => 'workflows', 'heading' => 'Workflow', 'steps' => ['Add and identify the account.', 'Enter the verified opening balance once.', 'Use History to review transactions.', 'Set inactive to remove the account from new payment selectors without erasing history.']],
+            ['id' => 'ai', 'type' => 'ai', 'heading' => 'AI', 'paragraphs' => ['No AI should create identifiers or balances. Bank-name localization may use the deterministic PakistaniBanks registry.']],
+            ['id' => 'rules', 'type' => 'rules', 'heading' => 'Rules', 'list' => ['Create is protected by finance.create; edit/history by finance.edit/view as applicable.', 'Opening posting uses Cache::lock and DB::transaction.', 'Inactive accounts remain reportable but cannot fund new expense payments.', 'Never expose full account identifiers in low-privilege exports or logs.']],
+            ['id' => 'integrations', 'type' => 'integrations', 'heading' => 'Integrations', 'list' => ['Expense Payments posts bank debits.', 'Fund Transfers post deposits, transfers, supplier payments, and other structured debits.', 'Sales and online order receipts may post credits.', 'Financial reports aggregate bank transactions.']],
+            ['id' => 'rebuild_notes', 'type' => 'rebuild_notes', 'heading' => 'Rebuild notes', 'list' => ['Calculate balance from immutable transactions or a transactionally maintained balance; do not trust editable opening_balance as current balance.', 'Add masked identifiers, reconciliation status, statement reference, and audit actor if absent.']],
+            ['id' => 'acceptance', 'type' => 'acceptance', 'heading' => 'Acceptance', 'acceptance' => ['Duplicate account numbers are rejected.', 'Opening balance posts once only.', 'Inactive accounts disappear from new-payment selectors.', 'History equals all posted credits minus debits plus opening entry.']],
+            ['id' => 'technical', 'type' => 'technical', 'heading' => 'Technical', 'classes' => ['page' => 'App\\Filament\\Clusters\\Finance\\BankAccountsPage', 'livewire' => ['App\\Livewire\\Finance\\ListBankAccounts', 'App\\Livewire\\Finance\\BankAccountForm'], 'service' => 'App\\Services\\Finance\\BankAccountService', 'models' => ['App\\Models\\BankAccount', 'App\\Models\\BankAccountTransaction']]],
+        ],
+    ],
+
+    'cash-bank-transfers' => [
+        'title' => 'Cash / Bank Transfers',
+        'summary' => 'FT-##### postings for cash deposits, bank transfers, vendor payments, and purchaser/staff expense funding.',
+        'meta' => ['routes' => ['/admin/finance/cash-bank-transfers'], 'permissions' => ['finance.view', 'finance.create'], 'related' => ['bank-accounts', 'cash-book', 'suppliers']],
+        'sections' => [
+            ['id' => 'purpose', 'type' => 'purpose', 'heading' => 'Purpose', 'paragraphs' => ['Record structured wallet movements that are not three-tier expense-head payments. Current transaction types are deposit, transfer, vendor_payment, and expense_payment.']],
+            ['id' => 'fields', 'type' => 'fields', 'heading' => 'Fields', 'fields' => [
+                $field('transfer_number', 'Transfer number', 'string', false, 'Auto FT-#####.'),
+                $field('transaction_type', 'Type', 'enum', true, 'deposit|transfer|vendor_payment|expense_payment.'),
+                $field('source_wallet', 'Source wallet', 'enum', false, 'cash|bank; derived for deposit/transfer.'),
+                $field('source_bank_account_id / destination_bank_account_id', 'Bank legs', 'FK', false, 'Required by type; source and destination differ.'),
+                $field('destination_supplier_id / destination_purchaser_id', 'Payee', 'FK', false, 'Required for vendor or purchaser expense payment.'),
+                $field('amount / transaction_date / transaction_time / notes', 'Posting data', 'decimal/date/time/text', true, 'Amount min 0.01; time required; notes max 2000.'),
+            ]],
+            ['id' => 'workflows', 'type' => 'workflows', 'heading' => 'Workflow', 'steps' => ['Choose the type.', 'Select required wallet and destination.', 'Verify amount/date/time.', 'Save once; service writes the fund transfer and all ledger legs atomically.']],
+            ['id' => 'ai', 'type' => 'ai', 'heading' => 'AI', 'paragraphs' => ['AI is not used for financial posting.']],
+            ['id' => 'rules', 'type' => 'rules', 'heading' => 'Rules', 'list' => ['FundTransferService uses Cache::lock(..., 15)->block(10) and DB::transaction.', 'Cash deposit posts cash OUT and bank credit.', 'Bank transfer forbids the same source/destination.', 'Vendor payment reduces supplier opening_balance in current behavior; this is a rebuild accounting gap.']],
+            ['id' => 'integrations', 'type' => 'integrations', 'heading' => 'Integrations', 'list' => ['CashBookService posts the cash leg.', 'BankAccountService posts bank legs.', 'Supplier vendor payments link to supplier.', 'Purchaser expense payment links to a User and is distinct from EXPAY expense-head payments.']],
+            ['id' => 'rebuild_notes', 'type' => 'rebuild_notes', 'heading' => 'Rebuild notes', 'list' => ['Replace mutation of supplier opening_balance with immutable supplier-ledger payment entries.', 'Rename purchaser expense payment to avoid confusion with Expense Payments (EXPAY).', 'Persist an idempotency key independent of actor/input hash and add reversal workflow rather than edit/delete.']],
+            ['id' => 'acceptance', 'type' => 'acceptance', 'heading' => 'Acceptance', 'acceptance' => ['Every transfer balances across its ledger legs.', 'A retry cannot duplicate posting.', 'Insufficient cash/bank balance fails the whole transaction.', 'Same-account transfer is rejected.']],
+            ['id' => 'technical', 'type' => 'technical', 'heading' => 'Technical', 'classes' => ['page' => 'App\\Filament\\Clusters\\Finance\\CashBankTransfersPage', 'livewire' => ['App\\Livewire\\Finance\\ListFundTransfers', 'App\\Livewire\\Finance\\FundTransferForm'], 'service' => 'App\\Services\\Finance\\FundTransferService', 'table' => 'fund_transfers']],
+        ],
+    ],
+
+    'expense-categories' => [
+        'title' => 'Expense Categories',
+        'summary' => 'Top-level operating or other expense classifications.',
+        'meta' => ['routes' => ['/admin/finance/expense-categories'], 'permissions' => ['finance.view', 'finance.create', 'finance.edit', 'finance.delete'], 'related' => ['expenses', 'expense-payments', 'financial-reports']],
+        'sections' => [
+            ['id' => 'purpose', 'type' => 'purpose', 'heading' => 'Purpose', 'paragraphs' => ['Categories group reusable expense heads for reporting. They contain no amount, date, or wallet.']],
+            ['id' => 'fields', 'type' => 'fields', 'heading' => 'Fields', 'fields' => [
+                $field('code', 'Code', 'string', false, 'Unique max 32; auto EXC-##### when blank.'),
+                $field('name_en', 'English name', 'string', true, 'Required max 255.'),
+                $field('name_ur', 'Urdu name', 'string', false, 'Optional max 255.'),
+                $field('kind', 'P&L kind', 'enum', true, 'operating|other.'),
+                $field('status', 'Status', 'enum', true, 'active|inactive.'),
+                $field('notes', 'Notes', 'text', false, 'Max 2000.'),
+            ]],
+            ['id' => 'workflows', 'type' => 'workflows', 'heading' => 'Workflow', 'steps' => ['Create a category and select operating or other.', 'Create expense heads beneath it.', 'Deactivate instead of deleting when historical classification must remain.']],
+            ['id' => 'ai', 'type' => 'ai', 'heading' => 'AI', 'paragraphs' => ['Current category form has no accounting AI requirement; translations may be suggested only when reviewable.']],
+            ['id' => 'rules', 'type' => 'rules', 'heading' => 'Rules', 'list' => ['Code is unique.', 'Deletion is blocked while expenses exist.', 'Inactive categories should not be offered for new heads; service currently validates existence, so enforce activity in UI/service on rebuild.']],
+            ['id' => 'integrations', 'type' => 'integrations', 'heading' => 'Integrations', 'list' => ['Expense heads belong to a category.', 'P&L rolls posted payments through head → category and separates operating/other.']],
+            ['id' => 'rebuild_notes', 'type' => 'rebuild_notes', 'heading' => 'Rebuild notes', 'list' => ['Keep kind as the explicit P&L classification.', 'Add stable reporting codes and prevent destructive recategorization without an audit record.']],
+            ['id' => 'acceptance', 'type' => 'acceptance', 'heading' => 'Acceptance', 'acceptance' => ['A category cannot be deleted with heads.', 'Category totals equal linked posted payments only.', 'Changing a label does not rewrite historical payment rows.']],
+            ['id' => 'technical', 'type' => 'technical', 'heading' => 'Technical', 'classes' => ['page' => 'App\\Filament\\Clusters\\Finance\\ExpenseCategoriesPage', 'livewire' => ['App\\Livewire\\Finance\\ListExpenseCategories', 'App\\Livewire\\Finance\\ExpenseCategoryForm'], 'service' => 'App\\Services\\Finance\\ExpenseCategoryService', 'model' => 'App\\Models\\ExpenseCategory', 'table' => 'expense_categories']],
+        ],
+    ],
+
+    'expenses' => [
+        'title' => 'Expense Heads',
+        'summary' => 'Second tier of the expense tree: reusable EXP-##### accounts with descriptive information and no amount.',
+        'meta' => ['routes' => ['/admin/finance/expenses'], 'permissions' => ['finance.view', 'finance.create', 'finance.edit', 'finance.delete'], 'related' => ['expense-categories', 'expense-payments']],
+        'sections' => [
+            ['id' => 'purpose', 'type' => 'purpose', 'heading' => 'Purpose', 'paragraphs' => ['An expense head identifies a recurring obligation such as Shop Electricity — Meter 123 or Employee Salary — Ali. Saving it never moves money.']],
+            ['id' => 'fields', 'type' => 'fields', 'heading' => 'Fields', 'fields' => [
+                $field('expense_number', 'Expense number', 'string', false, 'Unique auto EXP-#####.'),
+                $field('expense_category_id', 'Category', 'FK', true, 'Must exist; active should be enforced for new records.'),
+                $field('name_en', 'English name', 'string', true, 'Required max 255.'),
+                $field('name_ur', 'Urdu name', 'string', false, 'Optional max 255.'),
+                $field('information', 'Reference information', 'text', false, 'Max 5000; meter, consumer, contract, employee, or account details.'),
+                $field('status', 'Status', 'enum', true, 'active|inactive.'),
+            ]],
+            ['id' => 'workflows', 'type' => 'workflows', 'heading' => 'Workflow', 'steps' => ['Select the category.', 'Name the reusable head and add identifying information.', 'Save; use Expense Payments later for each actual payment.', 'Deactivate when no longer payable.']],
+            ['id' => 'ai', 'type' => 'ai', 'heading' => 'AI enrichment', 'paragraphs' => ['ExpenseEnrichmentService may suggest Urdu naming or structured information from the English name. Review it; AI does not create an amount.']],
+            ['id' => 'rules', 'type' => 'rules', 'heading' => 'Rules', 'list' => ['No amount, payment date, or source wallet belongs on this page.', 'Heads with payments cannot be deleted.', 'Inactive heads cannot be selected for new EXPAY records.']],
+            ['id' => 'integrations', 'type' => 'integrations', 'heading' => 'Integrations', 'list' => ['Belongs to ExpenseCategory.', 'Has many ExpensePayments and linked cash/bank transactions.', 'P&L reaches the head through posted payments.']],
+            ['id' => 'rebuild_notes', 'type' => 'rebuild_notes', 'heading' => 'Rebuild notes', 'list' => ['Preserve EXP-##### independently from EXPAY-#####.', 'Consider effective dating for category reassignment so historical reports retain original classification.']],
+            ['id' => 'acceptance', 'type' => 'acceptance', 'heading' => 'Acceptance', 'acceptance' => ['Creating/editing a head leaves all wallet balances unchanged.', 'A paid head cannot be deleted.', 'Only active heads appear in a new payment form.']],
+            ['id' => 'technical', 'type' => 'technical', 'heading' => 'Technical', 'classes' => ['page' => 'App\\Filament\\Clusters\\Finance\\ExpensesPage', 'livewire' => ['App\\Livewire\\Finance\\ListExpenses', 'App\\Livewire\\Finance\\ExpenseForm'], 'services' => ['App\\Services\\Finance\\ExpenseService', 'App\\Services\\Finance\\ExpenseEnrichmentService'], 'model' => 'App\\Models\\Expense', 'table' => 'expenses']],
+        ],
+    ],
+
+    'expense-payments' => [
+        'title' => 'Expense Payments',
+        'summary' => 'Third tier: immutable EXPAY-##### vouchers that post cash OUT or bank debit and feed P&L.',
+        'meta' => ['routes' => ['/admin/finance/expense-payments'], 'permissions' => ['finance.view', 'finance.create', 'finance.edit'], 'related' => ['expenses', 'cash-book', 'bank-accounts', 'financial-reports']],
+        'sections' => [
+            ['id' => 'purpose', 'type' => 'purpose', 'heading' => 'Purpose', 'paragraphs' => ['Record one actual payment against one active expense head. Create posts its wallet ledger entry in the same transaction; subsequent update is notes-only.']],
+            ['id' => 'fields', 'type' => 'fields', 'heading' => 'Fields', 'fields' => [
+                $field('payment_number', 'Voucher number', 'string', false, 'Unique auto EXPAY-#####.'),
+                $field('expense_id', 'Expense head', 'FK', true, 'Must exist and be active.'),
+                $field('amount', 'Amount', 'decimal(2)', true, 'Numeric min 0.01.'),
+                $field('payment_date / payment_time', 'Paid at', 'date / time', true, 'Date required; time optional H:i.'),
+                $field('source_wallet', 'Source wallet', 'enum', true, 'cash|bank.'),
+                $field('bank_account_id', 'Bank account', 'FK', false, 'Required and active for bank; cleared for cash.'),
+                $field('notes', 'Notes', 'text', false, 'Max 2000; the only editable field after post.'),
+            ]],
+            ['id' => 'workflows', 'type' => 'workflows', 'heading' => 'Workflow', 'steps' => ['Choose an active head.', 'Enter verified amount/date and Cash or Bank.', 'Save once to create EXPAY and ledger entry.', 'If needed, edit notes only; use a formal reversal in a rebuilt system for accounting corrections.']],
+            ['id' => 'ai', 'type' => 'ai', 'heading' => 'AI', 'paragraphs' => ['No AI is used. Amount, date, head, and wallet require human evidence.']],
+            ['id' => 'rules', 'type' => 'rules', 'heading' => 'Posting and security rules', 'list' => ['ExpensePaymentService acquires Cache::lock("finance-expense-payment:{wallet}") for 15 seconds, blocks up to 10, then opens DB::transaction.', 'Cash posts CashBook OUT; bank posts BankAccount debit.', 'Amount/date/head/wallet are locked after create; update accepts notes only.', 'Delete always throws a validation error.', 'Form/list authorization calls hasPermission("finance.create|edit|view").']],
+            ['id' => 'integrations', 'type' => 'integrations', 'heading' => 'P&L and ledgers', 'list' => ['Cash payment links cash_book_transactions.expense_payment_id.', 'Bank payment links bank_account_transactions.expense_payment_id.', 'Profit & Loss includes posted payment amount by payment_date and category kind.', 'Expense analysis groups through expense → category.']],
+            ['id' => 'rebuild_notes', 'type' => 'rebuild_notes', 'heading' => 'Rebuild notes', 'list' => ['Add explicit posted_at, posted_by, reversal_of_id, evidence attachment, and idempotency key.', 'Use stable minor-unit money or decimal arithmetic; avoid float at service boundaries.', 'Make wallet balance checks and ledger insertion part of one locked transaction.']],
+            ['id' => 'acceptance', 'type' => 'acceptance', 'heading' => 'Acceptance', 'acceptance' => ['Cash EXPAY produces one OUT linked to the payment.', 'Bank EXPAY produces one debit linked to the payment.', 'No partial payment remains when ledger posting fails.', 'Concurrent insufficient-balance posts allow at most the valid one.', 'Only notes can change after posting; deletion is denied.']],
+            ['id' => 'technical', 'type' => 'technical', 'heading' => 'Technical', 'classes' => ['page' => 'App\\Filament\\Clusters\\Finance\\ExpensePaymentsPage', 'livewire' => ['App\\Livewire\\Finance\\ListExpensePayments', 'App\\Livewire\\Finance\\ExpensePaymentForm'], 'service' => 'App\\Services\\Finance\\ExpensePaymentService', 'model' => 'App\\Models\\ExpensePayment', 'tables' => ['expense_payments', 'cash_book_transactions', 'bank_account_transactions']]],
+        ],
+    ],
+
+    'cash-book' => [
+        'title' => 'Cash Book',
+        'summary' => 'Placeholder page for the read-only cash ledger and running balance.',
+        'meta' => ['routes' => ['/admin/finance/cash-book'], 'permissions' => ['finance.view'], 'related' => ['expense-payments', 'cash-bank-transfers']],
+        'sections' => [
+            ['id' => 'purpose', 'type' => 'purpose', 'heading' => 'Purpose', 'paragraphs' => ['Planned screen for CashBookTransaction IN/OUT entries, references, and running balance. Current cluster page is a placeholder; CashBookService already writes the underlying ledger.']],
+            ['id' => 'fields', 'type' => 'fields', 'heading' => 'Planned columns', 'fields' => [$field('transaction_date / type / amount', 'Movement', 'date / IN|OUT / decimal', true, 'Read from ledger.'), $field('description / reference / actor', 'Audit context', 'text / relations', true, 'Link to source record; do not duplicate it.')]],
+            ['id' => 'workflows', 'type' => 'workflows', 'heading' => 'Workflow', 'steps' => ['Filter by date/type/source.', 'Open the source EXPAY or transfer.', 'Export/reconcile without editing ledger rows.']],
+            ['id' => 'ai', 'type' => 'ai', 'heading' => 'AI', 'paragraphs' => ['No AI posting or balance calculation.']],
+            ['id' => 'rules', 'type' => 'rules', 'heading' => 'Rules', 'list' => ['Read-only for normal users.', 'Running balance is deterministic and ordered by date/id.', 'Corrections use reversals, never row edits.']],
+            ['id' => 'integrations', 'type' => 'integrations', 'heading' => 'Integrations', 'list' => ['ExpensePaymentService and FundTransferService write entries.', 'Reports consumes the same ledger.']],
+            ['id' => 'rebuild_notes', 'type' => 'rebuild_notes', 'heading' => 'Rebuild notes', 'list' => ['Build a projection over cash_book_transactions; do not create a second cash table.', 'Add opening/closing balance, source links, export, and reconciliation markers.']],
+            ['id' => 'acceptance', 'type' => 'acceptance', 'heading' => 'Acceptance', 'acceptance' => ['Every displayed row traces to a source.', 'Opening + IN − OUT equals closing balance.', 'No direct create/edit/delete control exists.']],
+            ['id' => 'technical', 'type' => 'technical', 'heading' => 'Technical', 'classes' => ['page' => 'App\\Filament\\Clusters\\Finance\\CashBookPage', 'service' => 'App\\Services\\Finance\\CashBookService', 'table' => 'cash_book_transactions', 'status' => 'placeholder UI']],
+        ],
+    ],
+
+    'financial-reports' => [
+        'title' => 'Financial Reports',
+        'summary' => 'Placeholder Finance page; canonical P&L currently lives in the Reports module.',
+        'meta' => ['routes' => ['/admin/finance/financial-reports'], 'permissions' => ['finance.view'], 'related' => ['reports', 'expense-payments', 'bank-accounts', 'cash-book']],
+        'sections' => [
+            ['id' => 'purpose', 'type' => 'purpose', 'heading' => 'Purpose', 'paragraphs' => ['Planned finance-local launch point for cash position, bank movement, expense analysis, and Profit & Loss. Current page is a placeholder; use Reports for implemented outputs.']],
+            ['id' => 'fields', 'type' => 'fields', 'heading' => 'Planned filters', 'fields' => [$field('date_from / date_to', 'Period', 'date range', true, 'Apply consistently to payment/transaction date.'), $field('wallet / bank / category / kind', 'Dimensions', 'filters', false, 'Drill down without changing source data.')]],
+            ['id' => 'workflows', 'type' => 'workflows', 'heading' => 'Workflow', 'steps' => ['Select period.', 'Review opening, movements, closing, and P&L totals.', 'Drill to immutable source vouchers.', 'Export with filter and generation metadata.']],
+            ['id' => 'ai', 'type' => 'ai', 'heading' => 'AI', 'paragraphs' => ['AI may summarize only after deterministic totals are calculated; it must not calculate or alter accounting figures.']],
+            ['id' => 'rules', 'type' => 'rules', 'heading' => 'Rules', 'list' => ['finance.view controls page access; report-specific export permission may be added.', 'P&L expenses come from posted expense_payments, not expense heads.', 'Avoid double counting transfer legs as income or expense.']],
+            ['id' => 'integrations', 'type' => 'integrations', 'heading' => 'Integrations', 'list' => ['Reports\\ProfitLossReportService is the canonical P&L service.', 'Cash and bank services provide wallet transactions.', 'Purchasing/Sales provide revenue, COGS, and payable context.']],
+            ['id' => 'rebuild_notes', 'type' => 'rebuild_notes', 'heading' => 'Rebuild notes', 'list' => ['Reuse ReportCatalog/report services instead of cloning report logic inside Finance.', 'Define accounting period, timezone, status, and reversal treatment in one shared contract.']],
+            ['id' => 'acceptance', 'type' => 'acceptance', 'heading' => 'Acceptance', 'acceptance' => ['Finance and Reports show identical P&L totals for identical filters.', 'Transfers do not inflate revenue/expense.', 'Every total drills to source rows.']],
+            ['id' => 'technical', 'type' => 'technical', 'heading' => 'Technical', 'classes' => ['page' => 'App\\Filament\\Clusters\\Finance\\FinancialReportsPage', 'report_service' => 'App\\Services\\Reports\\ProfitLossReportService', 'status' => 'placeholder UI']],
+        ],
+    ],
+];

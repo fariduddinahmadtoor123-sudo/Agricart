@@ -130,7 +130,7 @@ return [
             'printing' => 'پرنٹ', 'permission' => 'اجازت',
             'users' => 'صارفین', 'backups' => 'بیک اپ',
         ],
-        'docs' => ['overview' => 'جائزہ', 'articles' => 'مضامین'],
+        'docs' => ['overview' => 'جائزہ', 'guide' => 'یوزر گائیڈ'],
     ],
 
     'toolbar' => [
