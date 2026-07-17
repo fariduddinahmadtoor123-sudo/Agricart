@@ -27,6 +27,8 @@ class CashBookService
         ?int $fundTransferId = null,
         ?string $notes = null,
         ?User $actor = null,
+        ?int $expenseId = null,
+        ?int $expensePaymentId = null,
     ): CashBookTransaction {
         $amount = round($amount, 2);
 
@@ -40,6 +42,8 @@ class CashBookService
 
         return CashBookTransaction::query()->create([
             'fund_transfer_id' => $fundTransferId,
+            'expense_id' => $expenseId,
+            'expense_payment_id' => $expensePaymentId,
             'direction' => CashBookTransaction::DIRECTION_OUT,
             'amount' => $amount,
             'transaction_date' => $transactionDate,
@@ -56,6 +60,8 @@ class CashBookService
         ?int $fundTransferId = null,
         ?string $notes = null,
         ?User $actor = null,
+        ?int $expenseId = null,
+        ?int $expensePaymentId = null,
     ): CashBookTransaction {
         $amount = round($amount, 2);
 
@@ -67,6 +73,8 @@ class CashBookService
 
         return CashBookTransaction::query()->create([
             'fund_transfer_id' => $fundTransferId,
+            'expense_id' => $expenseId,
+            'expense_payment_id' => $expensePaymentId,
             'direction' => CashBookTransaction::DIRECTION_IN,
             'amount' => $amount,
             'transaction_date' => $transactionDate,

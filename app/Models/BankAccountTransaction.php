@@ -37,6 +37,8 @@ class BankAccountTransaction extends Model
         'sale_id',
         'online_sale_order_id',
         'fund_transfer_id',
+        'expense_id',
+        'expense_payment_id',
         'transfer_group',
         'description',
         'notes',
@@ -97,6 +99,22 @@ class BankAccountTransaction extends Model
     public function fundTransfer(): BelongsTo
     {
         return $this->belongsTo(FundTransfer::class);
+    }
+
+    /**
+     * @return BelongsTo<Expense, $this>
+     */
+    public function expense(): BelongsTo
+    {
+        return $this->belongsTo(Expense::class);
+    }
+
+    /**
+     * @return BelongsTo<ExpensePayment, $this>
+     */
+    public function expensePayment(): BelongsTo
+    {
+        return $this->belongsTo(ExpensePayment::class);
     }
 
     /**

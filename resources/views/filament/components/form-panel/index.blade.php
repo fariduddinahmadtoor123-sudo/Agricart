@@ -83,6 +83,10 @@
         staffAdvanceSaving: false,
         financeBankSaving: false,
         financeFundTransferSaving: false,
+        financeExpenseCategorySaving: false,
+        financeExpenseSaving: false,
+        financeExpenseAiEnriching: false,
+        financeExpensePaymentSaving: false,
         formMode: 'create',
         roleSaving: false,
         selectCategoryVisualIcon(index) {
@@ -303,6 +307,36 @@
                 }));
             }
 
+            if (this.formKey === 'finance-expense-category') {
+                window.dispatchEvent(new CustomEvent('finance-expense-category-form-open', {
+                    detail: {
+                        categoryId: detail.categoryId ?? null,
+                        mode: detail.mode ?? 'create',
+                    },
+                    bubbles: true,
+                }));
+            }
+
+            if (this.formKey === 'finance-expense') {
+                window.dispatchEvent(new CustomEvent('finance-expense-form-open', {
+                    detail: {
+                        expenseId: detail.expenseId ?? null,
+                        mode: detail.mode ?? 'create',
+                    },
+                    bubbles: true,
+                }));
+            }
+
+            if (this.formKey === 'finance-expense-payment') {
+                window.dispatchEvent(new CustomEvent('finance-expense-payment-form-open', {
+                    detail: {
+                        paymentId: detail.paymentId ?? null,
+                        mode: detail.mode ?? 'create',
+                    },
+                    bubbles: true,
+                }));
+            }
+
             if (this.formKey === 'purchase-planning') {
                 window.dispatchEvent(new CustomEvent('purchase-planning-form-open', {
                     detail: {
@@ -427,7 +461,7 @@
             this.isOpen = true;
             this.minimized = false;
             this.backdropPressed = false;
-            this.size = ['ai-settings', 'ai-log-detail', 'categories', 'brands', 'units', 'packing-units', 'attributes', 'controls', 'products', 'users', 'staff', 'roles', 'company-profile', 'suppliers', 'customers', 'staff-salary', 'staff-attendance', 'staff-advance', 'staff-leave', 'staff-payroll', 'finance-bank', 'finance-fund-transfer', 'purchase-planning', 'purchase-payment-summary', 'purchase-quotations', 'purchases', 'sales', 'sale-quotations', 'sale-returns', 'online-orders', 'price-controls', 'quantity-controls', 'secret-coding', 'sales-channel'].includes(this.formKey) ? 'stretched' : 'normal';
+            this.size = ['ai-settings', 'ai-log-detail', 'categories', 'brands', 'units', 'packing-units', 'attributes', 'controls', 'products', 'users', 'staff', 'roles', 'company-profile', 'suppliers', 'customers', 'staff-salary', 'staff-attendance', 'staff-advance', 'staff-leave', 'staff-payroll', 'finance-bank', 'finance-fund-transfer', 'finance-expense-category', 'finance-expense', 'finance-expense-payment', 'purchase-planning', 'purchase-payment-summary', 'purchase-quotations', 'purchases', 'sales', 'sale-quotations', 'sale-returns', 'online-orders', 'price-controls', 'quantity-controls', 'secret-coding', 'sales-channel'].includes(this.formKey) ? 'stretched' : 'normal';
             document.body.classList.add('agricart-form-panel-open');
 
             if (this.formKey === 'ai-log-detail' && detail.logId) {
@@ -475,6 +509,14 @@
             this.priceControlSaving = false;
             this.quantityControlSaving = false;
             this.secretCodingSaving = false;
+            this.salesChannelSaving = false;
+            this.staffAdvanceSaving = false;
+            this.financeBankSaving = false;
+            this.financeFundTransferSaving = false;
+            this.financeExpenseCategorySaving = false;
+            this.financeExpenseSaving = false;
+            this.financeExpenseAiEnriching = false;
+            this.financeExpensePaymentSaving = false;
             document.body.classList.remove('agricart-form-panel-open');
             window.dispatchEvent(new CustomEvent('close-form-panel', { bubbles: true }));
         },
@@ -840,6 +882,64 @@
                 return;
             }
 
+            if (this.formKey === 'finance-expense-category') {
+                if (key === 'cancel') {
+                    this.close();
+                    return;
+                }
+
+                if ((key === 'save_close' || key === 'save_next') && this.financeExpenseCategorySaving) {
+                    return;
+                }
+
+                window.dispatchEvent(new CustomEvent('finance-expense-category-form-action', {
+                    detail: { action: key },
+                    bubbles: true,
+                }));
+
+                return;
+            }
+
+            if (this.formKey === 'finance-expense') {
+                if (key === 'cancel') {
+                    this.close();
+                    return;
+                }
+
+                if (key === 'ai') {
+                    this.financeExpenseAiEnriching = true;
+                }
+
+                if ((key === 'save_close' || key === 'save_next') && this.financeExpenseSaving) {
+                    return;
+                }
+
+                window.dispatchEvent(new CustomEvent('finance-expense-form-action', {
+                    detail: { action: key },
+                    bubbles: true,
+                }));
+
+                return;
+            }
+
+            if (this.formKey === 'finance-expense-payment') {
+                if (key === 'cancel') {
+                    this.close();
+                    return;
+                }
+
+                if ((key === 'save_close' || key === 'save_next') && this.financeExpensePaymentSaving) {
+                    return;
+                }
+
+                window.dispatchEvent(new CustomEvent('finance-expense-payment-form-action', {
+                    detail: { action: key },
+                    bubbles: true,
+                }));
+
+                return;
+            }
+
             if (this.formKey === 'purchase-planning') {
                 if (key === 'cancel') {
                     this.close();
@@ -1029,7 +1129,7 @@
                 'agricart-form-panel--normal': this.size === 'normal',
                 'agricart-form-panel--stretched': this.size === 'stretched',
                 'agricart-form-panel--maximized': this.size === 'maximized',
-                'agricart-form-panel--wide': this.formKey === 'ai-settings' || this.formKey === 'ai-log-detail' || this.formKey === 'categories' || this.formKey === 'brands' || this.formKey === 'units' || this.formKey === 'packing-units' || this.formKey === 'attributes' || this.formKey === 'controls' || this.formKey === 'products' || this.formKey === 'users' || this.formKey === 'staff' || this.formKey === 'roles' || this.formKey === 'company-profile' || this.formKey === 'suppliers' || this.formKey === 'customers' || this.formKey === 'purchase-planning' || this.formKey === 'purchase-payment-summary' || this.formKey === 'purchase-quotations' || this.formKey === 'purchases' || this.formKey === 'sales' || this.formKey === 'sale-quotations' || this.formKey === 'sale-returns' || this.formKey === 'online-orders' || this.formKey === 'price-controls' || this.formKey === 'quantity-controls' || this.formKey === 'secret-coding' || this.formKey === 'sales-channel' || this.formKey === 'staff-salary' || this.formKey === 'staff-attendance' || this.formKey === 'staff-advance' || this.formKey === 'staff-leave' || this.formKey === 'staff-payroll' || this.formKey === 'finance-bank' || this.formKey === 'finance-fund-transfer',
+                'agricart-form-panel--wide': this.formKey === 'ai-settings' || this.formKey === 'ai-log-detail' || this.formKey === 'categories' || this.formKey === 'brands' || this.formKey === 'units' || this.formKey === 'packing-units' || this.formKey === 'attributes' || this.formKey === 'controls' || this.formKey === 'products' || this.formKey === 'users' || this.formKey === 'staff' || this.formKey === 'roles' || this.formKey === 'company-profile' || this.formKey === 'suppliers' || this.formKey === 'customers' || this.formKey === 'purchase-planning' || this.formKey === 'purchase-payment-summary' || this.formKey === 'purchase-quotations' || this.formKey === 'purchases' || this.formKey === 'sales' || this.formKey === 'sale-quotations' || this.formKey === 'sale-returns' || this.formKey === 'online-orders' || this.formKey === 'price-controls' || this.formKey === 'quantity-controls' || this.formKey === 'secret-coding' || this.formKey === 'sales-channel' || this.formKey === 'staff-salary' || this.formKey === 'staff-attendance' || this.formKey === 'staff-advance' || this.formKey === 'staff-leave' || this.formKey === 'staff-payroll' || this.formKey === 'finance-bank' || this.formKey === 'finance-fund-transfer' || this.formKey === 'finance-expense-category' || this.formKey === 'finance-expense' || this.formKey === 'finance-expense-payment',
             };
         },
         hasTextSelection() {
@@ -1095,6 +1195,9 @@
     x-on:staff-advance-form-busy.window="staffAdvanceSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:finance-bank-form-busy.window="financeBankSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:finance-fund-transfer-form-busy.window="financeFundTransferSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
+    x-on:finance-expense-category-form-busy.window="financeExpenseCategorySaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
+    x-on:finance-expense-form-busy.window="financeExpenseAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); financeExpenseSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
+    x-on:finance-expense-payment-form-busy.window="financeExpensePaymentSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:keydown.escape.window="requestCloseFromEscape($event)"
     x-effect="if (isOpen && !minimized) { $nextTick(() => enhanceStatusAlerts()) }"
     data-agricart-copy-label="{{ __('agricart.actions.copy') }}"
@@ -1123,7 +1226,7 @@
                     <h2 class="agricart-form-panel__title" x-text="title"></h2>
                     <p
                         class="agricart-form-panel__subtitle"
-                        x-show="formKey !== 'products' && formKey !== 'users' && formKey !== 'staff' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'customers' && formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'sales' && formKey !== 'sale-quotations' && formKey !== 'sale-returns' && formKey !== 'online-orders' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding' && formKey !== 'sales-channel' && formKey !== 'staff-salary' && formKey !== 'staff-attendance' && formKey !== 'staff-advance' && formKey !== 'staff-leave' && formKey !== 'staff-payroll' && formKey !== 'finance-bank' && formKey !== 'finance-fund-transfer' && resourceLabel"
+                        x-show="formKey !== 'products' && formKey !== 'users' && formKey !== 'staff' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'customers' && formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'sales' && formKey !== 'sale-quotations' && formKey !== 'sale-returns' && formKey !== 'online-orders' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding' && formKey !== 'sales-channel' && formKey !== 'staff-salary' && formKey !== 'staff-attendance' && formKey !== 'staff-advance' && formKey !== 'staff-leave' && formKey !== 'staff-payroll' && formKey !== 'finance-bank' && formKey !== 'finance-fund-transfer' && formKey !== 'finance-expense-category' && formKey !== 'finance-expense' && formKey !== 'finance-expense-payment' && resourceLabel"
                         x-text="resourceLabel"
                         x-cloak
                     ></p>
@@ -1261,6 +1364,18 @@
                         <livewire:finance.fund-transfer-form />
                     </div>
 
+                    <div x-show="formKey === 'finance-expense-category'" x-cloak>
+                        <livewire:finance.expense-category-form />
+                    </div>
+
+                    <div x-show="formKey === 'finance-expense'" x-cloak>
+                        <livewire:finance.expense-form />
+                    </div>
+
+                    <div x-show="formKey === 'finance-expense-payment'" x-cloak>
+                        <livewire:finance.expense-payment-form />
+                    </div>
+
                     <div x-show="formKey === 'purchase-planning'" x-cloak>
                         <livewire:purchase-planning.form />
                     </div>
@@ -1309,7 +1424,7 @@
                         <livewire:sales-channels.form />
                     </div>
 
-                    <div x-show="formKey !== 'ai-settings' && formKey !== 'ai-log-detail' && formKey !== 'categories' && formKey !== 'brands' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls' && formKey !== 'products' && formKey !== 'users' && formKey !== 'staff' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'customers' && formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'sales' && formKey !== 'sale-quotations' && formKey !== 'sale-returns' && formKey !== 'online-orders' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding' && formKey !== 'sales-channel' && formKey !== 'staff-salary' && formKey !== 'staff-attendance' && formKey !== 'staff-advance' && formKey !== 'staff-leave' && formKey !== 'staff-payroll' && formKey !== 'finance-bank' && formKey !== 'finance-fund-transfer'">
+                    <div x-show="formKey !== 'ai-settings' && formKey !== 'ai-log-detail' && formKey !== 'categories' && formKey !== 'brands' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls' && formKey !== 'products' && formKey !== 'users' && formKey !== 'staff' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'customers' && formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'sales' && formKey !== 'sale-quotations' && formKey !== 'sale-returns' && formKey !== 'online-orders' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding' && formKey !== 'sales-channel' && formKey !== 'staff-salary' && formKey !== 'staff-attendance' && formKey !== 'staff-advance' && formKey !== 'staff-leave' && formKey !== 'staff-payroll' && formKey !== 'finance-bank' && formKey !== 'finance-fund-transfer' && formKey !== 'finance-expense-category' && formKey !== 'finance-expense' && formKey !== 'finance-expense-payment'">
                         @include('filament.components.form-panel.sample-fields')
                     </div>
                 </div>

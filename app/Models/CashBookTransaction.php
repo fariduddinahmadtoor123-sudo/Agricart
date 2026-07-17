@@ -14,6 +14,8 @@ class CashBookTransaction extends Model
     /** @var list<string> */
     protected $fillable = [
         'fund_transfer_id',
+        'expense_id',
+        'expense_payment_id',
         'direction',
         'amount',
         'transaction_date',
@@ -36,6 +38,22 @@ class CashBookTransaction extends Model
     public function fundTransfer(): BelongsTo
     {
         return $this->belongsTo(FundTransfer::class);
+    }
+
+    /**
+     * @return BelongsTo<Expense, $this>
+     */
+    public function expense(): BelongsTo
+    {
+        return $this->belongsTo(Expense::class);
+    }
+
+    /**
+     * @return BelongsTo<ExpensePayment, $this>
+     */
+    public function expensePayment(): BelongsTo
+    {
+        return $this->belongsTo(ExpensePayment::class);
     }
 
     /**

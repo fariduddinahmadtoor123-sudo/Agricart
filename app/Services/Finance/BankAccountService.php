@@ -218,6 +218,8 @@ class BankAccountService
         ?string $notes = null,
         ?int $fundTransferId = null,
         ?User $actor = null,
+        ?int $expenseId = null,
+        ?int $expensePaymentId = null,
     ): void {
         $this->assertSufficientBalance($from, $amount);
 
@@ -231,6 +233,8 @@ class BankAccountService
             [
                 'notes' => $notes,
                 'fund_transfer_id' => $fundTransferId,
+                'expense_id' => $expenseId,
+                'expense_payment_id' => $expensePaymentId,
             ],
             $actor,
         );
