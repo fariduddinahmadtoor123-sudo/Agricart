@@ -1651,6 +1651,8 @@ return [
             'title' => 'یہ بیک اپ restore کریں؟',
             'warning' => 'موجودہ ڈیٹابیس اور (فل بیک اپ میں) فائلیں بدل دی جائیں گی۔ restore کے دوران سائٹ maintenance mode میں رہے گی۔',
             'safety_backup' => 'restore سے پہلے فوری database safety backup بنائیں',
+            'preserve_logins' => 'اس انسٹالیشن کے موجودہ staff اور customer لاگ اِن محفوظ رکھیں',
+            'preserve_logins_hint' => 'بیک اپ میں پہلے سے موجود ای میل کا پاس ورڈ بیک اپ والا رہتا ہے۔ صرف لوکل ای میلز (بیک اپ میں نہیں) پرانا پاس ورڈ کے ساتھ واپس آتی ہیں۔ Bootstrap admin بھی یقینی بنایا جاتا ہے۔',
             'confirm_label' => 'تصدیق کے لیے RESTORE لکھیں',
         ],
         'messages' => [
@@ -1659,6 +1661,8 @@ return [
             'deleted' => 'بیک اپ حذف ہو گیا۔',
             'delete_confirm' => 'یہ بیک اپ فائل حذف کریں؟',
             'restored' => 'بیک اپ کامیابی سے restore ہو گیا۔',
+            'restored_logins_merged' => 'ریسٹور سے پہلے والے :count لوکل لاگ اِن محفوظ رکھے گئے۔',
+            'restored_bootstrap_admin' => 'Bootstrap admin دستیاب: :email',
             'restore_failed' => 'restore ناکام۔ credentials، logs اور PHP time limits چیک کریں۔',
             'restore_cli_unavailable' => 'اس سرور پر mysql client نہیں۔ BACKUP_MYSQL_IMPORT_METHOD=php استعمال کریں یا auto رکھیں۔',
             'restore_confirm_invalid' => 'تصدیق کے لیے بالکل RESTORE لکھیں۔',

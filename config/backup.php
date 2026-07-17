@@ -51,4 +51,34 @@ return [
     */
     'public_root' => storage_path('app/public'),
 
+    /*
+    |--------------------------------------------------------------------------
+    | After restore: keep local logins + bootstrap admin
+    |--------------------------------------------------------------------------
+    |
+    | Full restore replaces the database. When preserve_local_logins is true,
+    | staff/customers that existed before restore are re-added if their email
+    | is missing from the restored data (same password hashes). Emails that
+    | already exist in the backup keep the backup password (source of truth).
+    |
+    | bootstrap_admin is always ensured after restore when email/password are set
+    | (default local admin for Laragon / Hostinger testing).
+    |
+    */
+    'preserve_local_logins' => filter_var(
+        env('BACKUP_PRESERVE_LOCAL_LOGINS', true),
+        FILTER_VALIDATE_BOOLEAN,
+    ),
+    'bootstrap_admin' => [
+        // Empty by default — never ship a known password. Set in local .env only.
+        'email' => env('BACKUP_BOOTSTRAP_ADMIN_EMAIL'),
+        'password' => env('BACKUP_BOOTSTRAP_ADMIN_PASSWORD'),
+        'name' => env('BACKUP_BOOTSTRAP_ADMIN_NAME', 'Super Admin'),
+        // When true (local only), reset bootstrap admin password after restore if email already exists.
+        'force_password_on_local' => filter_var(
+            env('BACKUP_BOOTSTRAP_ADMIN_FORCE_LOCAL', true),
+            FILTER_VALIDATE_BOOLEAN,
+        ),
+    ],
+
 ];

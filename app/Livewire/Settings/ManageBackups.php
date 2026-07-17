@@ -24,12 +24,16 @@ class ManageBackups extends Component
 
     public bool $restoreSafetyBackup = true;
 
+    public bool $preserveLocalLogins = true;
+
     public function mount(): void
     {
         if (session()->has('backup_upload_message')) {
             $this->flashMessage = (string) session('backup_upload_message');
             $this->flashType = (string) session('backup_upload_type', 'success');
         }
+
+        $this->preserveLocalLogins = (bool) config('backup.preserve_local_logins', true);
     }
 
     public function createFull(): void
@@ -98,6 +102,7 @@ class ManageBackups extends Component
         $this->restoreBackupId = $backupId;
         $this->restoreConfirm = '';
         $this->restoreSafetyBackup = true;
+        $this->preserveLocalLogins = (bool) config('backup.preserve_local_logins', true);
     }
 
     public function confirmRestore(): void
@@ -115,10 +120,30 @@ class ManageBackups extends Component
         $this->busy = true;
 
         try {
-            app(RestoreService::class)->restore($this->restoreBackupId, $this->restoreSafetyBackup);
+            app(RestoreService::class)->restore(
+                $this->restoreBackupId,
+                $this->restoreSafetyBackup,
+                $this->preserveLocalLogins,
+            );
             $this->restoreBackupId = null;
             $this->restoreConfirm = '';
-            $this->flash(__('agricart.backups.messages.restored'), 'success');
+
+            $merged = (int) session()->pull('backup_restore_merged_logins', 0);
+            $message = __('agricart.backups.messages.restored');
+
+            if ($merged > 0) {
+                $message .= ' '.__('agricart.backups.messages.restored_logins_merged', ['count' => $merged]);
+            }
+
+            $bootstrapEmail = (string) config('backup.bootstrap_admin.email', '');
+
+            if ($bootstrapEmail !== '') {
+                $message .= ' '.__('agricart.backups.messages.restored_bootstrap_admin', [
+                    'email' => $bootstrapEmail,
+                ]);
+            }
+
+            $this->flash($message, 'success');
         } catch (ValidationException $exception) {
             $this->flash(collect($exception->errors())->flatten()->first() ?: __('agricart.backups.messages.restore_failed'), 'danger');
         } catch (\Throwable $exception) {

@@ -5,7 +5,10 @@ namespace App\Services\Backup;
 use App\Services\Catalog\CatalogCache;
 use App\Services\Store\StoreLayoutService;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 use ZipArchive;
 
@@ -14,9 +17,10 @@ class RestoreService
     public function __construct(
         private readonly BackupService $backups,
         private readonly DatabaseImporter $databaseImporter,
+        private readonly LocalLoginPreserver $localLogins,
     ) {}
 
-    public function restore(string $backupId, bool $createSafetyBackup = true): void
+    public function restore(string $backupId, bool $createSafetyBackup = true, bool $preserveLocalLogins = true): void
     {
         set_time_limit(0);
 
@@ -33,7 +37,13 @@ class RestoreService
 
         File::ensureDirectoryExists($workDir);
 
+        $shouldPreserve = $preserveLocalLogins && (bool) config('backup.preserve_local_logins', true);
+
         try {
+            if ($shouldPreserve) {
+                $this->localLogins->capture();
+            }
+
             if ($createSafetyBackup) {
                 app(BackupService::class)->create(BackupService::TYPE_DATABASE);
             }
@@ -72,16 +82,44 @@ class RestoreService
                 $this->restorePublicFiles($workDir . DIRECTORY_SEPARATOR . 'files');
             }
 
+            $merged = 0;
+
+            if ($shouldPreserve) {
+                $merged = $this->localLogins->restoreMissing();
+            }
+
+            $this->localLogins->ensureBootstrapAdmin();
+            $this->invalidateAuthSessions();
+
             Artisan::call('up');
             Artisan::call('cache:clear');
             CatalogCache::forgetOverviewStats();
             app(StoreLayoutService::class)->clearCache();
+
+            // Stash merge count for UI flash (optional).
+            if ($merged > 0) {
+                session()->flash('backup_restore_merged_logins', $merged);
+            }
         } catch (\Throwable $exception) {
             Artisan::call('up');
 
             throw $exception;
         } finally {
             File::deleteDirectory($workDir);
+        }
+    }
+
+    private function invalidateAuthSessions(): void
+    {
+        try {
+            Auth::guard('web')->logout();
+            Auth::guard('customer')->logout();
+        } catch (\Throwable) {
+            // Guards may be unavailable mid-request; continue.
+        }
+
+        if (Schema::hasTable('sessions') && config('session.driver') === 'database') {
+            DB::table('sessions')->delete();
         }
     }
 
@@ -95,14 +133,13 @@ class RestoreService
             return is_file($path) ? $path : null;
         }
 
-        foreach (['database.sql', 'database.sqlite'] as $name) {
-            $path = $workDir.DIRECTORY_SEPARATOR.$name;
+        $sqlPath = $workDir.DIRECTORY_SEPARATOR.'database.sql';
 
-            if (is_file($path)) {
-                return $path;
-            }
+        if (is_file($sqlPath)) {
+            return $sqlPath;
         }
 
+        // Do not feed SQLite binaries into MySQL importers.
         return null;
     }
 

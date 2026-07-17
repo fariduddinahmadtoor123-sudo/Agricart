@@ -321,6 +321,12 @@
                     <span>{{ __('agricart.backups.restore.safety_backup') }}</span>
                 </label>
 
+                <label class="agricart-backups__checkbox">
+                    <input type="checkbox" wire:model="preserveLocalLogins" />
+                    <span>{{ __('agricart.backups.restore.preserve_logins') }}</span>
+                </label>
+                <p class="agricart-backups__upload-hint">{{ __('agricart.backups.restore.preserve_logins_hint') }}</p>
+
                 <label class="agricart-form-panel__label" for="backup-restore-confirm">{{ __('agricart.backups.restore.confirm_label') }}</label>
                 <input id="backup-restore-confirm" type="text" wire:model="restoreConfirm" class="agricart-backups__input" placeholder="RESTORE" />
 

@@ -1651,6 +1651,8 @@ return [
             'title' => 'Restore this backup?',
             'warning' => 'This will replace your current database and (for full backups) uploaded files. The site goes into maintenance mode during restore.',
             'safety_backup' => 'Create a quick database safety backup before restore',
+            'preserve_logins' => 'Keep existing staff & customer logins from this installation',
+            'preserve_logins_hint' => 'Accounts already in the backup keep the backup password. Local-only emails (not in the backup) are added back with the same password as before restore. A bootstrap admin is also ensured.',
             'confirm_label' => 'Type RESTORE to confirm',
         ],
         'messages' => [
@@ -1659,6 +1661,8 @@ return [
             'deleted' => 'Backup deleted.',
             'delete_confirm' => 'Delete this backup file?',
             'restored' => 'Backup restored successfully.',
+            'restored_logins_merged' => ':count local login account(s) were kept from before restore.',
+            'restored_bootstrap_admin' => 'Bootstrap admin available: :email',
             'restore_failed' => 'Restore failed. Check server logs, database credentials, and PHP time limits.',
             'restore_cli_unavailable' => 'The mysql client is not available on this server. Use BACKUP_MYSQL_IMPORT_METHOD=php or leave it on auto (default).',
             'restore_confirm_invalid' => 'Please type RESTORE exactly to confirm.',
