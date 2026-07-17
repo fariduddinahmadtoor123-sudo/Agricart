@@ -2,7 +2,9 @@
 
 namespace App\Livewire\Reports;
 
+use App\Services\Reports\CashReportService;
 use App\Services\Reports\CustomerLedgerReportService;
+use App\Services\Reports\ExpenseReportService;
 use App\Services\Reports\ProfitLossReportService;
 use App\Services\Reports\ReportCatalog;
 use App\Services\Reports\SalesSummaryReportService;
@@ -275,6 +277,8 @@ class ReportShell extends Component
             $this->isStockReport() => app(StockReportService::class)->csvMatrix($this->rows, $this->visibleColumns),
             $this->isSalesSummaryReport() => app(SalesSummaryReportService::class)->csvMatrix($this->rows, $this->visibleColumns),
             $this->isProfitLossReport() => app(ProfitLossReportService::class)->csvMatrix($this->rows, $this->visibleColumns),
+            $this->isExpenseReport() => app(ExpenseReportService::class)->csvMatrix($this->rows, $this->visibleColumns),
+            $this->isCashReport() => app(CashReportService::class)->csvMatrix($this->rows, $this->visibleColumns),
             $this->isSupplierLedgerReport() => app(SupplierLedgerReportService::class)->csvMatrix($this->rows, $this->visibleColumns),
             default => app(CustomerLedgerReportService::class)->csvMatrix($this->rows, $this->visibleColumns),
         };
@@ -509,6 +513,16 @@ class ReportShell extends Component
         return $this->reportKey === 'profit-loss';
     }
 
+    protected function isExpenseReport(): bool
+    {
+        return $this->reportKey === 'expense-report';
+    }
+
+    protected function isCashReport(): bool
+    {
+        return $this->reportKey === 'cash-report';
+    }
+
     protected function isPartyLedgerReport(): bool
     {
         return $this->isCustomerLedgerReport() || $this->isSupplierLedgerReport();
@@ -519,7 +533,9 @@ class ReportShell extends Component
         return $this->isStockReport()
             || $this->isPartyLedgerReport()
             || $this->isSalesSummaryReport()
-            || $this->isProfitLossReport();
+            || $this->isProfitLossReport()
+            || $this->isExpenseReport()
+            || $this->isCashReport();
     }
 
     protected function loadLiveReport(): void
@@ -538,6 +554,18 @@ class ReportShell extends Component
 
         if ($this->isProfitLossReport()) {
             $this->loadProfitLossReport();
+
+            return;
+        }
+
+        if ($this->isExpenseReport()) {
+            $this->loadExpenseReport();
+
+            return;
+        }
+
+        if ($this->isCashReport()) {
+            $this->loadCashReport();
 
             return;
         }
@@ -631,6 +659,44 @@ class ReportShell extends Component
         $this->reportLoaded = true;
     }
 
+    protected function loadExpenseReport(): void
+    {
+        $expenseFilter = 'all';
+
+        if (str_starts_with($this->secondaryFilter, 'expense:')) {
+            [, $expenseFilter] = explode(':', $this->secondaryFilter, 2);
+        }
+
+        $payload = app(ExpenseReportService::class)->build(
+            $this->search !== '' ? $this->search : null,
+            $this->periodFilter !== '' ? $this->periodFilter : null,
+            $expenseFilter !== '' ? $expenseFilter : 'all',
+        );
+
+        $this->rows = $payload['rows'];
+        $this->kpis = $payload['kpis'];
+        $this->reportLoaded = true;
+    }
+
+    protected function loadCashReport(): void
+    {
+        $cashFilter = 'all';
+
+        if (str_starts_with($this->secondaryFilter, 'cash:')) {
+            [, $cashFilter] = explode(':', $this->secondaryFilter, 2);
+        }
+
+        $payload = app(CashReportService::class)->build(
+            $this->search !== '' ? $this->search : null,
+            $this->periodFilter !== '' ? $this->periodFilter : null,
+            $cashFilter !== '' ? $cashFilter : 'all',
+        );
+
+        $this->rows = $payload['rows'];
+        $this->kpis = $payload['kpis'];
+        $this->reportLoaded = true;
+    }
+
     protected function categoryFilterLabel(): string
     {
         $needle = 'category:'.$this->categoryFilter;
@@ -677,6 +743,8 @@ class ReportShell extends Component
             'isSupplierLedgerReport' => $this->isSupplierLedgerReport(),
             'isSalesSummaryReport' => $this->isSalesSummaryReport(),
             'isProfitLossReport' => $this->isProfitLossReport(),
+            'isExpenseReport' => $this->isExpenseReport(),
+            'isCashReport' => $this->isCashReport(),
             'isPartyLedgerReport' => $this->isPartyLedgerReport(),
             'isLiveReport' => $this->isLiveReport(),
         ]);

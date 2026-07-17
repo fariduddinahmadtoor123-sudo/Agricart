@@ -29,12 +29,16 @@ return [
         'supplier_ledger_hint' => 'Search a supplier, set period filters if needed, then open View for dated purchase and payment history. Period filters carry prior movement into opening.',
         'sales_summary_hint' => 'Completed sales only. Filter by period and channel (POS / online), then group by day, month, category, customer, or product. Net sales = gross minus returns.',
         'profit_loss_hint' => 'Each completed invoice with estimated profit or loss. Filter by period, search an invoice number, or show only Profit / Loss rows. COGS uses purchase cost as of the sale date.',
+        'expense_hint' => 'Expense payments by date. Filter by period or operating/other category kind.',
+        'cash_hint' => 'Cash drawer movements from the cash book. Filter by period; bank activity is under Finance → Banks.',
         'empty_preview' => 'No rows yet — run View report after we connect this report to your data.',
         'empty_stock' => 'No products match these filters.',
         'empty_customer_ledger' => 'No customers match these ledger filters.',
         'empty_supplier_ledger' => 'No suppliers match these ledger filters.',
         'empty_sales_summary' => 'No sales match these filters.',
         'empty_profit_loss' => 'No invoices match these P&L filters.',
+        'empty_expense' => 'No expense payments match these filters.',
+        'empty_cash' => 'No cash book entries match these filters.',
     ],
 
     'filters' => [
@@ -195,6 +199,20 @@ return [
             'expenses' => 'Operating expenses',
             'net_profit' => 'Net profit',
         ],
+    ],
+
+    'expense' => [
+        'kpis_aria' => 'Expense payments summary',
+        'kpi_payments' => 'Payments',
+        'kpi_total' => 'Total paid',
+    ],
+
+    'cash' => [
+        'kpis_aria' => 'Cash book summary',
+        'kpi_entries' => 'Entries',
+        'kpi_in' => 'Cash in',
+        'kpi_out' => 'Cash out',
+        'kpi_balance' => 'Cash on hand',
     ],
 
     'customer_ledger' => [

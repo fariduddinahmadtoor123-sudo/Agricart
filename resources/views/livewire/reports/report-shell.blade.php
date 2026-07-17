@@ -164,6 +164,40 @@
         </div>
     @endif
 
+    @if ($isExpenseReport && $reportLoaded)
+        <div class="agricart-reports-shell__kpis" role="group" aria-label="{{ __('reports.expense.kpis_aria') }}">
+            <div class="agricart-reports-shell__kpi">
+                <span class="agricart-reports-shell__kpi-label">{{ __('reports.expense.kpi_payments') }}</span>
+                <strong class="agricart-reports-shell__kpi-value">{{ $kpis['payments'] ?? 0 }}</strong>
+            </div>
+            <div class="agricart-reports-shell__kpi">
+                <span class="agricart-reports-shell__kpi-label">{{ __('reports.expense.kpi_total') }}</span>
+                <strong class="agricart-reports-shell__kpi-value">{{ $kpis['total_amount'] ?? '0.00' }}</strong>
+            </div>
+        </div>
+    @endif
+
+    @if ($isCashReport && $reportLoaded)
+        <div class="agricart-reports-shell__kpis" role="group" aria-label="{{ __('reports.cash.kpis_aria') }}">
+            <div class="agricart-reports-shell__kpi">
+                <span class="agricart-reports-shell__kpi-label">{{ __('reports.cash.kpi_entries') }}</span>
+                <strong class="agricart-reports-shell__kpi-value">{{ $kpis['entries'] ?? 0 }}</strong>
+            </div>
+            <div class="agricart-reports-shell__kpi is-in">
+                <span class="agricart-reports-shell__kpi-label">{{ __('reports.cash.kpi_in') }}</span>
+                <strong class="agricart-reports-shell__kpi-value">{{ $kpis['cash_in'] ?? '0.00' }}</strong>
+            </div>
+            <div class="agricart-reports-shell__kpi is-danger">
+                <span class="agricart-reports-shell__kpi-label">{{ __('reports.cash.kpi_out') }}</span>
+                <strong class="agricart-reports-shell__kpi-value">{{ $kpis['cash_out'] ?? '0.00' }}</strong>
+            </div>
+            <div class="agricart-reports-shell__kpi">
+                <span class="agricart-reports-shell__kpi-label">{{ __('reports.cash.kpi_balance') }}</span>
+                <strong class="agricart-reports-shell__kpi-value">{{ $kpis['balance'] ?? '0.00' }}</strong>
+            </div>
+        </div>
+    @endif
+
     <p class="agricart-reports-shell__lead">
         @if ($isStockReport)
             {{ __('reports.list.stock_hint') }}
@@ -175,6 +209,10 @@
             {{ __('reports.list.sales_summary_hint') }}
         @elseif ($isProfitLossReport)
             {{ __('reports.list.profit_loss_hint') }}
+        @elseif ($isExpenseReport)
+            {{ __('reports.list.expense_hint') }}
+        @elseif ($isCashReport)
+            {{ __('reports.list.cash_hint') }}
         @else
             {{ __('reports.list.shell_hint') }}
         @endif
@@ -183,7 +221,7 @@
     <div class="agricart-categories__table-wrap">
         <table @class([
             'agricart-categories__table',
-            'agricart-reports-shell__list-table' => $isPartyLedgerReport || $isStockReport || $isSalesSummaryReport || $isProfitLossReport,
+            'agricart-reports-shell__list-table' => $isPartyLedgerReport || $isStockReport || $isSalesSummaryReport || $isProfitLossReport || $isExpenseReport || $isCashReport,
         ])>
             <thead>
                 <tr>
@@ -192,7 +230,9 @@
                             <th @class([
                                 'is-numeric' => ($isPartyLedgerReport && in_array($column['value'], ['opening', 'debit', 'credit', 'balance'], true))
                                     || ($isSalesSummaryReport && in_array($column['value'], ['invoices', 'gross_sales', 'returns', 'net_sales', 'avg_ticket'], true))
-                                    || ($isProfitLossReport && in_array($column['value'], ['gross_sales', 'returns', 'net_sales', 'cogs', 'profit', 'margin'], true)),
+                                    || ($isProfitLossReport && in_array($column['value'], ['gross_sales', 'returns', 'net_sales', 'cogs', 'profit', 'margin'], true))
+                                    || ($isExpenseReport && $column['value'] === 'amount')
+                                    || ($isCashReport && in_array($column['value'], ['cash_in', 'cash_out', 'balance'], true)),
                             ])>
                                 {{ $column['label'] }}
                             </th>
@@ -213,7 +253,9 @@
                                     <td @class([
                                         'is-numeric' => ($isPartyLedgerReport && in_array($column['value'], ['opening', 'debit', 'credit', 'balance'], true))
                                             || ($isSalesSummaryReport && in_array($column['value'], ['invoices', 'gross_sales', 'returns', 'net_sales', 'avg_ticket'], true))
-                                            || ($isProfitLossReport && in_array($column['value'], ['gross_sales', 'returns', 'net_sales', 'cogs', 'profit', 'margin'], true)),
+                                            || ($isProfitLossReport && in_array($column['value'], ['gross_sales', 'returns', 'net_sales', 'cogs', 'profit', 'margin'], true))
+                                            || ($isExpenseReport && $column['value'] === 'amount')
+                                            || ($isCashReport && in_array($column['value'], ['cash_in', 'cash_out', 'balance'], true)),
                                         'is-customer' => ($isPartyLedgerReport && in_array($column['value'], ['customer', 'supplier'], true))
                                             || ($isProfitLossReport && $column['value'] === 'customer'),
                                     ])>
@@ -293,6 +335,10 @@
                                     {{ __('reports.list.empty_profit_loss') }}
                                 @elseif ($isSalesSummaryReport)
                                     {{ __('reports.list.empty_sales_summary') }}
+                                @elseif ($isExpenseReport)
+                                    {{ __('reports.list.empty_expense') }}
+                                @elseif ($isCashReport)
+                                    {{ __('reports.list.empty_cash') }}
                                 @elseif ($isSupplierLedgerReport)
                                     {{ __('reports.list.empty_supplier_ledger') }}
                                 @elseif ($isCustomerLedgerReport)
