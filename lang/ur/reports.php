@@ -31,6 +31,8 @@ return [
         'profit_loss_hint' => 'ہر مکمل انوائس پر تخمینی منافع یا نقصان۔ مدت فلٹر کریں، انوائس نمبر سرچ کریں، یا صرف Profit / Loss قطاریں دیکھیں۔ COGS سیل کی تاریخ تک کی خرید لاگت سے ہے۔',
         'expense_hint' => 'تاریخ کے لحاظ سے اخراجات کی ادائیگیاں۔ مدت یا operating/other قسم سے فلٹر کریں۔',
         'cash_hint' => 'کیش بک کی نقل و حرکت۔ مدت سے فلٹر کریں؛ بینک سرگرمی Finance → Banks میں ہے۔',
+        'seasonal_sales_hint' => 'سہ ماہی پروڈکٹ سیلز، ریٹرن منہا کر کے۔ مدت یا POS / آن لائن چینل سے فلٹر کریں۔',
+        'seasonal_purchases_hint' => 'سپلائر کے لحاظ سے سہ ماہی پروڈکٹ خریداری۔ مدت یا فعال سپلائر سے فلٹر کریں۔',
         'empty_preview' => 'ابھی قطار نہیں — ڈیٹا جوڑنے کے بعد View report چلائیں۔',
         'empty_stock' => 'ان فلٹرز سے کوئی پروڈکٹ نہیں ملا۔',
         'empty_customer_ledger' => 'ان لیجر فلٹرز سے کوئی کسٹمر نہیں ملا۔',
@@ -39,6 +41,8 @@ return [
         'empty_profit_loss' => 'ان P&L فلٹرز سے کوئی انوائس نہیں ملی۔',
         'empty_expense' => 'ان فلٹرز سے کوئی اخراجات ادائیگی نہیں ملی۔',
         'empty_cash' => 'ان فلٹرز سے کوئی کیش بک انٹری نہیں ملی۔',
+        'empty_seasonal_sales' => 'ان فلٹرز سے کوئی موسمی سیل نہیں ملی۔',
+        'empty_seasonal_purchases' => 'ان فلٹرز سے کوئی موسمی خریداری نہیں ملی۔',
     ],
 
     'filters' => [
@@ -215,6 +219,15 @@ return [
         'kpi_balance' => 'موجودہ کیش',
     ],
 
+    'seasonal' => [
+        'kpis_aria' => 'موسمی رپورٹ خلاصہ',
+        'kpi_products' => 'پروڈکٹ مدتیں',
+        'kpi_lines' => 'سپلائر پروڈکٹ مدتیں',
+        'kpi_quantity' => 'مقدار',
+        'kpi_net_sales' => 'خالص سیل',
+        'kpi_purchase_value' => 'خریداری مالیت',
+    ],
+
     'customer_ledger' => [
         'kpis_aria' => 'کسٹمر لیجر خلاصہ',
         'kpi_total_customers' => 'کسٹمرز',
@@ -235,6 +248,7 @@ return [
             'sale' => 'انوائس',
             'online_order' => 'آن لائن آرڈر',
             'payment' => 'پیمنٹ',
+            'customer_receipt' => 'کسٹمر رسید',
             'return' => 'واپسی',
             'refund' => 'ریفنڈ ادا',
         ],
@@ -244,6 +258,7 @@ return [
             'online_order' => 'آن لائن آرڈر :number',
             'payment_sale' => ':number کے خلاف پیمنٹ (:method)',
             'payment_order' => ':number کے خلاف پیمنٹ (:method)',
+            'customer_receipt' => 'کسٹمر رسید :number (:method)',
             'return' => 'سیل واپسی :number',
             'refund' => ':number کا ریفنڈ ادا (:method)',
         ],

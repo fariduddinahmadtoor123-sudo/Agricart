@@ -198,6 +198,31 @@
         </div>
     @endif
 
+    @if (($isSeasonalSalesReport || $isSeasonalPurchasesReport) && $reportLoaded)
+        <div class="agricart-reports-shell__kpis" role="group" aria-label="{{ __('reports.seasonal.kpis_aria') }}">
+            <div class="agricart-reports-shell__kpi">
+                <span class="agricart-reports-shell__kpi-label">
+                    {{ $isSeasonalSalesReport ? __('reports.seasonal.kpi_products') : __('reports.seasonal.kpi_lines') }}
+                </span>
+                <strong class="agricart-reports-shell__kpi-value">
+                    {{ $isSeasonalSalesReport ? ($kpis['products'] ?? 0) : ($kpis['lines'] ?? 0) }}
+                </strong>
+            </div>
+            <div class="agricart-reports-shell__kpi">
+                <span class="agricart-reports-shell__kpi-label">{{ __('reports.seasonal.kpi_quantity') }}</span>
+                <strong class="agricart-reports-shell__kpi-value">{{ $kpis['quantity'] ?? '0.000' }}</strong>
+            </div>
+            <div class="agricart-reports-shell__kpi">
+                <span class="agricart-reports-shell__kpi-label">
+                    {{ $isSeasonalSalesReport ? __('reports.seasonal.kpi_net_sales') : __('reports.seasonal.kpi_purchase_value') }}
+                </span>
+                <strong class="agricart-reports-shell__kpi-value">
+                    {{ $isSeasonalSalesReport ? ($kpis['net_sales'] ?? '0.00') : ($kpis['purchase_value'] ?? '0.00') }}
+                </strong>
+            </div>
+        </div>
+    @endif
+
     <p class="agricart-reports-shell__lead">
         @if ($isStockReport)
             {{ __('reports.list.stock_hint') }}
@@ -213,6 +238,10 @@
             {{ __('reports.list.expense_hint') }}
         @elseif ($isCashReport)
             {{ __('reports.list.cash_hint') }}
+        @elseif ($isSeasonalSalesReport)
+            {{ __('reports.list.seasonal_sales_hint') }}
+        @elseif ($isSeasonalPurchasesReport)
+            {{ __('reports.list.seasonal_purchases_hint') }}
         @else
             {{ __('reports.list.shell_hint') }}
         @endif
@@ -221,7 +250,7 @@
     <div class="agricart-categories__table-wrap">
         <table @class([
             'agricart-categories__table',
-            'agricart-reports-shell__list-table' => $isPartyLedgerReport || $isStockReport || $isSalesSummaryReport || $isProfitLossReport || $isExpenseReport || $isCashReport,
+            'agricart-reports-shell__list-table' => $isPartyLedgerReport || $isStockReport || $isSalesSummaryReport || $isProfitLossReport || $isExpenseReport || $isCashReport || $isSeasonalSalesReport || $isSeasonalPurchasesReport,
         ])>
             <thead>
                 <tr>
@@ -232,7 +261,9 @@
                                     || ($isSalesSummaryReport && in_array($column['value'], ['invoices', 'gross_sales', 'returns', 'net_sales', 'avg_ticket'], true))
                                     || ($isProfitLossReport && in_array($column['value'], ['gross_sales', 'returns', 'net_sales', 'cogs', 'profit', 'margin'], true))
                                     || ($isExpenseReport && $column['value'] === 'amount')
-                                    || ($isCashReport && in_array($column['value'], ['cash_in', 'cash_out', 'balance'], true)),
+                                    || ($isCashReport && in_array($column['value'], ['cash_in', 'cash_out', 'balance'], true))
+                                    || ($isSeasonalSalesReport && in_array($column['value'], ['qty_sold', 'net_sales', 'avg_price'], true))
+                                    || ($isSeasonalPurchasesReport && in_array($column['value'], ['qty_purchased', 'purchase_value'], true)),
                             ])>
                                 {{ $column['label'] }}
                             </th>
@@ -255,7 +286,9 @@
                                             || ($isSalesSummaryReport && in_array($column['value'], ['invoices', 'gross_sales', 'returns', 'net_sales', 'avg_ticket'], true))
                                             || ($isProfitLossReport && in_array($column['value'], ['gross_sales', 'returns', 'net_sales', 'cogs', 'profit', 'margin'], true))
                                             || ($isExpenseReport && $column['value'] === 'amount')
-                                            || ($isCashReport && in_array($column['value'], ['cash_in', 'cash_out', 'balance'], true)),
+                                            || ($isCashReport && in_array($column['value'], ['cash_in', 'cash_out', 'balance'], true))
+                                            || ($isSeasonalSalesReport && in_array($column['value'], ['qty_sold', 'net_sales', 'avg_price'], true))
+                                            || ($isSeasonalPurchasesReport && in_array($column['value'], ['qty_purchased', 'purchase_value'], true)),
                                         'is-customer' => ($isPartyLedgerReport && in_array($column['value'], ['customer', 'supplier'], true))
                                             || ($isProfitLossReport && $column['value'] === 'customer'),
                                     ])>
@@ -339,6 +372,10 @@
                                     {{ __('reports.list.empty_expense') }}
                                 @elseif ($isCashReport)
                                     {{ __('reports.list.empty_cash') }}
+                                @elseif ($isSeasonalSalesReport)
+                                    {{ __('reports.list.empty_seasonal_sales') }}
+                                @elseif ($isSeasonalPurchasesReport)
+                                    {{ __('reports.list.empty_seasonal_purchases') }}
                                 @elseif ($isSupplierLedgerReport)
                                     {{ __('reports.list.empty_supplier_ledger') }}
                                 @elseif ($isCustomerLedgerReport)

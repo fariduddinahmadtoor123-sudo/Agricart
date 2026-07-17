@@ -49,7 +49,7 @@ class ListFundTransfers extends Component
         $service = app(FundTransferService::class);
 
         $transfers = FundTransfer::query()
-            ->with(['sourceBankAccount', 'destinationBankAccount', 'destinationSupplier', 'destinationPurchaser'])
+            ->with(['sourceBankAccount', 'destinationBankAccount', 'destinationSupplier', 'destinationCustomer', 'destinationPurchaser'])
             ->when(filled($this->search), function ($query): void {
                 $needle = '%' . $this->search . '%';
                 $query->where(function ($inner) use ($needle): void {
@@ -72,6 +72,12 @@ class ListFundTransfers extends Component
 
     private function sourceLabel(FundTransfer $transfer): string
     {
+        if ($transfer->transaction_type === FundTransfer::TYPE_CUSTOMER_RECEIPT) {
+            return $transfer->source_wallet === FundTransfer::WALLET_CASH
+                ? __('agricart.finance.fund_transfers.source_wallets.cash')
+                : ($transfer->sourceBankAccount?->displayName() ?? '—');
+        }
+
         if ($transfer->transaction_type === FundTransfer::TYPE_DEPOSIT || $transfer->source_wallet === FundTransfer::WALLET_CASH) {
             return __('agricart.finance.fund_transfers.source_wallets.cash');
         }
@@ -84,6 +90,7 @@ class ListFundTransfers extends Component
         return match ($transfer->transaction_type) {
             FundTransfer::TYPE_DEPOSIT, FundTransfer::TYPE_TRANSFER => $transfer->destinationBankAccount?->displayName() ?? '—',
             FundTransfer::TYPE_VENDOR_PAYMENT => $transfer->destinationSupplier?->displayBusinessName() ?? '—',
+            FundTransfer::TYPE_CUSTOMER_RECEIPT => $transfer->destinationCustomer?->displayName() ?? '—',
             FundTransfer::TYPE_EXPENSE_PAYMENT => (string) ($transfer->destinationPurchaser?->name ?? '—'),
             default => '—',
         };

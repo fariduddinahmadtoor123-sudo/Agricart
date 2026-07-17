@@ -74,6 +74,7 @@ return [
         'items_required' => 'Enter a return quantity for at least one line.',
         'qty_exceeds_sold' => 'Return quantity cannot exceed sold quantity.',
         'qty_exceeds_remaining' => 'Return quantity exceeds remaining returnable quantity.',
+        'refund_posted_locked' => 'This return has already posted a cash or bank refund and can no longer be edited or deleted.',
     ],
 
     'print' => [

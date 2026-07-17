@@ -369,6 +369,59 @@ return [
         ],
     ],
 
+    'dashboard' => [
+        'overview' => [
+            'cards' => [
+                'sales_today' => 'آج کی سیل',
+                'open_orders' => 'کھلے آن لائن آرڈرز',
+                'low_stock' => 'کم اسٹاک',
+                'cash' => 'موجودہ کیش',
+                'receivable' => 'کسٹمر سے وصولی',
+                'payable' => 'سپلائر کو ادائیگی',
+                'approvals' => 'زیر التوا منظوری',
+            ],
+            'meta' => [
+                'invoices' => ':count مکمل انوائسز',
+                'requires_action' => 'کارروائی کے منتظر آرڈرز',
+                'reorder_attention' => 'الرٹ مقدار تک پہنچے پروڈکٹس',
+                'cash_balance' => 'موجودہ کیش بک بیلنس',
+                'customer_balance' => 'کسٹمرز سے واجب الوصول رقم',
+                'supplier_balance' => 'سپلائرز کو واجب الادا رقم',
+                'pending_staff' => 'جائزے کے منتظر اسٹاف اکاؤنٹس',
+            ],
+        ],
+        'attention' => [
+            'title' => 'توجہ درکار',
+            'hint' => 'کام مکمل کرنے کے لیے متعلقہ کارڈ کھولیں۔',
+            'cards' => [
+                'pending_orders' => 'کھلے آن لائن آرڈرز',
+                'pending_purchases' => 'وصولی کے منتظر خریداری',
+                'low_stock' => 'کم اسٹاک پروڈکٹس',
+                'pending_approvals' => 'اسٹاف منظوریاں',
+            ],
+            'pending_orders_hint' => 'ادائیگی اور پروسیسنگ اسٹیٹس دیکھیں۔',
+            'pending_purchases_hint' => 'زیر التوا یا جزوی وصولی مکمل کریں۔',
+            'low_stock_hint' => 'اسٹاک دیکھ کر خریداری کا کام بنائیں۔',
+            'pending_approvals_hint' => 'اسٹاف رجسٹریشن منظور یا مسترد کریں۔',
+        ],
+        'summary' => [
+            'generated' => 'اپ ڈیٹ: :time',
+            'columns' => [
+                'metric' => 'میٹرک',
+                'today' => 'آج',
+                'month' => 'اس ماہ',
+                'action' => 'عمل',
+            ],
+            'rows' => [
+                'sales' => 'مکمل سیلز',
+                'returns' => 'سیل ریٹرنز',
+                'purchases' => 'خریداری',
+                'expenses' => 'اخراجات ادائیگیاں',
+            ],
+            'open' => 'کھولیں',
+        ],
+    ],
+
     'contacts' => [
         'overview' => [
             'title' => 'رابطے — جائزہ',
@@ -522,6 +575,8 @@ return [
                 'col_credit' => 'کریڈٹ (اندر)',
                 'opening' => 'اوپننگ بیلنس',
                 'sale_receipt' => 'سیل وصولی — :number',
+                'sale_return_refund' => 'سیل ریٹرن ریفنڈ — :number',
+                'customer_receipt' => 'کسٹمر رسید — :name',
                 'online_order_receipt' => 'آن لائن آرڈر وصولی — :number',
                 'transfer_to' => ':name کو ٹرانسفر',
                 'transfer_from' => ':name سے ٹرانسفر',
@@ -529,6 +584,8 @@ return [
                 'types' => [
                     'opening' => 'اوپننگ',
                     'sale_receipt' => 'سیل وصولی',
+                    'sale_refund' => 'سیل ریفنڈ',
+                    'customer_receipt' => 'کسٹمر رسید',
                     'transfer_in' => 'ٹرانسفر ان',
                     'transfer_out' => 'ٹرانسفر آؤٹ',
                     'supplier_payment' => 'سپلائر ادائیگی',
@@ -594,8 +651,10 @@ return [
                 'transaction_type' => 'ٹرانزیکشن کی قسم',
                 'transaction_id' => 'ٹرانزیکشن آئی ڈی',
                 'source_wallet' => 'ادائیگی کہاں سے',
+                'deposit_to' => 'جمع کہاں',
                 'bank_account' => 'بینک اکاؤنٹ',
                 'vendor' => 'وینڈر / سپلائر',
+                'customer' => 'کسٹمر',
                 'purchaser' => 'خریدار / وصول کنندہ',
                 'amount' => 'رقم (PKR)',
                 'date' => 'تاریخ',
@@ -606,6 +665,7 @@ return [
                 'deposit' => 'ڈپازٹ (کیش → بینک)',
                 'transfer' => 'ٹرانسفر (بینک → بینک)',
                 'vendor_payment' => 'وینڈر ادائیگی',
+                'customer_receipt' => 'کسٹمر رسید',
                 'expense_payment' => 'اخراجات / خریدار ادائیگی',
             ],
             'source_wallets' => [
@@ -615,6 +675,7 @@ return [
             'placeholders' => [
                 'select_bank' => 'بینک اکاؤنٹ منتخب کریں',
                 'select_vendor' => 'وینڈر منتخب کریں',
+                'select_customer' => 'کسٹمر منتخب کریں',
                 'select_purchaser' => 'خریدار منتخب کریں',
             ],
             'hints' => [
@@ -622,6 +683,7 @@ return [
                 'deposit' => 'کیش بک سے رقم نکل کر منتخب بینک اکاؤنٹ میں جمع ہوگی۔',
                 'transfer' => 'ایک بینک اکاؤنٹ سے دوسرے میں بیلنس منتقل ہوگا۔',
                 'vendor_payment' => 'کیش یا بینک سے وینڈر کو ادائیگی؛ ان کے کھاتے میں کریڈٹ۔',
+                'customer_receipt' => 'کسٹمر کی ادائیگی کیش یا بینک میں درج کریں۔ انوائس بدلے بغیر وصولی کم ہوتی ہے۔',
                 'expense_payment' => 'کیش یا بینک سے خریدار یا اخراجات وصول کنندہ کو ادائیگی۔',
             ],
             'list' => [
@@ -634,6 +696,7 @@ return [
             'ledger' => [
                 'cash_deposit' => 'کیش ڈپازٹ — :number',
                 'vendor_payment' => 'وینڈر ادائیگی — :name (:number)',
+                'customer_receipt' => 'کسٹمر رسید — :name (:number)',
                 'expense_payment' => 'اخراجات / خریدار — :name (:number)',
             ],
             'messages' => [

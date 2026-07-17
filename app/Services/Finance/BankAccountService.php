@@ -4,8 +4,10 @@ namespace App\Services\Finance;
 
 use App\Models\BankAccount;
 use App\Models\BankAccountTransaction;
+use App\Models\Customer;
 use App\Models\OnlineSaleOrder;
 use App\Models\Sale;
+use App\Models\SaleReturn;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Support\PakistaniBanks;
@@ -210,6 +212,31 @@ class BankAccountService
         );
     }
 
+    public function receiveCustomerPayment(
+        BankAccount $into,
+        Customer $customer,
+        float $amount,
+        string $transactionDate,
+        ?string $notes = null,
+        ?User $actor = null,
+        ?int $fundTransferId = null,
+    ): void {
+        $this->postTransaction(
+            $into,
+            BankAccountTransaction::TYPE_CUSTOMER_RECEIPT,
+            BankAccountTransaction::DIRECTION_CREDIT,
+            $amount,
+            $transactionDate,
+            __('agricart.finance.banks.ledger.customer_receipt', ['name' => $customer->displayName()]),
+            [
+                'customer_id' => $customer->id,
+                'notes' => $notes,
+                'fund_transfer_id' => $fundTransferId,
+            ],
+            $actor,
+        );
+    }
+
     public function recordExpensePayment(
         BankAccount $from,
         float $amount,
@@ -305,6 +332,37 @@ class BankAccountService
             __('agricart.finance.banks.ledger.sale_receipt', ['number' => $sale->sale_number]),
             ['sale_id' => $sale->id],
             null,
+        );
+    }
+
+    public function recordSaleReturnRefundIfApplicable(SaleReturn $return): void
+    {
+        if ($return->payment_method !== 'bank_transfer' || ! $return->bank_account_id) {
+            return;
+        }
+
+        $paid = (float) $return->amount_paid;
+
+        if ($paid <= 0 || BankAccountTransaction::query()->where('sale_return_id', $return->id)->exists()) {
+            return;
+        }
+
+        $account = BankAccount::query()->find($return->bank_account_id);
+
+        if ($account === null || ! $account->isActive()) {
+            return;
+        }
+
+        $this->assertSufficientBalance($account, $paid);
+        $this->postTransaction(
+            $account,
+            BankAccountTransaction::TYPE_SALE_REFUND,
+            BankAccountTransaction::DIRECTION_DEBIT,
+            $paid,
+            $return->return_date?->toDateString() ?? now()->toDateString(),
+            __('agricart.finance.banks.ledger.sale_return_refund', ['number' => $return->return_number]),
+            ['sale_return_id' => $return->id],
+            auth()->user() instanceof User ? auth()->user() : null,
         );
     }
 

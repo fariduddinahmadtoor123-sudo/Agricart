@@ -1,4 +1,10 @@
 <div class="agricart-categories agricart-purchases">
+    @if (session('sale_return_error'))
+        <div class="agricart-categories__empty" role="alert">
+            <p>{{ session('sale_return_error') }}</p>
+        </div>
+    @endif
+
     @if ($activeFilters !== [])
         <div class="agricart-list-filters">
             @foreach ($activeFilters as $filter)

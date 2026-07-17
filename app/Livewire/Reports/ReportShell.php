@@ -8,6 +8,8 @@ use App\Services\Reports\ExpenseReportService;
 use App\Services\Reports\ProfitLossReportService;
 use App\Services\Reports\ReportCatalog;
 use App\Services\Reports\SalesSummaryReportService;
+use App\Services\Reports\SeasonalPurchasesReportService;
+use App\Services\Reports\SeasonalSalesReportService;
 use App\Services\Reports\StockReportService;
 use App\Services\Reports\SupplierLedgerReportService;
 use Illuminate\Contracts\View\View;
@@ -279,6 +281,8 @@ class ReportShell extends Component
             $this->isProfitLossReport() => app(ProfitLossReportService::class)->csvMatrix($this->rows, $this->visibleColumns),
             $this->isExpenseReport() => app(ExpenseReportService::class)->csvMatrix($this->rows, $this->visibleColumns),
             $this->isCashReport() => app(CashReportService::class)->csvMatrix($this->rows, $this->visibleColumns),
+            $this->isSeasonalSalesReport() => app(SeasonalSalesReportService::class)->csvMatrix($this->rows, $this->visibleColumns),
+            $this->isSeasonalPurchasesReport() => app(SeasonalPurchasesReportService::class)->csvMatrix($this->rows, $this->visibleColumns),
             $this->isSupplierLedgerReport() => app(SupplierLedgerReportService::class)->csvMatrix($this->rows, $this->visibleColumns),
             default => app(CustomerLedgerReportService::class)->csvMatrix($this->rows, $this->visibleColumns),
         };
@@ -523,6 +527,16 @@ class ReportShell extends Component
         return $this->reportKey === 'cash-report';
     }
 
+    protected function isSeasonalSalesReport(): bool
+    {
+        return $this->reportKey === 'seasonal-sales';
+    }
+
+    protected function isSeasonalPurchasesReport(): bool
+    {
+        return $this->reportKey === 'seasonal-purchases';
+    }
+
     protected function isPartyLedgerReport(): bool
     {
         return $this->isCustomerLedgerReport() || $this->isSupplierLedgerReport();
@@ -535,7 +549,9 @@ class ReportShell extends Component
             || $this->isSalesSummaryReport()
             || $this->isProfitLossReport()
             || $this->isExpenseReport()
-            || $this->isCashReport();
+            || $this->isCashReport()
+            || $this->isSeasonalSalesReport()
+            || $this->isSeasonalPurchasesReport();
     }
 
     protected function loadLiveReport(): void
@@ -566,6 +582,18 @@ class ReportShell extends Component
 
         if ($this->isCashReport()) {
             $this->loadCashReport();
+
+            return;
+        }
+
+        if ($this->isSeasonalSalesReport()) {
+            $this->loadSeasonalSalesReport();
+
+            return;
+        }
+
+        if ($this->isSeasonalPurchasesReport()) {
+            $this->loadSeasonalPurchasesReport();
 
             return;
         }
@@ -697,6 +725,44 @@ class ReportShell extends Component
         $this->reportLoaded = true;
     }
 
+    protected function loadSeasonalSalesReport(): void
+    {
+        $channelFilter = 'all';
+
+        if (str_starts_with($this->secondaryFilter, 'channel:')) {
+            [, $channelFilter] = explode(':', $this->secondaryFilter, 2);
+        }
+
+        $payload = app(SeasonalSalesReportService::class)->build(
+            $this->search !== '' ? $this->search : null,
+            $this->periodFilter !== '' ? $this->periodFilter : null,
+            $channelFilter,
+        );
+
+        $this->rows = $payload['rows'];
+        $this->kpis = $payload['kpis'];
+        $this->reportLoaded = true;
+    }
+
+    protected function loadSeasonalPurchasesReport(): void
+    {
+        $supplierFilter = 'all';
+
+        if (str_starts_with($this->secondaryFilter, 'supplier:')) {
+            [, $supplierFilter] = explode(':', $this->secondaryFilter, 2);
+        }
+
+        $payload = app(SeasonalPurchasesReportService::class)->build(
+            $this->search !== '' ? $this->search : null,
+            $this->periodFilter !== '' ? $this->periodFilter : null,
+            $supplierFilter,
+        );
+
+        $this->rows = $payload['rows'];
+        $this->kpis = $payload['kpis'];
+        $this->reportLoaded = true;
+    }
+
     protected function categoryFilterLabel(): string
     {
         $needle = 'category:'.$this->categoryFilter;
@@ -745,6 +811,8 @@ class ReportShell extends Component
             'isProfitLossReport' => $this->isProfitLossReport(),
             'isExpenseReport' => $this->isExpenseReport(),
             'isCashReport' => $this->isCashReport(),
+            'isSeasonalSalesReport' => $this->isSeasonalSalesReport(),
+            'isSeasonalPurchasesReport' => $this->isSeasonalPurchasesReport(),
             'isPartyLedgerReport' => $this->isPartyLedgerReport(),
             'isLiveReport' => $this->isLiveReport(),
         ]);

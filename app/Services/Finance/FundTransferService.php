@@ -3,6 +3,7 @@
 namespace App\Services\Finance;
 
 use App\Models\BankAccount;
+use App\Models\Customer;
 use App\Models\FundTransfer;
 use App\Models\Supplier;
 use App\Models\User;
@@ -29,7 +30,7 @@ class FundTransferService
         $notes = filled($validated['notes'] ?? null) ? (string) $validated['notes'] : null;
         $type = (string) $validated['transaction_type'];
 
-        $lockKey = 'finance-fund-transfer:' . ($actor?->id ?? 'guest') . ':' . hash('sha256', json_encode([
+        $lockKey = 'finance-fund-transfer:'.($actor?->id ?? 'guest').':'.hash('sha256', json_encode([
             $type,
             $amount,
             $date,
@@ -37,37 +38,40 @@ class FundTransferService
             $validated['source_bank_account_id'] ?? null,
             $validated['destination_bank_account_id'] ?? null,
             $validated['destination_supplier_id'] ?? null,
+            $validated['destination_customer_id'] ?? null,
             $validated['destination_purchaser_id'] ?? null,
         ]));
 
         return Cache::lock($lockKey, 15)->block(10, function () use ($validated, $amount, $date, $notes, $type, $actor): FundTransfer {
             return DB::transaction(function () use ($validated, $amount, $date, $notes, $type, $actor): FundTransfer {
-            $transfer = FundTransfer::query()->create([
-                'transfer_number' => $this->nextTransferNumber(),
-                'transaction_type' => $type,
-                'source_wallet' => $validated['source_wallet'] ?? null,
-                'source_bank_account_id' => $validated['source_bank_account_id'] ?? null,
-                'destination_bank_account_id' => $validated['destination_bank_account_id'] ?? null,
-                'destination_supplier_id' => $validated['destination_supplier_id'] ?? null,
-                'destination_purchaser_id' => $validated['destination_purchaser_id'] ?? null,
-                'amount' => $amount,
-                'transaction_date' => $date,
-                'transaction_time' => $validated['transaction_time'],
-                'notes' => $notes,
-                'created_by' => $actor?->id,
-            ]);
+                $transfer = FundTransfer::query()->create([
+                    'transfer_number' => $this->nextTransferNumber(),
+                    'transaction_type' => $type,
+                    'source_wallet' => $validated['source_wallet'] ?? null,
+                    'source_bank_account_id' => $validated['source_bank_account_id'] ?? null,
+                    'destination_bank_account_id' => $validated['destination_bank_account_id'] ?? null,
+                    'destination_supplier_id' => $validated['destination_supplier_id'] ?? null,
+                    'destination_customer_id' => $validated['destination_customer_id'] ?? null,
+                    'destination_purchaser_id' => $validated['destination_purchaser_id'] ?? null,
+                    'amount' => $amount,
+                    'transaction_date' => $date,
+                    'transaction_time' => $validated['transaction_time'],
+                    'notes' => $notes,
+                    'created_by' => $actor?->id,
+                ]);
 
-            match ($type) {
-                FundTransfer::TYPE_DEPOSIT => $this->postDeposit($transfer, $actor),
-                FundTransfer::TYPE_TRANSFER => $this->postBankTransfer($transfer, $actor),
-                FundTransfer::TYPE_VENDOR_PAYMENT => $this->postVendorPayment($transfer, $actor),
-                FundTransfer::TYPE_EXPENSE_PAYMENT => $this->postExpensePayment($transfer, $actor),
-                default => throw ValidationException::withMessages([
-                    'transaction_type' => [__('agricart.finance.fund_transfers.messages.invalid_type')],
-                ]),
-            };
+                match ($type) {
+                    FundTransfer::TYPE_DEPOSIT => $this->postDeposit($transfer, $actor),
+                    FundTransfer::TYPE_TRANSFER => $this->postBankTransfer($transfer, $actor),
+                    FundTransfer::TYPE_VENDOR_PAYMENT => $this->postVendorPayment($transfer, $actor),
+                    FundTransfer::TYPE_CUSTOMER_RECEIPT => $this->postCustomerReceipt($transfer, $actor),
+                    FundTransfer::TYPE_EXPENSE_PAYMENT => $this->postExpensePayment($transfer, $actor),
+                    default => throw ValidationException::withMessages([
+                        'transaction_type' => [__('agricart.finance.fund_transfers.messages.invalid_type')],
+                    ]),
+                };
 
-            return $transfer->fresh();
+                return $transfer->fresh();
             });
         });
     }
@@ -159,6 +163,37 @@ class FundTransferService
         $this->applySupplierPayment($supplier, (float) $transfer->amount);
     }
 
+    private function postCustomerReceipt(FundTransfer $transfer, ?User $actor): void
+    {
+        $customer = Customer::query()->findOrFail($transfer->destination_customer_id);
+        $description = __('agricart.finance.fund_transfers.ledger.customer_receipt', [
+            'name' => $customer->displayName(),
+            'number' => $transfer->transfer_number,
+        ]);
+
+        if ($transfer->source_wallet === FundTransfer::WALLET_CASH) {
+            $this->cashBookService->recordIn(
+                (float) $transfer->amount,
+                $transfer->transaction_date->toDateString(),
+                $description,
+                $transfer->id,
+                $transfer->notes,
+                $actor,
+            );
+        } else {
+            $into = BankAccount::query()->findOrFail($transfer->source_bank_account_id);
+            $this->bankAccountService->receiveCustomerPayment(
+                $into,
+                $customer,
+                (float) $transfer->amount,
+                $transfer->transaction_date->toDateString(),
+                $transfer->notes,
+                $actor,
+                $transfer->id,
+            );
+        }
+    }
+
     private function postExpensePayment(FundTransfer $transfer, ?User $actor): void
     {
         $purchaser = User::query()->findOrFail($transfer->destination_purchaser_id);
@@ -210,7 +245,7 @@ class FundTransferService
     private function validate(array $data): array
     {
         $rules = [
-            'transaction_type' => ['required', 'in:deposit,transfer,vendor_payment,expense_payment'],
+            'transaction_type' => ['required', 'in:deposit,transfer,vendor_payment,customer_receipt,expense_payment'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'transaction_date' => ['required', 'date'],
             'transaction_time' => ['required', 'date_format:H:i'],
@@ -230,7 +265,7 @@ class FundTransferService
             $rules['destination_bank_account_id'] = ['required', 'integer', 'exists:bank_accounts,id', 'different:source_bank_account_id'];
         }
 
-        if (in_array($type, [FundTransfer::TYPE_VENDOR_PAYMENT, FundTransfer::TYPE_EXPENSE_PAYMENT], true)) {
+        if (in_array($type, [FundTransfer::TYPE_VENDOR_PAYMENT, FundTransfer::TYPE_CUSTOMER_RECEIPT, FundTransfer::TYPE_EXPENSE_PAYMENT], true)) {
             $rules['source_wallet'] = ['required', 'in:cash,bank'];
             if (($data['source_wallet'] ?? '') === FundTransfer::WALLET_BANK) {
                 $rules['source_bank_account_id'] = ['required', 'integer', 'exists:bank_accounts,id'];
@@ -239,6 +274,10 @@ class FundTransferService
 
         if ($type === FundTransfer::TYPE_VENDOR_PAYMENT) {
             $rules['destination_supplier_id'] = ['required', 'integer', 'exists:suppliers,id'];
+        }
+
+        if ($type === FundTransfer::TYPE_CUSTOMER_RECEIPT) {
+            $rules['destination_customer_id'] = ['required', 'integer', 'exists:customers,id'];
         }
 
         if ($type === FundTransfer::TYPE_EXPENSE_PAYMENT) {
@@ -253,7 +292,7 @@ class FundTransferService
         $next = (int) FundTransfer::query()->max('id') + 1;
 
         do {
-            $number = 'FT-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
+            $number = 'FT-'.str_pad((string) $next, 5, '0', STR_PAD_LEFT);
             $next++;
         } while (FundTransfer::query()->where('transfer_number', $number)->exists());
 

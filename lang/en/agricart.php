@@ -369,6 +369,59 @@ return [
         ],
     ],
 
+    'dashboard' => [
+        'overview' => [
+            'cards' => [
+                'sales_today' => 'Sales today',
+                'open_orders' => 'Open online orders',
+                'low_stock' => 'Low stock',
+                'cash' => 'Cash on hand',
+                'receivable' => 'Customer receivable',
+                'payable' => 'Supplier payable',
+                'approvals' => 'Pending approvals',
+            ],
+            'meta' => [
+                'invoices' => ':count completed invoices',
+                'requires_action' => 'Orders requiring action',
+                'reorder_attention' => 'Products at or below alert quantity',
+                'cash_balance' => 'Current cash-book balance',
+                'customer_balance' => 'Amount due from customers',
+                'supplier_balance' => 'Amount due to suppliers',
+                'pending_staff' => 'Staff registrations awaiting review',
+            ],
+        ],
+        'attention' => [
+            'title' => 'Requires attention',
+            'hint' => 'Open an item to resolve operational work.',
+            'cards' => [
+                'pending_orders' => 'Open online orders',
+                'pending_purchases' => 'Purchases awaiting receipt',
+                'low_stock' => 'Low-stock products',
+                'pending_approvals' => 'Staff approvals',
+            ],
+            'pending_orders_hint' => 'Review payment and processing status.',
+            'pending_purchases_hint' => 'Complete pending or partial receipts.',
+            'low_stock_hint' => 'Review stock and create purchase work.',
+            'pending_approvals_hint' => 'Approve or reject staff registrations.',
+        ],
+        'summary' => [
+            'generated' => 'Updated :time',
+            'columns' => [
+                'metric' => 'Metric',
+                'today' => 'Today',
+                'month' => 'This month',
+                'action' => 'Action',
+            ],
+            'rows' => [
+                'sales' => 'Completed sales',
+                'returns' => 'Sales returns',
+                'purchases' => 'Purchases',
+                'expenses' => 'Expense payments',
+            ],
+            'open' => 'Open',
+        ],
+    ],
+
     'contacts' => [
         'overview' => [
             'title' => 'Contacts overview',
@@ -522,6 +575,8 @@ return [
                 'col_credit' => 'Credit (in)',
                 'opening' => 'Opening balance',
                 'sale_receipt' => 'Sale receipt — :number',
+                'sale_return_refund' => 'Sale return refund — :number',
+                'customer_receipt' => 'Customer receipt — :name',
                 'online_order_receipt' => 'Online order receipt — :number',
                 'transfer_to' => 'Transfer to :name',
                 'transfer_from' => 'Transfer from :name',
@@ -529,6 +584,8 @@ return [
                 'types' => [
                     'opening' => 'Opening balance',
                     'sale_receipt' => 'Sale receipt',
+                    'sale_refund' => 'Sale refund',
+                    'customer_receipt' => 'Customer receipt',
                     'transfer_in' => 'Transfer in',
                     'transfer_out' => 'Transfer out',
                     'supplier_payment' => 'Supplier payment',
@@ -594,8 +651,10 @@ return [
                 'transaction_type' => 'Transaction type',
                 'transaction_id' => 'Transaction ID',
                 'source_wallet' => 'Pay from',
+                'deposit_to' => 'Deposit to',
                 'bank_account' => 'Bank account',
                 'vendor' => 'Vendor / supplier',
+                'customer' => 'Customer',
                 'purchaser' => 'Purchaser / payee',
                 'amount' => 'Amount (PKR)',
                 'date' => 'Date',
@@ -606,6 +665,7 @@ return [
                 'deposit' => 'Deposit (cash → bank)',
                 'transfer' => 'Transfer (bank → bank)',
                 'vendor_payment' => 'Vendor payment',
+                'customer_receipt' => 'Customer receipt',
                 'expense_payment' => 'Expense / purchaser payment',
             ],
             'source_wallets' => [
@@ -615,6 +675,7 @@ return [
             'placeholders' => [
                 'select_bank' => 'Select bank account',
                 'select_vendor' => 'Select vendor',
+                'select_customer' => 'Select customer',
                 'select_purchaser' => 'Select purchaser',
             ],
             'hints' => [
@@ -622,6 +683,7 @@ return [
                 'deposit' => 'Cash leaves the cash book and is deposited into the selected bank account.',
                 'transfer' => 'Move balance from one bank account to another.',
                 'vendor_payment' => 'Pay a vendor from cash or a bank account; their account is credited.',
+                'customer_receipt' => 'Record a customer payment into cash or a bank account. This reduces receivables without editing an invoice.',
                 'expense_payment' => 'Pay a purchaser or expense payee from cash or a bank account.',
             ],
             'list' => [
@@ -634,6 +696,7 @@ return [
             'ledger' => [
                 'cash_deposit' => 'Cash deposit — :number',
                 'vendor_payment' => 'Vendor payment — :name (:number)',
+                'customer_receipt' => 'Customer receipt — :name (:number)',
                 'expense_payment' => 'Expense / purchaser payment — :name (:number)',
             ],
             'messages' => [

@@ -2,6 +2,8 @@
 
 namespace App\Services\Sales;
 
+use App\Models\BankAccountTransaction;
+use App\Models\CashBookTransaction;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
@@ -137,6 +139,7 @@ class SaleReturnService
 
             $return = $return->fresh(['items', 'customer', 'sale', 'processedBy']);
             app(\App\Services\Finance\CashBookService::class)->recordSaleReturnRefundIfApplicable($return);
+            app(\App\Services\Finance\BankAccountService::class)->recordSaleReturnRefundIfApplicable($return);
 
             return $return;
         });
@@ -147,6 +150,7 @@ class SaleReturnService
      */
     public function update(SaleReturn $return, array $data): SaleReturn
     {
+        $this->assertFinanciallyEditable($return);
         $validated = $this->validate($data, $return->id);
         $rows = $validated['rows'];
         unset($validated['rows']);
@@ -170,6 +174,8 @@ class SaleReturnService
 
     public function delete(SaleReturn $return): void
     {
+        $this->assertFinanciallyEditable($return);
+
         DB::transaction(function () use ($return): void {
             $return->loadMissing('items');
             $rows = $return->items->map(fn (SaleReturnItem $item): array => [
@@ -180,6 +186,18 @@ class SaleReturnService
             $this->adjustStock($rows, -1);
             $return->delete();
         });
+    }
+
+    public function assertFinanciallyEditable(SaleReturn $return): void
+    {
+        $cashPosted = CashBookTransaction::query()->where('sale_return_id', $return->id)->exists();
+        $bankPosted = BankAccountTransaction::query()->where('sale_return_id', $return->id)->exists();
+
+        if ($cashPosted || $bankPosted) {
+            throw ValidationException::withMessages([
+                'return' => [__('sale_returns.validation.refund_posted_locked')],
+            ]);
+        }
     }
 
     /**

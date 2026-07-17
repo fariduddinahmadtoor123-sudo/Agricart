@@ -6,6 +6,7 @@ use App\Models\SaleReturn;
 use App\Models\User;
 use App\Services\Sales\SaleReturnService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -177,8 +178,12 @@ class ListSaleReturns extends Component
             return;
         }
 
-        app(SaleReturnService::class)->delete($return);
-        $this->resetPage();
+        try {
+            app(SaleReturnService::class)->delete($return);
+            $this->resetPage();
+        } catch (ValidationException $exception) {
+            session()->flash('sale_return_error', collect($exception->errors())->flatten()->first());
+        }
     }
 
     public function printReturn(int $returnId): void

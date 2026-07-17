@@ -11,11 +11,15 @@ class BankAccountTransaction extends Model
 
     public const TYPE_SALE_RECEIPT = 'sale_receipt';
 
+    public const TYPE_SALE_REFUND = 'sale_refund';
+
     public const TYPE_TRANSFER_IN = 'transfer_in';
 
     public const TYPE_TRANSFER_OUT = 'transfer_out';
 
     public const TYPE_SUPPLIER_PAYMENT = 'supplier_payment';
+
+    public const TYPE_CUSTOMER_RECEIPT = 'customer_receipt';
 
     public const TYPE_CASH_DEPOSIT = 'cash_deposit';
 
@@ -34,7 +38,9 @@ class BankAccountTransaction extends Model
         'transaction_date',
         'counterparty_bank_account_id',
         'supplier_id',
+        'customer_id',
         'sale_id',
+        'sale_return_id',
         'online_sale_order_id',
         'fund_transfer_id',
         'expense_id',
@@ -78,11 +84,27 @@ class BankAccountTransaction extends Model
     }
 
     /**
+     * @return BelongsTo<Customer, $this>
+     */
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    /**
      * @return BelongsTo<Sale, $this>
      */
     public function sale(): BelongsTo
     {
         return $this->belongsTo(Sale::class);
+    }
+
+    /**
+     * @return BelongsTo<SaleReturn, $this>
+     */
+    public function saleReturn(): BelongsTo
+    {
+        return $this->belongsTo(SaleReturn::class);
     }
 
     /**

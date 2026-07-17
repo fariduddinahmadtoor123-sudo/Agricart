@@ -4,6 +4,7 @@ namespace App\Services\Reports;
 
 use App\Filament\Clusters\Contacts\CustomersPage;
 use App\Models\Customer;
+use App\Models\FundTransfer;
 use App\Models\OnlineSaleOrder;
 use App\Models\Sale;
 use App\Models\SaleReturn;
@@ -265,6 +266,40 @@ class CustomerLedgerReportService
             }
         }
 
+        $receipts = FundTransfer::query()
+            ->where('destination_customer_id', $customer->id)
+            ->where('transaction_type', FundTransfer::TYPE_CUSTOMER_RECEIPT);
+        $this->applyDateRange($receipts, 'transaction_date', $start, $end);
+
+        foreach ($receipts->orderBy('transaction_date')->orderBy('id')->get() as $receipt) {
+            $date = $receipt->transaction_date?->toDateString() ?? '';
+            $amount = $this->numeric($receipt->amount);
+            $method = $receipt->source_wallet === FundTransfer::WALLET_BANK
+                ? $this->paymentMethodLabel('bank_transfer')
+                : $this->paymentMethodLabel('cash');
+
+            if ($amount <= 0) {
+                continue;
+            }
+
+            $events[] = [
+                'sort_date' => $date,
+                'sort_group' => sprintf('4-receipt-%010d', $receipt->id),
+                'sort_rank' => 10,
+                'date' => $date,
+                'type' => 'customer_receipt',
+                'type_label' => __('reports.customer_ledger.types.customer_receipt'),
+                'reference' => (string) $receipt->transfer_number,
+                'particulars' => __('reports.customer_ledger.particulars.customer_receipt', [
+                    'number' => $receipt->transfer_number,
+                    'method' => $method,
+                ]),
+                'debit' => 0.0,
+                'credit' => $amount,
+                'method' => $method,
+            ];
+        }
+
         usort($events, function (array $a, array $b): int {
             return [$a['sort_date'], $a['sort_group'], $a['sort_rank']]
                 <=> [$b['sort_date'], $b['sort_group'], $b['sort_rank']];
@@ -416,6 +451,12 @@ class CustomerLedgerReportService
         $this->applyDateRange($returns, 'return_date', $start, $end);
         $credit += $this->sumDecimal($returns, 'refund_total');
         $debit += $this->sumDecimal($returns, 'amount_paid');
+
+        $receipts = FundTransfer::query()
+            ->where('destination_customer_id', $customerId)
+            ->where('transaction_type', FundTransfer::TYPE_CUSTOMER_RECEIPT);
+        $this->applyDateRange($receipts, 'transaction_date', $start, $end);
+        $credit += $this->sumDecimal($receipts, 'amount');
 
         return ['debit' => $debit, 'credit' => $credit];
     }

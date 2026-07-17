@@ -31,6 +31,8 @@ return [
         'profit_loss_hint' => 'Each completed invoice with estimated profit or loss. Filter by period, search an invoice number, or show only Profit / Loss rows. COGS uses purchase cost as of the sale date.',
         'expense_hint' => 'Expense payments by date. Filter by period or operating/other category kind.',
         'cash_hint' => 'Cash drawer movements from the cash book. Filter by period; bank activity is under Finance → Banks.',
+        'seasonal_sales_hint' => 'Quarterly product sales with returns deducted. Filter by period or POS / online channel.',
+        'seasonal_purchases_hint' => 'Quarterly product purchases by supplier. Filter by period or active suppliers.',
         'empty_preview' => 'No rows yet — run View report after we connect this report to your data.',
         'empty_stock' => 'No products match these filters.',
         'empty_customer_ledger' => 'No customers match these ledger filters.',
@@ -39,6 +41,8 @@ return [
         'empty_profit_loss' => 'No invoices match these P&L filters.',
         'empty_expense' => 'No expense payments match these filters.',
         'empty_cash' => 'No cash book entries match these filters.',
+        'empty_seasonal_sales' => 'No seasonal sales match these filters.',
+        'empty_seasonal_purchases' => 'No seasonal purchases match these filters.',
     ],
 
     'filters' => [
@@ -215,6 +219,15 @@ return [
         'kpi_balance' => 'Cash on hand',
     ],
 
+    'seasonal' => [
+        'kpis_aria' => 'Seasonal report summary',
+        'kpi_products' => 'Product periods',
+        'kpi_lines' => 'Supplier product periods',
+        'kpi_quantity' => 'Quantity',
+        'kpi_net_sales' => 'Net sales',
+        'kpi_purchase_value' => 'Purchase value',
+    ],
+
     'customer_ledger' => [
         'kpis_aria' => 'Customer ledger summary',
         'kpi_total_customers' => 'Customers',
@@ -235,6 +248,7 @@ return [
             'sale' => 'Invoice',
             'online_order' => 'Online order',
             'payment' => 'Payment',
+            'customer_receipt' => 'Customer receipt',
             'return' => 'Return',
             'refund' => 'Refund paid',
         ],
@@ -244,6 +258,7 @@ return [
             'online_order' => 'Online order :number',
             'payment_sale' => 'Payment against :number (:method)',
             'payment_order' => 'Payment against :number (:method)',
+            'customer_receipt' => 'Customer receipt :number (:method)',
             'return' => 'Sale return :number',
             'refund' => 'Refund paid for :number (:method)',
         ],

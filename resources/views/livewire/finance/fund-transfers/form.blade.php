@@ -46,7 +46,7 @@
             </div>
 
             <div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:0.3rem;">
-                <span class="agricart-finance-bank-form__label">{{ __('agricart.finance.fund_transfers.sections.source') }}</span>
+                <span class="agricart-finance-bank-form__label">{{ $this->sourceWalletLabel() }}</span>
                 @if ($this->sourceIsLocked())
                     <x-filament::input.wrapper>
                         <input type="text" class="fi-input" readonly value="{{ __('agricart.finance.fund_transfers.source_wallets.cash') }}" />
@@ -107,6 +107,16 @@
                         </select>
                     </x-filament::input.wrapper>
                     @error('destination_supplier_id') <p class="agricart-form-panel__error agricart-finance-bank-form__error">{{ $message }}</p> @enderror
+                @elseif ($this->destinationIsCustomer())
+                    <x-filament::input.wrapper>
+                        <select id="fund-dest-customer" class="fi-select-input" wire:model.live="destination_customer_id">
+                            <option value="">{{ __('agricart.finance.fund_transfers.placeholders.select_customer') }}</option>
+                            @foreach ($customerOptions as $id => $label)
+                                <option value="{{ $id }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </x-filament::input.wrapper>
+                    @error('destination_customer_id') <p class="agricart-form-panel__error agricart-finance-bank-form__error">{{ $message }}</p> @enderror
                 @elseif ($this->destinationIsPurchaser())
                     <x-filament::input.wrapper>
                         <select id="fund-dest-purchaser" class="fi-select-input" wire:model.live="destination_purchaser_id">

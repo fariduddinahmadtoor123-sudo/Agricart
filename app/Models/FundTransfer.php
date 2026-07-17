@@ -14,6 +14,8 @@ class FundTransfer extends Model
 
     public const TYPE_VENDOR_PAYMENT = 'vendor_payment';
 
+    public const TYPE_CUSTOMER_RECEIPT = 'customer_receipt';
+
     public const TYPE_EXPENSE_PAYMENT = 'expense_payment';
 
     public const WALLET_CASH = 'cash';
@@ -28,6 +30,7 @@ class FundTransfer extends Model
         'source_bank_account_id',
         'destination_bank_account_id',
         'destination_supplier_id',
+        'destination_customer_id',
         'destination_purchaser_id',
         'amount',
         'transaction_date',
@@ -66,6 +69,14 @@ class FundTransfer extends Model
     public function destinationSupplier(): BelongsTo
     {
         return $this->belongsTo(Supplier::class, 'destination_supplier_id');
+    }
+
+    /**
+     * @return BelongsTo<Customer, $this>
+     */
+    public function destinationCustomer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class, 'destination_customer_id');
     }
 
     /**
