@@ -3,6 +3,7 @@
 namespace App\Filament\Layout;
 
 use App\Filament\Clusters\Store\OverviewPage;
+use App\Models\User;
 
 class StorePageToolbar extends ClusterPageToolbar
 {
@@ -24,5 +25,60 @@ class StorePageToolbar extends ClusterPageToolbar
     protected static function defaultResourceSlug(): string
     {
         return 'store';
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public static function config(): ?array
+    {
+        $config = parent::config();
+
+        if ($config === null) {
+            return null;
+        }
+
+        return match ($config['resourceSlug']) {
+            'items' => [
+                ...$config,
+                'livewirePrefix' => 'store-items',
+                'columnDataAttr' => 'data-store-item-column',
+                'interactive' => true,
+                'formKey' => 'products',
+                'addLabel' => static::userCanCreateCatalogProduct()
+                    ? __('agricart.toolbar.add', ['item' => __('agricart.pages.catalog.products')])
+                    : null,
+                'filters' => [
+                    ['label' => __('agricart.form_panel.statuses.active'), 'value' => 'status:active'],
+                    ['label' => __('agricart.form_panel.statuses.inactive'), 'value' => 'status:inactive'],
+                    ['label' => __('agricart.form_panel.statuses.draft'), 'value' => 'status:draft'],
+                    ['label' => __('agricart.store.admin.items.filter_all'), 'value' => 'status:all'],
+                ],
+                'columns' => [
+                    ['label' => __('agricart.store.admin.items.col_image'), 'value' => 'image', 'visible' => true],
+                    ['label' => __('agricart.store.admin.items.col_name'), 'value' => 'name', 'visible' => true],
+                    ['label' => __('agricart.store.admin.items.col_status'), 'value' => 'status', 'visible' => true],
+                    ['label' => __('agricart.store.admin.items.col_category'), 'value' => 'category', 'visible' => true],
+                    ['label' => __('agricart.store.admin.items.col_display_in'), 'value' => 'display_in', 'visible' => true],
+                    ['label' => __('agricart.store.admin.items.col_sku'), 'value' => 'sku', 'visible' => true],
+                ],
+            ],
+            default => $config,
+        };
+    }
+
+    protected static function userCanCreateCatalogProduct(): bool
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        return $user->hasPermission('catalog.create') || $user->hasPermission('store.create');
     }
 }

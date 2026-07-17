@@ -342,7 +342,7 @@ return [
                 'heading' => 'متبادل category display',
                 'paragraphs' => [
                     'display_category_ids کو CategoryService category_display pivot سے ہم آہنگ کرتا ہے۔ انتظامی مطلب ہے ”اس category کو منتخب categories میں بھی دکھائیں“۔',
-                    'موجودہ storefront category_display نہیں پڑھتا۔ ڈیٹا کی درستگی کے لیے اس pivot کو دوبارہ بنانا ضروری ہے، مگر خود سے storefront navigation نہیں بدلے گا۔',
+                    'Storefront navigation StoreCategoryService::childCategories() کے ذریعے category_display پڑھتی ہے تاکہ متبادل جگہیں منتخب parent شاخوں میں نظر آئیں۔',
                     'Product storefront جگہ products.category_id اور product_display_category تعلق کی پیروی کرتی ہے۔ Category اور product display pivots کو ایک نہ سمجھیں۔',
                 ],
             ],
@@ -416,7 +416,7 @@ return [
                 'list' => [
                     'Hijri آئیکنز وائرڈ نہیں۔ اگرچہ config/agricart.php میں Hijri آئیکن کیٹلاگ ہے، زندہ category فارم انتخاب نہیں دیتا اور visual_mapping.hijri میں hierarchy category IDs ہیں۔',
                     'Category تصویر فائلوں میں ترتیب وار نمبر نہیں۔ وہ categories/ کے تحت random 40-حروف WebP فائل نام استعمال کرتی ہیں۔',
-                    'category_display فی الحال storefront استعمال نہیں کرتا۔ یہ نہ کہیں کہ یہ storefront جگہ بدلتا ہے۔',
+                    'category_display کو storefront category tree پڑھتی ہے (also-show-in جگہیں)۔ یہ نہ کہیں کہ parent_id بدلتا ہے۔',
                     'پرانی دستاویزات نے ancestor hero slots کو Hijri آئیکن selectors کہا۔ وہ غلط تھا؛ slots 1 سے 4 ancestor category تصویر پیش منظر ہیں۔',
                     'Category فہرست view، edit، اور delete پر الگ per-action permission چیک نہیں۔ اس دستاویزی راستے میں صرف catalog.view اور Add بٹن کے لیے catalog.create قائم ہیں۔',
                     'فہرست درخت UI نہیں بلکہ فلیٹ ہے۔',
@@ -439,7 +439,7 @@ return [
                     'visual_mapping.hierarchy اور visual_mapping.hijri میں وہی hierarchy IDs ہوں۔',
                     'visual_mapping.map_code R/M/S/C/L hierarchy روایت سے دوبارہ بنے۔',
                     'display_category_ids category_display سے ہم آہنگ ہوں۔',
-                    'Storefront رویہ category_display سے منسوب نہ ہو۔',
+                    'Storefront child category فہرست میں also-show-in شامل ہو۔',
                     'AI کو name_en چاہیے، اختیاری تصویر استعمال کر سکتا ہے، ساختہ دو لسانی آؤٹ پٹ لگاتا ہے، اور کامیابی پر ai_status کو enriched کرتا ہے۔',
                     'فہرست فلیٹ انتظامی جدول رہے۔',
                 ],

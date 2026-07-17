@@ -342,7 +342,7 @@ return [
                 'heading' => 'Alternate category display',
                 'paragraphs' => [
                     'display_category_ids is synchronized to the category_display pivot by CategoryService. Its administrative meaning is “also show this category in” the selected categories.',
-                    'The current storefront does not read category_display. Recreating this pivot is necessary for data fidelity, but it will not by itself change storefront navigation.',
+                    'Storefront navigation reads category_display through StoreCategoryService::childCategories() so alternate placements appear under the selected parent branches.',
                     'Product storefront placement follows products.category_id and the product_display_category relationship. Category and product display pivots must not be conflated.',
                 ],
             ],
@@ -416,7 +416,7 @@ return [
                 'list' => [
                     'Hijri icons are unwired. Although a Hijri icon catalog exists in config/agricart.php, the live category form does not allow selection and visual_mapping.hijri contains hierarchy category IDs.',
                     'Category image files have no sequential number. They use a random 40-character WebP filename beneath categories/.',
-                    'category_display is currently unused by the storefront. Do not claim that it changes storefront placement.',
+                    'category_display is read by the storefront category tree (also-show-in placements). Do not claim it changes parent_id.',
                     'Earlier documentation described the ancestor hero slots as Hijri icon selectors. That description was incorrect; slots 1 through 4 are ancestor category image previews.',
                     'The category list view, edit action, and delete action lack separate per-action permission checks. Only catalog.view and the catalog.create gate for the Add button are established in this documented path.',
                     'The list is flat rather than a tree UI.',
@@ -439,7 +439,7 @@ return [
                     'visual_mapping.hierarchy and visual_mapping.hijri contain the same hierarchy IDs.',
                     'visual_mapping.map_code is regenerated with the R/M/S/C/L hierarchy convention.',
                     'display_category_ids synchronize to category_display.',
-                    'Storefront behavior is not attributed to category_display.',
+                    'Storefront child category lists include also-show-in placements from category_display.',
                     'AI requires name_en, may use an optional image, applies structured bilingual output, and sets ai_status to enriched after success.',
                     'The list remains a flat administrative table.',
                 ],

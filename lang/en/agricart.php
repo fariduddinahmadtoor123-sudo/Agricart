@@ -2521,6 +2521,18 @@ return [
                 'registration_links_empty' => 'No registration link entries yet.',
                 'duplicate_page' => 'This page is already linked in this footer column.',
             ],
+            'items' => [
+                'hint' => 'Store Items lists Catalog products for storefront merchandising. Edit opens the Catalog product form (hierarchy category and “also display in” placements).',
+                'empty' => 'No products match this filter. Create products in Catalog, or clear filters.',
+                'filter_all' => 'All statuses',
+                'col_image' => 'Image',
+                'col_name' => 'Name',
+                'col_status' => 'Status',
+                'col_category' => 'Category',
+                'col_display_in' => 'Also display in',
+                'col_sku' => 'SKU / Code',
+                'col_actions' => 'Actions',
+            ],
         ],
     ],
 

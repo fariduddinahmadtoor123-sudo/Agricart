@@ -29,7 +29,7 @@ class StoreCategoryService
      */
     private function activeChildrenOf(?int $parentId): Collection
     {
-        return Category::query()
+        $direct = Category::query()
             ->when(
                 $parentId === null,
                 fn ($query) => $query->whereNull('parent_id'),
@@ -38,6 +38,26 @@ class StoreCategoryService
             ->where('status', 'active')
             ->orderBy('name_en')
             ->get();
+
+        if ($parentId === null) {
+            return $direct;
+        }
+
+        $alsoShown = Category::query()
+            ->where('status', 'active')
+            ->whereIn('id', function ($sub) use ($parentId): void {
+                $sub->select('category_id')
+                    ->from('category_display')
+                    ->where('display_category_id', $parentId);
+            })
+            ->orderBy('name_en')
+            ->get();
+
+        return $direct
+            ->concat($alsoShown)
+            ->unique('id')
+            ->sortBy('name_en', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values();
     }
 
     public function imageUrl(?Category $category): ?string
