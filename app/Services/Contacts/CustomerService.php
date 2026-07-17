@@ -417,7 +417,7 @@ class CustomerService
 
     private function storeUploadedPhoto(TemporaryUploadedFile $file): string
     {
-        return $file->store('customers/photos', 'public');
+        return app(\App\Services\Media\OptimizedImageStorage::class)->store($file, 'customers/photos');
     }
 
     /**

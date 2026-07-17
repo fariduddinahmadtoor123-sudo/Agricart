@@ -31,7 +31,7 @@ class CompanyProfileService
         $profile = CompanyProfile::current();
 
         if ($logoUpload !== null) {
-            $path = $logoUpload->store('store', 'public');
+            $path = app(\App\Services\Media\OptimizedImageStorage::class)->store($logoUpload, 'store');
 
             if (filled($profile->logo_path) && $profile->logo_path !== $path) {
                 Storage::disk('public')->delete($profile->logo_path);

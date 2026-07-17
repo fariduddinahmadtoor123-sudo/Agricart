@@ -5,11 +5,15 @@ return [
         'view_report' => 'رپورٹ دیکھیں',
         'export' => 'CSV ایکسپورٹ',
         'open_catalog' => 'کیٹلاگ کھولیں',
+        'open_contacts' => 'Contacts کھولیں',
+        'view_ledger' => 'لیجر دیکھیں',
+        'close_ledger' => 'بند کریں',
     ],
 
     'messages' => [
         'view_report_pending' => 'رپورٹ preview ابھی منسلک نہیں۔ فلٹر/کالم تیار ہیں — اگلے مرحلے میں ڈیٹا آئے گا۔',
         'stock_loaded' => 'اسٹاک رپورٹ اپ ڈیٹ — :count پروڈکٹ(س)۔',
+        'customer_ledger_loaded' => 'کسٹمر لیجر اپ ڈیٹ — :count کسٹمر۔',
     ],
 
     'list' => [
@@ -17,8 +21,10 @@ return [
         'col_actions' => 'عمل',
         'shell_hint' => 'فلٹر منتخب کریں، پھر «رپورٹ دیکھیں»۔ جیسے جیسے ہر رپورٹ بنے گی، ٹیبل میں ڈیٹا آئے گا۔',
         'stock_hint' => 'زندہ اسٹاک۔ کم / ختم / ری آرڈر فلٹر یا کیٹگری منتخب کریں۔ CSV جب چاہیں ایکسپورٹ کریں۔',
+        'customer_ledger_hint' => 'کسٹمر receivables خلاصہ: opening balance، POS sales، online orders، payments اور sale returns سے۔ بل/پیمنٹ ہسٹری کے لیے View ledger استعمال کریں۔ Period filter پر پچھلی movement opening میں شامل ہو گی۔',
         'empty_preview' => 'ابھی قطار نہیں — ڈیٹا جوڑنے کے بعد View report چلائیں۔',
         'empty_stock' => 'ان فلٹرز سے کوئی پروڈکٹ نہیں ملا۔',
+        'empty_customer_ledger' => 'ان لیجر فلٹرز سے کوئی کسٹمر نہیں ملا۔',
     ],
 
     'filters' => [
@@ -40,6 +46,8 @@ return [
         'stock_out' => 'ختم',
         'stock_reorder' => 'ری آرڈر فہرست',
         'active_stock' => 'اسٹاک: :status',
+        'customer_balance' => 'کسٹمر بیلنس',
+        'supplier_balance' => 'سپلائر بیلنس',
         'all_parties' => 'تمام',
         'with_balance' => 'بیلنس والے',
         'zero_balance' => 'صفر بیلنس',
@@ -109,6 +117,40 @@ return [
             'in' => 'موجود',
             'low' => 'کم',
             'out' => 'ختم',
+        ],
+    ],
+
+    'customer_ledger' => [
+        'kpis_aria' => 'کسٹمر لیجر خلاصہ',
+        'kpi_total_customers' => 'کسٹمرز',
+        'kpi_total_debit' => 'ڈیبٹ',
+        'kpi_total_credit' => 'کریڈٹ',
+        'kpi_receivable' => 'وصولی',
+        'kpi_advance' => 'ایڈوانس / کریڈٹ',
+        'detail_title' => 'کسٹمر لیجر ہسٹری',
+        'detail_summary_aria' => 'لیجر مدت کے ٹوٹلز',
+        'col_date' => 'تاریخ',
+        'col_type' => 'قسم',
+        'col_reference' => 'حوالہ',
+        'col_particulars' => 'تفصیل',
+        'col_method' => 'طریقہ',
+        'empty_history' => 'اس مدت میں کوئی لیجر حرکت نہیں۔',
+        'types' => [
+            'opening' => 'اوپننگ',
+            'sale' => 'انوائس',
+            'online_order' => 'آن لائن آرڈر',
+            'payment' => 'پیمنٹ',
+            'return' => 'واپسی',
+            'refund' => 'ریفنڈ ادا',
+        ],
+        'particulars' => [
+            'opening' => 'اوپننگ بیلنس',
+            'sale' => 'سیل انوائس :number',
+            'online_order' => 'آن لائن آرڈر :number',
+            'payment_sale' => ':number کے خلاف پیمنٹ (:method)',
+            'payment_order' => ':number کے خلاف پیمنٹ (:method)',
+            'return' => 'سیل واپسی :number',
+            'refund' => ':number کا ریفنڈ ادا (:method)',
         ],
     ],
 

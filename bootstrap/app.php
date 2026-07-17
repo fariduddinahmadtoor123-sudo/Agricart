@@ -16,6 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('staff:attendance-default-day')
             ->dailyAt('00:05')
             ->timezone(config('app.timezone'));
+
+        $schedule->command('media:purge-temp --hours=24')
+            ->dailyAt('03:15')
+            ->timezone(config('app.timezone'));
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: env('TRUSTED_PROXIES', '*'));

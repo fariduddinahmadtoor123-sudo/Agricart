@@ -293,7 +293,7 @@ class Form extends Component
             return;
         }
 
-        $path = $this->imageUpload->store('brands', 'public');
+        $path = app(\App\Services\Media\OptimizedImageStorage::class)->store($this->imageUpload, 'brands');
         $this->storedImagePath = $path;
         $this->imagePreviewUrl = Storage::disk('public')->url($path);
         $this->imageUpload = null;

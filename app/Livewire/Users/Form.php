@@ -612,7 +612,8 @@ class Form extends Component
     private function persistUploadedFiles(): void
     {
         if ($this->profilePhotoUpload !== null) {
-            $this->storedProfilePhotoPath = $this->profilePhotoUpload->store('users/profile-photos', 'public');
+            $this->storedProfilePhotoPath = app(\App\Services\Media\OptimizedImageStorage::class)
+                ->store($this->profilePhotoUpload, 'users/profile-photos');
             $this->profilePhotoPreviewUrl = Storage::disk('public')->url($this->storedProfilePhotoPath);
             $this->profilePhotoUpload = null;
         }

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Reports;
 
+use App\Services\Reports\CustomerLedgerReportService;
 use App\Services\Reports\ReportCatalog;
 use App\Services\Reports\StockReportService;
 use Illuminate\Contracts\View\View;
@@ -38,14 +39,19 @@ class ReportShell extends Component
 
     public string $statusType = 'info';
 
+    public bool $ledgerDetailOpen = false;
+
+    /** @var array<string, mixed>|null */
+    public ?array $ledgerDetail = null;
+
     public function mount(string $reportKey): void
     {
         $this->reportKey = $reportKey;
         $definition = ReportCatalog::definition($reportKey);
         $this->visibleColumns = $definition['defaultVisibleColumns'] ?? ['product'];
 
-        if ($this->isStockReport()) {
-            $this->loadStockReport();
+        if ($this->isLiveReport()) {
+            $this->loadLiveReport();
         }
     }
 
@@ -54,8 +60,8 @@ class ReportShell extends Component
     {
         $this->search = $query;
 
-        if ($this->isStockReport()) {
-            $this->loadStockReport();
+        if ($this->isLiveReport()) {
+            $this->loadLiveReport();
         }
     }
 
@@ -64,8 +70,8 @@ class ReportShell extends Component
     {
         $this->search = '';
 
-        if ($this->isStockReport()) {
-            $this->loadStockReport();
+        if ($this->isLiveReport()) {
+            $this->loadLiveReport();
         }
     }
 
@@ -100,6 +106,10 @@ class ReportShell extends Component
         } else {
             $this->secondaryFilter = $filter;
         }
+
+        if ($this->isLiveReport()) {
+            $this->loadLiveReport();
+        }
     }
 
     #[On('clearFilters')]
@@ -111,8 +121,8 @@ class ReportShell extends Component
         $this->categoryFilter = 'all';
         $this->search = '';
 
-        if ($this->isStockReport()) {
-            $this->loadStockReport();
+        if ($this->isLiveReport()) {
+            $this->loadLiveReport();
         }
     }
 
@@ -155,9 +165,9 @@ class ReportShell extends Component
 
     public function viewReport(): void
     {
-        if ($this->isStockReport()) {
-            $this->loadStockReport();
-            $this->statusMessage = __('reports.messages.stock_loaded', [
+        if ($this->isLiveReport()) {
+            $this->loadLiveReport();
+            $this->statusMessage = __($this->isStockReport() ? 'reports.messages.stock_loaded' : 'reports.messages.customer_ledger_loaded', [
                 'count' => count($this->rows),
             ]);
             $this->statusType = 'success';
@@ -169,19 +179,39 @@ class ReportShell extends Component
         $this->statusType = 'info';
     }
 
+    public function openCustomerLedger(int $customerId): void
+    {
+        if (! $this->isCustomerLedgerReport()) {
+            return;
+        }
+
+        $this->ledgerDetail = app(CustomerLedgerReportService::class)->history(
+            $customerId,
+            $this->periodFilter !== '' ? $this->periodFilter : null,
+        );
+        $this->ledgerDetailOpen = true;
+    }
+
+    public function closeCustomerLedger(): void
+    {
+        $this->ledgerDetailOpen = false;
+        $this->ledgerDetail = null;
+    }
+
     public function exportCsv(): ?StreamedResponse
     {
-        if (! $this->isStockReport()) {
+        if (! $this->isLiveReport()) {
             return null;
         }
 
         if (! $this->reportLoaded) {
-            $this->loadStockReport();
+            $this->loadLiveReport();
         }
 
-        $service = app(StockReportService::class);
-        $matrix = $service->csvMatrix($this->rows, $this->visibleColumns);
-        $filename = 'stock-report-'.now()->format('Y_m_d_His').'.csv';
+        $matrix = $this->isStockReport()
+            ? app(StockReportService::class)->csvMatrix($this->rows, $this->visibleColumns)
+            : app(CustomerLedgerReportService::class)->csvMatrix($this->rows, $this->visibleColumns);
+        $filename = $this->reportKey.'-'.now()->format('Y_m_d_His').'.csv';
 
         return response()->streamDownload(function () use ($matrix): void {
             $handle = fopen('php://output', 'w');
@@ -279,6 +309,10 @@ class ReportShell extends Component
             'secondary' => $this->secondaryFilter = '',
             default => null,
         };
+
+        if ($this->isLiveReport()) {
+            $this->loadLiveReport();
+        }
     }
 
     /**
@@ -299,12 +333,54 @@ class ReportShell extends Component
         return $this->reportKey === 'stock-report';
     }
 
+    protected function isCustomerLedgerReport(): bool
+    {
+        return $this->reportKey === 'customer-ledger';
+    }
+
+    protected function isLiveReport(): bool
+    {
+        return $this->isStockReport() || $this->isCustomerLedgerReport();
+    }
+
+    protected function loadLiveReport(): void
+    {
+        if ($this->isStockReport()) {
+            $this->loadStockReport();
+
+            return;
+        }
+
+        if ($this->isCustomerLedgerReport()) {
+            $this->loadCustomerLedgerReport();
+        }
+    }
+
     protected function loadStockReport(): void
     {
         $payload = app(StockReportService::class)->build(
             $this->search !== '' ? $this->search : null,
             $this->stockFilter !== '' ? $this->stockFilter : 'all',
             $this->categoryFilter !== '' ? $this->categoryFilter : 'all',
+        );
+
+        $this->rows = $payload['rows'];
+        $this->kpis = $payload['kpis'];
+        $this->reportLoaded = true;
+    }
+
+    protected function loadCustomerLedgerReport(): void
+    {
+        $partyFilter = 'all';
+
+        if (str_starts_with($this->secondaryFilter, 'customer:')) {
+            [, $partyFilter] = explode(':', $this->secondaryFilter, 2);
+        }
+
+        $payload = app(CustomerLedgerReportService::class)->build(
+            $this->search !== '' ? $this->search : null,
+            $this->periodFilter !== '' ? $this->periodFilter : null,
+            $partyFilter !== '' ? $partyFilter : 'all',
         );
 
         $this->rows = $payload['rows'];
@@ -354,6 +430,8 @@ class ReportShell extends Component
             'hasListConstraints' => $this->hasListConstraints(),
             'columnDataAttr' => 'data-report-'.str_replace('-', '-', $this->reportKey).'-column',
             'isStockReport' => $this->isStockReport(),
+            'isCustomerLedgerReport' => $this->isCustomerLedgerReport(),
+            'isLiveReport' => $this->isLiveReport(),
         ]);
     }
 }

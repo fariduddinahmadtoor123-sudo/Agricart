@@ -296,7 +296,7 @@ class Form extends Component
             return;
         }
 
-        $path = $upload->store('products/gallery', 'public');
+        $path = app(\App\Services\Media\OptimizedImageStorage::class)->store($upload, 'products/gallery');
         $this->storedGalleryPaths[$index] = $path;
         $this->galleryPreviewUrls[$index] = Storage::disk('public')->url($path);
         $this->galleryUploads[$index] = null;
@@ -849,7 +849,7 @@ class Form extends Component
             return;
         }
 
-        $path = $this->imageUpload->store('products', 'public');
+        $path = app(\App\Services\Media\OptimizedImageStorage::class)->store($this->imageUpload, 'products');
         $this->storedImagePath = $path;
         $this->imagePreviewUrl = Storage::disk('public')->url($path);
         $this->imageUpload = null;

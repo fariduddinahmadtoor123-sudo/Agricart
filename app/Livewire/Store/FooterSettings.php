@@ -100,7 +100,7 @@ class FooterSettings extends BaseStoreSettings
             return;
         }
 
-        $path = $this->footerLogoUpload->store('store', 'public');
+        $path = app(\App\Services\Media\OptimizedImageStorage::class)->store($this->footerLogoUpload, 'store');
         $settings = $this->settings();
 
         if (filled($settings->footer_logo_path)) {

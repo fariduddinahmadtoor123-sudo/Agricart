@@ -68,9 +68,27 @@ class ReportCatalog
                 'columns' => $columns,
                 'defaultVisibleColumns' => $visible,
             ],
-            'customer-ledger', 'supplier-ledger' => [
-                'filters' => static::ledgerPartyFilters($reportKey),
-                'filterGroups' => static::commonFilterGroups(),
+            'customer-ledger' => [
+                'filters' => [],
+                'filterGroups' => [
+                    ...static::commonFilterGroups(),
+                    [
+                        'label' => __('reports.filters.customer_balance'),
+                        'filters' => static::ledgerPartyFilters($reportKey),
+                    ],
+                ],
+                'columns' => $columns,
+                'defaultVisibleColumns' => $visible,
+            ],
+            'supplier-ledger' => [
+                'filters' => [],
+                'filterGroups' => [
+                    ...static::commonFilterGroups(),
+                    [
+                        'label' => __('reports.filters.supplier_balance'),
+                        'filters' => static::ledgerPartyFilters($reportKey),
+                    ],
+                ],
                 'columns' => $columns,
                 'defaultVisibleColumns' => $visible,
             ],

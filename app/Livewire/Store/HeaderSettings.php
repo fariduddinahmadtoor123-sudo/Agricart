@@ -90,7 +90,7 @@ class HeaderSettings extends BaseStoreSettings
             return;
         }
 
-        $path = $this->logoUpload->store('store', 'public');
+        $path = app(\App\Services\Media\OptimizedImageStorage::class)->store($this->logoUpload, 'store');
         $settings = $this->settings();
 
         if (filled($settings->logo_path)) {

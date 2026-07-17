@@ -47,6 +47,8 @@ class DeployPreflightCommand extends Command
             }
         }
 
+        $this->components->info('After deploy on hosting, run: php artisan optimize && php artisan media:purge-temp && php artisan media:optimize-images && php artisan media:prune-orphans');
+
         $bootstrap = app(BootstrapSuperAdminService::class);
 
         if (! $bootstrap->hasSuperAdminUser()) {

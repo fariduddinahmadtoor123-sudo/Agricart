@@ -5,11 +5,15 @@ return [
         'view_report' => 'View report',
         'export' => 'Export CSV',
         'open_catalog' => 'Open catalog',
+        'open_contacts' => 'Open contacts',
+        'view_ledger' => 'View ledger',
+        'close_ledger' => 'Close',
     ],
 
     'messages' => [
         'view_report_pending' => 'Report preview is not wired yet. Filters and columns are saved — data will load in the next step for this report.',
         'stock_loaded' => 'Stock report updated — :count product(s).',
+        'customer_ledger_loaded' => 'Customer ledger updated — :count customer(s).',
     ],
 
     'list' => [
@@ -17,8 +21,10 @@ return [
         'col_actions' => 'Actions',
         'shell_hint' => 'Choose filters, then click View report. The table below will show live data as each report is implemented.',
         'stock_hint' => 'Live on-hand stock. Use filters for low / out of stock / reorder, or pick a category. Export CSV anytime.',
+        'customer_ledger_hint' => 'Customer receivables summary from opening balance, POS sales, online orders, payments, and sale returns. Use View ledger for dated bill / payment history. Period filters carry prior movement into opening.',
         'empty_preview' => 'No rows yet — run View report after we connect this report to your data.',
         'empty_stock' => 'No products match these filters.',
+        'empty_customer_ledger' => 'No customers match these ledger filters.',
     ],
 
     'filters' => [
@@ -40,6 +46,8 @@ return [
         'stock_out' => 'Out of stock',
         'stock_reorder' => 'On reorder list',
         'active_stock' => 'Stock: :status',
+        'customer_balance' => 'Customer balance',
+        'supplier_balance' => 'Supplier balance',
         'all_parties' => 'All parties',
         'with_balance' => 'With balance',
         'zero_balance' => 'Zero balance',
@@ -109,6 +117,40 @@ return [
             'in' => 'In stock',
             'low' => 'Low',
             'out' => 'Out',
+        ],
+    ],
+
+    'customer_ledger' => [
+        'kpis_aria' => 'Customer ledger summary',
+        'kpi_total_customers' => 'Customers',
+        'kpi_total_debit' => 'Debit',
+        'kpi_total_credit' => 'Credit',
+        'kpi_receivable' => 'Receivable',
+        'kpi_advance' => 'Advance / credit',
+        'detail_title' => 'Customer ledger history',
+        'detail_summary_aria' => 'Ledger period totals',
+        'col_date' => 'Date',
+        'col_type' => 'Type',
+        'col_reference' => 'Reference',
+        'col_particulars' => 'Particulars',
+        'col_method' => 'Method',
+        'empty_history' => 'No ledger movements in this period.',
+        'types' => [
+            'opening' => 'Opening',
+            'sale' => 'Invoice',
+            'online_order' => 'Online order',
+            'payment' => 'Payment',
+            'return' => 'Return',
+            'refund' => 'Refund paid',
+        ],
+        'particulars' => [
+            'opening' => 'Opening balance',
+            'sale' => 'Sale invoice :number',
+            'online_order' => 'Online order :number',
+            'payment_sale' => 'Payment against :number (:method)',
+            'payment_order' => 'Payment against :number (:method)',
+            'return' => 'Sale return :number',
+            'refund' => 'Refund paid for :number (:method)',
         ],
     ],
 

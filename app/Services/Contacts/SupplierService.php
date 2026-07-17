@@ -303,7 +303,7 @@ class SupplierService
 
     public function storeUpload(TemporaryUploadedFile $upload, string $directory): string
     {
-        return $upload->store($directory, 'public');
+        return app(\App\Services\Media\OptimizedImageStorage::class)->store($upload, $directory);
     }
 
     /**

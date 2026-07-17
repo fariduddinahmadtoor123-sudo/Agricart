@@ -228,6 +228,6 @@ class RegisterForm extends Component
             return null;
         }
 
-        return $upload->store($directory, 'public');
+        return app(\App\Services\Media\OptimizedImageStorage::class)->store($upload, $directory);
     }
 }
