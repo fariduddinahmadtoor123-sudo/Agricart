@@ -135,7 +135,10 @@ class SaleReturnService
             $this->syncItems($return, $rows);
             $this->adjustStock($rows, 1);
 
-            return $return->fresh(['items', 'customer', 'sale', 'processedBy']);
+            $return = $return->fresh(['items', 'customer', 'sale', 'processedBy']);
+            app(\App\Services\Finance\CashBookService::class)->recordSaleReturnRefundIfApplicable($return);
+
+            return $return;
         });
     }
 

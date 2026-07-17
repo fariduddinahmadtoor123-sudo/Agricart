@@ -550,6 +550,38 @@ return [
                 'bank_search' => 'Search Pakistani bank by English, Urdu, or code…',
             ],
         ],
+        'cash_book' => [
+            'balance_label' => 'Cash on hand',
+            'ledger' => [
+                'sale_receipt' => 'Cash sale :number',
+                'sale_return_refund' => 'Cash refund :number',
+            ],
+            'directions' => [
+                'in' => 'In',
+                'out' => 'Out',
+            ],
+            'list' => [
+                'empty' => 'No cash book entries yet. Cash sales, refunds, expenses, and fund transfers will appear here.',
+                'col_date' => 'Date',
+                'col_direction' => 'Direction',
+                'col_description' => 'Description',
+                'col_amount' => 'Amount',
+            ],
+        ],
+        'overview' => [
+            'cards' => [
+                'banks' => 'Bank accounts',
+                'transfers' => 'Fund transfers',
+                'expenses' => 'Expense heads',
+                'payments' => 'Expense payments',
+                'cash' => 'Cash on hand',
+            ],
+            'meta' => [
+                'banks' => ':count active',
+                'expenses' => ':count active',
+                'cash' => 'Current drawer balance',
+            ],
+        ],
         'fund_transfers' => [
             'actions' => [
                 'add' => 'Record fund transfer',

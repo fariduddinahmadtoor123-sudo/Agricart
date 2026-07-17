@@ -550,6 +550,38 @@ return [
                 'bank_search' => 'انگریزی، اردو یا کوڈ سے بینک تلاش کریں…',
             ],
         ],
+        'cash_book' => [
+            'balance_label' => 'موجودہ کیش',
+            'ledger' => [
+                'sale_receipt' => 'کیش سیل :number',
+                'sale_return_refund' => 'کیش ریفنڈ :number',
+            ],
+            'directions' => [
+                'in' => 'اندر',
+                'out' => 'باہر',
+            ],
+            'list' => [
+                'empty' => 'ابھی کیش بک خالی ہے۔ کیش سیل، ریفنڈ، اخراجات اور فنڈ ٹرانسفر یہاں نظر آئیں گے۔',
+                'col_date' => 'تاریخ',
+                'col_direction' => 'سمت',
+                'col_description' => 'تفصیل',
+                'col_amount' => 'رقم',
+            ],
+        ],
+        'overview' => [
+            'cards' => [
+                'banks' => 'بینک اکاؤنٹس',
+                'transfers' => 'فنڈ ٹرانسفر',
+                'expenses' => 'اخراجات ہیڈز',
+                'payments' => 'اخراجات ادائیگیاں',
+                'cash' => 'موجودہ کیش',
+            ],
+            'meta' => [
+                'banks' => ':count فعال',
+                'expenses' => ':count فعال',
+                'cash' => 'ڈراور کا بیلنس',
+            ],
+        ],
         'fund_transfers' => [
             'actions' => [
                 'add' => 'فنڈ ٹرانسفر ریکارڈ کریں',

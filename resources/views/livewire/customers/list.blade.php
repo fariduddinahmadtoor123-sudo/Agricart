@@ -1,4 +1,9 @@
 <div class="agricart-categories agricart-customers">
+    @if (session('customer_error'))
+        <div class="agricart-categories__empty" role="alert">
+            <p>{{ session('customer_error') }}</p>
+        </div>
+    @endif
     @if ($customers->isEmpty())
         <div class="agricart-categories__empty">
             <p>{{ __('customers.list.empty') }}</p>

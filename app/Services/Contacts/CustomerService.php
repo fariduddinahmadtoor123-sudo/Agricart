@@ -3,6 +3,9 @@
 namespace App\Services\Contacts;
 
 use App\Models\Customer;
+use App\Models\OnlineSaleOrder;
+use App\Models\Sale;
+use App\Models\SaleReturn;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -47,11 +50,26 @@ class CustomerService
 
     public function delete(Customer $customer): void
     {
+        $this->assertDeletable($customer);
+
         if (filled($customer->profile_photo_path)) {
             Storage::disk('public')->delete($customer->profile_photo_path);
         }
 
         $customer->delete();
+    }
+
+    public function assertDeletable(Customer $customer): void
+    {
+        $saleCount = Sale::query()->where('customer_id', $customer->id)->count();
+        $orderCount = OnlineSaleOrder::query()->where('customer_id', $customer->id)->count();
+        $returnCount = SaleReturn::query()->where('customer_id', $customer->id)->count();
+
+        if ($saleCount + $orderCount + $returnCount > 0) {
+            throw ValidationException::withMessages([
+                'customer' => [__('customers.messages.delete_blocked')],
+            ]);
+        }
     }
 
     public function nextCustomerNumber(): string

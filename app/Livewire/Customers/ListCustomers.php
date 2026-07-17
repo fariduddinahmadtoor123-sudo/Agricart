@@ -6,6 +6,7 @@ use App\Models\Customer;
 use App\Models\User;
 use App\Services\Contacts\CustomerService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -141,8 +142,12 @@ class ListCustomers extends Component
             return;
         }
 
-        app(CustomerService::class)->delete($customer);
-        $this->resetPage();
+        try {
+            app(CustomerService::class)->delete($customer);
+            $this->resetPage();
+        } catch (ValidationException $exception) {
+            session()->flash('customer_error', collect($exception->errors())->flatten()->first());
+        }
     }
 
     public function render(): View

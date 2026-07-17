@@ -16,6 +16,8 @@ class CashBookTransaction extends Model
         'fund_transfer_id',
         'expense_id',
         'expense_payment_id',
+        'sale_id',
+        'sale_return_id',
         'direction',
         'amount',
         'transaction_date',
@@ -54,6 +56,22 @@ class CashBookTransaction extends Model
     public function expensePayment(): BelongsTo
     {
         return $this->belongsTo(ExpensePayment::class);
+    }
+
+    /**
+     * @return BelongsTo<Sale, $this>
+     */
+    public function sale(): BelongsTo
+    {
+        return $this->belongsTo(Sale::class);
+    }
+
+    /**
+     * @return BelongsTo<SaleReturn, $this>
+     */
+    public function saleReturn(): BelongsTo
+    {
+        return $this->belongsTo(SaleReturn::class);
     }
 
     /**

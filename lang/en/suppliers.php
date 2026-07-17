@@ -79,6 +79,7 @@ return [
         'created' => 'Supplier :name saved successfully.',
         'updated' => 'Supplier :name updated successfully.',
         'save_failed' => 'Could not save supplier. Please check the form and try again.',
+        'delete_blocked' => 'This supplier has purchases, quotations, payments, or order assignments. Set status to inactive instead of deleting.',
     ],
 
     'validation' => [

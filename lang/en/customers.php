@@ -87,6 +87,7 @@ return [
         'created' => 'Customer :name saved.',
         'updated' => 'Customer :name updated.',
         'save_failed' => 'Could not save customer. Please check the form and try again.',
+        'delete_blocked' => 'This customer has sales, online orders, or returns. Deactivate instead of deleting.',
     ],
 
     'validation' => [

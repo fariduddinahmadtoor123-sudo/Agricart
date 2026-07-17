@@ -7,6 +7,7 @@ use App\Models\Supplier;
 use App\Models\User;
 use App\Services\Contacts\SupplierService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -142,8 +143,12 @@ class ListSuppliers extends Component
             return;
         }
 
-        app(SupplierService::class)->delete($supplier);
-        $this->resetPage();
+        try {
+            app(SupplierService::class)->delete($supplier);
+            $this->resetPage();
+        } catch (ValidationException $exception) {
+            session()->flash('supplier_error', collect($exception->errors())->flatten()->first());
+        }
     }
 
     public function render(): View

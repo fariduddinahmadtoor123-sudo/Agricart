@@ -93,7 +93,7 @@ return [
         'select_method' => 'Select payment method…',
         'notes' => 'Notes for this invoice',
         'select_bank' => 'Select bank…',
-        'no_banks' => 'Bank accounts coming soon',
+        'no_banks' => 'No bank accounts yet — add one under Finance → Banks',
     ],
 
     'filters' => [

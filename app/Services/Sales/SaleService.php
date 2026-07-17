@@ -80,6 +80,7 @@ class SaleService
 
             if ($status === Sale::STATUS_COMPLETED) {
                 app(BankAccountService::class)->recordSaleReceiptIfApplicable($sale);
+                app(\App\Services\Finance\CashBookService::class)->recordSaleReceiptIfApplicable($sale);
             }
 
             return $sale;
@@ -116,6 +117,7 @@ class SaleService
 
             if ($status === Sale::STATUS_COMPLETED) {
                 app(BankAccountService::class)->recordSaleReceiptIfApplicable($sale);
+                app(\App\Services\Finance\CashBookService::class)->recordSaleReceiptIfApplicable($sale);
             }
 
             return $sale;

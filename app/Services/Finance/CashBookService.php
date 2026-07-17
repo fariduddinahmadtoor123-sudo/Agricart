@@ -3,6 +3,8 @@
 namespace App\Services\Finance;
 
 use App\Models\CashBookTransaction;
+use App\Models\Sale;
+use App\Models\SaleReturn;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
 
@@ -29,6 +31,8 @@ class CashBookService
         ?User $actor = null,
         ?int $expenseId = null,
         ?int $expensePaymentId = null,
+        ?int $saleId = null,
+        ?int $saleReturnId = null,
     ): CashBookTransaction {
         $amount = round($amount, 2);
 
@@ -44,6 +48,8 @@ class CashBookService
             'fund_transfer_id' => $fundTransferId,
             'expense_id' => $expenseId,
             'expense_payment_id' => $expensePaymentId,
+            'sale_id' => $saleId,
+            'sale_return_id' => $saleReturnId,
             'direction' => CashBookTransaction::DIRECTION_OUT,
             'amount' => $amount,
             'transaction_date' => $transactionDate,
@@ -62,6 +68,8 @@ class CashBookService
         ?User $actor = null,
         ?int $expenseId = null,
         ?int $expensePaymentId = null,
+        ?int $saleId = null,
+        ?int $saleReturnId = null,
     ): CashBookTransaction {
         $amount = round($amount, 2);
 
@@ -75,6 +83,8 @@ class CashBookService
             'fund_transfer_id' => $fundTransferId,
             'expense_id' => $expenseId,
             'expense_payment_id' => $expensePaymentId,
+            'sale_id' => $saleId,
+            'sale_return_id' => $saleReturnId,
             'direction' => CashBookTransaction::DIRECTION_IN,
             'amount' => $amount,
             'transaction_date' => $transactionDate,
@@ -82,6 +92,56 @@ class CashBookService
             'notes' => $notes,
             'created_by' => $actor?->id,
         ]);
+    }
+
+    public function recordSaleReceiptIfApplicable(Sale $sale): void
+    {
+        if ($sale->payment_method !== 'cash') {
+            return;
+        }
+
+        $paid = (float) $sale->amount_paid;
+
+        if ($paid <= 0) {
+            return;
+        }
+
+        if (CashBookTransaction::query()->where('sale_id', $sale->id)->exists()) {
+            return;
+        }
+
+        $this->recordIn(
+            $paid,
+            $sale->sale_date?->toDateString() ?? now()->toDateString(),
+            __('agricart.finance.cash_book.ledger.sale_receipt', ['number' => $sale->sale_number]),
+            saleId: $sale->id,
+            actor: auth()->user() instanceof User ? auth()->user() : null,
+        );
+    }
+
+    public function recordSaleReturnRefundIfApplicable(SaleReturn $return): void
+    {
+        if ($return->payment_method !== 'cash') {
+            return;
+        }
+
+        $paid = (float) $return->amount_paid;
+
+        if ($paid <= 0) {
+            return;
+        }
+
+        if (CashBookTransaction::query()->where('sale_return_id', $return->id)->exists()) {
+            return;
+        }
+
+        $this->recordOut(
+            $paid,
+            $return->return_date?->toDateString() ?? now()->toDateString(),
+            __('agricart.finance.cash_book.ledger.sale_return_refund', ['number' => $return->return_number]),
+            saleReturnId: $return->id,
+            actor: auth()->user() instanceof User ? auth()->user() : null,
+        );
     }
 
     public function assertSufficientBalance(float $amount): void

@@ -2,6 +2,11 @@
 
 namespace App\Services\Contacts;
 
+use App\Models\FundTransfer;
+use App\Models\OnlineSaleOrderSupplierAssignment;
+use App\Models\Purchase;
+use App\Models\PurchasePaymentSummaryItem;
+use App\Models\PurchaseQuotation;
 use App\Models\Supplier;
 use App\Support\PakistaniBanks;
 use Illuminate\Support\Arr;
@@ -56,6 +61,8 @@ class SupplierService
 
     public function delete(Supplier $supplier): void
     {
+        $this->assertDeletable($supplier);
+
         foreach (['profile_photo_path', 'card_front_path', 'card_back_path'] as $field) {
             if (filled($supplier->{$field})) {
                 Storage::disk('public')->delete($supplier->{$field});
@@ -63,6 +70,27 @@ class SupplierService
         }
 
         $supplier->delete();
+    }
+
+    public function assertDeletable(Supplier $supplier): void
+    {
+        $purchaseCount = Purchase::query()->where('supplier_id', $supplier->id)->count();
+        $quotationCount = PurchaseQuotation::query()->where('supplier_id', $supplier->id)->count();
+        $paymentCount = FundTransfer::query()
+            ->where('destination_supplier_id', $supplier->id)
+            ->count();
+        $assignmentCount = OnlineSaleOrderSupplierAssignment::query()
+            ->where('supplier_id', $supplier->id)
+            ->count();
+        $summaryCount = PurchasePaymentSummaryItem::query()
+            ->where('supplier_id', $supplier->id)
+            ->count();
+
+        if ($purchaseCount + $quotationCount + $paymentCount + $assignmentCount + $summaryCount > 0) {
+            throw ValidationException::withMessages([
+                'supplier' => [__('suppliers.messages.delete_blocked')],
+            ]);
+        }
     }
 
     public function nextSupplierCode(): string

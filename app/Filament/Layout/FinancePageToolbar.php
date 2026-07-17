@@ -123,6 +123,13 @@ class FinancePageToolbar extends ClusterPageToolbar
                     ['label' => __('agricart.finance.expense_payments.list.col_wallet'), 'value' => 'wallet', 'visible' => true],
                 ],
             ],
+            'cash-book' => [
+                ...$config,
+                'livewirePrefix' => 'finance-cash-book',
+                'interactive' => true,
+                'formKey' => null,
+                'addLabel' => null,
+            ],
             default => $config,
         };
     }
