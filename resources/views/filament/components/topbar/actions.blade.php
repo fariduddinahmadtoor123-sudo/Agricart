@@ -245,92 +245,86 @@
             ></time>
         </div>
 
-        <div class="agricart-topbar-actions__group agricart-topbar-actions__group--quick">
-            @if (TopbarActions::showPurchaseButton())
-                <a
-                    href="{{ TopbarActions::purchaseUrl() }}"
-                    wire:navigate
-                    class="agricart-topbar-actions__quick-btn agricart-topbar-actions__quick-btn--purchase"
-                    title="{{ __('agricart.topbar.purchase') }}"
-                    @if (TopbarActions::userCanQuickOpenPurchase())
-                        x-on:click="sessionStorage.setItem('agricart-quick-form-open', 'purchase')"
-                    @endif
-                >
-                    <x-filament::icon :icon="Heroicon::OutlinedShoppingCart" class="agricart-topbar-actions__quick-icon" />
-                    <span>{{ __('agricart.topbar.purchase') }}</span>
-                </a>
-            @endif
+        @if (TopbarActions::showPurchaseButton())
+            <a
+                href="{{ TopbarActions::purchaseUrl() }}"
+                wire:navigate
+                class="agricart-topbar-actions__quick-btn agricart-topbar-actions__quick-btn--purchase"
+                @if (TopbarActions::userCanQuickOpenPurchase())
+                    x-on:click="sessionStorage.setItem('agricart-quick-form-open', 'purchase')"
+                @endif
+            >
+                <x-filament::icon :icon="Heroicon::OutlinedShoppingCart" class="agricart-topbar-actions__quick-icon" />
+                <span>{{ __('agricart.topbar.purchase') }}</span>
+            </a>
+        @endif
 
-            @if (TopbarActions::showPosButton())
-                <a
-                    href="{{ TopbarActions::posUrl() }}"
-                    wire:navigate
-                    class="agricart-topbar-actions__quick-btn agricart-topbar-actions__quick-btn--pos"
-                    title="{{ __('agricart.topbar.pos') }}"
-                    @if (TopbarActions::userCanQuickOpenPos())
-                        x-on:click="sessionStorage.setItem('agricart-quick-form-open', 'sale')"
-                    @endif
-                >
-                    <x-filament::icon :icon="Heroicon::OutlinedCreditCard" class="agricart-topbar-actions__quick-icon" />
-                    <span>{{ __('agricart.topbar.pos') }}</span>
-                </a>
-            @endif
-        </div>
+        @if (TopbarActions::showPosButton())
+            <a
+                href="{{ TopbarActions::posUrl() }}"
+                wire:navigate
+                class="agricart-topbar-actions__quick-btn agricart-topbar-actions__quick-btn--pos"
+                @if (TopbarActions::userCanQuickOpenPos())
+                    x-on:click="sessionStorage.setItem('agricart-quick-form-open', 'sale')"
+                @endif
+            >
+                <x-filament::icon :icon="Heroicon::OutlinedCreditCard" class="agricart-topbar-actions__quick-icon" />
+                <span>{{ __('agricart.topbar.pos') }}</span>
+            </a>
+        @endif
 
-        <div class="agricart-topbar-actions__group agricart-topbar-actions__group--utils">
-            <div class="agricart-topbar-actions__lang" role="group" aria-label="{{ __('agricart.topbar.language') }}">
-                <button
-                    type="button"
-                    class="agricart-topbar-actions__lang-btn"
-                    :class="{ 'is-active': locale === 'en' }"
-                    x-on:click="setLocale('en')"
-                >
-                    EN
-                </button>
-                <button
-                    type="button"
-                    class="agricart-topbar-actions__lang-btn"
-                    :class="{ 'is-active': locale === 'ur' }"
-                    x-on:click="setLocale('ur')"
-                >
-                    UR
-                </button>
-            </div>
-
+        <div class="agricart-topbar-actions__lang" role="group" aria-label="{{ __('agricart.topbar.language') }}">
             <button
                 type="button"
-                class="agricart-topbar-actions__ai-btn"
-                x-bind:class="aiBtnClass()"
-                x-on:click="openAi()"
-                x-bind:title="aiBtnTitle()"
-                x-bind:aria-label="aiBtnTitle()"
+                class="agricart-topbar-actions__lang-btn"
+                :class="{ 'is-active': locale === 'en' }"
+                x-on:click="setLocale('en')"
             >
-                <x-filament::icon :icon="Heroicon::OutlinedSparkles" class="agricart-topbar-actions__ai-icon" />
-                <span class="agricart-topbar-actions__ai-signal" x-show="aiConnected" x-cloak aria-hidden="true"></span>
+                EN
             </button>
-
-            @if (filament()->hasDatabaseNotifications() && filament()->getDatabaseNotificationsPosition() === \Filament\Enums\DatabaseNotificationsPosition::Topbar)
-                <div class="agricart-topbar-actions__notifications">
-                    @livewire(filament()->getDatabaseNotificationsLivewireComponent(), [
-                        'lazy' => filament()->hasLazyLoadedDatabaseNotifications(),
-                    ])
-                </div>
-            @else
-                <button
-                    type="button"
-                    class="agricart-topbar-actions__icon-btn"
-                    aria-label="{{ __('agricart.topbar.notifications') }}"
-                    title="{{ __('agricart.topbar.notifications') }}"
-                >
-                    <x-filament::icon :icon="Heroicon::OutlinedBell" class="agricart-topbar-actions__icon-btn-icon" />
-                </button>
-            @endif
-
-            @if ($user && filament()->hasUserMenu() && filament()->getUserMenuPosition() === \Filament\Enums\UserMenuPosition::Topbar)
-                <div class="agricart-topbar-actions__user">
-                    <x-filament-panels::user-menu />
-                </div>
-            @endif
+            <button
+                type="button"
+                class="agricart-topbar-actions__lang-btn"
+                :class="{ 'is-active': locale === 'ur' }"
+                x-on:click="setLocale('ur')"
+            >
+                UR
+            </button>
         </div>
+
+        <button
+            type="button"
+            class="agricart-topbar-actions__ai-btn"
+            x-bind:class="aiBtnClass()"
+            x-on:click="openAi()"
+            x-bind:title="aiBtnTitle()"
+            x-bind:aria-label="aiBtnTitle()"
+        >
+            <x-filament::icon :icon="Heroicon::OutlinedSparkles" class="agricart-topbar-actions__ai-icon" />
+            <span class="agricart-topbar-actions__ai-signal" x-show="aiConnected" x-cloak aria-hidden="true"></span>
+        </button>
+
+        @if (filament()->hasDatabaseNotifications() && filament()->getDatabaseNotificationsPosition() === \Filament\Enums\DatabaseNotificationsPosition::Topbar)
+            <div class="agricart-topbar-actions__notifications">
+                @livewire(filament()->getDatabaseNotificationsLivewireComponent(), [
+                    'lazy' => filament()->hasLazyLoadedDatabaseNotifications(),
+                ])
+            </div>
+        @else
+            <button
+                type="button"
+                class="agricart-topbar-actions__icon-btn"
+                aria-label="{{ __('agricart.topbar.notifications') }}"
+                title="{{ __('agricart.topbar.notifications') }}"
+            >
+                <x-filament::icon :icon="Heroicon::OutlinedBell" class="agricart-topbar-actions__icon-btn-icon" />
+            </button>
+        @endif
+
+        @if ($user && filament()->hasUserMenu() && filament()->getUserMenuPosition() === \Filament\Enums\UserMenuPosition::Topbar)
+            <div class="agricart-topbar-actions__user">
+                <x-filament-panels::user-menu />
+            </div>
+        @endif
     </div>
 </div>
