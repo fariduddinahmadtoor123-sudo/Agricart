@@ -14,9 +14,9 @@ trait ChecksAgricartPermissions
             return null;
         }
 
-        $slug = $cluster::$slug ?? null;
-
-        return filled($slug) ? "{$slug}.view" : null;
+        return method_exists($cluster, 'viewPermission')
+            ? $cluster::viewPermission()
+            : null;
     }
 
     public static function canAccess(): bool

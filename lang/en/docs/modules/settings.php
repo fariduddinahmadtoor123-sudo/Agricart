@@ -86,6 +86,24 @@ return [
         ['page' => 'App\\Filament\\Clusters\\Settings\\AiLogsPage', 'livewire' => ['App\\Livewire\\AiLogs\\ListLogs', 'App\\Livewire\\AiLogs\\Detail']]
     ),
 
+    'system-errors' => $stub(
+        'System Errors',
+        'A secure operational inbox for sanitized application exceptions and bounded Laravel file-log fallback entries.',
+        '/admin/settings/system-errors',
+        ['settings.system-errors.view', 'settings.system-errors.manage'],
+        [
+            'Unhandled and explicitly reported exceptions are fingerprinted, redacted, grouped by occurrence, and shown with Open or Resolved status.',
+            'The file-log fallback reads only bounded laravel*.log entries and never exposes arbitrary paths, raw request payloads, credentials, cookies, or authorization headers.',
+            'Copy Technical Report produces a sanitized diagnostic bundle suitable for sharing with maintainers.',
+        ],
+        [
+            'Keep database persistence best-effort so a logging failure never replaces the original application exception.',
+            'Retain open records and prune resolved records after 90 days; keep file-log access read-only and bounded.',
+            'Require dedicated view/manage permissions in the page and every Livewire query or action.',
+        ],
+        ['page' => 'App\\Filament\\Clusters\\Settings\\SystemErrorsPage', 'livewire' => ['App\\Livewire\\SystemErrors\\ListErrors', 'App\\Livewire\\SystemErrors\\Detail'], 'services' => ['App\\Services\\SystemErrors\\SystemErrorCaptureService', 'App\\Services\\SystemErrors\\SystemErrorSanitizer', 'App\\Services\\SystemErrors\\SystemLogFileReader'], 'model' => 'App\\Models\\SystemError']
+    ),
+
     'printing' => $stub(
         'Printing',
         'Document, receipt, product-label, and price-label print profiles.',

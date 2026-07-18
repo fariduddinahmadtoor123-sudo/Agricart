@@ -67,6 +67,16 @@ return [
         'settings.ai.logs.view اور الگ purge permission بنائیں۔',
     ], ['page' => 'App\\Filament\\Clusters\\Settings\\AiLogsPage', 'livewire' => ['App\\Livewire\\AiLogs\\ListLogs', 'App\\Livewire\\AiLogs\\Detail']]),
 
+    'system-errors' => $stub('System Errors', 'محفوظ application exceptions اور محدود Laravel file-log fallback کے لیے operational inbox۔', '/admin/settings/system-errors', ['settings.system-errors.view', 'settings.system-errors.manage'], [
+        'Unhandled اور explicitly reported exceptions fingerprint، redact اور occurrence کے مطابق group ہو کر Open یا Resolved حالت میں دکھتے ہیں۔',
+        'File-log fallback صرف محدود laravel*.log entries پڑھتا ہے؛ arbitrary paths، raw request payloads، credentials، cookies یا authorization headers ظاہر نہیں ہوتے۔',
+        'Copy Technical Report maintainers کے ساتھ شیئر کرنے کے لیے محفوظ diagnostic bundle بناتا ہے۔',
+    ], [
+        'Database persistence best-effort رہے تاکہ logging failure اصل application exception کو تبدیل نہ کرے۔',
+        'Open records محفوظ اور resolved records 90 دن بعد prune ہوں؛ file-log access read-only اور محدود رہے۔',
+        'Page اور ہر Livewire query/action پر dedicated view/manage permissions لازم ہوں۔',
+    ], ['page' => 'App\\Filament\\Clusters\\Settings\\SystemErrorsPage', 'livewire' => ['App\\Livewire\\SystemErrors\\ListErrors', 'App\\Livewire\\SystemErrors\\Detail'], 'services' => ['App\\Services\\SystemErrors\\SystemErrorCaptureService', 'App\\Services\\SystemErrors\\SystemErrorSanitizer', 'App\\Services\\SystemErrors\\SystemLogFileReader'], 'model' => 'App\\Models\\SystemError']),
+
     'printing' => $stub('Printing', 'Documents، receipts، product labels اور price labels کے print profiles۔', '/admin/settings/printing', ['settings.view', 'settings.printing.manage'], [
         'Bilingual profile name، category، label kind، mm dimensions، margin، orientation، printer hint اور default profile۔ Current UI create/edit/default/search/delete دیتی ہے۔',
     ], [

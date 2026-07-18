@@ -1,0 +1,113 @@
+<?php
+
+namespace App\Livewire\SystemErrors;
+
+use App\Livewire\SystemErrors\Concerns\AuthorizesSystemErrors;
+use App\Models\SystemError;
+use App\Services\SystemErrors\SystemErrorReportFormatter;
+use App\Services\SystemErrors\SystemLogFileReader;
+use Filament\Notifications\Notification;
+use Illuminate\Contracts\View\View;
+use Livewire\Attributes\On;
+use Livewire\Component;
+
+class Detail extends Component
+{
+    use AuthorizesSystemErrors;
+
+    public ?SystemError $error = null;
+
+    /** @var array{key: string, file: string, timestamp: string|null, severity: string, message: string, trace: string}|null */
+    public ?array $fileEntry = null;
+
+    public string $report = '';
+
+    public bool $canManage = false;
+
+    #[On('system-error-detail-open')]
+    public function loadError(int $errorId, ?string $fileKey = null): void
+    {
+        $user = $this->authorizeSystemErrorView();
+        $this->canManage = $user->isSuperAdmin() || $user->hasPermission('settings.system-errors.manage');
+        $this->fileEntry = null;
+        $this->error = SystemError::query()
+            ->with(['user', 'resolvedBy'])
+            ->find($errorId);
+        $this->report = $this->error instanceof SystemError
+            ? app(SystemErrorReportFormatter::class)->format($this->error)
+            : '';
+    }
+
+    #[On('system-error-file-detail-open')]
+    public function loadFileEntry(string $fileKey): void
+    {
+        $user = $this->authorizeSystemErrorView();
+        $this->canManage = $user->isSuperAdmin() || $user->hasPermission('settings.system-errors.manage');
+        $this->error = null;
+        $this->fileEntry = collect(app(SystemLogFileReader::class)->recent(200))
+            ->firstWhere('key', $fileKey);
+        $this->report = $this->fileEntry === null
+            ? ''
+            : implode(PHP_EOL, [
+                'Agricart Sanitized File Log',
+                'File: '.$this->fileEntry['file'],
+                'Timestamp: '.($this->fileEntry['timestamp'] ?? 'unknown'),
+                'Severity: '.$this->fileEntry['severity'],
+                'Message: '.$this->fileEntry['message'],
+                '',
+                'Sanitized log entry:',
+                $this->fileEntry['trace'],
+            ]);
+    }
+
+    public function resolve(): void
+    {
+        $user = $this->authorizeSystemErrorManage();
+
+        if (! $this->error instanceof SystemError) {
+            return;
+        }
+
+        $this->error->update([
+            'status' => SystemError::STATUS_RESOLVED,
+            'resolved_at' => now(),
+            'resolved_by_id' => $user->id,
+        ]);
+        $this->error->refresh()->load(['user', 'resolvedBy']);
+        $this->report = app(SystemErrorReportFormatter::class)->format($this->error);
+        $this->dispatch('system-errors-updated');
+
+        Notification::make()
+            ->success()
+            ->title(__('agricart.system_errors.messages.resolved'))
+            ->send();
+    }
+
+    public function reopen(): void
+    {
+        $this->authorizeSystemErrorManage();
+
+        if (! $this->error instanceof SystemError) {
+            return;
+        }
+
+        $this->error->update([
+            'status' => SystemError::STATUS_OPEN,
+            'resolved_at' => null,
+            'resolved_by_id' => null,
+        ]);
+        $this->error->refresh()->load(['user', 'resolvedBy']);
+        $this->report = app(SystemErrorReportFormatter::class)->format($this->error);
+        $this->dispatch('system-errors-updated');
+
+        Notification::make()
+            ->success()
+            ->title(__('agricart.system_errors.messages.reopened'))
+            ->send();
+    }
+
+    public function render(): View
+    {
+        return view('livewire.system-errors.detail');
+    }
+}

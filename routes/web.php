@@ -1,7 +1,23 @@
 <?php
 
+use App\Filament\Layout\TopbarActions;
 use App\Http\Controllers\Admin\BackupDownloadController;
 use App\Http\Controllers\Admin\BackupUploadController;
+use App\Http\Controllers\Admin\BankAccountPrintController;
+use App\Http\Controllers\Admin\LabelBatchPrintController;
+use App\Http\Controllers\Admin\LabelPrintController;
+use App\Http\Controllers\Admin\OnlineSaleOrderPackingSlipPrintController;
+use App\Http\Controllers\Admin\OnlineSaleOrderPrintController;
+use App\Http\Controllers\Admin\PriceTagPrintController;
+use App\Http\Controllers\Admin\PurchasePaymentSummaryPrintController;
+use App\Http\Controllers\Admin\PurchasePlanningPrintController;
+use App\Http\Controllers\Admin\PurchasePrintController;
+use App\Http\Controllers\Admin\PurchaseQuotationPrintController;
+use App\Http\Controllers\Admin\ReorderPrintController;
+use App\Http\Controllers\Admin\SalePrintController;
+use App\Http\Controllers\Admin\SaleQuotationPrintController;
+use App\Http\Controllers\Admin\SaleReturnPrintController;
+use App\Http\Controllers\Admin\TopbarNotificationController;
 use App\Http\Controllers\Store\CartController;
 use App\Http\Controllers\Store\CategoryController;
 use App\Http\Controllers\Store\CheckoutController;
@@ -14,11 +30,12 @@ use App\Http\Controllers\Store\CustomerProfileController;
 use App\Http\Controllers\Store\HomeController;
 use App\Http\Controllers\Store\PageController;
 use App\Http\Controllers\Store\ProductController;
+use App\Http\Controllers\Store\RegisterController;
 use App\Http\Controllers\Store\SearchController;
+use App\Http\Controllers\Store\StaffRegisterController;
 use App\Http\Controllers\Store\StoreInquiryController;
 use App\Http\Middleware\BlockOnlineStoreMaintenance;
 use App\Http\Middleware\SetAgricartLocale;
-use App\Filament\Layout\TopbarActions;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware([SetAgricartLocale::class, BlockOnlineStoreMaintenance::class])->group(function (): void {
@@ -55,8 +72,8 @@ Route::middleware([SetAgricartLocale::class, BlockOnlineStoreMaintenance::class]
         Route::post('/account/orders/{order}/payment-proof', [CustomerOrderPaymentController::class, 'store'])
             ->name('store.customer.orders.payment-proof');
     });
-    Route::get('/register', [\App\Http\Controllers\Store\RegisterController::class, 'show'])->name('auth.register');
-    Route::get('/staff-register', [\App\Http\Controllers\Store\StaffRegisterController::class, 'show'])
+    Route::get('/register', [RegisterController::class, 'show'])->name('auth.register');
+    Route::get('/staff-register', [StaffRegisterController::class, 'show'])
         ->name('auth.staff.register');
     Route::get('/search/fragment', [SearchController::class, 'fragment'])->name('store.search.fragment');
     Route::get('/search/suggest', [SearchController::class, 'suggest'])->name('store.search.suggest');
@@ -101,6 +118,8 @@ Route::middleware('web')->get('/ai/status', function () {
 })->name('agricart.ai.status');
 
 Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
+    Route::get('/notifications/summary', TopbarNotificationController::class)
+        ->name('admin.notifications.summary');
     Route::get('/backups/{backupId}/download', [BackupDownloadController::class, 'download'])
         ->name('admin.backups.download');
     Route::post('/backups/upload', [BackupUploadController::class, 'store'])
@@ -108,36 +127,36 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
     Route::get('/backups/export/{type}', [BackupDownloadController::class, 'exportCsv'])
         ->whereIn('type', ['products', 'categories'])
         ->name('admin.backups.export');
-    Route::get('/labels/{product}/print', [\App\Http\Controllers\Admin\LabelPrintController::class, 'show'])
+    Route::get('/labels/{product}/print', [LabelPrintController::class, 'show'])
         ->name('admin.labels.print');
-    Route::post('/labels/print-batch', [\App\Http\Controllers\Admin\LabelBatchPrintController::class, 'store'])
+    Route::post('/labels/print-batch', [LabelBatchPrintController::class, 'store'])
         ->name('admin.labels.batch-print');
-    Route::get('/purchase-planning/{sheet}/print', [\App\Http\Controllers\Admin\PurchasePlanningPrintController::class, 'show'])
+    Route::get('/purchase-planning/{sheet}/print', [PurchasePlanningPrintController::class, 'show'])
         ->name('admin.purchase-planning.print');
-    Route::get('/purchase-payment-summaries/{summary}/print', [\App\Http\Controllers\Admin\PurchasePaymentSummaryPrintController::class, 'show'])
+    Route::get('/purchase-payment-summaries/{summary}/print', [PurchasePaymentSummaryPrintController::class, 'show'])
         ->name('admin.purchase-payment-summaries.print');
-    Route::get('/purchase-quotations/{quotation}/print', [\App\Http\Controllers\Admin\PurchaseQuotationPrintController::class, 'show'])
+    Route::get('/purchase-quotations/{quotation}/print', [PurchaseQuotationPrintController::class, 'show'])
         ->name('admin.purchase-quotations.print');
-    Route::get('/re-order/print', [\App\Http\Controllers\Admin\ReorderPrintController::class, 'show'])
+    Route::get('/re-order/print', [ReorderPrintController::class, 'show'])
         ->name('admin.reorder.print');
-    Route::get('/price-tags/print', [\App\Http\Controllers\Admin\PriceTagPrintController::class, 'show'])
+    Route::get('/price-tags/print', [PriceTagPrintController::class, 'show'])
         ->name('admin.price-tags.print');
-    Route::get('/purchases/{purchase}/print', [\App\Http\Controllers\Admin\PurchasePrintController::class, 'show'])
+    Route::get('/purchases/{purchase}/print', [PurchasePrintController::class, 'show'])
         ->name('admin.purchases.print');
-    Route::get('/sales/{sale}/print', [\App\Http\Controllers\Admin\SalePrintController::class, 'show'])
+    Route::get('/sales/{sale}/print', [SalePrintController::class, 'show'])
         ->name('admin.sales.print');
-    Route::get('/sale-quotations/{quotation}/print', [\App\Http\Controllers\Admin\SaleQuotationPrintController::class, 'show'])
+    Route::get('/sale-quotations/{quotation}/print', [SaleQuotationPrintController::class, 'show'])
         ->name('admin.sale-quotations.print');
-    Route::get('/sale-returns/{saleReturn}/print', [\App\Http\Controllers\Admin\SaleReturnPrintController::class, 'show'])
+    Route::get('/sale-returns/{saleReturn}/print', [SaleReturnPrintController::class, 'show'])
         ->name('admin.sale-returns.print');
-    Route::get('/online-sale-orders/{order}/print', [\App\Http\Controllers\Admin\OnlineSaleOrderPrintController::class, 'show'])
+    Route::get('/online-sale-orders/{order}/print', [OnlineSaleOrderPrintController::class, 'show'])
         ->name('admin.online-sale-orders.print');
-    Route::get('/bank-accounts/{account}/print', [\App\Http\Controllers\Admin\BankAccountPrintController::class, 'details'])
+    Route::get('/bank-accounts/{account}/print', [BankAccountPrintController::class, 'details'])
         ->name('admin.bank-accounts.print');
-    Route::get('/bank-accounts/{account}/print-summary', [\App\Http\Controllers\Admin\BankAccountPrintController::class, 'summary'])
+    Route::get('/bank-accounts/{account}/print-summary', [BankAccountPrintController::class, 'summary'])
         ->name('admin.bank-accounts.print-summary');
-    Route::get('/bank-accounts/{account}/history-print', [\App\Http\Controllers\Admin\BankAccountPrintController::class, 'history'])
+    Route::get('/bank-accounts/{account}/history-print', [BankAccountPrintController::class, 'history'])
         ->name('admin.bank-accounts.history-print');
-    Route::get('/online-sale-orders/{order}/packing-slip', [\App\Http\Controllers\Admin\OnlineSaleOrderPackingSlipPrintController::class, 'show'])
+    Route::get('/online-sale-orders/{order}/packing-slip', [OnlineSaleOrderPackingSlipPrintController::class, 'show'])
         ->name('admin.online-sale-orders.packing-slip');
 });

@@ -98,6 +98,16 @@ class PermissionRegistry
             'label_en' => 'Manage print profiles',
             'label_ur' => 'پرنٹ پروفائلز کا انتظام',
         ];
+        $groups['settings']['permissions'][] = [
+            'key' => 'settings.system-errors.view',
+            'label_en' => 'View sanitized system errors',
+            'label_ur' => 'محفوظ سسٹم ایررز دیکھیں',
+        ];
+        $groups['settings']['permissions'][] = [
+            'key' => 'settings.system-errors.manage',
+            'label_en' => 'Resolve and manage system errors',
+            'label_ur' => 'سسٹم ایررز حل اور مینج کریں',
+        ];
 
         return $groups;
     }

@@ -3,6 +3,7 @@
 namespace App\Filament\Layout;
 
 use App\Filament\Clusters\Settings\StoreSettingPage;
+use App\Models\User;
 use Filament\Support\Icons\Heroicon;
 
 class SettingsPageToolbar extends ClusterPageToolbar
@@ -86,6 +87,18 @@ class SettingsPageToolbar extends ClusterPageToolbar
                 'columns' => static::aiLogsColumns(),
                 'interactive' => true,
             ],
+            'system-errors' => [
+                ...$config,
+                'addLabel' => null,
+                'formKey' => null,
+                'searchPlaceholder' => __('agricart.system_errors.search'),
+                'livewirePrefix' => 'system-errors',
+                'columnDataAttr' => 'data-system-error-column',
+                'filters' => [],
+                'filterGroups' => static::systemErrorFilterGroups(),
+                'columns' => static::systemErrorColumns(),
+                'interactive' => true,
+            ],
             'ai-settings' => [
                 ...$config,
                 'addLabel' => __('agricart.toolbar.add_ai'),
@@ -167,11 +180,65 @@ class SettingsPageToolbar extends ClusterPageToolbar
         ];
     }
 
+    /**
+     * @return list<array{label: string, filters: list<array{label: string, value: string}>}>
+     */
+    protected static function systemErrorFilterGroups(): array
+    {
+        return [
+            [
+                'label' => __('agricart.system_errors.filters.source'),
+                'filters' => [
+                    ['label' => __('agricart.system_errors.inbox'), 'value' => 'source:inbox'],
+                    ['label' => __('agricart.system_errors.file_logs'), 'value' => 'source:file'],
+                ],
+            ],
+            [
+                'label' => __('agricart.system_errors.filters.status'),
+                'filters' => [
+                    ['label' => __('agricart.system_errors.statuses.open'), 'value' => 'status:open'],
+                    ['label' => __('agricart.system_errors.statuses.resolved'), 'value' => 'status:resolved'],
+                ],
+            ],
+            [
+                'label' => __('agricart.system_errors.filters.severity'),
+                'filters' => [
+                    ['label' => __('agricart.system_errors.severities.warning'), 'value' => 'severity:warning'],
+                    ['label' => __('agricart.system_errors.severities.error'), 'value' => 'severity:error'],
+                    ['label' => __('agricart.system_errors.severities.critical'), 'value' => 'severity:critical'],
+                ],
+            ],
+            [
+                'label' => __('agricart.system_errors.filters.date'),
+                'filters' => [
+                    ['label' => __('agricart.system_errors.dates.today'), 'value' => 'date:today'],
+                    ['label' => __('agricart.system_errors.dates.seven_days'), 'value' => 'date:7days'],
+                    ['label' => __('agricart.system_errors.dates.thirty_days'), 'value' => 'date:30days'],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @return list<array{label: string, value: string, visible: bool}>
+     */
+    protected static function systemErrorColumns(): array
+    {
+        return [
+            ['label' => __('agricart.system_errors.columns.reference'), 'value' => 'reference', 'visible' => true],
+            ['label' => __('agricart.system_errors.columns.severity'), 'value' => 'severity', 'visible' => true],
+            ['label' => __('agricart.system_errors.columns.message'), 'value' => 'message', 'visible' => true],
+            ['label' => __('agricart.system_errors.columns.occurrences'), 'value' => 'occurrences', 'visible' => true],
+            ['label' => __('agricart.system_errors.columns.last_seen'), 'value' => 'last_seen_at', 'visible' => true],
+            ['label' => __('agricart.system_errors.columns.status'), 'value' => 'status', 'visible' => true],
+        ];
+    }
+
     protected static function userCanManageUsers(): bool
     {
         $user = auth()->user();
 
-        return $user instanceof \App\Models\User
+        return $user instanceof User
             && ($user->isSuperAdmin() || $user->hasPermission('settings.users.manage'));
     }
 
@@ -179,7 +246,7 @@ class SettingsPageToolbar extends ClusterPageToolbar
     {
         $user = auth()->user();
 
-        return $user instanceof \App\Models\User
+        return $user instanceof User
             && ($user->isSuperAdmin() || $user->hasPermission('settings.roles.manage'));
     }
 
@@ -187,7 +254,7 @@ class SettingsPageToolbar extends ClusterPageToolbar
     {
         $user = auth()->user();
 
-        return $user instanceof \App\Models\User
+        return $user instanceof User
             && ($user->isSuperAdmin() || $user->hasPermission('settings.printing.manage'));
     }
 }

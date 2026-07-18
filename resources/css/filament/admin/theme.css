@@ -632,6 +632,175 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
     height: 1.125rem;
 }
 
+.agricart-topbar-actions__notifications {
+    position: relative;
+}
+
+.agricart-topbar-actions__icon-btn {
+    position: relative;
+}
+
+.agricart-topbar-actions__notification-badge {
+    position: absolute;
+    inset-block-start: -0.4rem;
+    inset-inline-end: -0.45rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.1rem;
+    height: 1.1rem;
+    padding-inline: 0.2rem;
+    border: 2px solid var(--agricart-surface);
+    border-radius: 0;
+    background: #dc2626;
+    color: #fff;
+    font-size: 0.625rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.agricart-topbar-actions__notification-panel {
+    position: absolute;
+    inset-block-start: calc(100% + 0.65rem);
+    inset-inline-end: 0;
+    z-index: 70;
+    width: min(22rem, calc(100vw - 2rem));
+    border: 1px solid var(--agricart-border);
+    border-radius: 0;
+    background: var(--agricart-surface);
+    box-shadow: 0 18px 45px rgb(15 23 42 / 16%);
+    color: var(--agricart-text);
+}
+
+.agricart-topbar-actions__notification-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    border-block-end: 1px solid var(--agricart-border);
+}
+
+.agricart-topbar-actions__notification-header > div {
+    display: grid;
+    gap: 0.15rem;
+}
+
+.agricart-topbar-actions__notification-header strong {
+    font-size: 0.875rem;
+    font-weight: 700;
+}
+
+.agricart-topbar-actions__notification-header span {
+    color: var(--agricart-muted);
+    font-size: 0.75rem;
+}
+
+.agricart-topbar-actions__notification-refresh {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    flex: 0 0 auto;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0;
+    color: var(--agricart-muted);
+}
+
+.agricart-topbar-actions__notification-refresh:hover {
+    border-color: color-mix(in oklab, var(--agricart-primary) 35%, var(--agricart-border));
+    color: var(--agricart-primary);
+}
+
+.agricart-topbar-actions__notification-refresh:disabled {
+    cursor: wait;
+    opacity: 0.55;
+}
+
+.agricart-topbar-actions__notification-refresh svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.agricart-topbar-actions__notification-list {
+    max-height: min(24rem, calc(100vh - 8rem));
+    overflow-y: auto;
+}
+
+.agricart-topbar-actions__notification-item {
+    display: grid;
+    grid-template-columns: 0.5rem minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 4rem;
+    padding: 0.75rem 1rem;
+    border-block-end: 1px solid var(--agricart-border);
+    color: inherit;
+    text-decoration: none;
+}
+
+.agricart-topbar-actions__notification-item:hover {
+    background: color-mix(in oklab, var(--agricart-primary) 7%, var(--agricart-surface));
+}
+
+.agricart-topbar-actions__notification-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    background: var(--agricart-primary);
+}
+
+.agricart-topbar-actions__notification-copy {
+    display: grid;
+    min-width: 0;
+    gap: 0.15rem;
+}
+
+.agricart-topbar-actions__notification-copy strong {
+    overflow: hidden;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.agricart-topbar-actions__notification-copy small {
+    color: var(--agricart-muted);
+    font-size: 0.75rem;
+}
+
+.agricart-topbar-actions__notification-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.75rem;
+    height: 1.75rem;
+    padding-inline: 0.35rem;
+    background: color-mix(in oklab, var(--agricart-primary) 14%, var(--agricart-surface));
+    color: var(--agricart-primary);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.agricart-topbar-actions__notification-empty,
+.agricart-topbar-actions__notification-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 6rem;
+    padding: 1rem;
+    color: var(--agricart-muted);
+    font-size: 0.8125rem;
+    text-align: center;
+}
+
+.agricart-topbar-actions__notification-empty svg {
+    width: 1.125rem;
+    height: 1.125rem;
+    color: var(--agricart-primary);
+}
+
 .agricart-topbar-actions__user .fi-user-menu-trigger {
     display: inline-flex;
     align-items: center;
@@ -3872,6 +4041,288 @@ body.agricart-form-panel-open {
 @media (max-width: 1023px) {
     .agricart-ai-log-detail__meta {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* ── System Errors inbox ── */
+.agricart-system-errors {
+    display: grid;
+    gap: 0.875rem;
+    font-family: Arial, sans-serif !important;
+}
+
+.agricart-system-errors__stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.agricart-system-errors__stats article {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 4.25rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0;
+    background: var(--agricart-surface);
+}
+
+.agricart-system-errors__stats article.is-critical {
+    border-color: color-mix(in oklab, var(--agricart-danger) 35%, var(--agricart-border));
+}
+
+.agricart-system-errors__stats span {
+    color: var(--agricart-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.agricart-system-errors__stats strong {
+    color: var(--agricart-text);
+    font-size: 1.4rem;
+}
+
+.agricart-system-errors__stats .is-critical strong {
+    color: var(--agricart-danger);
+}
+
+.agricart-system-errors__source-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.agricart-system-errors__source-tabs button {
+    min-height: 2.25rem;
+    padding: 0.45rem 0.8rem;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0;
+    background: var(--agricart-surface);
+    color: var(--agricart-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.agricart-system-errors__source-tabs button.is-active {
+    border-color: color-mix(in oklab, var(--agricart-primary) 40%, var(--agricart-border));
+    background: color-mix(in oklab, var(--agricart-primary) 10%, var(--agricart-surface));
+    color: var(--agricart-primary);
+}
+
+.agricart-system-errors__file-notice {
+    margin: 0;
+    padding: 0.65rem 0.8rem;
+    border-inline-start: 3px solid var(--agricart-accent);
+    background: color-mix(in oklab, var(--agricart-accent) 10%, var(--agricart-surface));
+    color: var(--agricart-muted);
+    font-size: 0.75rem;
+}
+
+.agricart-system-errors__table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-surface);
+}
+
+.agricart-system-errors__table {
+    width: 100%;
+    min-width: 54rem;
+    border-collapse: collapse;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.78rem;
+}
+
+.agricart-system-errors__table th,
+.agricart-system-errors__table td {
+    padding: 0.65rem 0.75rem;
+    border-block-end: 1px solid var(--agricart-border);
+    text-align: start;
+    vertical-align: middle;
+}
+
+.agricart-system-errors__table th {
+    background: color-mix(in oklab, var(--agricart-bg) 65%, var(--agricart-surface));
+    color: var(--agricart-muted);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+}
+
+.agricart-system-errors__row {
+    cursor: pointer;
+}
+
+.agricart-system-errors__row:hover,
+.agricart-system-errors__row:focus-visible {
+    background: color-mix(in oklab, var(--agricart-primary) 6%, transparent);
+    outline: none;
+}
+
+.agricart-system-errors__message {
+    max-width: 34rem;
+}
+
+.agricart-system-errors__message strong,
+.agricart-system-errors__message span {
+    display: block;
+}
+
+.agricart-system-errors__message span {
+    margin-block-start: 0.15rem;
+    overflow: hidden;
+    color: var(--agricart-muted);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.agricart-system-errors__severity,
+.agricart-system-errors__status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.5rem;
+    padding: 0.15rem 0.4rem;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.agricart-system-errors__severity.is-warning {
+    border-color: color-mix(in oklab, var(--agricart-accent) 45%, var(--agricart-border));
+    color: #9a6700;
+}
+
+.agricart-system-errors__severity.is-error,
+.agricart-system-errors__severity.is-critical {
+    border-color: color-mix(in oklab, var(--agricart-danger) 35%, var(--agricart-border));
+    background: color-mix(in oklab, var(--agricart-danger) 8%, var(--agricart-surface));
+    color: var(--agricart-danger);
+}
+
+.agricart-system-errors__status.is-open {
+    color: var(--agricart-danger);
+}
+
+.agricart-system-errors__status.is-resolved {
+    border-color: color-mix(in oklab, var(--agricart-primary) 35%, var(--agricart-border));
+    color: var(--agricart-primary);
+}
+
+.agricart-system-errors__empty {
+    padding: 2rem 1rem;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-surface);
+    color: var(--agricart-muted);
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+.agricart-system-errors__pagination {
+    font-family: Arial, sans-serif !important;
+}
+
+.agricart-system-error-detail {
+    display: grid;
+    gap: 1rem;
+    font-family: Arial, sans-serif !important;
+}
+
+.agricart-system-error-detail__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+.agricart-system-error-detail__actions button {
+    min-height: 2.25rem;
+    padding: 0.45rem 0.8rem;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.agricart-system-error-detail__copy,
+.agricart-system-error-detail__reopen {
+    background: var(--agricart-surface);
+    color: var(--agricart-text);
+}
+
+.agricart-system-error-detail__resolve {
+    border-color: var(--agricart-primary) !important;
+    background: var(--agricart-primary);
+    color: #fff;
+}
+
+.agricart-system-error-detail__meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.agricart-system-error-detail__meta > div {
+    display: grid;
+    gap: 0.2rem;
+    min-width: 0;
+    padding: 0.65rem;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-surface);
+}
+
+.agricart-system-error-detail__meta span,
+.agricart-system-error-detail__section h3 {
+    color: var(--agricart-muted);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+}
+
+.agricart-system-error-detail__meta strong,
+.agricart-system-error-detail__meta code {
+    overflow-wrap: anywhere;
+    color: var(--agricart-text);
+    font-size: 0.75rem;
+}
+
+.agricart-system-error-detail__section h3 {
+    margin: 0 0 0.35rem;
+}
+
+.agricart-system-error-detail__section pre {
+    max-height: 22rem;
+    margin: 0;
+    overflow: auto;
+    padding: 0.75rem;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0;
+    background: color-mix(in oklab, var(--agricart-bg) 70%, var(--agricart-surface));
+    color: var(--agricart-text);
+    font-family: Consolas, monospace;
+    font-size: 0.72rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.agricart-system-error-detail__section pre.is-error {
+    border-color: color-mix(in oklab, var(--agricart-danger) 30%, var(--agricart-border));
+}
+
+.agricart-system-error-detail__empty {
+    color: var(--agricart-muted);
+}
+
+@media (max-width: 767px) {
+    .agricart-system-errors__stats,
+    .agricart-system-error-detail__meta {
+        grid-template-columns: 1fr;
     }
 }
 

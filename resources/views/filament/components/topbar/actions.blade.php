@@ -35,6 +35,13 @@
         aiConnected: @js($aiState['connected']),
         aiStatus: @js($aiState['status']),
         aiModel: @js($aiState['model'] ?? ''),
+        notificationsOpen: false,
+        notificationsLoading: false,
+        notificationTimer: null,
+        notificationSummary: {
+            total: 0,
+            items: [],
+        },
         aiLabels: {
             connected: @js(__('agricart.topbar.ai_connected')),
             disconnected: @js(__('agricart.topbar.ai_disconnected')),
@@ -45,6 +52,52 @@
             this.tick();
             window.setInterval(() => this.tick(), 1000);
             window.addEventListener('ai-settings-saved', () => this.refreshAiStatus());
+            this.refreshNotifications();
+            this.notificationTimer = window.setInterval(() => this.refreshNotifications(), 60000);
+        },
+        destroy() {
+            if (this.notificationTimer) {
+                window.clearInterval(this.notificationTimer);
+            }
+        },
+        async refreshNotifications() {
+            if (this.notificationsLoading) {
+                return;
+            }
+
+            this.notificationsLoading = true;
+
+            try {
+                const response = await fetch(@js(route('admin.notifications.summary')), {
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                });
+
+                if (! response.ok) {
+                    return;
+                }
+
+                const data = await response.json();
+
+                this.notificationSummary = {
+                    total: Number(data.total ?? 0),
+                    items: Array.isArray(data.items) ? data.items : [],
+                };
+            } catch (error) {
+                //
+            } finally {
+                this.notificationsLoading = false;
+            }
+        },
+        toggleNotifications() {
+            this.notificationsOpen = ! this.notificationsOpen;
+
+            if (this.notificationsOpen) {
+                this.refreshNotifications();
+            }
         },
         async refreshAiStatus() {
             try {
@@ -304,22 +357,84 @@
             <span class="agricart-topbar-actions__ai-signal" x-show="aiConnected" x-cloak aria-hidden="true"></span>
         </button>
 
-        @if (filament()->hasDatabaseNotifications() && filament()->getDatabaseNotificationsPosition() === \Filament\Enums\DatabaseNotificationsPosition::Topbar)
-            <div class="agricart-topbar-actions__notifications">
-                @livewire(filament()->getDatabaseNotificationsLivewireComponent(), [
-                    'lazy' => filament()->hasLazyLoadedDatabaseNotifications(),
-                ])
-            </div>
-        @else
+        <div
+            class="agricart-topbar-actions__notifications"
+            x-on:click.outside="notificationsOpen = false"
+            x-on:keydown.escape.window="notificationsOpen = false"
+        >
             <button
                 type="button"
                 class="agricart-topbar-actions__icon-btn"
+                x-on:click="toggleNotifications()"
+                x-bind:aria-expanded="notificationsOpen"
                 aria-label="{{ __('agricart.topbar.notifications') }}"
                 title="{{ __('agricart.topbar.notifications') }}"
             >
                 <x-filament::icon :icon="Heroicon::OutlinedBell" class="agricart-topbar-actions__icon-btn-icon" />
+                <span
+                    class="agricart-topbar-actions__notification-badge"
+                    x-show="notificationSummary.total > 0"
+                    x-text="notificationSummary.total > 99 ? '99+' : notificationSummary.total"
+                    x-cloak
+                ></span>
             </button>
-        @endif
+
+            <div
+                class="agricart-topbar-actions__notification-panel"
+                x-show="notificationsOpen"
+                x-transition.opacity.duration.150ms
+                x-cloak
+            >
+                <div class="agricart-topbar-actions__notification-header">
+                    <div>
+                        <strong>{{ __('agricart.topbar.pending_requests') }}</strong>
+                        <span x-text="@js(__('agricart.topbar.pending_total')).replace(':count', notificationSummary.total)"></span>
+                    </div>
+                    <button
+                        type="button"
+                        class="agricart-topbar-actions__notification-refresh"
+                        x-on:click="refreshNotifications()"
+                        x-bind:disabled="notificationsLoading"
+                        title="{{ __('agricart.topbar.refresh_notifications') }}"
+                        aria-label="{{ __('agricart.topbar.refresh_notifications') }}"
+                    >
+                        <x-filament::icon :icon="Heroicon::OutlinedArrowPath" />
+                    </button>
+                </div>
+
+                <div class="agricart-topbar-actions__notification-list">
+                    <template x-for="item in notificationSummary.items" :key="item.key">
+                        <a
+                            class="agricart-topbar-actions__notification-item"
+                            x-bind:href="item.url"
+                            x-on:click="notificationsOpen = false"
+                        >
+                            <span class="agricart-topbar-actions__notification-dot" aria-hidden="true"></span>
+                            <span class="agricart-topbar-actions__notification-copy">
+                                <strong x-text="item.label"></strong>
+                                <small x-text="item.meta"></small>
+                            </span>
+                            <span class="agricart-topbar-actions__notification-count" x-text="item.count"></span>
+                        </a>
+                    </template>
+
+                    <div
+                        class="agricart-topbar-actions__notification-empty"
+                        x-show="! notificationsLoading && notificationSummary.items.length === 0"
+                    >
+                        <x-filament::icon :icon="Heroicon::OutlinedCheckCircle" />
+                        <span>{{ __('agricart.topbar.no_pending_requests') }}</span>
+                    </div>
+
+                    <div
+                        class="agricart-topbar-actions__notification-loading"
+                        x-show="notificationsLoading && notificationSummary.items.length === 0"
+                    >
+                        {{ __('agricart.topbar.loading_notifications') }}
+                    </div>
+                </div>
+            </div>
+        </div>
 
         @if ($user && filament()->hasUserMenu() && filament()->getUserMenuPosition() === \Filament\Enums\UserMenuPosition::Topbar)
             <div class="agricart-topbar-actions__user">

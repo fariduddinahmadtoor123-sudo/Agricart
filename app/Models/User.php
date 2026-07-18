@@ -150,6 +150,12 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
             if (class_exists($overviewClass) && $overviewClass::canAccess()) {
                 return $overviewClass::getUrl();
             }
+
+            $navigationUrl = $clusterClass::getNavigationUrl();
+
+            if (filled($navigationUrl)) {
+                return $navigationUrl;
+            }
         }
 
         throw new AuthorizationException(__('agricart.access.denied'));

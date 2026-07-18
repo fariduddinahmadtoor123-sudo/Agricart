@@ -43,6 +43,13 @@ abstract class BaseAgricartCluster extends Cluster
         return $user->hasPermission("{$slug}.view");
     }
 
+    public static function viewPermission(): ?string
+    {
+        $slug = static::$slug ?? null;
+
+        return filled($slug) ? "{$slug}.view" : null;
+    }
+
     public static function getNavigationLabel(): string
     {
         $slug = static::$slug ?? 'app';
