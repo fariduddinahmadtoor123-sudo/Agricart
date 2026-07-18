@@ -53,4 +53,34 @@
             </x-filament::input.wrapper>
         </div>
     </div>
+
+    <div class="agricart-unit-form__grid">
+        <div class="agricart-form-panel__field">
+            <label class="agricart-form-panel__label" for="agricart-packing-unit-code">{{ __('agricart.packing_units.fields.code') }}</label>
+            <x-filament::input.wrapper>
+                <input id="agricart-packing-unit-code" type="text" value="{{ $code }}" class="fi-input" readonly />
+            </x-filament::input.wrapper>
+        </div>
+        <div class="agricart-form-panel__field">
+            <label class="agricart-form-panel__label" for="agricart-packing-unit-slug">{{ __('agricart.packing_units.fields.slug') }}</label>
+            <x-filament::input.wrapper>
+                <input id="agricart-packing-unit-slug" type="text" value="{{ $slug }}" class="fi-input" readonly />
+            </x-filament::input.wrapper>
+        </div>
+        <div class="agricart-form-panel__field">
+            <label class="agricart-form-panel__label" for="agricart-packing-unit-status">{{ __('agricart.packing_units.fields.status') }}</label>
+            <x-filament::input.wrapper>
+                <select id="agricart-packing-unit-status" wire:model="status" class="fi-select-input" @disabled($this->isReadonly())>
+                    <option value="active">{{ __('agricart.form_panel.statuses.active') }}</option>
+                    <option value="inactive">{{ __('agricart.form_panel.statuses.inactive') }}</option>
+                </select>
+            </x-filament::input.wrapper>
+        </div>
+        <div class="agricart-form-panel__field">
+            <label class="agricart-form-panel__label" for="agricart-packing-unit-ai-status">{{ __('agricart.packing_units.fields.ai_status') }}</label>
+            <x-filament::input.wrapper>
+                <input id="agricart-packing-unit-ai-status" type="text" value="{{ __('agricart.categories.ai_status.'.($ai_status ?: 'none')) }}" class="fi-input" readonly />
+            </x-filament::input.wrapper>
+        </div>
+    </div>
 </div>

@@ -57,6 +57,8 @@ class FreshStartSeeder extends Seeder
             'status' => User::STATUS_ACTIVE,
         ]);
 
+        $this->call(QuantityControlSeeder::class);
+
         $this->command?->info('Fresh start complete.');
         $this->command?->info('Super Admin: admin@agricart.test / password');
         $this->command?->info('Login: ' . url('/admin/login'));

@@ -1,5 +1,6 @@
 @php
     use App\Services\Printing\LabelRenderService;
+    use Illuminate\Support\Facades\Storage;
 
     $renderer = app(LabelRenderService::class);
     $stickers = [
@@ -8,21 +9,45 @@
         ['type' => 'qr', 'locale' => 'ur', 'title' => __('agricart.labels.sticker.qr_ur'), 'data' => $product->label_qr['ur'] ?? null],
         ['type' => 'barcode', 'locale' => 'ur', 'title' => __('agricart.labels.sticker.barcode_ur'), 'data' => $product->label_barcode['ur'] ?? null],
     ];
+    $previewSticker = $stickers[0];
+    $previewData = filled($product->image_path)
+        ? null
+        : $renderer->stickerData($product, $previewSticker['locale'], $previewSticker['type']);
 @endphp
 
-<div class="agricart-labels__product" wire:key="label-product-{{ $product->id }}">
-    <div class="agricart-labels__product-head">
-        <div>
+<details class="agricart-labels__product" wire:key="label-product-{{ $product->id }}">
+    <summary class="agricart-labels__product-summary">
+        <div class="agricart-labels__product-head">
             <h3 class="agricart-labels__product-title">{{ $product->name_en }}</h3>
-            <p class="agricart-labels__product-meta" dir="rtl">{{ $product->name_ur }}</p>
+            <span class="agricart-labels__expand-label">View all labels</span>
         </div>
+        <div class="agricart-labels__preview">
+            @if (filled($product->image_path))
+                <div class="agricart-labels__preview-image-wrap">
+                    <img
+                        src="{{ Storage::disk('public')->url($product->image_path) }}"
+                        alt="{{ $product->name_en }}"
+                        class="agricart-labels__preview-image"
+                        loading="lazy"
+                    />
+                </div>
+            @else
+                @include('livewire.labels.partials.sticker', [
+                    'title' => $previewSticker['title'],
+                    'type' => $previewSticker['type'],
+                    'locale' => $previewSticker['locale'],
+                    'data' => $previewData,
+                ])
+            @endif
+        </div>
+    </summary>
+
+    <div class="agricart-labels__details">
         <div class="agricart-labels__product-codes">
             <code>{{ $product->label_code }}</code>
             <span>{{ $product->code }}</span>
         </div>
-    </div>
-
-    <div class="agricart-labels__stickers">
+        <div class="agricart-labels__stickers">
         @foreach ($stickers as $sticker)
             @php
                 $stickerData = $renderer->stickerData($product, $sticker['locale'], $sticker['type']);
@@ -45,5 +70,6 @@
                 </a>
             </div>
         @endforeach
+        </div>
     </div>
-</div>
+</details>

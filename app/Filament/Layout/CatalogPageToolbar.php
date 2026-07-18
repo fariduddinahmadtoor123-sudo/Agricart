@@ -66,6 +66,10 @@ class CatalogPageToolbar extends ClusterPageToolbar
             'labels' => [
                 ...$config,
                 'livewirePrefix' => 'labels',
+                'addLabel' => static::userCan('view')
+                    ? __('agricart.labels.print.open_button')
+                    : null,
+                'formKey' => 'labels',
                 'interactive' => false,
             ],
             'categories' => [
@@ -175,9 +179,7 @@ class CatalogPageToolbar extends ClusterPageToolbar
                 'columns' => [
                     ['label' => __('agricart.controls.list.col_code'), 'value' => 'code', 'visible' => true],
                     ['label' => __('agricart.controls.list.col_name_en'), 'value' => 'name_en', 'visible' => true],
-                    ['label' => __('agricart.controls.list.col_value_en'), 'value' => 'value_en', 'visible' => true],
                     ['label' => __('agricart.controls.list.col_name_ur'), 'value' => 'name_ur', 'visible' => true],
-                    ['label' => __('agricart.controls.list.col_value_ur'), 'value' => 'value_ur', 'visible' => false],
                     ['label' => __('agricart.controls.list.col_status'), 'value' => 'status', 'visible' => true],
                     ['label' => __('agricart.controls.list.col_ai_status'), 'value' => 'ai_status', 'visible' => true],
                     ['label' => __('agricart.controls.list.col_created'), 'value' => 'created_at', 'visible' => true],

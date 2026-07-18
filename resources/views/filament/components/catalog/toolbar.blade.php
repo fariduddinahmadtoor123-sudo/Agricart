@@ -32,7 +32,7 @@
             @if (filled($toolbar['addLabel']))
                 <x-filament::button
                     color="primary"
-                    :icon="Heroicon::OutlinedPlus"
+                    :icon="($toolbar['formKey'] ?? null) === 'labels' ? Heroicon::OutlinedPrinter : Heroicon::OutlinedPlus"
                     tag="button"
                     type="button"
                     class="agricart-catalog-toolbar__action"

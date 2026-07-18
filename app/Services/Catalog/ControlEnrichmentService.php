@@ -218,7 +218,7 @@ class ControlEnrichmentService
             $decoded = json_decode($matches[0], true);
         }
 
-        if (! is_array($decoded)) {
+        if (! is_array($decoded) || array_is_list($decoded)) {
             return null;
         }
 
@@ -227,26 +227,39 @@ class ControlEnrichmentService
 
     /**
      * @param  array<string, mixed>  $payload
-     * @return array<string, mixed>
+     * @return array<string, mixed>|null
      */
-    private function normalizePayload(array $payload): array
+    private function normalizePayload(array $payload): ?array
     {
-        $aliases = [
-            'name_en' => ['english_name', 'control_name_en', 'name_en'],
-            'name_ur' => ['urdu_name', 'control_name_ur', 'name_ur'],
-            'value_en' => ['english_value', 'value_en', 'description_en'],
-            'value_ur' => ['urdu_value', 'value_ur', 'description_ur'],
+        $limits = [
+            'name_en' => 128,
+            'name_ur' => 128,
+            'value_en' => 1000,
+            'value_ur' => 1000,
         ];
+
+        if (array_diff(array_keys($payload), array_keys($limits)) !== []) {
+            return null;
+        }
 
         $normalized = [];
 
-        foreach ($aliases as $target => $keys) {
-            foreach ($keys as $key) {
-                if (array_key_exists($key, $payload) && filled($payload[$key])) {
-                    $normalized[$target] = is_string($payload[$key]) ? trim($payload[$key]) : $payload[$key];
-                    break;
-                }
+        foreach ($payload as $key => $value) {
+            if (! is_string($value) || ! filled(trim($value))) {
+                return null;
             }
+
+            $value = trim($value);
+
+            if (mb_strlen($value) > $limits[$key]) {
+                return null;
+            }
+
+            $normalized[$key] = $value;
+        }
+
+        if ($normalized === []) {
+            return null;
         }
 
         $normalized['ai_status'] = CategoryAiStatus::Enriched->value;

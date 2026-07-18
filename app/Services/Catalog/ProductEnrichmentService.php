@@ -65,6 +65,9 @@ class ProductEnrichmentService
             ];
         }
 
+        // The user-entered product name is authoritative; image recognition must never replace it.
+        $parsed['name_en'] = $englishName;
+
         return [
             'success' => true,
             'message' => __('agricart.products.ai.enriched'),

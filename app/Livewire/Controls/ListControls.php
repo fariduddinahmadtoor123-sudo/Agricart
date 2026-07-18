@@ -3,7 +3,9 @@
 namespace App\Livewire\Controls;
 
 use App\Models\CatalogControl;
+use App\Models\User;
 use App\Services\Catalog\ControlService;
+use Filament\Notifications\Notification;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -14,7 +16,7 @@ class ListControls extends Component
     use WithPagination;
 
     /** @var list<string> */
-    public array $visibleColumns = ['code', 'name_en', 'value_en', 'name_ur', 'value_ur', 'status', 'ai_status', 'created_at'];
+    public array $visibleColumns = ['code', 'name_en', 'name_ur', 'status', 'ai_status', 'created_at'];
 
     public string $search = '';
 
@@ -58,6 +60,12 @@ class ListControls extends Component
     #[On('controls-column-toggle')]
     public function toggleColumn(string $column, bool $visible): void
     {
+        $allowedColumns = ['code', 'name_en', 'name_ur', 'status', 'ai_status', 'created_at'];
+
+        if (! in_array($column, $allowedColumns, true)) {
+            return;
+        }
+
         if ($visible && ! in_array($column, $this->visibleColumns, true)) {
             $this->visibleColumns[] = $column;
         }
@@ -78,6 +86,7 @@ class ListControls extends Component
 
     public function openView(int $controlId): void
     {
+        $this->authorizeAction('view');
         $control = CatalogControl::query()->find($controlId);
 
         if ($control === null) {
@@ -96,6 +105,7 @@ class ListControls extends Component
 
     public function openEdit(int $controlId): void
     {
+        $this->authorizeAction('edit');
         $control = CatalogControl::query()->find($controlId);
 
         if ($control === null) {
@@ -114,18 +124,29 @@ class ListControls extends Component
 
     public function deleteControl(int $controlId): void
     {
+        $this->authorizeAction('delete');
         $control = CatalogControl::query()->find($controlId);
 
         if ($control === null) {
             return;
         }
 
-        app(ControlService::class)->delete($control);
+        try {
+            app(ControlService::class)->delete($control);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            Notification::make()->danger()
+                ->title((string) collect($exception->errors())->flatten()->first())
+                ->send();
+
+            return;
+        }
+
         $this->resetPage();
     }
 
     public function render(): View
     {
+        $this->authorizeAction('view');
         $controls = CatalogControl::query()
             ->when(filled($this->search), function ($query): void {
                 $needle = '%' . $this->search . '%';
@@ -145,6 +166,23 @@ class ListControls extends Component
 
         return view('livewire.controls.list', [
             'controls' => $controls,
+            'canView' => $this->userCan('view'),
+            'canEdit' => $this->userCan('edit'),
+            'canDelete' => $this->userCan('delete'),
         ]);
+    }
+
+    private function authorizeAction(string $action): void
+    {
+        abort_unless($this->userCan($action), 403);
+    }
+
+    private function userCan(string $action): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User
+            && $user->canUseAdmin()
+            && ($user->isSuperAdmin() || $user->hasPermission('catalog.'.$action));
     }
 }

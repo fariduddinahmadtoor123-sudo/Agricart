@@ -3,7 +3,10 @@
 namespace App\Services\Catalog;
 
 use App\Models\CatalogControl;
+use App\Models\Product;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -12,35 +15,58 @@ class ControlService
 {
     public function create(array $data): CatalogControl
     {
-        $validated = $this->validate($data);
+        return Cache::lock('catalog-control-write', 30)->block(10, function () use ($data): CatalogControl {
+            $data['code'] = $this->nextCode();
+            $data['slug'] = $this->uniqueSlug(
+                $this->slugFromName((string) ($data['name_en'] ?? 'control')),
+            );
+            $validated = $this->validate($data);
 
-        if (! filled($validated['code'] ?? null)) {
-            $validated['code'] = $this->nextCode();
-        }
+            return DB::transaction(function () use ($validated): CatalogControl {
+                $control = CatalogControl::query()->create($validated);
+                CatalogCache::forgetOverviewStats();
 
-        if (! filled($validated['slug'] ?? null) && filled($validated['name_en'])) {
-            $validated['slug'] = $this->uniqueSlug($this->slugFromName($validated['name_en']));
-        }
-
-        return CatalogControl::query()->create($validated);
+                return $control;
+            });
+        });
     }
 
     public function update(CatalogControl $control, array $data): CatalogControl
     {
-        $validated = $this->validate($data, $control->id);
+        return Cache::lock('catalog-control-write', 30)->block(10, function () use ($control, $data): CatalogControl {
+            $control->refresh();
+            $data['code'] = $control->code;
+            $data['slug'] = $control->slug;
+            $validated = $this->validate($data, $control->id);
 
-        if (! filled($validated['code'] ?? null)) {
-            $validated['code'] = $control->code;
-        }
+            return DB::transaction(function () use ($control, $validated): CatalogControl {
+                $control->update($validated);
 
-        $control->update($validated);
+                if ($control->wasChanged(['name_en', 'name_ur', 'value_en', 'value_ur'])) {
+                    $this->refreshProductLabelsForControl($control);
+                }
 
-        return $control->fresh();
+                CatalogCache::forgetOverviewStats();
+
+                return $control->fresh();
+            });
+        });
     }
 
     public function delete(CatalogControl $control): void
     {
-        $control->delete();
+        Cache::lock('catalog-control-write', 30)->block(10, function () use ($control): void {
+            $control->refresh();
+
+            if (DB::table('product_control')->where('control_id', $control->id)->exists()) {
+                throw ValidationException::withMessages([
+                    'control' => [__('agricart.controls.messages.linked_delete')],
+                ]);
+            }
+
+            $control->delete();
+            CatalogCache::forgetOverviewStats();
+        });
     }
 
     public function slugFromName(string $name): string
@@ -115,5 +141,17 @@ class ControlService
             ->when($exceptId, fn ($query) => $query->where('id', '!=', $exceptId))
             ->where('slug', $slug)
             ->exists();
+    }
+
+    private function refreshProductLabelsForControl(CatalogControl $control): void
+    {
+        Product::query()
+            ->whereHas('controls', fn ($query) => $query->whereKey($control->id))
+            ->with(['brand', 'unit', 'packUnit', 'attributes', 'controls', 'category'])
+            ->chunkById(100, function ($products): void {
+                foreach ($products as $product) {
+                    app(ProductLabelService::class)->generateForProduct($product);
+                }
+            });
     }
 }

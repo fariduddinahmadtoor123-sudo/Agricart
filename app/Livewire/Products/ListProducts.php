@@ -3,6 +3,7 @@
 namespace App\Livewire\Products;
 
 use App\Models\Product;
+use App\Models\User;
 use App\Services\Catalog\ProductSearchQuery;
 use App\Services\Catalog\ProductService;
 use Illuminate\Contracts\View\View;
@@ -79,6 +80,8 @@ class ListProducts extends Component
 
     public function openView(int $productId): void
     {
+        $this->authorizeAction('view');
+
         $product = Product::query()->find($productId);
 
         if ($product === null) {
@@ -97,6 +100,8 @@ class ListProducts extends Component
 
     public function openEdit(int $productId): void
     {
+        $this->authorizeAction('edit');
+
         $product = Product::query()->find($productId);
 
         if ($product === null) {
@@ -115,6 +120,8 @@ class ListProducts extends Component
 
     public function deleteProduct(int $productId): void
     {
+        $this->authorizeAction('delete');
+
         $product = Product::query()->find($productId);
 
         if ($product === null) {
@@ -123,7 +130,6 @@ class ListProducts extends Component
 
         app(ProductService::class)->delete($product);
         $this->dispatch('products-saved');
-        $this->dispatch('labels-saved');
         $this->resetPage();
     }
 
@@ -141,6 +147,25 @@ class ListProducts extends Component
 
         return view('livewire.products.list', [
             'products' => $products,
+            'canView' => $this->userCan('view'),
+            'canEdit' => $this->userCan('edit'),
+            'canDelete' => $this->userCan('delete'),
         ]);
+    }
+
+    private function authorizeAction(string $action): void
+    {
+        abort_unless($this->userCan($action), 403);
+    }
+
+    private function userCan(string $action): bool
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User || ! $user->canUseAdmin()) {
+            return false;
+        }
+
+        return $user->isSuperAdmin() || $user->hasPermission('catalog.'.$action);
     }
 }

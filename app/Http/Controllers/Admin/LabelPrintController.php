@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\PrintProfile;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\Printing\LabelRenderService;
@@ -30,7 +31,11 @@ class LabelPrintController extends Controller
             ? $profiles->findByKey($profileKey)
             : $profiles->defaultProductLabel();
 
-        abort_if($profile === null, 404);
+        abort_unless(
+            $profile instanceof PrintProfile
+                && $profile->category === PrintProfile::CATEGORY_LABEL,
+            404,
+        );
 
         $sticker = $labels->stickerData($product, $locale, $type);
 

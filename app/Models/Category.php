@@ -50,6 +50,7 @@ class Category extends Model
         'export_notes_en',
         'export_notes_ur',
         'visual_mapping',
+        'visual_map_code',
         'faqs',
         'ai_status',
     ];

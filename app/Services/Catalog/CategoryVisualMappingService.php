@@ -15,11 +15,20 @@ class CategoryVisualMappingService
      */
     public function generateMapCode(?int $parentId, ?int $exceptCategoryId = null): string
     {
+        return $this->generateMapCodeGuarded($parentId, $exceptCategoryId, []);
+    }
+
+    /**
+     * @param  array<int, true>  $visited
+     */
+    private function generateMapCodeGuarded(
+        ?int $parentId,
+        ?int $exceptCategoryId,
+        array $visited,
+    ): string
+    {
         if ($parentId === null) {
-            $number = Category::query()
-                ->whereNull('parent_id')
-                ->when($exceptCategoryId, fn ($query) => $query->where('id', '!=', $exceptCategoryId))
-                ->count() + 1;
+            $number = $this->nextSiblingNumber(null, '', 'R', $exceptCategoryId);
 
             return 'R' . $number;
         }
@@ -27,22 +36,28 @@ class CategoryVisualMappingService
         $parent = Category::query()->find($parentId);
 
         if ($parent === null) {
-            return $this->generateMapCode(null, $exceptCategoryId);
+            return $this->generateMapCodeGuarded(null, $exceptCategoryId, $visited);
         }
 
+        if (isset($visited[$parent->id])) {
+            return $this->generateMapCodeGuarded(null, $exceptCategoryId, $visited);
+        }
+
+        $visited[$parent->id] = true;
         $parentCode = self::formatMapCode((string) ($parent->visual_mapping['map_code'] ?? ''));
 
         if ($parentCode === '') {
-            $parentCode = self::formatMapCode($this->generateMapCode($parent->parent_id, $parent->id));
+            $parentCode = self::formatMapCode($this->generateMapCodeGuarded(
+                $parent->parent_id,
+                $parent->id,
+                $visited,
+            ));
         }
 
         $depth = $this->depth($parentId) + 1;
         $prefix = self::DEPTH_PREFIXES[min($depth, count(self::DEPTH_PREFIXES) - 1)];
 
-        $number = Category::query()
-            ->where('parent_id', $parentId)
-            ->when($exceptCategoryId, fn ($query) => $query->where('id', '!=', $exceptCategoryId))
-            ->count() + 1;
+        $number = $this->nextSiblingNumber($parentId, $parentCode, $prefix, $exceptCategoryId);
 
         return $parentCode . $prefix . $number;
     }
@@ -57,16 +72,45 @@ class CategoryVisualMappingService
      */
     private function depth(?int $parentId): int
     {
-        if ($parentId === null) {
-            return -1;
+        $depth = -1;
+        $visited = [];
+        $currentId = $parentId;
+
+        while ($currentId !== null && ! isset($visited[$currentId]) && $depth < 99) {
+            $visited[$currentId] = true;
+            $depth++;
+            $currentId = Category::query()->whereKey($currentId)->value('parent_id');
+            $currentId = $currentId !== null ? (int) $currentId : null;
         }
 
-        $parent = Category::query()->find($parentId);
+        return $depth;
+    }
 
-        if ($parent === null || $parent->parent_id === null) {
-            return 0;
-        }
+    private function nextSiblingNumber(
+        ?int $parentId,
+        string $parentCode,
+        string $prefix,
+        ?int $exceptCategoryId,
+    ): int {
+        $pattern = '/^'.preg_quote($parentCode.$prefix, '/').'(\d+)$/';
+        $maximum = Category::query()
+            ->when(
+                $parentId === null,
+                fn ($query) => $query->whereNull('parent_id'),
+                fn ($query) => $query->where('parent_id', $parentId),
+            )
+            ->when($exceptCategoryId, fn ($query) => $query->where('id', '!=', $exceptCategoryId))
+            ->get(['visual_map_code', 'visual_mapping'])
+            ->reduce(function (int $highest, Category $category) use ($pattern): int {
+                $code = self::formatMapCode(
+                    (string) ($category->visual_map_code ?: ($category->visual_mapping['map_code'] ?? '')),
+                );
 
-        return 1 + $this->depth($parent->parent_id);
+                return preg_match($pattern, $code, $matches)
+                    ? max($highest, (int) $matches[1])
+                    : $highest;
+            }, 0);
+
+        return $maximum + 1;
     }
 }

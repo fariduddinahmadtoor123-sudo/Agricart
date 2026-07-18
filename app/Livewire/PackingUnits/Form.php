@@ -4,28 +4,35 @@ namespace App\Livewire\PackingUnits;
 
 use App\Enums\CategoryAiStatus;
 use App\Models\PackingUnit;
+use App\Models\User;
 use App\Services\Catalog\PackingUnitEnrichmentService;
 use App\Services\Catalog\PackingUnitService;
 use Illuminate\Contracts\View\View;
-use Livewire\Attributes\On;
+use Illuminate\Support\Facades\Cache;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class Form extends Component
 {
+    #[Locked]
     public ?int $packingUnitId = null;
 
+    #[Locked]
     public string $mode = 'create';
 
     public string $name_en = '';
 
     public string $name_ur = '';
 
+    #[Locked]
     public string $code = '';
 
+    #[Locked]
     public string $slug = '';
 
     public string $status = 'active';
 
+    #[Locked]
     public string $ai_status = 'none';
 
     public bool $saving = false;
@@ -37,15 +44,16 @@ class Form extends Component
     public string $statusType = 'success';
 
     public function mount(): void
-    {
-        $this->code = app(PackingUnitService::class)->nextCode();
-    }
+    {}
 
-    #[On('packing-unit-form-open')]
     public function openForm(?int $packingUnitId = null, string $mode = 'create'): void
     {
+        $normalizedMode = in_array($mode, ['create', 'edit', 'view'], true) ? $mode : 'create';
+        $this->authorizeAction(
+            $packingUnitId === null ? 'create' : ($normalizedMode === 'view' ? 'view' : 'edit'),
+        );
         $this->resetForm();
-        $this->mode = $mode;
+        $this->mode = $normalizedMode;
         $this->packingUnitId = $packingUnitId;
 
         if ($packingUnitId) {
@@ -55,6 +63,11 @@ class Form extends Component
 
     public function handlePanelAction(string $action): void
     {
+        if ($this->mode === 'view' && in_array($action, ['save_close', 'save_next', 'ai'], true)) {
+            $this->dispatchBusyState();
+            return;
+        }
+
         match ($action) {
             'ai' => $this->enrichWithAi(),
             'save_close' => $this->saveAndClose(),
@@ -65,7 +78,9 @@ class Form extends Component
 
     public function enrichWithAi(): void
     {
-        if ($this->isReadonly()) {
+        $this->authorizeAction($this->mutationAction());
+
+        if ($this->isReadonly() || $this->enriching) {
             return;
         }
 
@@ -74,6 +89,17 @@ class Form extends Component
             $this->enriching = false;
             $this->dispatchBusyState();
 
+            return;
+        }
+
+        $aiLock = Cache::lock(
+            'packing-unit-ai-enrichment:'.(auth()->id() ?? 'guest').':'.($this->packingUnitId ?? 'new'),
+            120,
+        );
+
+        if (! $aiLock->get()) {
+            $this->setStatus(__('agricart.packing_units.ai.already_running'), 'warning');
+            $this->dispatchBusyState();
             return;
         }
 
@@ -102,6 +128,7 @@ class Form extends Component
             $this->ai_status = CategoryAiStatus::Failed->value;
             $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
         } finally {
+            $aiLock->release();
             $this->enriching = false;
             $this->dispatchBusyState();
         }
@@ -115,7 +142,6 @@ class Form extends Component
 
         $this->dispatch('packing-units-saved');
         $this->dispatch('close-form-panel');
-        $this->js("window.dispatchEvent(new CustomEvent('close-form-panel', { bubbles: true }))");
     }
 
     public function saveAndAddNext(): void
@@ -138,6 +164,12 @@ class Form extends Component
 
     private function persist(): bool
     {
+        if ($this->saving) {
+            return false;
+        }
+
+        $this->authorizeAction($this->mutationAction());
+
         if ($this->isReadonly()) {
             return false;
         }
@@ -157,6 +189,8 @@ class Form extends Component
                 __('agricart.packing_units.messages.required_fields', ['fields' => implode(', ', $missing)]),
                 'danger',
             );
+            $this->saving = false;
+            $this->dispatchBusyState();
 
             return false;
         }
@@ -228,12 +262,12 @@ class Form extends Component
         foreach (['name_en', 'name_ur'] as $field) {
             $value = $data[$field] ?? null;
 
-            if (! filled($value)) {
+            if (! is_string($value) || ! filled(trim($value))) {
                 continue;
             }
 
             if (! filled(trim($this->{$field}))) {
-                $this->{$field} = trim((string) $value);
+                $this->{$field} = trim($value);
             }
         }
 
@@ -264,8 +298,31 @@ class Form extends Component
         $this->slug = '';
         $this->status = 'active';
         $this->ai_status = 'none';
+        $this->saving = false;
+        $this->enriching = false;
         $this->statusMessage = null;
         $this->statusType = 'success';
+    }
+
+    private function mutationAction(): string
+    {
+        return $this->packingUnitId === null ? 'create' : 'edit';
+    }
+
+    private function authorizeAction(string $action): void
+    {
+        abort_unless($this->userCan($action), 403);
+    }
+
+    private function userCan(string $action): bool
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User || ! $user->canUseAdmin()) {
+            return false;
+        }
+
+        return $user->isSuperAdmin() || $user->hasPermission('catalog.'.$action);
     }
 
     private function setStatus(string $message, string $type): void

@@ -3,14 +3,17 @@
 namespace App\Services\Catalog;
 
 use App\Models\Category;
+use App\Models\CompanyProfile;
 use App\Models\Product;
 
 class ProductLabelService
 {
+    private ?CompanyProfile $companyProfile = null;
+
     public function resolveVisualMapCode(Category $category): string
     {
         $code = CategoryVisualMappingService::formatMapCode(
-            (string) ($category->visual_mapping['map_code'] ?? ''),
+            (string) ($category->visual_map_code ?: ($category->visual_mapping['map_code'] ?? '')),
         );
 
         if ($code !== '') {
@@ -33,7 +36,7 @@ class ProductLabelService
 
         return [
             'label_sequence' => max(1, $sequence),
-            'label_code' => $visualMapCode . '-P' . max(1, $sequence),
+            'label_code' => $visualMapCode.'-P'.max(1, $sequence),
         ];
     }
 
@@ -56,6 +59,20 @@ class ProductLabelService
     }
 
     /**
+     * Build current label data without mutating the product.
+     *
+     * @return array<string, mixed>
+     */
+    public function stickerData(Product $product, string $locale, string $type): array
+    {
+        return $this->buildSticker(
+            $product,
+            $locale === 'ur' ? 'ur' : 'en',
+            $type === 'qr' ? 'qr' : 'barcode',
+        );
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function buildSticker(Product $product, string $locale, string $type): array
@@ -63,12 +80,17 @@ class ProductLabelService
         $isUrdu = $locale === 'ur';
         $name = $isUrdu ? $product->name_ur : $product->name_en;
         $lines = $this->buildLines($product, $locale);
+        $company = $this->companyProfile ??= CompanyProfile::current();
+        $storeName = $isUrdu
+            ? ($company->business_name_ur ?: $company->business_name_en)
+            : ($company->business_name_en ?: $company->business_name_ur);
 
         return [
             'locale' => $locale,
             'type' => $type,
             'label_code' => $product->label_code,
             'system_code' => $product->code,
+            'store_name' => (string) $storeName,
             'title' => $name,
             'lines' => $lines,
             'qr_payload' => $product->label_code,
@@ -85,12 +107,14 @@ class ProductLabelService
         $lines = [];
 
         $lines[] = [
+            'key' => 'system_code',
             'label' => $isUrdu ? 'سسٹم کوڈ' : 'System Code',
             'value' => $product->code,
         ];
 
         if ($product->brand) {
             $lines[] = [
+                'key' => 'brand',
                 'label' => $isUrdu ? 'برانڈ' : 'Brand',
                 'value' => $isUrdu ? $product->brand->name_ur : $product->brand->name_en,
             ];
@@ -98,25 +122,28 @@ class ProductLabelService
 
         if ($product->unit) {
             $unitLabel = $isUrdu ? $product->unit->name_ur : $product->unit->name_en;
-            $qty = filled($product->unit_qty) ? ' × ' . $product->unit_qty : '';
+            $qty = filled($product->unit_qty) ? ' × '.$product->unit_qty : '';
             $lines[] = [
+                'key' => 'unit',
                 'label' => $isUrdu ? 'اکائی' : 'Unit',
-                'value' => $unitLabel . $qty,
+                'value' => $unitLabel.$qty,
             ];
         }
 
         if ($product->packUnit) {
             $packLabel = $isUrdu ? $product->packUnit->name_ur : $product->packUnit->name_en;
-            $qty = filled($product->pack_qty) ? ' × ' . $product->pack_qty : '';
+            $qty = filled($product->pack_qty) ? ' × '.$product->pack_qty : '';
             $lines[] = [
+                'key' => 'packing_unit',
                 'label' => $isUrdu ? 'پیک' : 'Pack',
-                'value' => $packLabel . $qty,
+                'value' => $packLabel.$qty,
             ];
         }
 
         foreach ($product->attributes as $attribute) {
             $attrName = $isUrdu ? $attribute->name_ur : $attribute->name_en;
             $lines[] = [
+                'key' => 'attributes',
                 'label' => $attrName,
                 'value' => (string) ($attribute->pivot->value ?? ''),
             ];
@@ -126,6 +153,7 @@ class ProductLabelService
             $controlName = $isUrdu ? $control->name_ur : $control->name_en;
             $controlValue = $isUrdu ? $control->value_ur : $control->value_en;
             $lines[] = [
+                'key' => 'controls',
                 'label' => $controlName,
                 'value' => $controlValue,
             ];
@@ -133,6 +161,7 @@ class ProductLabelService
 
         if (filled($product->required_qty)) {
             $lines[] = [
+                'key' => 'required_qty',
                 'label' => $isUrdu ? 'ضروری مقدار' : 'Required Qty',
                 'value' => $product->required_qty,
             ];
@@ -140,6 +169,7 @@ class ProductLabelService
 
         if (filled($product->alert_qty)) {
             $lines[] = [
+                'key' => 'reorder_qty',
                 'label' => $isUrdu ? 'ری آرڈر مقدار' : 'Reorder Qty',
                 'value' => $product->alert_qty,
             ];
@@ -147,6 +177,7 @@ class ProductLabelService
 
         if ($product->category) {
             $lines[] = [
+                'key' => 'category',
                 'label' => $isUrdu ? 'زمرہ' : 'Category',
                 'value' => $isUrdu ? $product->category->name_ur : $product->category->name_en,
             ];

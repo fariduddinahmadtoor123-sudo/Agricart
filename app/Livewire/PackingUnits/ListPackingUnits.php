@@ -3,7 +3,9 @@
 namespace App\Livewire\PackingUnits;
 
 use App\Models\PackingUnit;
+use App\Models\User;
 use App\Services\Catalog\PackingUnitService;
+use Filament\Notifications\Notification;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -78,6 +80,7 @@ class ListPackingUnits extends Component
 
     public function openView(int $packingUnitId): void
     {
+        $this->authorizeAction('view');
         $packingUnit = PackingUnit::query()->find($packingUnitId);
 
         if ($packingUnit === null) {
@@ -96,6 +99,7 @@ class ListPackingUnits extends Component
 
     public function openEdit(int $packingUnitId): void
     {
+        $this->authorizeAction('edit');
         $packingUnit = PackingUnit::query()->find($packingUnitId);
 
         if ($packingUnit === null) {
@@ -114,18 +118,29 @@ class ListPackingUnits extends Component
 
     public function deletePackingUnit(int $packingUnitId): void
     {
+        $this->authorizeAction('delete');
         $packingUnit = PackingUnit::query()->find($packingUnitId);
 
         if ($packingUnit === null) {
             return;
         }
 
-        app(PackingUnitService::class)->delete($packingUnit);
+        try {
+            app(PackingUnitService::class)->delete($packingUnit);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            Notification::make()->danger()
+                ->title((string) collect($exception->errors())->flatten()->first())
+                ->send();
+
+            return;
+        }
+
         $this->resetPage();
     }
 
     public function render(): View
     {
+        $this->authorizeAction('view');
         $packingUnits = PackingUnit::query()
             ->when(filled($this->search), function ($query): void {
                 $needle = '%' . $this->search . '%';
@@ -143,6 +158,23 @@ class ListPackingUnits extends Component
 
         return view('livewire.packing-units.list', [
             'packingUnits' => $packingUnits,
+            'canView' => $this->userCan('view'),
+            'canEdit' => $this->userCan('edit'),
+            'canDelete' => $this->userCan('delete'),
         ]);
+    }
+
+    private function authorizeAction(string $action): void
+    {
+        abort_unless($this->userCan($action), 403);
+    }
+
+    private function userCan(string $action): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User
+            && $user->canUseAdmin()
+            && ($user->isSuperAdmin() || $user->hasPermission('catalog.'.$action));
     }
 }

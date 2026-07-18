@@ -24,6 +24,52 @@
     x-on:product-form-action.window="$wire.handlePanelAction($event.detail.action)"
     x-on:product-form-open.window="$wire.openForm($event.detail.productId ?? null, $event.detail.mode ?? 'create')"
 >
+    <style>
+        .agricart-product-form__quantities {
+            grid-template-columns:
+                minmax(7.5rem, 1.2fr)
+                minmax(3.5rem, 0.45fr)
+                minmax(7.5rem, 1.2fr)
+                repeat(4, minmax(8.5rem, 1fr)) !important;
+        }
+
+        .agricart-product-form__quantities .agricart-form-panel__label {
+            white-space: nowrap !important;
+            overflow: visible !important;
+            text-overflow: clip !important;
+        }
+
+        .agricart-product-form__ai-prompt {
+            display: block;
+            width: 100%;
+            max-width: 100%;
+            min-height: 11rem;
+            box-sizing: border-box;
+            padding: 0.625rem 0.75rem;
+            border: 1px solid var(--agricart-border);
+            background: var(--agricart-surface);
+            color: var(--agricart-text);
+            font-family: Arial, sans-serif;
+            font-size: 0.8125rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            resize: vertical;
+        }
+
+        .agricart-product-form__ai-prompt:focus {
+            outline: none;
+            border-color: var(--agricart-primary);
+            box-shadow: 0 0 0 1px color-mix(in oklab, var(--agricart-primary) 35%, transparent);
+        }
+
+        @media (max-width: 900px) {
+            .agricart-product-form__quantities {
+                grid-template-columns: repeat(2, minmax(8.5rem, 1fr)) !important;
+            }
+        }
+    </style>
+
     @if ($statusMessage)
         <div @class([
             'agricart-product-form__alert',
@@ -43,6 +89,22 @@
             </label>
 
             <div class="agricart-category-form__picker agricart-product-form__search">
+                @if ($selectedParentLabel)
+                    <div class="agricart-category-form__picker-chips">
+                        <span class="agricart-category-form__picker-chip">
+                            <span>{{ $selectedParentLabel }}</span>
+                            @unless ($readonly)
+                                <button
+                                    type="button"
+                                    class="agricart-category-form__picker-chip-remove"
+                                    wire:click="clearParent"
+                                    title="{{ __('agricart.products.actions.remove') }}"
+                                >×</button>
+                            @endunless
+                        </span>
+                    </div>
+                @endif
+
                 <x-filament::input.wrapper :prefix-icon="Heroicon::OutlinedMagnifyingGlass" inline-prefix>
                     <input
                         id="agricart-product-parent-search"
@@ -54,7 +116,7 @@
                     />
                 </x-filament::input.wrapper>
 
-                @if (mb_strlen(trim($parent_search)) >= 2)
+                @if (mb_strlen(trim($parent_search)) >= 1)
                     <div class="agricart-category-form__picker-results" role="listbox">
                         @forelse ($filteredParentOptions as $id => $label)
                             <button
@@ -162,7 +224,7 @@
                     />
                 </x-filament::input.wrapper>
 
-                @if (mb_strlen(trim($display_category_search)) >= 2)
+                @if (mb_strlen(trim($display_category_search)) >= 1)
                     <div class="agricart-category-form__picker-results" role="listbox">
                         @forelse ($filteredDisplayCategoryOptions as $id => $label)
                             <button
@@ -229,7 +291,6 @@
                         @foreach ($selectedControls as $control)
                             <span class="agricart-product-form__control-chip" wire:key="product-control-{{ $control['id'] }}">
                                 <span class="agricart-product-form__control-chip-name">{{ $control['name_en'] }}</span>
-                                <span class="agricart-product-form__control-chip-value">{{ $control['value_en'] }}</span>
                                 @unless ($readonly)
                                     <button type="button" class="agricart-category-form__picker-chip-remove" wire:click="removeControl({{ $control['id'] }})" title="{{ __('agricart.products.actions.remove') }}">×</button>
                                 @endunless
@@ -474,27 +535,6 @@
             </div>
         </div>
 
-        <div class="agricart-form-panel__field agricart-product-form__qty-field agricart-product-form__qty-field--narrow">
-            <label class="agricart-form-panel__label">{{ __('agricart.products.fields.qty') }}</label>
-            <x-filament::input.wrapper>
-                <input type="text" wire:model="pack_qty" class="fi-input" @disabled($readonly) />
-            </x-filament::input.wrapper>
-        </div>
-
-        <div class="agricart-form-panel__field agricart-product-form__qty-field agricart-product-form__qty-field--narrow">
-            <label class="agricart-form-panel__label">{{ __('agricart.products.fields.required_qty') }}</label>
-            <x-filament::input.wrapper>
-                <input type="text" wire:model="required_qty" class="fi-input" @disabled($readonly) />
-            </x-filament::input.wrapper>
-        </div>
-
-        <div class="agricart-form-panel__field agricart-product-form__qty-field agricart-product-form__qty-field--narrow">
-            <label class="agricart-form-panel__label">{{ __('agricart.products.fields.alert_qty') }}</label>
-            <x-filament::input.wrapper>
-                <input type="text" wire:model="alert_qty" class="fi-input" @disabled($readonly) />
-            </x-filament::input.wrapper>
-        </div>
-
         @foreach ($pricingTiers as $tier)
             <div class="agricart-form-panel__field agricart-product-form__qty-field agricart-product-form__qty-field--narrow">
                 <label class="agricart-form-panel__label">{{ __('agricart.products.fields.' . $tier['tier_key'] . '_quantity') }}</label>
@@ -509,49 +549,11 @@
                     />
                 </x-filament::input.wrapper>
             </div>
-
-            <div class="agricart-form-panel__field agricart-product-form__qty-field agricart-product-form__qty-field--rate">
-                <label class="agricart-form-panel__label">
-                    @switch ($tier['price_field'])
-                        @case('retail_price')
-                            {{ __('agricart.products.fields.retail') }}
-                            @break
-                        @case('wholesale_price')
-                            {{ __('agricart.products.fields.wholesale') }}
-                            @break
-                        @case('super_wholesale_price')
-                            {{ __('agricart.products.fields.super_wholesale') }}
-                            @break
-                        @case('distributor_price')
-                            {{ __('agricart.products.fields.distributor') }}
-                            @break
-                        @default
-                            {{ $tier['label'] }}
-                    @endswitch
-                </label>
-                <x-filament::input.wrapper>
-                    @switch ($tier['price_field'])
-                        @case('retail_price')
-                            <input type="text" wire:model="retail_price" class="fi-input" @disabled($readonly) />
-                            @break
-                        @case('wholesale_price')
-                            <input type="text" wire:model="wholesale_price" class="fi-input" @disabled($readonly) />
-                            @break
-                        @case('super_wholesale_price')
-                            <input type="text" wire:model="super_wholesale_price" class="fi-input" @disabled($readonly) />
-                            @break
-                        @case('distributor_price')
-                            <input type="text" wire:model="distributor_price" class="fi-input" @disabled($readonly) />
-                            @break
-                    @endswitch
-                </x-filament::input.wrapper>
-            </div>
         @endforeach
     </div>
 
     {{-- Additional Information --}}
     <div class="agricart-product-form__details">
-        <h3 class="agricart-form-panel__section-title agricart-product-form__details-heading">{{ __('agricart.products.sections.additional') }}</h3>
         @include('livewire.products.partials.additional-sections')
     </div>
 </div>

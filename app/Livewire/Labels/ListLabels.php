@@ -55,11 +55,8 @@ class ListLabels extends Component
             ->latest('id')
             ->paginate(12);
 
-        $profiles = app(PrintProfileService::class)->labels();
-
         return view('livewire.labels.list', [
             'products' => $products,
-            'labelProfiles' => $profiles,
         ]);
     }
 }

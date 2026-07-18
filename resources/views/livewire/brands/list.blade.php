@@ -64,9 +64,15 @@
                                 <td>{{ $brand->created_at?->format('M j, Y') }}</td>
                             @endif
                             <td class="agricart-categories__actions">
-                                <button type="button" class="agricart-categories__action" wire:click="openView({{ $brand->id }})">{{ __('agricart.brands.actions.view_short') }}</button>
-                                <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $brand->id }})">{{ __('agricart.brands.actions.edit_short') }}</button>
-                                <button type="button" class="agricart-categories__action is-danger" wire:click="deleteBrand({{ $brand->id }})" wire:confirm="{{ __('agricart.brands.actions.delete_confirm') }}">{{ __('agricart.brands.actions.delete_short') }}</button>
+                                @if ($canView)
+                                    <button type="button" class="agricart-categories__action" wire:click="openView({{ $brand->id }})">{{ __('agricart.brands.actions.view_short') }}</button>
+                                @endif
+                                @if ($canEdit)
+                                    <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $brand->id }})">{{ __('agricart.brands.actions.edit_short') }}</button>
+                                @endif
+                                @if ($canDelete)
+                                    <button type="button" class="agricart-categories__action is-danger" wire:click="deleteBrand({{ $brand->id }})" wire:confirm="{{ __('agricart.brands.actions.delete_confirm') }}">{{ __('agricart.brands.actions.delete_short') }}</button>
+                                @endif
                             </td>
                         </tr>
                     @endforeach

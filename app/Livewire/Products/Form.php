@@ -10,6 +10,7 @@ use App\Models\CatalogControl;
 use App\Models\Category;
 use App\Models\PackingUnit;
 use App\Models\Product;
+use App\Models\User;
 use App\Services\Catalog\ProductEnrichmentService;
 use App\Services\Catalog\ProductService;
 use App\Services\Catalog\CategoryVisualMappingService;
@@ -18,7 +19,6 @@ use App\Models\Unit;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
@@ -59,6 +59,9 @@ class Form extends Component
 
     /** @var array<int, string|null> */
     public array $storedGalleryPaths = [];
+
+    /** @var list<string> */
+    public array $galleryOverflowPaths = [];
 
     public string $slug = '';
 
@@ -197,9 +200,14 @@ class Form extends Component
         $this->resetGallerySlots();
     }
 
-    #[On('product-form-open')]
     public function openForm(?int $productId = null, string $mode = 'create'): void
     {
+        $this->authorizeAction(
+            $productId === null
+                ? 'create'
+                : ($mode === 'view' ? 'view' : 'edit'),
+        );
+
         $this->resetForm();
         $this->mode = $mode;
         $this->productId = $productId;
@@ -211,7 +219,6 @@ class Form extends Component
         }
     }
 
-    #[On('product-form-action')]
     public function handlePanelAction(string $action): void
     {
         match ($action) {
@@ -224,6 +231,8 @@ class Form extends Component
 
     public function updatedImageUpload(): void
     {
+        $this->authorizeAction($this->mutationAction());
+
         if ($this->isReadonly()) {
             return;
         }
@@ -245,7 +254,7 @@ class Form extends Component
         }
 
         $cleanName = $this->nameFromImageFilename($this->imageUpload);
-        $this->persistUploadedImage();
+        $this->imagePreviewUrl = $this->imageUpload->temporaryUrl();
 
         if (filled($cleanName) && ! filled(trim($this->name_en))) {
             $this->name_en = $cleanName;
@@ -272,6 +281,8 @@ class Form extends Component
 
     public function updatedGalleryUploads(mixed $value, string $key): void
     {
+        $this->authorizeAction($this->mutationAction());
+
         if ($this->isReadonly()) {
             return;
         }
@@ -296,14 +307,13 @@ class Form extends Component
             return;
         }
 
-        $path = app(\App\Services\Media\OptimizedImageStorage::class)->store($upload, 'products/gallery');
-        $this->storedGalleryPaths[$index] = $path;
-        $this->galleryPreviewUrls[$index] = Storage::disk('public')->url($path);
-        $this->galleryUploads[$index] = null;
+        $this->galleryPreviewUrls[$index] = $upload->temporaryUrl();
     }
 
     public function removeGalleryImage(int $index): void
     {
+        $this->authorizeAction($this->mutationAction());
+
         if ($this->isReadonly()) {
             return;
         }
@@ -411,6 +421,10 @@ class Form extends Component
             return;
         }
 
+        if (! PackingUnit::query()->whereKey($id)->where('status', 'active')->exists()) {
+            return;
+        }
+
         $this->pack_unit_id = $id;
         $this->pack_unit_search = '';
     }
@@ -463,6 +477,13 @@ class Form extends Component
             return;
         }
 
+        $currentId = (int) ($this->attributeRows[$index]['attribute_id'] ?? 0);
+
+        if ($currentId !== $id
+            && ! CatalogAttribute::query()->whereKey($id)->where('status', 'active')->exists()) {
+            return;
+        }
+
         $alreadyUsed = collect($this->attributeRows)
             ->except($index)
             ->pluck('attribute_id')
@@ -506,7 +527,10 @@ class Form extends Component
             }
         }
 
-        $control = CatalogControl::query()->find($id);
+        $control = CatalogControl::query()
+            ->whereKey($id)
+            ->where('status', 'active')
+            ->first();
 
         if ($control === null) {
             return;
@@ -536,6 +560,8 @@ class Form extends Component
 
     public function enrichWithAi(): void
     {
+        $this->authorizeAction($this->mutationAction());
+
         if ($this->isReadonly()) {
             return;
         }
@@ -552,7 +578,6 @@ class Form extends Component
         $this->ai_status = CategoryAiStatus::Pending->value;
         $this->statusMessage = null;
         $this->dispatchBusyState();
-        $this->persistUploadedImage();
 
         try {
             $result = app(ProductEnrichmentService::class)->enrich(
@@ -587,7 +612,6 @@ class Form extends Component
     {
         if ($this->persist()) {
             $this->dispatch('products-saved');
-            $this->dispatch('labels-saved');
             $this->dispatch('close-form-panel');
         }
     }
@@ -596,7 +620,6 @@ class Form extends Component
     {
         if ($this->persist()) {
             $this->dispatch('products-saved');
-            $this->dispatch('labels-saved');
             $this->resetForm();
         }
     }
@@ -681,11 +704,15 @@ class Form extends Component
 
     private function persist(): bool
     {
-        if ($this->isReadonly()) {
+        if ($this->saving) {
             return false;
         }
 
-        $this->persistUploadedImage();
+        $this->authorizeAction($this->mutationAction());
+
+        if ($this->isReadonly()) {
+            return false;
+        }
 
         $missing = [];
 
@@ -706,14 +733,37 @@ class Form extends Component
                 __('agricart.products.messages.required_fields', ['fields' => implode(', ', $missing)]),
                 'danger',
             );
+            $this->dispatchBusyState();
+
+            return false;
+        }
+
+        if (! json_validate($this->search_terms_json)) {
+            $this->setStatus(__('agricart.products.messages.search_terms_invalid'), 'danger');
+            $this->dispatchBusyState();
 
             return false;
         }
 
         $this->saving = true;
         $this->dispatchBusyState();
+        $originalProduct = $this->productId
+            ? Product::query()->findOrFail($this->productId)
+            : null;
+        $originalImagePath = $originalProduct?->image_path;
+        $originalGalleryPaths = $originalProduct?->gallery_images ?? [];
+        $newlyStoredPaths = [];
+        $committed = false;
 
         try {
+            $mainImagePath = $this->persistUploadedImage();
+
+            if ($mainImagePath !== null) {
+                $newlyStoredPaths[] = $mainImagePath;
+            }
+
+            $newlyStoredPaths = array_merge($newlyStoredPaths, $this->persistGalleryUploads());
+
             $service = app(ProductService::class);
             $payload = $this->buildPayload($service);
             $displayIds = array_map('intval', $this->display_category_ids);
@@ -729,16 +779,28 @@ class Form extends Component
                 $this->mode = 'edit';
             }
 
+            $committed = true;
+            $this->deleteSupersededMedia($originalImagePath, $originalGalleryPaths, $product);
             $this->applyProductToForm($product);
             $this->setStatus(__('agricart.products.messages.saved'), 'success');
 
             return true;
         } catch (\Illuminate\Validation\ValidationException $exception) {
+            if (! $committed) {
+                $this->deleteStoredPaths($newlyStoredPaths);
+                $this->restoreOriginalMedia($originalImagePath, $originalGalleryPaths);
+            }
+
             $message = collect($exception->errors())->flatten()->first();
             $this->setStatus($message ?: __('agricart.products.messages.validation_failed'), 'danger');
 
             return false;
         } catch (\Throwable $exception) {
+            if (! $committed) {
+                $this->deleteStoredPaths($newlyStoredPaths);
+                $this->restoreOriginalMedia($originalImagePath, $originalGalleryPaths);
+            }
+
             $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
 
             return false;
@@ -769,7 +831,7 @@ class Form extends Component
             'brand_id' => $this->brand_id,
             'image_path' => $this->storedImagePath,
             'gallery_images' => array_values(array_filter(
-                $this->storedGalleryPaths,
+                array_merge($this->storedGalleryPaths, $this->galleryOverflowPaths),
                 fn (?string $path): bool => filled($path),
             )),
             'sku' => filled($this->sku) ? $this->sku : null,
@@ -843,16 +905,99 @@ class Form extends Component
         return $rows;
     }
 
-    private function persistUploadedImage(): void
+    private function persistUploadedImage(): ?string
     {
         if ($this->imageUpload === null) {
-            return;
+            return null;
         }
 
         $path = app(\App\Services\Media\OptimizedImageStorage::class)->store($this->imageUpload, 'products');
         $this->storedImagePath = $path;
         $this->imagePreviewUrl = Storage::disk('public')->url($path);
         $this->imageUpload = null;
+
+        return $path;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function persistGalleryUploads(): array
+    {
+        $stored = [];
+
+        foreach ($this->galleryUploads as $index => $upload) {
+            if (! $upload instanceof TemporaryUploadedFile) {
+                continue;
+            }
+
+            $path = app(\App\Services\Media\OptimizedImageStorage::class)->store($upload, 'products/gallery');
+            $this->storedGalleryPaths[$index] = $path;
+            $this->galleryPreviewUrls[$index] = Storage::disk('public')->url($path);
+            $this->galleryUploads[$index] = null;
+            $stored[] = $path;
+        }
+
+        return $stored;
+    }
+
+    /**
+     * @param  list<string>  $originalGalleryPaths
+     */
+    private function deleteSupersededMedia(
+        ?string $originalImagePath,
+        array $originalGalleryPaths,
+        Product $savedProduct,
+    ): void {
+        $currentPaths = array_values(array_filter(array_merge(
+            [$savedProduct->image_path],
+            $savedProduct->gallery_images ?? [],
+        )));
+        $superseded = array_values(array_diff(
+            array_values(array_filter(array_merge([$originalImagePath], $originalGalleryPaths))),
+            $currentPaths,
+        ));
+
+        $this->deleteStoredPaths($superseded);
+    }
+
+    /**
+     * @param  list<string>  $paths
+     */
+    private function deleteStoredPaths(array $paths): void
+    {
+        foreach (array_unique($paths) as $path) {
+            if (filled($path)) {
+                Storage::disk('public')->delete($path);
+            }
+        }
+    }
+
+    /**
+     * @param  list<string>  $galleryPaths
+     */
+    private function restoreOriginalMedia(?string $imagePath, array $galleryPaths): void
+    {
+        $this->imageUpload = null;
+        $this->storedImagePath = $imagePath;
+        $this->imagePreviewUrl = filled($imagePath)
+            ? Storage::disk('public')->url($imagePath)
+            : null;
+        $this->resetGallerySlots();
+
+        foreach (array_slice($galleryPaths, 0, self::GALLERY_SLOT_COUNT) as $index => $path) {
+            if (! is_string($path) || ! filled($path)) {
+                continue;
+            }
+
+            $this->storedGalleryPaths[$index] = $path;
+            $this->galleryPreviewUrls[$index] = Storage::disk('public')->url($path);
+        }
+
+        $this->galleryOverflowPaths = array_values(array_filter(
+            array_slice($galleryPaths, self::GALLERY_SLOT_COUNT),
+            fn (mixed $path): bool => is_string($path) && filled($path),
+        ));
     }
 
     private function resolveImagePathForAi(): ?string
@@ -881,6 +1026,10 @@ class Form extends Component
         ];
 
         foreach ($data as $key => $value) {
+            if ($key === 'name_en') {
+                continue;
+            }
+
             if ($key === 'search_terms' && is_array($value)) {
                 $this->search_terms_json = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
@@ -912,6 +1061,7 @@ class Form extends Component
         $this->galleryUploads = array_fill(0, self::GALLERY_SLOT_COUNT, null);
         $this->galleryPreviewUrls = array_fill(0, self::GALLERY_SLOT_COUNT, null);
         $this->storedGalleryPaths = array_fill(0, self::GALLERY_SLOT_COUNT, null);
+        $this->galleryOverflowPaths = [];
     }
 
     private function loadProduct(int $productId): void
@@ -937,6 +1087,10 @@ class Form extends Component
             : null;
         $this->resetGallerySlots();
         $galleryImages = $product->gallery_images ?? [];
+        $this->galleryOverflowPaths = array_values(array_filter(
+            array_slice($galleryImages, self::GALLERY_SLOT_COUNT),
+            fn (mixed $path): bool => is_string($path) && filled($path),
+        ));
 
         foreach ($galleryImages as $index => $path) {
             if ($index >= self::GALLERY_SLOT_COUNT) {
@@ -1055,8 +1209,10 @@ class Form extends Component
     {
         $chain = [];
         $current = Category::query()->find($categoryId);
+        $visited = [];
 
-        while ($current !== null) {
+        while ($current !== null && ! isset($visited[$current->id]) && count($chain) < 100) {
+            $visited[$current->id] = true;
             array_unshift($chain, $current->id);
             $current = $current->parent_id
                 ? Category::query()->find($current->parent_id)
@@ -1203,6 +1359,7 @@ class Form extends Component
 
             $optionsByRow[$index] = CatalogAttribute::query()
                 ->when($usedElsewhere !== [], fn ($query) => $query->whereNotIn('id', $usedElsewhere))
+                ->where('status', 'active')
                 ->where(function ($query) use ($needle): void {
                     $query->where('name_en', 'like', $needle)
                         ->orWhere('name_ur', 'like', $needle)
@@ -1246,6 +1403,7 @@ class Form extends Component
 
         return Unit::query()
             ->when($this->unit_id, fn ($query) => $query->where('id', '!=', $this->unit_id))
+            ->where('status', 'active')
             ->where(function ($query) use ($needle): void {
                 $query->where('name_en', 'like', $needle)
                     ->orWhere('name_ur', 'like', $needle)
@@ -1276,6 +1434,7 @@ class Form extends Component
 
         return PackingUnit::query()
             ->when($this->pack_unit_id, fn ($query) => $query->where('id', '!=', $this->pack_unit_id))
+            ->where('status', 'active')
             ->where(function ($query) use ($needle): void {
                 $query->where('name_en', 'like', $needle)
                     ->orWhere('name_ur', 'like', $needle);
@@ -1327,17 +1486,16 @@ class Form extends Component
 
         return CatalogControl::query()
             ->when($exclude !== [], fn ($query) => $query->whereNotIn('id', $exclude))
+            ->where('status', 'active')
             ->where(function ($query) use ($needle): void {
                 $query->where('name_en', 'like', $needle)
-                    ->orWhere('name_ur', 'like', $needle)
-                    ->orWhere('value_en', 'like', $needle)
-                    ->orWhere('value_ur', 'like', $needle);
+                    ->orWhere('name_ur', 'like', $needle);
             })
             ->orderBy('name_en')
             ->limit(20)
             ->get()
             ->mapWithKeys(fn (CatalogControl $control): array => [
-                $control->id => $control->name_en . ': ' . $control->value_en,
+                $control->id => $control->name_en,
             ])
             ->all();
     }
@@ -1422,6 +1580,27 @@ class Form extends Component
     private function applyDefaultTierQuantities(): void
     {
         $this->price_tier_quantities = app(QuantityPricingEngine::class)->defaultQuantitiesByPriceField();
+    }
+
+    private function mutationAction(): string
+    {
+        return $this->productId === null ? 'create' : 'edit';
+    }
+
+    private function authorizeAction(string $action): void
+    {
+        abort_unless($this->userCan($action), 403);
+    }
+
+    private function userCan(string $action): bool
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User || ! $user->canUseAdmin()) {
+            return false;
+        }
+
+        return $user->isSuperAdmin() || $user->hasPermission('catalog.'.$action);
     }
 
     /**

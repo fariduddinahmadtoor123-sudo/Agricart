@@ -4,13 +4,15 @@ namespace App\Livewire\Categories;
 
 use App\Enums\CategoryAiStatus;
 use App\Models\Category;
+use App\Models\User;
 use App\Services\Catalog\CategoryEnrichmentService;
 use App\Services\Catalog\CategoryService;
 use App\Services\Catalog\CategoryVisualMappingService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Livewire\Attributes\On;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
@@ -19,19 +21,24 @@ class Form extends Component
 {
     use WithFileUploads;
 
+    #[Locked]
     public ?int $categoryId = null;
 
+    #[Locked]
     public string $mode = 'create';
 
     /** @var array<int, int|null> Hierarchy category IDs for visual boxes 1–4 */
+    #[Locked]
     public array $hierarchySlots = [null, null, null, null];
 
     public ?TemporaryUploadedFile $imageUpload = null;
 
     public ?string $imagePreviewUrl = null;
 
+    #[Locked]
     public ?string $storedImagePath = null;
 
+    #[Locked]
     public string $visual_map_code = '';
 
     public string $enrichmentPrompt = '';
@@ -114,6 +121,7 @@ class Form extends Component
     /** @var list<array{question_en: string, question_ur: string, answer_en: string, answer_ur: string}> */
     public array $faqs = [];
 
+    #[Locked]
     public string $ai_status = 'none';
 
     public bool $saving = false;
@@ -129,10 +137,16 @@ class Form extends Component
         $this->enrichmentPrompt = CategoryEnrichmentService::defaultPrompt();
     }
 
-    #[On('category-form-open')]
     public function openForm(?int $categoryId = null, string $mode = 'create'): void
     {
-        $this->mode = in_array($mode, ['create', 'edit', 'view'], true) ? $mode : 'create';
+        $normalizedMode = in_array($mode, ['create', 'edit', 'view'], true) ? $mode : 'create';
+        $this->authorizeAction(
+            $categoryId === null
+                ? 'create'
+                : ($normalizedMode === 'view' ? 'view' : 'edit'),
+        );
+
+        $this->mode = $normalizedMode;
         $this->categoryId = $categoryId;
         $this->statusMessage = null;
 
@@ -147,7 +161,6 @@ class Form extends Component
         $this->dispatchBusyState();
     }
 
-    #[On('category-form-action')]
     public function handlePanelAction(string $action): void
     {
         if ($this->mode === 'view' && in_array($action, ['save_close', 'save_next', 'ai'], true)) {
@@ -166,6 +179,8 @@ class Form extends Component
 
     public function updatedImageUpload(): void
     {
+        $this->authorizeAction($this->mutationAction());
+
         $this->validate([
             'imageUpload' => ['nullable', 'image', 'max:5120'],
         ]);
@@ -175,7 +190,7 @@ class Form extends Component
         }
 
         $filename = pathinfo($this->imageUpload->getClientOriginalName(), PATHINFO_FILENAME);
-        $this->persistUploadedImage();
+        $this->imagePreviewUrl = $this->imageUpload->temporaryUrl();
 
         $cleanName = Str::title(str_replace(['-', '_'], ' ', $filename));
 
@@ -191,6 +206,15 @@ class Form extends Component
     public function selectParent(int $id): void
     {
         if ($this->isReadonly()) {
+            return;
+        }
+
+        if (
+            $this->categoryId !== null
+            && app(CategoryService::class)->parentWouldCreateCycle($this->categoryId, $id)
+        ) {
+            $this->setStatus(__('agricart.categories.messages.hierarchy_cycle'), 'danger');
+
             return;
         }
 
@@ -268,7 +292,9 @@ class Form extends Component
 
     public function enrichWithAi(): void
     {
-        if ($this->isReadonly()) {
+        $this->authorizeAction($this->mutationAction());
+
+        if ($this->isReadonly() || $this->enriching) {
             return;
         }
 
@@ -280,11 +306,20 @@ class Form extends Component
             return;
         }
 
+        $lockKey = 'category-ai-enrichment:'.(auth()->id() ?? 'guest').':'.($this->categoryId ?? 'new');
+        $aiLock = Cache::lock($lockKey, 120);
+
+        if (! $aiLock->get()) {
+            $this->setStatus(__('agricart.categories.ai.already_running'), 'warning');
+            $this->dispatchBusyState();
+
+            return;
+        }
+
         $this->enriching = true;
         $this->ai_status = CategoryAiStatus::Pending->value;
         $this->statusMessage = null;
         $this->dispatchBusyState();
-        $this->persistUploadedImage();
 
         try {
             $imagePath = $this->resolveImagePathForAi();
@@ -309,6 +344,7 @@ class Form extends Component
             $this->ai_status = CategoryAiStatus::Failed->value;
             $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
         } finally {
+            $aiLock->release();
             $this->enriching = false;
             $this->dispatchBusyState();
         }
@@ -346,23 +382,33 @@ class Form extends Component
 
     public function render(): View
     {
+        $canAccess = $this->canAccessCatalogForm();
+
         return view('livewire.categories.form', [
             'sections' => \App\Filament\Forms\CategoryForm::sections(),
             'detailSectionKeys' => \App\Filament\Forms\CategoryForm::detailSectionKeys(),
             'scrollAnchors' => \App\Filament\Forms\CategoryForm::stepScrollAnchors(),
-            'filteredDisplayCategoryOptions' => \App\Filament\Forms\CategoryForm::searchCategoryLabels(
+            'filteredDisplayCategoryOptions' => $canAccess
+                ? \App\Filament\Forms\CategoryForm::searchCategoryLabels(
                 $this->display_category_search,
                 $this->categoryId,
                 array_merge($this->display_category_ids, [$this->categoryId]),
-            ),
-            'filteredParentOptions' => \App\Filament\Forms\CategoryForm::searchCategoryLabels(
+                )
+                : [],
+            'filteredParentOptions' => $canAccess
+                ? \App\Filament\Forms\CategoryForm::searchCategoryLabels(
                 $this->parent_search,
                 $this->categoryId,
                 array_filter([$this->categoryId, $this->parent_id]),
-            ),
-            'selectedDisplayCategories' => \App\Filament\Forms\CategoryForm::categoryLabelsByIds($this->display_category_ids),
-            'selectedParentLabel' => \App\Filament\Forms\CategoryForm::labelForId($this->parent_id),
-            'hierarchySlotPreviews' => $this->hierarchySlotPreviews(),
+                )
+                : [],
+            'selectedDisplayCategories' => $canAccess
+                ? \App\Filament\Forms\CategoryForm::categoryLabelsByIds($this->display_category_ids)
+                : collect(),
+            'selectedParentLabel' => $canAccess
+                ? \App\Filament\Forms\CategoryForm::labelForId($this->parent_id)
+                : null,
+            'hierarchySlotPreviews' => $canAccess ? $this->hierarchySlotPreviews() : [],
             'statusOptions' => \App\Filament\Forms\CategoryForm::statusOptions(),
             'aiStatusOptions' => \App\Filament\Forms\CategoryForm::aiStatusOptions(),
         ]);
@@ -370,12 +416,20 @@ class Form extends Component
 
     private function persist(): bool
     {
+        if ($this->saving) {
+            return false;
+        }
+
+        $this->authorizeAction($this->mutationAction());
+
         if ($this->isReadonly()) {
             return false;
         }
 
-        $this->persistUploadedImage();
-
+        $originalImagePath = $this->categoryId
+            ? Category::query()->whereKey($this->categoryId)->value('image_path')
+            : null;
+        $this->storedImagePath = $originalImagePath;
         $missing = [];
 
         if (! filled(trim($this->name_en))) {
@@ -386,7 +440,7 @@ class Form extends Component
             $missing[] = __('agricart.form_panel.categories.urdu_name');
         }
 
-        if (! filled($this->storedImagePath)) {
+        if (! filled($this->storedImagePath) && $this->imageUpload === null) {
             $missing[] = __('agricart.categories.fields.image');
         }
 
@@ -395,14 +449,31 @@ class Form extends Component
                 __('agricart.categories.messages.required_fields', ['fields' => implode(', ', $missing)]),
                 'danger',
             );
+            $this->dispatchBusyState();
+
+            return false;
+        }
+
+        $searchTerms = json_decode($this->search_terms_json, true);
+
+        if (
+            ! is_array($searchTerms)
+            || ! array_is_list($searchTerms)
+            || collect($searchTerms)->contains(fn ($term): bool => ! is_string($term))
+        ) {
+            $this->setStatus(__('agricart.categories.messages.search_terms_invalid'), 'danger');
+            $this->dispatchBusyState();
 
             return false;
         }
 
         $this->saving = true;
         $this->dispatchBusyState();
+        $newImagePath = null;
+        $committed = false;
 
         try {
+            $newImagePath = $this->persistUploadedImage();
             $service = app(CategoryService::class);
             $payload = $this->buildPayload($service);
             $displayIds = array_map('intval', $this->display_category_ids);
@@ -416,6 +487,12 @@ class Form extends Component
                 $this->mode = 'edit';
             }
 
+            $committed = true;
+
+            if (filled($originalImagePath) && $originalImagePath !== $this->storedImagePath) {
+                Storage::disk('public')->delete($originalImagePath);
+            }
+
             $this->storedImagePath = $payload['image_path'] ?? $this->storedImagePath;
             $this->imagePreviewUrl = filled($this->storedImagePath)
                 ? Storage::disk('public')->url($this->storedImagePath)
@@ -424,11 +501,21 @@ class Form extends Component
 
             return true;
         } catch (\Illuminate\Validation\ValidationException $exception) {
+            if (! $committed && filled($newImagePath)) {
+                Storage::disk('public')->delete($newImagePath);
+                $this->restoreOriginalImage($originalImagePath);
+            }
+
             $message = collect($exception->errors())->flatten()->first();
             $this->setStatus($message ?: __('agricart.categories.messages.validation_failed'), 'danger');
 
             return false;
         } catch (\Throwable $exception) {
+            if (! $committed && filled($newImagePath)) {
+                Storage::disk('public')->delete($newImagePath);
+                $this->restoreOriginalImage($originalImagePath);
+            }
+
             $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
 
             return false;
@@ -458,8 +545,7 @@ class Form extends Component
         }
 
         $imagePath = $this->storedImagePath;
-        $mapCode = app(\App\Services\Catalog\CategoryVisualMappingService::class)
-            ->generateMapCode($this->parent_id ?: null, $this->categoryId);
+        $mapCode = $this->resolvedMapCode();
         $this->visual_map_code = $mapCode;
 
         return [
@@ -508,23 +594,18 @@ class Form extends Component
         ];
     }
 
-    private function persistUploadedImage(): void
+    private function persistUploadedImage(): ?string
     {
         if ($this->imageUpload === null) {
-            return;
+            return null;
         }
 
         $path = app(\App\Services\Media\OptimizedImageStorage::class)->store($this->imageUpload, 'categories');
         $this->storedImagePath = $path;
         $this->imagePreviewUrl = Storage::disk('public')->url($path);
         $this->imageUpload = null;
-    }
 
-    private function storeUploadedImage(): ?string
-    {
-        $this->persistUploadedImage();
-
-        return $this->storedImagePath;
+        return $path;
     }
 
     private function resolveImagePathForAi(): ?string
@@ -617,7 +698,7 @@ class Form extends Component
 
         $this->parent_search = '';
         $this->visual_map_code = CategoryVisualMappingService::formatMapCode(
-            (string) ($category->visual_mapping['map_code'] ?? ''),
+            (string) ($category->visual_map_code ?: ($category->visual_mapping['map_code'] ?? '')),
         );
 
         if ($this->visual_map_code === '') {
@@ -633,9 +714,29 @@ class Form extends Component
             return;
         }
 
-        $this->visual_map_code = app(CategoryVisualMappingService::class)
-            ->generateMapCode($this->parent_id ?: null, $this->categoryId);
+        $this->visual_map_code = $this->resolvedMapCode();
         $this->visual_map_code = CategoryVisualMappingService::formatMapCode($this->visual_map_code);
+    }
+
+    private function resolvedMapCode(): string
+    {
+        if ($this->categoryId !== null) {
+            $category = Category::query()->find($this->categoryId);
+            $existingCode = CategoryVisualMappingService::formatMapCode(
+                (string) ($category?->visual_map_code ?: ($category?->visual_mapping['map_code'] ?? '')),
+            );
+
+            if (
+                $category !== null
+                && (int) ($category->parent_id ?? 0) === (int) ($this->parent_id ?? 0)
+                && $existingCode !== ''
+            ) {
+                return $existingCode;
+            }
+        }
+
+        return app(CategoryVisualMappingService::class)
+            ->generateMapCode($this->parent_id ?: null, $this->categoryId);
     }
 
     private function syncHierarchyFromParent(?int $parentId): void
@@ -664,8 +765,10 @@ class Form extends Component
     {
         $chain = [];
         $current = Category::query()->find($categoryId);
+        $visited = [];
 
-        while ($current !== null) {
+        while ($current !== null && ! isset($visited[$current->id]) && count($chain) < 100) {
+            $visited[$current->id] = true;
             array_unshift($chain, $current->id);
             $current = $current->parent_id
                 ? Category::query()->find($current->parent_id)
@@ -789,6 +892,43 @@ class Form extends Component
         }
 
         return $slots;
+    }
+
+    private function restoreOriginalImage(?string $imagePath): void
+    {
+        $this->imageUpload = null;
+        $this->storedImagePath = $imagePath;
+        $this->imagePreviewUrl = filled($imagePath)
+            ? Storage::disk('public')->url($imagePath)
+            : null;
+    }
+
+    private function mutationAction(): string
+    {
+        return $this->categoryId === null ? 'create' : 'edit';
+    }
+
+    private function authorizeAction(string $action): void
+    {
+        abort_unless($this->userCan($action), 403);
+    }
+
+    private function userCan(string $action): bool
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User || ! $user->canUseAdmin()) {
+            return false;
+        }
+
+        return $user->isSuperAdmin() || $user->hasPermission('catalog.'.$action);
+    }
+
+    private function canAccessCatalogForm(): bool
+    {
+        return $this->userCan('view')
+            || $this->userCan('create')
+            || $this->userCan('edit');
     }
 
     private function setStatus(string $message, string $type): void

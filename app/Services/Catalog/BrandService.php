@@ -3,7 +3,11 @@
 namespace App\Services\Catalog;
 
 use App\Models\Brand;
+use App\Models\Product;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -12,39 +16,76 @@ class BrandService
 {
     public function create(array $data): Brand
     {
-        $validated = $this->validate($data);
+        return Cache::lock('catalog-brand-write', 30)->block(10, function () use ($data): Brand {
+            $data['code'] = $this->nextCode();
+            $slugBase = filled($data['slug'] ?? null)
+                ? (string) $data['slug']
+                : $this->slugFromName((string) ($data['name_en'] ?? 'brand'));
+            $data['slug'] = $this->uniqueSlug($slugBase);
+            $validated = $this->validate($data);
 
-        if (! filled($validated['code'] ?? null)) {
-            $validated['code'] = $this->nextCode();
-        }
+            return DB::transaction(function () use ($validated): Brand {
+                $brand = Brand::query()->create($validated);
+                CatalogCache::forgetOverviewStats();
 
-        if (! filled($validated['slug'] ?? null) && filled($validated['name_en'])) {
-            $validated['slug'] = $this->uniqueSlug($this->slugFromName($validated['name_en']));
-        }
-
-        return Brand::query()->create($validated);
+                return $brand;
+            });
+        });
     }
 
     public function update(Brand $brand, array $data): Brand
     {
-        $validated = $this->validate($data, $brand->id);
+        return Cache::lock('catalog-brand-write', 30)->block(
+            10,
+            function () use ($brand, $data): Brand {
+                $brand->refresh();
+                $data['code'] = $brand->code;
+                $validated = $this->validate($data, $brand->id);
 
-        if (empty($validated['image_path']) && filled($brand->image_path)) {
-            $validated['image_path'] = $brand->image_path;
-        }
+                if (empty($validated['image_path']) && filled($brand->image_path)) {
+                    $validated['image_path'] = $brand->image_path;
+                }
 
-        if (! filled($validated['code'] ?? null)) {
-            $validated['code'] = $brand->code;
-        }
+                return DB::transaction(function () use ($brand, $validated): Brand {
+                    $brand->update($validated);
 
-        $brand->update($validated);
+                    if ($brand->wasChanged(['name_en', 'name_ur'])) {
+                        $this->refreshProductLabelsForBrand($brand);
+                    }
 
-        return $brand->fresh();
+                    CatalogCache::forgetOverviewStats();
+
+                    return $brand->fresh();
+                });
+            },
+        );
     }
 
     public function delete(Brand $brand): void
     {
-        $brand->delete();
+        $imagePath = Cache::lock('catalog-brand-write', 30)->block(
+            10,
+            function () use ($brand): ?string {
+                $brand->refresh();
+
+                if (Product::query()->where('brand_id', $brand->id)->exists()) {
+                    throw ValidationException::withMessages([
+                        'brand' => ['Move this brand’s products first, then delete the brand.'],
+                    ]);
+                }
+
+                $path = $brand->image_path;
+                $brand->delete();
+
+                return $path;
+            },
+        );
+
+        if (filled($imagePath)) {
+            Storage::disk('public')->delete($imagePath);
+        }
+
+        CatalogCache::forgetOverviewStats();
     }
 
     public function slugFromName(string $name): string
@@ -95,10 +136,10 @@ class BrandService
             'status' => ['nullable', 'string', 'in:active,inactive'],
             'name_en' => ['required', 'string', 'max:255'],
             'name_ur' => ['required', 'string', 'max:255'],
-            'image_path' => [$exceptId ? 'nullable' : 'required', 'string', 'max:500'],
+            'image_path' => [$exceptId ? 'nullable' : 'required', 'string', 'max:255'],
             'description_en' => ['nullable', 'string'],
             'description_ur' => ['nullable', 'string'],
-            'website_url' => ['nullable', 'string', 'max:500'],
+            'website_url' => ['nullable', 'url:http,https', 'max:255'],
             'ai_status' => ['nullable', 'string', 'in:none,pending,enriched,failed,manual'],
         ];
 
@@ -125,5 +166,17 @@ class BrandService
             ->when($exceptId, fn ($query) => $query->where('id', '!=', $exceptId))
             ->where('slug', $slug)
             ->exists();
+    }
+
+    private function refreshProductLabelsForBrand(Brand $brand): void
+    {
+        Product::query()
+            ->where('brand_id', $brand->id)
+            ->with(['brand', 'unit', 'packUnit', 'attributes', 'controls', 'category'])
+            ->chunkById(100, function ($products): void {
+                foreach ($products as $product) {
+                    app(ProductLabelService::class)->generateForProduct($product);
+                }
+            });
     }
 }

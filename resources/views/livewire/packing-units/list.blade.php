@@ -51,9 +51,9 @@
                                 <td>{{ $packingUnit->created_at?->format('M j, Y') }}</td>
                             @endif
                             <td class="agricart-categories__actions">
-                                <button type="button" class="agricart-categories__action" wire:click="openView({{ $packingUnit->id }})">{{ __('agricart.packing_units.actions.view_short') }}</button>
-                                <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $packingUnit->id }})">{{ __('agricart.packing_units.actions.edit_short') }}</button>
-                                <button type="button" class="agricart-categories__action is-danger" wire:click="deletePackingUnit({{ $packingUnit->id }})" wire:confirm="{{ __('agricart.packing_units.actions.delete_confirm') }}">{{ __('agricart.packing_units.actions.delete_short') }}</button>
+                                @if ($canView)<button type="button" class="agricart-categories__action" wire:click="openView({{ $packingUnit->id }})">{{ __('agricart.packing_units.actions.view_short') }}</button>@endif
+                                @if ($canEdit)<button type="button" class="agricart-categories__action" wire:click="openEdit({{ $packingUnit->id }})">{{ __('agricart.packing_units.actions.edit_short') }}</button>@endif
+                                @if ($canDelete)<button type="button" class="agricart-categories__action is-danger" wire:click="deletePackingUnit({{ $packingUnit->id }})" wire:confirm="{{ __('agricart.packing_units.actions.delete_confirm') }}">{{ __('agricart.packing_units.actions.delete_short') }}</button>@endif
                             </td>
                         </tr>
                     @endforeach

@@ -3,7 +3,10 @@
 namespace App\Services\Catalog;
 
 use App\Models\Unit;
+use App\Models\Product;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -12,35 +15,57 @@ class UnitService
 {
     public function create(array $data): Unit
     {
-        $validated = $this->validate($data);
+        return Cache::lock('catalog-unit-write', 30)->block(10, function () use ($data): Unit {
+            $data['code'] = $this->nextCode();
+            $data['slug'] = $this->uniqueSlug(
+                filled($data['slug'] ?? null)
+                    ? (string) $data['slug']
+                    : $this->slugFromName((string) ($data['name_en'] ?? 'unit')),
+            );
+            $validated = $this->validate($data);
 
-        if (! filled($validated['code'] ?? null)) {
-            $validated['code'] = $this->nextCode();
-        }
-
-        if (! filled($validated['slug'] ?? null) && filled($validated['name_en'])) {
-            $validated['slug'] = $this->uniqueSlug($this->slugFromName($validated['name_en']));
-        }
-
-        return Unit::query()->create($validated);
+            return DB::transaction(function () use ($validated): Unit {
+                $unit = Unit::query()->create($validated);
+                CatalogCache::forgetOverviewStats();
+                return $unit;
+            });
+        });
     }
 
     public function update(Unit $unit, array $data): Unit
     {
-        $validated = $this->validate($data, $unit->id);
+        return Cache::lock('catalog-unit-write', 30)->block(10, function () use ($unit, $data): Unit {
+            $unit->refresh();
+            $data['code'] = $unit->code;
+            $validated = $this->validate($data, $unit->id);
 
-        if (! filled($validated['code'] ?? null)) {
-            $validated['code'] = $unit->code;
-        }
+            return DB::transaction(function () use ($unit, $validated): Unit {
+                $unit->update($validated);
 
-        $unit->update($validated);
+                if ($unit->wasChanged(['name_en', 'name_ur', 'abbreviation_en', 'abbreviation_ur'])) {
+                    $this->refreshProductLabelsForUnit($unit);
+                }
 
-        return $unit->fresh();
+                CatalogCache::forgetOverviewStats();
+                return $unit->fresh();
+            });
+        });
     }
 
     public function delete(Unit $unit): void
     {
-        $unit->delete();
+        Cache::lock('catalog-unit-write', 30)->block(10, function () use ($unit): void {
+            $unit->refresh();
+
+            if (Product::query()->where('unit_id', $unit->id)->exists()) {
+                throw ValidationException::withMessages([
+                    'unit' => ['Move this unit’s products first, then delete the unit.'],
+                ]);
+            }
+
+            $unit->delete();
+            CatalogCache::forgetOverviewStats();
+        });
     }
 
     public function slugFromName(string $name): string
@@ -115,5 +140,17 @@ class UnitService
             ->when($exceptId, fn ($query) => $query->where('id', '!=', $exceptId))
             ->where('slug', $slug)
             ->exists();
+    }
+
+    private function refreshProductLabelsForUnit(Unit $unit): void
+    {
+        Product::query()
+            ->where('unit_id', $unit->id)
+            ->with(['brand', 'unit', 'packUnit', 'attributes', 'controls', 'category'])
+            ->chunkById(100, function ($products): void {
+                foreach ($products as $product) {
+                    app(ProductLabelService::class)->generateForProduct($product);
+                }
+            });
     }
 }

@@ -4,7 +4,6 @@
 
 <div class="agricart-product-form__details-inner">
     <section class="agricart-form-panel__section agricart-product-form__section">
-        <h3 class="agricart-form-panel__section-title">{{ __('agricart.products.sections.core') }}</h3>
         <div class="agricart-form-panel__fields">
             <div class="agricart-form-panel__field">
                 <label class="agricart-form-panel__label">{{ __('agricart.products.fields.system_code') }}</label>
@@ -200,9 +199,12 @@
             <div class="agricart-form-panel__field agricart-form-panel__field--full">
                 <label class="agricart-form-panel__label">{{ __('agricart.products.ai.ai_message') }}</label>
                 <p class="agricart-form-panel__hint">{{ __('agricart.products.ai.ai_message_hint') }}</p>
-                <x-filament::input.wrapper>
-                    <textarea rows="6" wire:model="enrichmentPrompt" class="fi-input agricart-form-panel__textarea" @disabled($readonly)></textarea>
-                </x-filament::input.wrapper>
+                <textarea
+                    rows="9"
+                    wire:model="enrichmentPrompt"
+                    class="agricart-product-form__ai-prompt"
+                    @disabled($readonly)
+                >{{ $enrichmentPrompt }}</textarea>
             </div>
             <div class="agricart-form-panel__field">
                 <label class="agricart-form-panel__label">{{ __('agricart.categories.fields.ai_status') }}</label>

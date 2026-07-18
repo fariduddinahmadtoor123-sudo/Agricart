@@ -153,7 +153,7 @@ class PackingUnitEnrichmentService
             $decoded = json_decode($matches[0], true);
         }
 
-        if (! is_array($decoded)) {
+        if (! is_array($decoded) || array_is_list($decoded)) {
             return null;
         }
 
@@ -162,24 +162,26 @@ class PackingUnitEnrichmentService
 
     /**
      * @param  array<string, mixed>  $payload
-     * @return array<string, mixed>
+     * @return array<string, mixed>|null
      */
-    private function normalizePayload(array $payload): array
+    private function normalizePayload(array $payload): ?array
     {
-        $aliases = [
-            'name_en' => ['english_name', 'english', 'name_en'],
-            'name_ur' => ['urdu_name', 'urdu', 'name_ur'],
-        ];
-
         $normalized = [];
 
-        foreach ($aliases as $target => $keys) {
-            foreach ($keys as $key) {
-                if (array_key_exists($key, $payload) && filled($payload[$key])) {
-                    $normalized[$target] = is_string($payload[$key]) ? trim($payload[$key]) : $payload[$key];
-                    break;
+        foreach (['name_en', 'name_ur'] as $key) {
+            if (isset($payload[$key]) && is_string($payload[$key]) && filled(trim($payload[$key]))) {
+                $value = trim($payload[$key]);
+
+                if (mb_strlen($value) > 128) {
+                    return null;
                 }
+
+                $normalized[$key] = $value;
             }
+        }
+
+        if ($normalized === []) {
+            return null;
         }
 
         $normalized['ai_status'] = CategoryAiStatus::Enriched->value;

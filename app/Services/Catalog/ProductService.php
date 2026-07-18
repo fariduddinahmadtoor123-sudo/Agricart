@@ -3,9 +3,13 @@
 namespace App\Services\Catalog;
 
 use App\Models\Category;
+use App\Models\CatalogAttribute;
+use App\Models\CatalogControl;
+use App\Models\PackingUnit;
 use App\Models\Product;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -142,7 +146,17 @@ class ProductService
 
     public function delete(Product $product): void
     {
+        $mediaPaths = array_values(array_filter(array_merge(
+            [$product->image_path],
+            $product->gallery_images ?? [],
+        )));
+
         $product->delete();
+
+        foreach (array_unique($mediaPaths) as $path) {
+            Storage::disk('public')->delete($path);
+        }
+
         CatalogCache::forgetOverviewStats();
     }
 
@@ -198,6 +212,7 @@ class ProductService
     public function syncAttributes(Product $product, array $attributes): void
     {
         $sync = [];
+        $existingIds = $product->attributes()->pluck('attributes.id')->map(fn ($id): int => (int) $id)->all();
 
         foreach ($attributes as $row) {
             $attributeId = (int) ($row['attribute_id'] ?? 0);
@@ -205,6 +220,26 @@ class ProductService
 
             if ($attributeId <= 0 || $value === '') {
                 continue;
+            }
+
+            if (mb_strlen($value) > 255) {
+                throw ValidationException::withMessages([
+                    'attributes' => ['Attribute values may not be greater than 255 characters.'],
+                ]);
+            }
+
+            $attribute = CatalogAttribute::query()->find($attributeId);
+
+            if ($attribute === null) {
+                throw ValidationException::withMessages([
+                    'attributes' => ['The selected attribute no longer exists.'],
+                ]);
+            }
+
+            if ($attribute->status !== 'active' && ! in_array($attributeId, $existingIds, true)) {
+                throw ValidationException::withMessages([
+                    'attributes' => ['The selected attribute is inactive.'],
+                ]);
             }
 
             $sync[$attributeId] = ['value' => $value];
@@ -218,12 +253,29 @@ class ProductService
      */
     public function syncControls(Product $product, array $controlIds): void
     {
+        $existingIds = $product->controls()->pluck('controls.id')->map(fn ($id): int => (int) $id)->all();
         $ids = collect($controlIds)
             ->map(fn ($id): int => (int) $id)
             ->filter(fn (int $id): bool => $id > 0)
             ->unique()
             ->values()
             ->all();
+
+        foreach ($ids as $controlId) {
+            $control = CatalogControl::query()->find($controlId);
+
+            if ($control === null) {
+                throw ValidationException::withMessages([
+                    'controls' => ['The selected control no longer exists.'],
+                ]);
+            }
+
+            if ($control->status !== 'active' && ! in_array($controlId, $existingIds, true)) {
+                throw ValidationException::withMessages([
+                    'controls' => ['The selected control is inactive.'],
+                ]);
+            }
+        }
 
         $product->controls()->sync($ids);
     }
@@ -308,6 +360,20 @@ class ProductService
         }
 
         $validated = Arr::only($validator->validated(), array_keys($rules));
+
+        if (filled($validated['pack_unit_id'] ?? null)) {
+            $packingUnitId = (int) $validated['pack_unit_id'];
+            $unchangedInactiveAssignment = $exceptId !== null
+                && (int) Product::query()->whereKey($exceptId)->value('pack_unit_id') === $packingUnitId;
+
+            if (! $unchangedInactiveAssignment
+                && ! PackingUnit::query()->whereKey($packingUnitId)->where('status', 'active')->exists()) {
+                throw ValidationException::withMessages([
+                    'pack_unit_id' => ['The selected packing unit is inactive.'],
+                ]);
+            }
+        }
+
         $validated['status'] = $validated['status'] ?? 'active';
         $validated['ai_status'] = $validated['ai_status'] ?? 'none';
 

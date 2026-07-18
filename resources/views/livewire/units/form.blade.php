@@ -73,4 +73,34 @@
             </x-filament::input.wrapper>
         </div>
     </div>
+
+    <div class="agricart-unit-form__grid">
+        <div class="agricart-form-panel__field">
+            <label class="agricart-form-panel__label" for="agricart-unit-code">{{ __('agricart.units.fields.code') }}</label>
+            <x-filament::input.wrapper>
+                <input id="agricart-unit-code" type="text" value="{{ $code }}" class="fi-input" readonly />
+            </x-filament::input.wrapper>
+        </div>
+        <div class="agricart-form-panel__field">
+            <label class="agricart-form-panel__label" for="agricart-unit-slug">{{ __('agricart.units.fields.slug') }}</label>
+            <x-filament::input.wrapper>
+                <input id="agricart-unit-slug" type="text" value="{{ $slug }}" class="fi-input" readonly />
+            </x-filament::input.wrapper>
+        </div>
+        <div class="agricart-form-panel__field">
+            <label class="agricart-form-panel__label" for="agricart-unit-status">{{ __('agricart.units.fields.status') }}</label>
+            <x-filament::input.wrapper>
+                <select id="agricart-unit-status" wire:model="status" class="fi-select-input" @disabled($this->isReadonly())>
+                    <option value="active">{{ __('agricart.form_panel.statuses.active') }}</option>
+                    <option value="inactive">{{ __('agricart.form_panel.statuses.inactive') }}</option>
+                </select>
+            </x-filament::input.wrapper>
+        </div>
+        <div class="agricart-form-panel__field">
+            <label class="agricart-form-panel__label" for="agricart-unit-ai-status">{{ __('agricart.units.fields.ai_status') }}</label>
+            <x-filament::input.wrapper>
+                <input id="agricart-unit-ai-status" type="text" value="{{ __('agricart.categories.ai_status.'.($ai_status ?: 'none')) }}" class="fi-input" readonly />
+            </x-filament::input.wrapper>
+        </div>
+    </div>
 </div>

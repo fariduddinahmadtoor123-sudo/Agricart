@@ -106,6 +106,8 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
         ->name('admin.backups.export');
     Route::get('/labels/{product}/print', [\App\Http\Controllers\Admin\LabelPrintController::class, 'show'])
         ->name('admin.labels.print');
+    Route::post('/labels/print-batch', [\App\Http\Controllers\Admin\LabelBatchPrintController::class, 'store'])
+        ->name('admin.labels.batch-print');
     Route::get('/purchase-planning/{sheet}/print', [\App\Http\Controllers\Admin\PurchasePlanningPrintController::class, 'show'])
         ->name('admin.purchase-planning.print');
     Route::get('/purchase-payment-summaries/{summary}/print', [\App\Http\Controllers\Admin\PurchasePaymentSummaryPrintController::class, 'show'])

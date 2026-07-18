@@ -28,6 +28,16 @@ class PrintProfileService
         return $this->all()->where('category', PrintProfile::CATEGORY_LABEL)->values();
     }
 
+    /**
+     * @return Collection<int, PrintProfile>
+     */
+    public function productLabels(): Collection
+    {
+        // Physical sticker dimensions are reusable. The print controller decides
+        // whether the rendered content is a product label or a price tag.
+        return $this->labels();
+    }
+
     public function findByKey(string $key): ?PrintProfile
     {
         return PrintProfile::query()->where('key', $key)->first();
@@ -132,7 +142,7 @@ class PrintProfileService
         $suffix = 1;
 
         while ($this->findByKey($key) !== null) {
-            $key = $baseKey . '_' . $suffix;
+            $key = $baseKey.'_'.$suffix;
             $suffix++;
         }
 

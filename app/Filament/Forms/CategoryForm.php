@@ -289,7 +289,7 @@ class CategoryForm
     ): array {
         $term = trim($search);
 
-        if (mb_strlen($term) < 2) {
+        if (mb_strlen($term) < 1) {
             return [];
         }
 
@@ -316,6 +316,7 @@ class CategoryForm
                     $query->where(function ($inner) use ($needle): void {
                         $inner->where('name_en', 'like', $needle)
                             ->orWhere('name_ur', 'like', $needle)
+                            ->orWhere('code', 'like', $needle)
                             ->orWhere('slug', 'like', $needle);
                     });
                 }

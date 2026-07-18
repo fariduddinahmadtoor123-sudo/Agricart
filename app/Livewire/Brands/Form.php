@@ -4,12 +4,14 @@ namespace App\Livewire\Brands;
 
 use App\Enums\CategoryAiStatus;
 use App\Models\Brand;
+use App\Models\User;
 use App\Services\Catalog\BrandEnrichmentService;
 use App\Services\Catalog\BrandService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Livewire\Attributes\On;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
@@ -18,14 +20,17 @@ class Form extends Component
 {
     use WithFileUploads;
 
+    #[Locked]
     public ?int $brandId = null;
 
+    #[Locked]
     public string $mode = 'create';
 
     public ?TemporaryUploadedFile $imageUpload = null;
 
     public ?string $imagePreviewUrl = null;
 
+    #[Locked]
     public ?string $storedImagePath = null;
 
     public string $enrichmentPrompt = '';
@@ -40,12 +45,15 @@ class Form extends Component
 
     public string $website_url = '';
 
+    #[Locked]
     public string $code = '';
 
+    #[Locked]
     public string $slug = '';
 
     public string $status = 'active';
 
+    #[Locked]
     public string $ai_status = 'none';
 
     public bool $saving = false;
@@ -59,14 +67,19 @@ class Form extends Component
     public function mount(): void
     {
         $this->enrichmentPrompt = BrandEnrichmentService::defaultPrompt();
-        $this->code = app(BrandService::class)->nextCode();
     }
 
-    #[On('brand-form-open')]
     public function openForm(?int $brandId = null, string $mode = 'create'): void
     {
+        $normalizedMode = in_array($mode, ['create', 'edit', 'view'], true) ? $mode : 'create';
+        $this->authorizeAction(
+            $brandId === null
+                ? 'create'
+                : ($normalizedMode === 'view' ? 'view' : 'edit'),
+        );
+
         $this->resetForm();
-        $this->mode = $mode;
+        $this->mode = $normalizedMode;
         $this->brandId = $brandId;
 
         if ($brandId) {
@@ -74,9 +87,14 @@ class Form extends Component
         }
     }
 
-    #[On('brand-form-action')]
     public function handlePanelAction(string $action): void
     {
+        if ($this->mode === 'view' && in_array($action, ['save_close', 'save_next', 'ai'], true)) {
+            $this->dispatchBusyState();
+
+            return;
+        }
+
         match ($action) {
             'ai' => $this->enrichWithAi(),
             'save_close' => $this->saveAndClose(),
@@ -87,6 +105,8 @@ class Form extends Component
 
     public function updatedImageUpload(): void
     {
+        $this->authorizeAction($this->mutationAction());
+
         $this->validate([
             'imageUpload' => ['nullable', 'image', 'max:5120'],
         ]);
@@ -96,11 +116,11 @@ class Form extends Component
         }
 
         $filename = pathinfo($this->imageUpload->getClientOriginalName(), PATHINFO_FILENAME);
-        $this->persistUploadedImage();
+        $this->imagePreviewUrl = $this->imageUpload->temporaryUrl();
 
         $cleanName = Str::title(str_replace(['-', '_'], ' ', $filename));
 
-        if (filled($cleanName)) {
+        if (filled($cleanName) && ! filled(trim($this->name_en))) {
             $this->name_en = $cleanName;
 
             if (! filled($this->slug)) {
@@ -111,7 +131,9 @@ class Form extends Component
 
     public function enrichWithAi(): void
     {
-        if ($this->isReadonly()) {
+        $this->authorizeAction($this->mutationAction());
+
+        if ($this->isReadonly() || $this->enriching) {
             return;
         }
 
@@ -131,11 +153,20 @@ class Form extends Component
             return;
         }
 
+        $lockKey = 'brand-ai-enrichment:'.(auth()->id() ?? 'guest').':'.($this->brandId ?? 'new');
+        $aiLock = Cache::lock($lockKey, 120);
+
+        if (! $aiLock->get()) {
+            $this->setStatus(__('agricart.brands.ai.already_running'), 'warning');
+            $this->dispatchBusyState();
+
+            return;
+        }
+
         $this->enriching = true;
         $this->ai_status = CategoryAiStatus::Pending->value;
         $this->statusMessage = null;
         $this->dispatchBusyState();
-        $this->persistUploadedImage();
 
         try {
             $result = app(BrandEnrichmentService::class)->enrich(
@@ -158,6 +189,7 @@ class Form extends Component
             $this->ai_status = CategoryAiStatus::Failed->value;
             $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
         } finally {
+            $aiLock->release();
             $this->enriching = false;
             $this->dispatchBusyState();
         }
@@ -191,12 +223,20 @@ class Form extends Component
 
     private function persist(): bool
     {
+        if ($this->saving) {
+            return false;
+        }
+
+        $this->authorizeAction($this->mutationAction());
+
         if ($this->isReadonly()) {
             return false;
         }
 
-        $this->persistUploadedImage();
-
+        $originalImagePath = $this->brandId
+            ? Brand::query()->whereKey($this->brandId)->value('image_path')
+            : null;
+        $this->storedImagePath = $originalImagePath;
         $missing = [];
 
         if (! filled(trim($this->name_en))) {
@@ -207,7 +247,7 @@ class Form extends Component
             $missing[] = __('agricart.brands.fields.name_ur');
         }
 
-        if (! filled($this->storedImagePath)) {
+        if (! filled($this->storedImagePath) && $this->imageUpload === null) {
             $missing[] = __('agricart.brands.fields.image');
         }
 
@@ -216,14 +256,18 @@ class Form extends Component
                 __('agricart.brands.messages.required_fields', ['fields' => implode(', ', $missing)]),
                 'danger',
             );
+            $this->dispatchBusyState();
 
             return false;
         }
 
         $this->saving = true;
         $this->dispatchBusyState();
+        $newImagePath = null;
+        $committed = false;
 
         try {
+            $newImagePath = $this->persistUploadedImage();
             $service = app(BrandService::class);
             $payload = $this->buildPayload($service);
 
@@ -237,6 +281,12 @@ class Form extends Component
                 $this->mode = 'edit';
             }
 
+            $committed = true;
+
+            if (filled($originalImagePath) && $originalImagePath !== $this->storedImagePath) {
+                Storage::disk('public')->delete($originalImagePath);
+            }
+
             $this->storedImagePath = $payload['image_path'] ?? $this->storedImagePath;
             $this->imagePreviewUrl = filled($this->storedImagePath)
                 ? Storage::disk('public')->url($this->storedImagePath)
@@ -245,11 +295,21 @@ class Form extends Component
 
             return true;
         } catch (\Illuminate\Validation\ValidationException $exception) {
+            if (! $committed && filled($newImagePath)) {
+                Storage::disk('public')->delete($newImagePath);
+                $this->restoreOriginalImage($originalImagePath);
+            }
+
             $message = collect($exception->errors())->flatten()->first();
             $this->setStatus($message ?: __('agricart.brands.messages.validation_failed'), 'danger');
 
             return false;
         } catch (\Throwable $exception) {
+            if (! $committed && filled($newImagePath)) {
+                Storage::disk('public')->delete($newImagePath);
+                $this->restoreOriginalImage($originalImagePath);
+            }
+
             $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
 
             return false;
@@ -287,16 +347,18 @@ class Form extends Component
         ];
     }
 
-    private function persistUploadedImage(): void
+    private function persistUploadedImage(): ?string
     {
         if ($this->imageUpload === null) {
-            return;
+            return null;
         }
 
         $path = app(\App\Services\Media\OptimizedImageStorage::class)->store($this->imageUpload, 'brands');
         $this->storedImagePath = $path;
         $this->imagePreviewUrl = Storage::disk('public')->url($path);
         $this->imageUpload = null;
+
+        return $path;
     }
 
     private function resolveImagePathForAi(): ?string
@@ -367,8 +429,40 @@ class Form extends Component
         $this->slug = '';
         $this->status = 'active';
         $this->ai_status = 'none';
+        $this->saving = false;
+        $this->enriching = false;
         $this->statusMessage = null;
         $this->statusType = 'success';
+    }
+
+    private function restoreOriginalImage(?string $imagePath): void
+    {
+        $this->imageUpload = null;
+        $this->storedImagePath = $imagePath;
+        $this->imagePreviewUrl = filled($imagePath)
+            ? Storage::disk('public')->url($imagePath)
+            : null;
+    }
+
+    private function mutationAction(): string
+    {
+        return $this->brandId === null ? 'create' : 'edit';
+    }
+
+    private function authorizeAction(string $action): void
+    {
+        abort_unless($this->userCan($action), 403);
+    }
+
+    private function userCan(string $action): bool
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User || ! $user->canUseAdmin()) {
+            return false;
+        }
+
+        return $user->isSuperAdmin() || $user->hasPermission('catalog.'.$action);
     }
 
     private function setStatus(string $message, string $type): void

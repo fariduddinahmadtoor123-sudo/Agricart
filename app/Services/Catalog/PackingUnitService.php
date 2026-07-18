@@ -3,7 +3,10 @@
 namespace App\Services\Catalog;
 
 use App\Models\PackingUnit;
+use App\Models\Product;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -12,35 +15,59 @@ class PackingUnitService
 {
     public function create(array $data): PackingUnit
     {
-        $validated = $this->validate($data);
+        return Cache::lock('catalog-packing-unit-write', 30)->block(10, function () use ($data): PackingUnit {
+            $data['code'] = $this->nextCode();
+            $data['slug'] = $this->uniqueSlug(
+                filled($data['slug'] ?? null)
+                    ? (string) $data['slug']
+                    : $this->slugFromName((string) ($data['name_en'] ?? 'packing-unit')),
+            );
+            $validated = $this->validate($data);
 
-        if (! filled($validated['code'] ?? null)) {
-            $validated['code'] = $this->nextCode();
-        }
+            return DB::transaction(function () use ($validated): PackingUnit {
+                $packingUnit = PackingUnit::query()->create($validated);
+                CatalogCache::forgetOverviewStats();
 
-        if (! filled($validated['slug'] ?? null) && filled($validated['name_en'])) {
-            $validated['slug'] = $this->uniqueSlug($this->slugFromName($validated['name_en']));
-        }
-
-        return PackingUnit::query()->create($validated);
+                return $packingUnit;
+            });
+        });
     }
 
     public function update(PackingUnit $packingUnit, array $data): PackingUnit
     {
-        $validated = $this->validate($data, $packingUnit->id);
+        return Cache::lock('catalog-packing-unit-write', 30)->block(10, function () use ($packingUnit, $data): PackingUnit {
+            $packingUnit->refresh();
+            $data['code'] = $packingUnit->code;
+            $validated = $this->validate($data, $packingUnit->id);
 
-        if (! filled($validated['code'] ?? null)) {
-            $validated['code'] = $packingUnit->code;
-        }
+            return DB::transaction(function () use ($packingUnit, $validated): PackingUnit {
+                $packingUnit->update($validated);
 
-        $packingUnit->update($validated);
+                if ($packingUnit->wasChanged(['name_en', 'name_ur'])) {
+                    $this->refreshProductLabelsForPackingUnit($packingUnit);
+                }
 
-        return $packingUnit->fresh();
+                CatalogCache::forgetOverviewStats();
+
+                return $packingUnit->fresh();
+            });
+        });
     }
 
     public function delete(PackingUnit $packingUnit): void
     {
-        $packingUnit->delete();
+        Cache::lock('catalog-packing-unit-write', 30)->block(10, function () use ($packingUnit): void {
+            $packingUnit->refresh();
+
+            if (Product::query()->where('pack_unit_id', $packingUnit->id)->exists()) {
+                throw ValidationException::withMessages([
+                    'packing_unit' => ['Move this packing unit’s products first, then delete the packing unit.'],
+                ]);
+            }
+
+            $packingUnit->delete();
+            CatalogCache::forgetOverviewStats();
+        });
     }
 
     public function slugFromName(string $name): string
@@ -113,5 +140,17 @@ class PackingUnitService
             ->when($exceptId, fn ($query) => $query->where('id', '!=', $exceptId))
             ->where('slug', $slug)
             ->exists();
+    }
+
+    private function refreshProductLabelsForPackingUnit(PackingUnit $packingUnit): void
+    {
+        Product::query()
+            ->where('pack_unit_id', $packingUnit->id)
+            ->with(['brand', 'unit', 'packUnit', 'attributes', 'controls', 'category'])
+            ->chunkById(100, function ($products): void {
+                foreach ($products as $product) {
+                    app(ProductLabelService::class)->generateForProduct($product);
+                }
+            });
     }
 }

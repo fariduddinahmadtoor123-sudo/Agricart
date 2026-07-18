@@ -56,7 +56,7 @@
         .print-label {
             width: {{ rtrim(rtrim(number_format($profile->width_mm, 2, '.', ''), '0'), '.') }}mm;
             @if ($profile->height_mm !== null)
-                min-height: {{ rtrim(rtrim(number_format($profile->height_mm, 2, '.', ''), '0'), '.') }}mm;
+                height: {{ rtrim(rtrim(number_format($profile->height_mm, 2, '.', ''), '0'), '.') }}mm;
             @endif
             padding: {{ rtrim(rtrim(number_format($profile->margin_mm, 2, '.', ''), '0'), '.') }}mm;
             background: #fff;
@@ -103,6 +103,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            width: 100%;
             margin: 0.2rem 0;
             overflow: hidden;
         }
@@ -111,6 +112,35 @@
             display: block;
             max-width: 100%;
             height: auto;
+            margin-inline: auto;
+        }
+
+        .print-label__qr-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(14mm, 19mm);
+            align-items: center;
+            gap: 0.8mm;
+            min-height: 0;
+        }
+
+        .print-label__qr-layout .print-label__lines {
+            min-width: 0;
+            margin-bottom: 0;
+        }
+
+        .print-label__qr-code {
+            min-width: 0;
+            text-align: center;
+        }
+
+        .print-label__qr-code .print-label__code-wrap {
+            margin: 0;
+        }
+
+        .print-label__qr-code svg {
+            width: 100%;
+            max-width: 18mm;
+            max-height: 18mm;
         }
 
         .print-label__foot {
@@ -123,7 +153,7 @@
 
         @page {
             size: {{ $profile->pageSizeCss() }};
-            margin: {{ rtrim(rtrim(number_format($profile->margin_mm, 2, '.', ''), '0'), '.') }}mm;
+            margin: 0;
         }
 
         @media print {
@@ -132,7 +162,11 @@
             }
 
             .print-shell {
-                min-height: auto;
+                width: {{ rtrim(rtrim(number_format($profile->width_mm, 2, '.', ''), '0'), '.') }}mm;
+                @if ($profile->height_mm !== null)
+                    height: {{ rtrim(rtrim(number_format($profile->height_mm, 2, '.', ''), '0'), '.') }}mm;
+                @endif
+                min-height: 0;
                 padding: 0;
             }
 
@@ -142,9 +176,12 @@
 
             .print-label {
                 border: none;
-                width: auto;
-                min-height: auto;
-                padding: 0;
+                width: 100%;
+                @if ($profile->height_mm !== null)
+                    height: 100%;
+                @endif
+                padding: {{ rtrim(rtrim(number_format($profile->margin_mm, 2, '.', ''), '0'), '.') }}mm;
+                margin-inline: auto;
             }
         }
     </style>
@@ -154,28 +191,35 @@
         <article class="print-label" @if($locale === 'ur') dir="rtl" @endif>
             <h1 class="print-label__title">{{ $sticker['title'] ?? '—' }}</h1>
 
-            @if (! empty($sticker['lines']))
-                <dl class="print-label__lines">
-                    @foreach ($sticker['lines'] as $line)
-                        <div class="print-label__line">
-                            <dt>{{ $line['label'] ?? '' }}</dt>
-                            <dd>{{ $line['value'] ?? '' }}</dd>
-                        </div>
-                    @endforeach
-                </dl>
-            @endif
-
-            <div class="print-label__code-wrap">
-                @if ($type === 'qr')
-                    {!! $sticker['qr_svg'] ?? '' !!}
-                @else
-                    {!! $sticker['barcode_svg'] ?? '' !!}
+            @if ($type === 'qr')
+                <div class="print-label__qr-layout">
+                    <dl class="print-label__lines">
+                        @foreach ($sticker['lines'] ?? [] as $line)
+                            <div class="print-label__line">
+                                <dt>{{ $line['label'] ?? '' }}</dt>
+                                <dd>{{ $line['value'] ?? '' }}</dd>
+                            </div>
+                        @endforeach
+                    </dl>
+                    <div class="print-label__qr-code">
+                        <div class="print-label__code-wrap">{!! $sticker['qr_svg'] ?? '' !!}</div>
+                        <p class="print-label__foot">{{ $sticker['qr_payload'] ?? $sticker['label_code'] ?? '' }}</p>
+                    </div>
+                </div>
+            @else
+                @if (! empty($sticker['lines']))
+                    <dl class="print-label__lines">
+                        @foreach ($sticker['lines'] as $line)
+                            <div class="print-label__line">
+                                <dt>{{ $line['label'] ?? '' }}</dt>
+                                <dd>{{ $line['value'] ?? '' }}</dd>
+                            </div>
+                        @endforeach
+                    </dl>
                 @endif
-            </div>
-
-            <p class="print-label__foot">
-                {{ $type === 'qr' ? ($sticker['qr_payload'] ?? $sticker['label_code'] ?? '') : ($sticker['barcode_value'] ?? $sticker['label_code'] ?? '') }}
-            </p>
+                <div class="print-label__code-wrap">{!! $sticker['barcode_svg'] ?? '' !!}</div>
+                <p class="print-label__foot">{{ $sticker['barcode_value'] ?? $sticker['label_code'] ?? '' }}</p>
+            @endif
         </article>
 
         <div class="print-actions">

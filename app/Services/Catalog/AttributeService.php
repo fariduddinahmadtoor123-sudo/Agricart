@@ -3,7 +3,10 @@
 namespace App\Services\Catalog;
 
 use App\Models\CatalogAttribute;
+use App\Models\Product;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -12,35 +15,58 @@ class AttributeService
 {
     public function create(array $data): CatalogAttribute
     {
-        $validated = $this->validate($data);
+        return Cache::lock('catalog-attribute-write', 30)->block(10, function () use ($data): CatalogAttribute {
+            $data['code'] = $this->nextCode();
+            $data['slug'] = $this->uniqueSlug(
+                $this->slugFromName((string) ($data['name_en'] ?? 'attribute')),
+            );
+            $validated = $this->validate($data);
 
-        if (! filled($validated['code'] ?? null)) {
-            $validated['code'] = $this->nextCode();
-        }
+            return DB::transaction(function () use ($validated): CatalogAttribute {
+                $attribute = CatalogAttribute::query()->create($validated);
+                CatalogCache::forgetOverviewStats();
 
-        if (! filled($validated['slug'] ?? null) && filled($validated['name_en'])) {
-            $validated['slug'] = $this->uniqueSlug($this->slugFromName($validated['name_en']));
-        }
-
-        return CatalogAttribute::query()->create($validated);
+                return $attribute;
+            });
+        });
     }
 
     public function update(CatalogAttribute $attribute, array $data): CatalogAttribute
     {
-        $validated = $this->validate($data, $attribute->id);
+        return Cache::lock('catalog-attribute-write', 30)->block(10, function () use ($attribute, $data): CatalogAttribute {
+            $attribute->refresh();
+            $data['code'] = $attribute->code;
+            $data['slug'] = $attribute->slug;
+            $validated = $this->validate($data, $attribute->id);
 
-        if (! filled($validated['code'] ?? null)) {
-            $validated['code'] = $attribute->code;
-        }
+            return DB::transaction(function () use ($attribute, $validated): CatalogAttribute {
+                $attribute->update($validated);
 
-        $attribute->update($validated);
+                if ($attribute->wasChanged(['name_en', 'name_ur'])) {
+                    $this->refreshProductLabelsForAttribute($attribute);
+                }
 
-        return $attribute->fresh();
+                CatalogCache::forgetOverviewStats();
+
+                return $attribute->fresh();
+            });
+        });
     }
 
     public function delete(CatalogAttribute $attribute): void
     {
-        $attribute->delete();
+        Cache::lock('catalog-attribute-write', 30)->block(10, function () use ($attribute): void {
+            $attribute->refresh();
+
+            if (DB::table('product_attribute')->where('attribute_id', $attribute->id)->exists()) {
+                throw ValidationException::withMessages([
+                    'attribute' => [__('agricart.attributes.messages.linked_delete')],
+                ]);
+            }
+
+            $attribute->delete();
+            CatalogCache::forgetOverviewStats();
+        });
     }
 
     public function slugFromName(string $name): string
@@ -113,5 +139,17 @@ class AttributeService
             ->when($exceptId, fn ($query) => $query->where('id', '!=', $exceptId))
             ->where('slug', $slug)
             ->exists();
+    }
+
+    private function refreshProductLabelsForAttribute(CatalogAttribute $attribute): void
+    {
+        Product::query()
+            ->whereHas('attributes', fn ($query) => $query->whereKey($attribute->id))
+            ->with(['brand', 'unit', 'packUnit', 'attributes', 'controls', 'category'])
+            ->chunkById(100, function ($products): void {
+                foreach ($products as $product) {
+                    app(ProductLabelService::class)->generateForProduct($product);
+                }
+            });
     }
 }

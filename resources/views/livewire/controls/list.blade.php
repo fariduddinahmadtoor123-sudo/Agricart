@@ -14,14 +14,8 @@
                         @if (in_array('name_en', $visibleColumns, true))
                             <th>{{ __('agricart.controls.list.col_name_en') }}</th>
                         @endif
-                        @if (in_array('value_en', $visibleColumns, true))
-                            <th>{{ __('agricart.controls.list.col_value_en') }}</th>
-                        @endif
                         @if (in_array('name_ur', $visibleColumns, true))
                             <th>{{ __('agricart.controls.list.col_name_ur') }}</th>
-                        @endif
-                        @if (in_array('value_ur', $visibleColumns, true))
-                            <th>{{ __('agricart.controls.list.col_value_ur') }}</th>
                         @endif
                         @if (in_array('status', $visibleColumns, true))
                             <th>{{ __('agricart.controls.list.col_status') }}</th>
@@ -44,14 +38,8 @@
                             @if (in_array('name_en', $visibleColumns, true))
                                 <td>{{ $control->name_en }}</td>
                             @endif
-                            @if (in_array('value_en', $visibleColumns, true))
-                                <td>{{ $control->value_en }}</td>
-                            @endif
                             @if (in_array('name_ur', $visibleColumns, true))
                                 <td dir="rtl">{{ $control->name_ur }}</td>
-                            @endif
-                            @if (in_array('value_ur', $visibleColumns, true))
-                                <td dir="rtl">{{ $control->value_ur }}</td>
                             @endif
                             @if (in_array('status', $visibleColumns, true))
                                 <td>{{ ucfirst($control->status) }}</td>
@@ -63,9 +51,9 @@
                                 <td>{{ $control->created_at?->format('M j, Y') }}</td>
                             @endif
                             <td class="agricart-categories__actions">
-                                <button type="button" class="agricart-categories__action" wire:click="openView({{ $control->id }})">{{ __('agricart.controls.actions.view_short') }}</button>
-                                <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $control->id }})">{{ __('agricart.controls.actions.edit_short') }}</button>
-                                <button type="button" class="agricart-categories__action is-danger" wire:click="deleteControl({{ $control->id }})" wire:confirm="{{ __('agricart.controls.actions.delete_confirm') }}">{{ __('agricart.controls.actions.delete_short') }}</button>
+                                @if ($canView)<button type="button" class="agricart-categories__action" wire:click="openView({{ $control->id }})">{{ __('agricart.controls.actions.view_short') }}</button>@endif
+                                @if ($canEdit)<button type="button" class="agricart-categories__action" wire:click="openEdit({{ $control->id }})">{{ __('agricart.controls.actions.edit_short') }}</button>@endif
+                                @if ($canDelete)<button type="button" class="agricart-categories__action is-danger" wire:click="deleteControl({{ $control->id }})" wire:confirm="{{ __('agricart.controls.actions.delete_confirm') }}">{{ __('agricart.controls.actions.delete_short') }}</button>@endif
                             </td>
                         </tr>
                     @endforeach

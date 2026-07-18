@@ -4,16 +4,20 @@ namespace App\Livewire\Controls;
 
 use App\Enums\CategoryAiStatus;
 use App\Models\CatalogControl;
+use App\Models\User;
 use App\Services\Catalog\ControlEnrichmentService;
 use App\Services\Catalog\ControlService;
 use Illuminate\Contracts\View\View;
-use Livewire\Attributes\On;
+use Illuminate\Support\Facades\Cache;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class Form extends Component
 {
+    #[Locked]
     public ?int $controlId = null;
 
+    #[Locked]
     public string $mode = 'create';
 
     public string $name_en = '';
@@ -24,12 +28,15 @@ class Form extends Component
 
     public string $value_ur = '';
 
+    #[Locked]
     public string $code = '';
 
+    #[Locked]
     public string $slug = '';
 
     public string $status = 'active';
 
+    #[Locked]
     public string $ai_status = 'none';
 
     public bool $saving = false;
@@ -41,15 +48,16 @@ class Form extends Component
     public string $statusType = 'success';
 
     public function mount(): void
-    {
-        $this->code = app(ControlService::class)->nextCode();
-    }
+    {}
 
-    #[On('control-form-open')]
     public function openForm(?int $controlId = null, string $mode = 'create'): void
     {
+        $normalizedMode = in_array($mode, ['create', 'edit', 'view'], true) ? $mode : 'create';
+        $this->authorizeAction(
+            $controlId === null ? 'create' : ($normalizedMode === 'view' ? 'view' : 'edit'),
+        );
         $this->resetForm();
-        $this->mode = $mode;
+        $this->mode = $normalizedMode;
         $this->controlId = $controlId;
 
         if ($controlId) {
@@ -59,6 +67,12 @@ class Form extends Component
 
     public function handlePanelAction(string $action): void
     {
+        if ($this->mode === 'view' && in_array($action, ['save_close', 'save_next', 'ai'], true)) {
+            $this->dispatchBusyState();
+
+            return;
+        }
+
         match ($action) {
             'ai' => $this->enrichWithAi(),
             'save_close' => $this->saveAndClose(),
@@ -69,7 +83,9 @@ class Form extends Component
 
     public function enrichWithAi(): void
     {
-        if ($this->isReadonly()) {
+        $this->authorizeAction($this->mutationAction());
+
+        if ($this->isReadonly() || $this->enriching) {
             return;
         }
 
@@ -79,6 +95,18 @@ class Form extends Component
             && ! filled(trim($this->value_ur))) {
             $this->setStatus(__('agricart.controls.ai.input_required'), 'warning');
             $this->enriching = false;
+            $this->dispatchBusyState();
+
+            return;
+        }
+
+        $aiLock = Cache::lock(
+            'control-ai-enrichment:'.(auth()->id() ?? 'guest').':'.($this->controlId ?? 'new'),
+            120,
+        );
+
+        if (! $aiLock->get()) {
+            $this->setStatus(__('agricart.controls.ai.already_running'), 'warning');
             $this->dispatchBusyState();
 
             return;
@@ -111,6 +139,7 @@ class Form extends Component
             $this->ai_status = CategoryAiStatus::Failed->value;
             $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
         } finally {
+            $aiLock->release();
             $this->enriching = false;
             $this->dispatchBusyState();
         }
@@ -124,7 +153,6 @@ class Form extends Component
 
         $this->dispatch('controls-saved');
         $this->dispatch('close-form-panel');
-        $this->js("window.dispatchEvent(new CustomEvent('close-form-panel', { bubbles: true }))");
     }
 
     public function saveAndAddNext(): void
@@ -147,6 +175,12 @@ class Form extends Component
 
     private function persist(): bool
     {
+        if ($this->saving) {
+            return false;
+        }
+
+        $this->authorizeAction($this->mutationAction());
+
         if ($this->isReadonly()) {
             return false;
         }
@@ -169,6 +203,7 @@ class Form extends Component
                 __('agricart.controls.messages.required_fields', ['fields' => implode(', ', $missing)]),
                 'danger',
             );
+            $this->dispatchBusyState();
 
             return false;
         }
@@ -178,7 +213,7 @@ class Form extends Component
 
         try {
             $service = app(ControlService::class);
-            $payload = $this->buildPayload($service);
+            $payload = $this->buildPayload();
 
             if ($this->controlId) {
                 $control = CatalogControl::query()->findOrFail($this->controlId);
@@ -216,15 +251,9 @@ class Form extends Component
     /**
      * @return array<string, mixed>
      */
-    private function buildPayload(ControlService $service): array
+    private function buildPayload(): array
     {
-        if (! filled($this->slug) && filled($this->name_en)) {
-            $this->slug = $service->uniqueSlug($service->slugFromName($this->name_en), $this->controlId);
-        }
-
         return [
-            'code' => $this->code ?: null,
-            'slug' => $this->slug,
             'status' => $this->status ?: 'active',
             'name_en' => $this->name_en,
             'name_ur' => $this->name_ur,
@@ -242,12 +271,12 @@ class Form extends Component
         foreach (['name_en', 'name_ur', 'value_en', 'value_ur'] as $field) {
             $value = $data[$field] ?? null;
 
-            if (! filled($value)) {
+            if (! is_string($value) || ! filled(trim($value))) {
                 continue;
             }
 
             if (! filled(trim($this->{$field}))) {
-                $this->{$field} = trim((string) $value);
+                $this->{$field} = trim($value);
             }
         }
 
@@ -284,6 +313,25 @@ class Form extends Component
         $this->ai_status = 'none';
         $this->statusMessage = null;
         $this->statusType = 'success';
+    }
+
+    private function mutationAction(): string
+    {
+        return $this->controlId === null ? 'create' : 'edit';
+    }
+
+    private function authorizeAction(string $action): void
+    {
+        abort_unless($this->userCan($action), 403);
+    }
+
+    private function userCan(string $action): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User
+            && $user->canUseAdmin()
+            && ($user->isSuperAdmin() || $user->hasPermission('catalog.'.$action));
     }
 
     private function setStatus(string $message, string $type): void

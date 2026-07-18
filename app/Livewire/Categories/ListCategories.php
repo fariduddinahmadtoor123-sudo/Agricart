@@ -3,6 +3,8 @@
 namespace App\Livewire\Categories;
 
 use App\Models\Category;
+use App\Models\User;
+use Filament\Notifications\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\On;
@@ -78,6 +80,8 @@ class ListCategories extends Component
 
     public function openCreate(): void
     {
+        $this->authorizeAction('create');
+
         $this->dispatch(
             'open-form-panel',
             title: __('agricart.toolbar.add', ['item' => 'Categories']),
@@ -89,6 +93,8 @@ class ListCategories extends Component
 
     public function openView(int $categoryId): void
     {
+        $this->authorizeAction('view');
+
         $category = Category::query()->find($categoryId);
 
         if ($category === null) {
@@ -107,6 +113,8 @@ class ListCategories extends Component
 
     public function openEdit(int $categoryId): void
     {
+        $this->authorizeAction('edit');
+
         $category = Category::query()->find($categoryId);
 
         if ($category === null) {
@@ -125,13 +133,25 @@ class ListCategories extends Component
 
     public function deleteCategory(int $categoryId): void
     {
+        $this->authorizeAction('delete');
+
         $category = Category::query()->find($categoryId);
 
         if ($category === null) {
             return;
         }
 
-        app(\App\Services\Catalog\CategoryService::class)->delete($category);
+        try {
+            app(\App\Services\Catalog\CategoryService::class)->delete($category);
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            Notification::make()
+                ->danger()
+                ->title((string) collect($exception->errors())->flatten()->first())
+                ->send();
+
+            return;
+        }
+
         $this->resetPage();
     }
 
@@ -154,6 +174,25 @@ class ListCategories extends Component
 
         return view('livewire.categories.list', [
             'categories' => $categories,
+            'canView' => $this->userCan('view'),
+            'canEdit' => $this->userCan('edit'),
+            'canDelete' => $this->userCan('delete'),
         ]);
+    }
+
+    private function authorizeAction(string $action): void
+    {
+        abort_unless($this->userCan($action), 403);
+    }
+
+    private function userCan(string $action): bool
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User || ! $user->canUseAdmin()) {
+            return false;
+        }
+
+        return $user->isSuperAdmin() || $user->hasPermission('catalog.'.$action);
     }
 }

@@ -37,30 +37,36 @@ class LabelRenderService
     /**
      * @return array<string, mixed>
      */
-    public function stickerData(Product $product, string $locale, string $type): array
+    public function stickerData(Product $product, string $locale, string $type, ?array $fields = null): array
     {
         $locale = $locale === 'ur' ? 'ur' : 'en';
         $type = $type === 'qr' ? 'qr' : 'barcode';
 
-        $stored = $type === 'qr'
-            ? ($product->label_qr[$locale] ?? null)
-            : ($product->label_barcode[$locale] ?? null);
+        $sticker = $this->productLabels->stickerData($product, $locale, $type);
 
-        if (! is_array($stored)) {
-            $this->productLabels->generateForProduct($product->fresh());
-            $product->refresh();
+        if ($fields !== null) {
+            $allowed = array_fill_keys($fields, true);
+            $sticker['lines'] = array_values(array_filter(
+                $sticker['lines'] ?? [],
+                fn (array $line): bool => isset($allowed[$line['key'] ?? '']),
+            ));
 
-            $stored = $type === 'qr'
-                ? ($product->label_qr[$locale] ?? [])
-                : ($product->label_barcode[$locale] ?? []);
+            if (! isset($allowed['product_name'])) {
+                $sticker['title'] = '';
+            }
+
+            if (! isset($allowed['store_name'])) {
+                $sticker['store_name'] = '';
+            }
         }
 
-        $code = (string) ($stored['label_code'] ?? $product->label_code ?? $product->code ?? '');
+        $code = (string) ($sticker['label_code'] ?? $product->label_code ?? $product->code ?? '');
 
         return [
-            ...$stored,
+            ...$sticker,
             'barcode_svg' => $code !== '' ? $this->barcodeSvg($code) : '',
             'qr_svg' => $code !== '' ? $this->qrSvg($code) : '',
+            'show_printed_code' => $fields === null || in_array('printed_code', $fields, true),
         ];
     }
 }

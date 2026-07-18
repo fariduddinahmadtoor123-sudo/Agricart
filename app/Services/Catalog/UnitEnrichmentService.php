@@ -7,7 +7,6 @@ use App\Enums\CategoryAiStatus;
 use App\Models\AiConfiguration;
 use App\Services\Ai\AiConfigurationService;
 use App\Services\Ai\OpenRouterClient;
-use Illuminate\Support\Str;
 
 class UnitEnrichmentService
 {
@@ -135,7 +134,7 @@ class UnitEnrichmentService
             $decoded = json_decode($matches[0], true);
         }
 
-        if (! is_array($decoded)) {
+        if (! is_array($decoded) || array_is_list($decoded)) {
             return null;
         }
 
@@ -144,16 +143,25 @@ class UnitEnrichmentService
 
     /**
      * @param  array<string, mixed>  $payload
-     * @return array<string, mixed>
+     * @return array<string, mixed>|null
      */
-    private function normalizePayload(array $payload): array
+    private function normalizePayload(array $payload): ?array
     {
         $normalized = [];
+        $limits = ['name_en' => 128, 'name_ur' => 128, 'abbreviation_en' => 32, 'abbreviation_ur' => 32];
 
         foreach (['name_en', 'name_ur', 'abbreviation_en', 'abbreviation_ur'] as $key) {
-            if (array_key_exists($key, $payload) && filled($payload[$key])) {
-                $normalized[$key] = is_string($payload[$key]) ? trim($payload[$key]) : $payload[$key];
+            if (isset($payload[$key]) && is_string($payload[$key]) && filled(trim($payload[$key]))) {
+                $value = trim($payload[$key]);
+                if (mb_strlen($value) > $limits[$key]) {
+                    return null;
+                }
+                $normalized[$key] = $value;
             }
+        }
+
+        if ($normalized === []) {
+            return null;
         }
 
         $normalized['ai_status'] = CategoryAiStatus::Enriched->value;
