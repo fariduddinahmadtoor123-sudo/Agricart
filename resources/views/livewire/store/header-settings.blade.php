@@ -76,16 +76,12 @@
         </label>
 
         <h4 class="agricart-store-admin__subtitle">{{ __('agricart.store.admin.header.whatsapp_float') }}</h4>
+        <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.header.whatsapp_business_profile_hint') }}</p>
         <label class="agricart-store-admin__checkbox">
             <input type="checkbox" wire:model="whatsapp_enabled" />
             <span>{{ __('agricart.store.admin.header.whatsapp_enabled') }}</span>
         </label>
         <div class="agricart-store-admin__grid-2">
-            <div class="agricart-store-admin__field">
-                <label>{{ __('agricart.store.admin.header.whatsapp_number') }}</label>
-                <input type="text" wire:model="whatsapp_number" class="agricart-store-admin__input" placeholder="923001234567" />
-                <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.header.whatsapp_number_hint') }}</p>
-            </div>
             <div class="agricart-store-admin__field">
                 <label>{{ __('agricart.store.admin.header.whatsapp_message_en') }}</label>
                 <input type="text" wire:model="whatsapp_message_en" class="agricart-store-admin__input" />

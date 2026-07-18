@@ -189,11 +189,14 @@ class StorefrontProductPresenter
         $sections = [];
 
         $map = [
+            'full_description' => __('agricart.storefront.product.description'),
             'usage_guidelines' => __('agricart.storefront.product.sections.usage'),
             'benefits' => __('agricart.storefront.product.sections.benefits'),
             'warnings' => __('agricart.storefront.product.sections.warnings'),
             'buying_guide' => __('agricart.storefront.product.sections.buying_guide'),
-            'full_description' => __('agricart.storefront.product.description'),
+            'customs_notes' => __('agricart.categories.fields.customs_notes'),
+            'import_notes' => __('agricart.categories.fields.import_notes'),
+            'export_notes' => __('agricart.categories.fields.export_notes'),
         ];
 
         foreach ($map as $base => $title) {
@@ -205,6 +208,13 @@ class StorefrontProductPresenter
                     'html' => nl2br(e($text)),
                 ];
             }
+        }
+
+        if (filled($product->hs_code)) {
+            $sections[] = [
+                'title' => __('agricart.categories.fields.hs_code'),
+                'html' => e($product->hs_code),
+            ];
         }
 
         return $sections;

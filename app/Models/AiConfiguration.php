@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Enums\AiProvider;
-use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Crypt;
@@ -48,18 +47,7 @@ class AiConfiguration extends Model
                     return null;
                 }
 
-                try {
-                    // Match Laravel's built-in `encrypted` cast (Crypt::encrypt/decrypt).
-                    $plain = Crypt::decrypt($value);
-
-                    if (! is_string($plain) || $plain === '') {
-                        return null;
-                    }
-
-                    return $plain;
-                } catch (DecryptException) {
-                    return null;
-                }
+                return $this->decryptApiKey($value);
             },
             set: function (?string $value): string {
                 return Crypt::encrypt((string) ($value ?? ''));
@@ -83,13 +71,26 @@ class AiConfiguration extends Model
             return false;
         }
 
-        try {
-            Crypt::decrypt($raw);
+        return $this->decryptApiKey($raw) === null;
+    }
 
-            return false;
-        } catch (DecryptException) {
-            return true;
+    /**
+     * Read both the current serialized encryption format and legacy
+     * encryptString() values without allowing corrupt data to break the UI.
+     */
+    private function decryptApiKey(string $value): ?string
+    {
+        try {
+            $plain = Crypt::decrypt($value);
+        } catch (\Throwable) {
+            try {
+                $plain = Crypt::decryptString($value);
+            } catch (\Throwable) {
+                return null;
+            }
         }
+
+        return is_string($plain) && $plain !== '' ? $plain : null;
     }
 
     public function isConnected(): bool

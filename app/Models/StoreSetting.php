@@ -142,14 +142,22 @@ class StoreSetting extends Model
 
     public function whatsappChatUrl(): ?string
     {
-        if (! filled($this->whatsapp_number)) {
+        $number = CompanyProfile::query()->value('whatsapp_number') ?: $this->whatsapp_number;
+
+        if (! filled($number)) {
             return null;
         }
 
-        $digits = preg_replace('/\D+/', '', $this->whatsapp_number);
+        $digits = preg_replace('/\D+/', '', (string) $number);
 
-        if ($digits === '') {
+        if (! is_string($digits) || $digits === '') {
             return null;
+        }
+
+        if (strlen($digits) === 11 && str_starts_with($digits, '0')) {
+            $digits = '92'.substr($digits, 1);
+        } elseif (strlen($digits) === 10 && str_starts_with($digits, '3')) {
+            $digits = '92'.$digits;
         }
 
         $message = $this->localized('whatsapp_message');

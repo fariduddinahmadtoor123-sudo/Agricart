@@ -20,6 +20,7 @@ class CompanyProfile extends Model
         'tagline_ur',
         'logo_path',
         'email',
+        'whatsapp_number',
         'website',
         'ntn',
         'strn',

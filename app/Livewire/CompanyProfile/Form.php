@@ -22,6 +22,8 @@ class Form extends Component
 
     public string $email = '';
 
+    public string $whatsapp_number = '';
+
     public string $website = '';
 
     public string $ntn = '';
@@ -156,6 +158,7 @@ class Form extends Component
                 'tagline_en' => $validated['tagline_en'],
                 'tagline_ur' => $validated['tagline_ur'],
                 'email' => $validated['email'],
+                'whatsapp_number' => $validated['whatsapp_number'],
                 'website' => $validated['website'],
                 'ntn' => $validated['ntn'],
                 'strn' => $validated['strn'],
@@ -207,6 +210,7 @@ class Form extends Component
         $this->tagline_en = $state['tagline_en'];
         $this->tagline_ur = $state['tagline_ur'];
         $this->email = $state['email'];
+        $this->whatsapp_number = $state['whatsapp_number'];
         $this->website = $state['website'];
         $this->ntn = $state['ntn'];
         $this->strn = $state['strn'];
@@ -285,6 +289,7 @@ class Form extends Component
             'tagline_en' => ['nullable', 'string', 'max:500'],
             'tagline_ur' => ['nullable', 'string', 'max:500'],
             'email' => ['nullable', 'email', 'max:255'],
+            'whatsapp_number' => ['nullable', 'string', 'max:30', 'regex:/^\+?[0-9\s()\-]+$/'],
             'website' => ['nullable', 'string', 'max:500'],
             'ntn' => ['nullable', 'string', 'max:50'],
             'strn' => ['nullable', 'string', 'max:50'],

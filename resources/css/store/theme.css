@@ -1409,7 +1409,7 @@
 
 .ag-store-pdp__tabs {
     border: 1px solid var(--agricart-border);
-    border-radius: 0.5rem;
+    border-radius: 0;
     background: var(--agricart-surface);
     overflow: hidden;
 }
@@ -1417,27 +1417,55 @@
 .ag-store-pdp__tablist {
     display: flex;
     flex-wrap: wrap;
+    gap: 0.35rem;
+    overflow: visible;
+    padding: 0.4rem;
     border-bottom: 1px solid var(--agricart-border);
     background: color-mix(in oklab, var(--agricart-border) 6%, var(--agricart-surface));
 }
 
 .ag-store-pdp__tab {
-    padding: 0.75rem 1.15rem;
-    border: 0;
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
-    background: transparent;
+    flex: 0 0 auto;
+    min-height: 2.15rem;
+    padding: 0.38rem 0.62rem;
+    border: 1px solid var(--agricart-border);
+    margin: 0;
+    background: var(--agricart-surface);
     font: inherit;
-    font-size: 0.875rem;
+    font-size: 0.78rem;
     font-weight: 600;
+    line-height: 1.2;
     color: var(--agricart-muted);
     cursor: pointer;
+    white-space: nowrap;
 }
 
 .ag-store-pdp__tab.is-active {
-    color: var(--agricart-primary);
-    border-bottom-color: var(--agricart-primary);
-    background: var(--agricart-surface);
+    color: #ffffff;
+    border-color: var(--agricart-primary);
+    background: var(--agricart-primary);
+}
+
+.ag-store-pdp__tab:focus-visible {
+    outline: 2px solid var(--agricart-primary);
+    outline-offset: -3px;
+}
+
+.ag-store-category-info .ag-store-pdp__tablist {
+    gap: 0.2rem;
+    padding: 0.3rem;
+}
+
+.ag-store-category-info .ag-store-pdp__tab {
+    min-height: 1.95rem;
+    padding: 0.3rem 0.48rem;
+    font-size: 0.72rem;
+}
+
+@media (min-width: 60rem) {
+    .ag-store-category-info .ag-store-pdp__tablist {
+        flex-wrap: nowrap;
+    }
 }
 
 .ag-store-pdp__panel {
@@ -2812,6 +2840,11 @@
     gap: 1rem;
 }
 
+.ag-store-category-info__inner.ag-store-pdp__tabs {
+    display: block;
+    gap: 0;
+}
+
 .ag-store-category-info__block {
     border: 1px solid var(--agricart-border);
     background: var(--agricart-surface);
@@ -2880,19 +2913,37 @@
     color: var(--agricart-primary);
 }
 
-.ag-store-whatsapp-float {
+.ag-store-contact-floats {
     position: fixed;
     right: 1rem;
     bottom: 1rem;
     z-index: 50;
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.ag-store-whatsapp-float,
+.ag-store-message-float {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     width: 3.25rem;
     height: 3.25rem;
-    background: #25d366;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    cursor: pointer;
     color: #fff;
     box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+}
+
+.ag-store-whatsapp-float {
+    background: #25d366;
+}
+
+.ag-store-message-float {
+    background: var(--agricart-primary);
 }
 
 .ag-store-whatsapp-float:hover,
@@ -2901,14 +2952,122 @@
     color: #fff;
 }
 
-.ag-store-whatsapp-float svg {
+.ag-store-message-float:hover,
+.ag-store-message-float:focus-visible {
+    background: color-mix(in oklab, var(--agricart-primary) 82%, #000);
+    color: #fff;
+}
+
+.ag-store-whatsapp-float svg,
+.ag-store-message-float svg {
     width: 1.75rem;
     height: 1.75rem;
 }
 
-html[dir='rtl'] .ag-store-whatsapp-float {
+html[dir='rtl'] .ag-store-contact-floats {
     right: auto;
     left: 1rem;
+}
+
+.ag-store-message-dialog {
+    width: min(92vw, 32rem);
+    max-height: min(88vh, 48rem);
+    margin: auto;
+    padding: 0;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0;
+    background: var(--agricart-surface);
+    color: var(--agricart-text);
+    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.24);
+}
+
+.ag-store-message-dialog::backdrop {
+    background: rgba(15, 23, 42, 0.58);
+}
+
+.ag-store-message-dialog__header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+    border-bottom: 1px solid var(--agricart-border);
+}
+
+.ag-store-message-dialog__header h2,
+.ag-store-message-dialog__header p {
+    margin: 0;
+}
+
+.ag-store-message-dialog__header h2 {
+    font-size: 1.05rem;
+}
+
+.ag-store-message-dialog__header p {
+    margin-top: 0.25rem;
+    font-size: 0.82rem;
+    color: var(--agricart-muted);
+}
+
+.ag-store-message-dialog__close {
+    align-self: flex-start;
+    width: 2rem;
+    height: 2rem;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0;
+    background: var(--agricart-surface);
+    font-size: 1.35rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.ag-store-message-dialog__form {
+    display: grid;
+    gap: 0.8rem;
+    padding: 1rem 1.1rem 1.1rem;
+}
+
+.ag-store-message-dialog__form label {
+    display: grid;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.ag-store-message-dialog__form input,
+.ag-store-message-dialog__form textarea {
+    width: 100%;
+    padding: 0.65rem 0.7rem;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0;
+    background: #fff;
+    color: var(--agricart-text);
+    font: inherit;
+    font-weight: 400;
+}
+
+.ag-store-message-dialog__form textarea {
+    resize: vertical;
+}
+
+.ag-store-message-dialog__form small {
+    color: #b91c1c;
+    font-weight: 600;
+}
+
+.ag-store-message-dialog__honeypot {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+}
+
+.ag-store-message-dialog__success {
+    margin: 1rem;
+    padding: 0.85rem;
+    border: 1px solid color-mix(in oklab, var(--agricart-primary) 45%, var(--agricart-border));
+    background: color-mix(in oklab, var(--agricart-primary) 10%, #fff);
+    color: var(--agricart-text);
 }
 
 .ag-store-page {

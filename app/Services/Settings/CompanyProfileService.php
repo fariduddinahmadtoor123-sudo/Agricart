@@ -13,7 +13,7 @@ class CompanyProfileService
     public function current(): CompanyProfile
     {
         $profile = CompanyProfile::current();
-        $this->hydrateFromStorefrontIfEmpty($profile);
+        $this->hydrateFromStorefrontIfEmpty();
 
         return $profile->fresh() ?? $profile;
     }
@@ -46,6 +46,10 @@ class CompanyProfileService
 
         if (array_key_exists('addresses', $data)) {
             $data['addresses'] = $this->normalizeAddresses(is_array($data['addresses']) ? $data['addresses'] : []);
+        }
+
+        if (array_key_exists('whatsapp_number', $data)) {
+            $data['whatsapp_number'] = $this->normalizeWhatsAppNumber($data['whatsapp_number']);
         }
 
         $profile->fill($data);
@@ -82,6 +86,10 @@ class CompanyProfileService
             $updates['business_name_ur'] = $store->site_name_ur;
         }
 
+        if (! filled($profile->whatsapp_number) && filled($store->whatsapp_number)) {
+            $updates['whatsapp_number'] = $store->whatsapp_number;
+        }
+
         if ($updates !== []) {
             $profile->update($updates);
         }
@@ -89,12 +97,8 @@ class CompanyProfileService
         return $profile->fresh() ?? $profile;
     }
 
-    private function hydrateFromStorefrontIfEmpty(CompanyProfile $profile): void
+    private function hydrateFromStorefrontIfEmpty(): void
     {
-        if (filled($profile->business_name_en) || filled($profile->business_name_ur)) {
-            return;
-        }
-
         $this->syncFromStorefront();
     }
 
@@ -111,10 +115,12 @@ class CompanyProfileService
             $updates['site_name_ur'] = $profile->business_name_ur;
         }
 
-        if ($updates !== []) {
-            $store->update($updates);
-            app(\App\Services\Store\StoreLayoutService::class)->clearCache();
-        }
+        $updates['whatsapp_number'] = filled($profile->whatsapp_number)
+            ? $profile->whatsapp_number
+            : null;
+
+        $store->update($updates);
+        app(\App\Services\Store\StoreLayoutService::class)->clearCache();
     }
 
     /**
@@ -155,6 +161,25 @@ class CompanyProfileService
         }
 
         return $normalized;
+    }
+
+    public function normalizeWhatsAppNumber(mixed $number): ?string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $number);
+
+        if (! is_string($digits) || $digits === '') {
+            return null;
+        }
+
+        if (strlen($digits) === 11 && str_starts_with($digits, '0')) {
+            return '92'.substr($digits, 1);
+        }
+
+        if (strlen($digits) === 10 && str_starts_with($digits, '3')) {
+            return '92'.$digits;
+        }
+
+        return $digits;
     }
 
     /**
@@ -227,6 +252,7 @@ class CompanyProfileService
             'tagline_en' => $profile->tagline_en ?? '',
             'tagline_ur' => $profile->tagline_ur ?? '',
             'email' => $profile->email ?? '',
+            'whatsapp_number' => $profile->whatsapp_number ?? '',
             'website' => $profile->website ?? '',
             'ntn' => $profile->ntn ?? '',
             'strn' => $profile->strn ?? '',

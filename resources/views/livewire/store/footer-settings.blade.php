@@ -90,15 +90,6 @@
             <input type="checkbox" wire:model="footer_show_social" />
             <span>{{ __('agricart.store.admin.footer.show_social') }}</span>
         </label>
-        <label class="agricart-store-admin__checkbox">
-            <input type="checkbox" wire:model="footer_show_login_link" />
-            <span>{{ __('agricart.store.admin.footer.show_login') }}</span>
-        </label>
-        <label class="agricart-store-admin__checkbox">
-            <input type="checkbox" wire:model="footer_show_register_link" />
-            <span>{{ __('agricart.store.admin.footer.show_register') }}</span>
-        </label>
-        <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.footer.auth_hint') }}</p>
 
         <button type="submit" class="agricart-store-admin__btn">{{ __('agricart.store.admin.save') }}</button>
     </form>

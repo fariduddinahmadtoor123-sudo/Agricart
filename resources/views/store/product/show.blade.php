@@ -99,34 +99,63 @@
 
         @if ($hasPricing || $hasDescription)
             <div class="ag-store-pdp__tabs" data-store-pdp-tabs>
-                <div class="ag-store-pdp__tablist" role="tablist">
-                    @if ($hasDescription)
-                        <button type="button" class="ag-store-pdp__tab is-active" role="tab" aria-selected="true" data-store-pdp-tab="description">
-                            {{ __('agricart.storefront.product.tabs.description') }}
+                <div class="ag-store-pdp__tablist" role="tablist" aria-label="{{ __('agricart.storefront.product.sections.details') }}">
+                    @foreach ($contentSections as $section)
+                        @php($tabKey = 'content-' . $loop->index)
+                        <button
+                            type="button"
+                            @class(['ag-store-pdp__tab', 'is-active' => $loop->first])
+                            id="store-pdp-tab-{{ $tabKey }}"
+                            role="tab"
+                            aria-selected="{{ $loop->first ? 'true' : 'false' }}"
+                            aria-controls="store-pdp-panel-{{ $tabKey }}"
+                            tabindex="{{ $loop->first ? '0' : '-1' }}"
+                            data-store-pdp-tab="{{ $tabKey }}"
+                        >
+                            {{ $section['title'] }}
                         </button>
-                    @endif
+                    @endforeach
                     @if ($hasPricing)
-                        <button type="button" @class(['ag-store-pdp__tab', 'is-active' => ! $hasDescription]) role="tab" aria-selected="{{ $hasDescription ? 'false' : 'true' }}" data-store-pdp-tab="pricing">
+                        <button
+                            type="button"
+                            @class(['ag-store-pdp__tab', 'is-active' => ! $hasDescription])
+                            id="store-pdp-tab-pricing"
+                            role="tab"
+                            aria-selected="{{ $hasDescription ? 'false' : 'true' }}"
+                            aria-controls="store-pdp-panel-pricing"
+                            tabindex="{{ $hasDescription ? '-1' : '0' }}"
+                            data-store-pdp-tab="pricing"
+                        >
                             {{ __('agricart.storefront.product.tabs.pricing') }}
                         </button>
                     @endif
                 </div>
 
-                @if ($hasDescription)
-                    <div class="ag-store-pdp__panel is-active" role="tabpanel" data-store-pdp-panel="description">
-                        @foreach ($contentSections as $section)
-                            <div class="ag-store-pdp__panel-block">
-                                @if (count($contentSections) > 1)
-                                    <h3 class="ag-store-pdp__panel-heading">{{ $section['title'] }}</h3>
-                                @endif
-                                <div class="ag-store-pdp__prose">{!! $section['html'] !!}</div>
-                            </div>
-                        @endforeach
+                @foreach ($contentSections as $section)
+                    @php($panelKey = 'content-' . $loop->index)
+                    <div
+                        @class(['ag-store-pdp__panel', 'is-active' => $loop->first])
+                        id="store-pdp-panel-{{ $panelKey }}"
+                        role="tabpanel"
+                        aria-labelledby="store-pdp-tab-{{ $panelKey }}"
+                        tabindex="0"
+                        data-store-pdp-panel="{{ $panelKey }}"
+                        @if (! $loop->first) hidden @endif
+                    >
+                        <div class="ag-store-pdp__prose">{!! $section['html'] !!}</div>
                     </div>
-                @endif
+                @endforeach
 
                 @if ($hasPricing)
-                    <div @class(['ag-store-pdp__panel', 'is-active' => ! $hasDescription]) role="tabpanel" data-store-pdp-panel="pricing">
+                    <div
+                        @class(['ag-store-pdp__panel', 'is-active' => ! $hasDescription])
+                        id="store-pdp-panel-pricing"
+                        role="tabpanel"
+                        aria-labelledby="store-pdp-tab-pricing"
+                        tabindex="0"
+                        data-store-pdp-panel="pricing"
+                        @if ($hasDescription) hidden @endif
+                    >
                         <div class="ag-store-pdp__table-wrap">
                             <table class="ag-store-pdp__price-table">
                                 <thead>

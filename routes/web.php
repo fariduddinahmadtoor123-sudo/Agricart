@@ -15,6 +15,7 @@ use App\Http\Controllers\Store\HomeController;
 use App\Http\Controllers\Store\PageController;
 use App\Http\Controllers\Store\ProductController;
 use App\Http\Controllers\Store\SearchController;
+use App\Http\Controllers\Store\StoreInquiryController;
 use App\Http\Middleware\BlockOnlineStoreMaintenance;
 use App\Http\Middleware\SetAgricartLocale;
 use App\Filament\Layout\TopbarActions;
@@ -60,6 +61,9 @@ Route::middleware([SetAgricartLocale::class, BlockOnlineStoreMaintenance::class]
     Route::get('/search/fragment', [SearchController::class, 'fragment'])->name('store.search.fragment');
     Route::get('/search/suggest', [SearchController::class, 'suggest'])->name('store.search.suggest');
     Route::get('/search', [SearchController::class, 'index'])->name('store.search');
+    Route::post('/contact-message', [StoreInquiryController::class, 'store'])
+        ->middleware('throttle:5,1')
+        ->name('store.contact-message');
     Route::get('/page/{slug}', [PageController::class, 'show'])->name('store.page');
     Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('store.category');
     Route::get('/product/{slug}', [ProductController::class, 'show'])->name('store.product');

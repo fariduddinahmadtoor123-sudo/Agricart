@@ -62,4 +62,25 @@ class AiApiKeyDecryptSafetyTest extends TestCase
         // Ciphertext must be decryptable with Crypt::decrypt (Laravel encrypted cast format).
         $this->assertSame('sk-or-v1-test-key', Crypt::decrypt($fresh->getRawOriginal('api_key')));
     }
+
+    public function test_legacy_encrypt_string_api_key_remains_usable(): void
+    {
+        $config = AiConfiguration::query()->create([
+            'provider' => 'openrouter',
+            'api_key' => 'temporary',
+            'model_id' => 'test/model',
+            'model_name' => 'Test',
+            'is_active' => true,
+            'connection_status' => 'connected',
+        ]);
+
+        \DB::table('ai_configurations')->where('id', $config->id)->update([
+            'api_key' => Crypt::encryptString('sk-or-v1-legacy-key'),
+        ]);
+
+        $fresh = $config->fresh();
+        $this->assertSame('sk-or-v1-legacy-key', $fresh->api_key);
+        $this->assertFalse($fresh->hasCorruptApiKey());
+        $this->assertTrue($fresh->hasUsableApiKey());
+    }
 }

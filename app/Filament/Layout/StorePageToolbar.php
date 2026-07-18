@@ -63,6 +63,28 @@ class StorePageToolbar extends ClusterPageToolbar
                     ['label' => __('agricart.store.admin.items.col_sku'), 'value' => 'sku', 'visible' => true],
                 ],
             ],
+            'messages' => [
+                ...$config,
+                'livewirePrefix' => 'store-messages',
+                'columnDataAttr' => 'data-store-message-column',
+                'interactive' => true,
+                'formKey' => null,
+                'addLabel' => null,
+                'filters' => [
+                    ['label' => __('agricart.store.admin.messages.filter_all'), 'value' => 'status:all'],
+                    ['label' => __('agricart.store.admin.messages.filter_new'), 'value' => 'status:new'],
+                    ['label' => __('agricart.store.admin.messages.filter_read'), 'value' => 'status:read'],
+                    ['label' => __('agricart.store.admin.messages.filter_closed'), 'value' => 'status:closed'],
+                ],
+                'columns' => [
+                    ['label' => __('agricart.store.admin.messages.col_name'), 'value' => 'name', 'visible' => true],
+                    ['label' => __('agricart.store.admin.messages.col_contact'), 'value' => 'contact', 'visible' => true],
+                    ['label' => __('agricart.store.admin.messages.col_message'), 'value' => 'message', 'visible' => true],
+                    ['label' => __('agricart.store.admin.messages.col_status'), 'value' => 'status', 'visible' => true],
+                    ['label' => __('agricart.store.admin.messages.col_received'), 'value' => 'received', 'visible' => true],
+                    ['label' => __('agricart.store.admin.messages.col_actions'), 'value' => 'actions', 'visible' => true],
+                ],
+            ],
             default => $config,
         };
     }

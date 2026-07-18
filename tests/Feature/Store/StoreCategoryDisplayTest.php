@@ -119,4 +119,27 @@ class StoreCategoryDisplayTest extends TestCase
         );
         $this->assertFalse($roots->contains(fn (Category $category): bool => $category->id === $child->id));
     }
+
+    public function test_category_content_sections_render_as_individual_accessible_tabs(): void
+    {
+        $category = Category::query()->create([
+            'slug' => 'crop-care',
+            'code' => 'CAT-CROP-CARE',
+            'status' => 'active',
+            'name_en' => 'Crop Care',
+            'name_ur' => 'فصل کی دیکھ بھال',
+            'full_description_en' => 'Detailed category information.',
+            'usage_guidelines_en' => 'Choose products according to the crop.',
+            'hs_code' => '3808.99',
+        ]);
+
+        $response = $this->get(route('store.category', $category->slug));
+
+        $response
+            ->assertOk()
+            ->assertSeeInOrder(['Details', 'Usage', 'HS Code'])
+            ->assertSee('data-store-pdp-tab="category-content-0"', false)
+            ->assertSee('aria-controls="store-category-panel-category-content-0"', false)
+            ->assertSee('data-store-pdp-panel="category-hs-code"', false);
+    }
 }

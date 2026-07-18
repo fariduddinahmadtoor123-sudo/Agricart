@@ -63,20 +63,11 @@
                             {{ $settings->localized('footer_registration_title') ?? __('agricart.storefront.footer.registration') }}
                         </h3>
                         <ul class="ag-store-footer__links">
-                            @if ($settings->footer_show_login_link)
-                                <li>
-                                    <a href="{{ $settings->resolvedCustomerLoginUrl() }}" class="ag-store-footer__link">
-                                        {{ __('agricart.storefront.header.login') }}
-                                    </a>
-                                </li>
-                            @endif
-                            @if ($settings->footer_show_register_link)
-                                <li>
-                                    <a href="{{ $settings->resolvedCustomerRegisterUrl() }}" class="ag-store-footer__link">
-                                        {{ __('agricart.storefront.header.register') }}
-                                    </a>
-                                </li>
-                            @endif
+                            <li>
+                                <a href="{{ route('auth.staff.register') }}" class="ag-store-footer__link">
+                                    {{ __('agricart.auth.register_title') }}
+                                </a>
+                            </li>
                             @foreach ($footer_registration_entries ?? [] as $entry)
                                 <li>
                                     @if ($entry['type'] === 'page')

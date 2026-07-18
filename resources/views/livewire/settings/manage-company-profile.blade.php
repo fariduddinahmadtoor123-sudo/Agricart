@@ -64,6 +64,10 @@
                             <td>{{ $profile->website ?: '—' }}</td>
                         </tr>
                         <tr>
+                            <th scope="row">{{ __('company_profile.fields.whatsapp_number') }}</th>
+                            <td colspan="3">{{ $profile->whatsapp_number ?: '—' }}</td>
+                        </tr>
+                        <tr>
                             <th scope="row">{{ __('company_profile.fields.ntn') }}</th>
                             <td>{{ $profile->ntn ?: '—' }}</td>
                             <th scope="row">{{ __('company_profile.fields.strn') }}</th>
