@@ -10,12 +10,15 @@ class StoreInquiry extends Model
 
     public const STATUS_READ = 'read';
 
+    public const STATUS_PENDING = 'pending';
+
     public const STATUS_CLOSED = 'closed';
 
     /** @var list<string> */
     public const STATUSES = [
         self::STATUS_NEW,
         self::STATUS_READ,
+        self::STATUS_PENDING,
         self::STATUS_CLOSED,
     ];
 

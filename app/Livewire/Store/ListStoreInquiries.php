@@ -5,6 +5,7 @@ namespace App\Livewire\Store;
 use App\Models\StoreInquiry;
 use App\Models\User;
 use Illuminate\Contracts\View\View;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -19,6 +20,9 @@ class ListStoreInquiries extends Component
     public string $search = '';
 
     public string $statusFilter = 'all';
+
+    #[Locked]
+    public ?int $viewInquiryId = null;
 
     public function mount(): void
     {
@@ -81,10 +85,39 @@ class ListStoreInquiries extends Component
 
         StoreInquiry::query()
             ->whereKey($inquiryId)
-            ->where('status', StoreInquiry::STATUS_NEW)
+            ->whereIn('status', [StoreInquiry::STATUS_NEW, StoreInquiry::STATUS_PENDING])
             ->update([
                 'status' => StoreInquiry::STATUS_READ,
                 'read_at' => now(),
+                'closed_at' => null,
+            ]);
+    }
+
+    public function markUnread(int $inquiryId): void
+    {
+        $this->authorizeMutation();
+
+        StoreInquiry::query()
+            ->whereKey($inquiryId)
+            ->whereIn('status', [StoreInquiry::STATUS_READ, StoreInquiry::STATUS_PENDING])
+            ->update([
+                'status' => StoreInquiry::STATUS_NEW,
+                'read_at' => null,
+                'closed_at' => null,
+            ]);
+    }
+
+    public function markPending(int $inquiryId): void
+    {
+        $this->authorizeMutation();
+
+        StoreInquiry::query()
+            ->whereKey($inquiryId)
+            ->where('status', '!=', StoreInquiry::STATUS_CLOSED)
+            ->update([
+                'status' => StoreInquiry::STATUS_PENDING,
+                'read_at' => now(),
+                'closed_at' => null,
             ]);
     }
 
@@ -92,26 +125,55 @@ class ListStoreInquiries extends Component
     {
         $this->authorizeMutation();
 
-        StoreInquiry::query()->whereKey($inquiryId)->update([
-            'status' => StoreInquiry::STATUS_CLOSED,
-            'read_at' => now(),
-            'closed_at' => now(),
-        ]);
+        StoreInquiry::query()
+            ->whereKey($inquiryId)
+            ->where('status', '!=', StoreInquiry::STATUS_CLOSED)
+            ->update([
+                'status' => StoreInquiry::STATUS_CLOSED,
+                'read_at' => now(),
+                'closed_at' => now(),
+            ]);
     }
 
     public function reopen(int $inquiryId): void
     {
         $this->authorizeMutation();
 
-        StoreInquiry::query()->whereKey($inquiryId)->update([
-            'status' => StoreInquiry::STATUS_READ,
-            'read_at' => now(),
-            'closed_at' => null,
-        ]);
+        StoreInquiry::query()
+            ->whereKey($inquiryId)
+            ->where('status', StoreInquiry::STATUS_CLOSED)
+            ->update([
+                'status' => StoreInquiry::STATUS_PENDING,
+                'read_at' => now(),
+                'closed_at' => null,
+            ]);
+    }
+
+    public function openView(int $inquiryId): void
+    {
+        abort_unless($this->userCan('view'), 403);
+
+        $inquiry = StoreInquiry::query()->findOrFail($inquiryId);
+
+        if ($inquiry->status === StoreInquiry::STATUS_NEW && $this->userCan('edit')) {
+            $inquiry->update([
+                'status' => StoreInquiry::STATUS_READ,
+                'read_at' => now(),
+            ]);
+        }
+
+        $this->viewInquiryId = $inquiry->id;
+    }
+
+    public function closeView(): void
+    {
+        $this->viewInquiryId = null;
     }
 
     public function render(): View
     {
+        abort_unless($this->userCan('view'), 403);
+
         $inquiries = StoreInquiry::query()
             ->when($this->statusFilter !== 'all', fn ($query) => $query->where('status', $this->statusFilter))
             ->when(filled($this->search), function ($query): void {
@@ -127,9 +189,20 @@ class ListStoreInquiries extends Component
             ->latest()
             ->paginate(20);
 
+        $statusCounts = StoreInquiry::query()
+            ->selectRaw('status, COUNT(*) as aggregate')
+            ->groupBy('status')
+            ->pluck('aggregate', 'status')
+            ->map(fn (mixed $count): int => (int) $count)
+            ->all();
+
         return view('livewire.store.list-inquiries', [
             'inquiries' => $inquiries,
             'canEdit' => $this->userCan('edit'),
+            'selectedInquiry' => $this->viewInquiryId !== null
+                ? StoreInquiry::query()->find($this->viewInquiryId)
+                : null,
+            'statusCounts' => $statusCounts,
         ]);
     }
 

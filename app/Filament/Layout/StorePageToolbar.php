@@ -74,6 +74,7 @@ class StorePageToolbar extends ClusterPageToolbar
                     ['label' => __('agricart.store.admin.messages.filter_all'), 'value' => 'status:all'],
                     ['label' => __('agricart.store.admin.messages.filter_new'), 'value' => 'status:new'],
                     ['label' => __('agricart.store.admin.messages.filter_read'), 'value' => 'status:read'],
+                    ['label' => __('agricart.store.admin.messages.filter_pending'), 'value' => 'status:pending'],
                     ['label' => __('agricart.store.admin.messages.filter_closed'), 'value' => 'status:closed'],
                 ],
                 'columns' => [
