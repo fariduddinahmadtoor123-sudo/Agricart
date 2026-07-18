@@ -11,6 +11,7 @@ class HostingerSyncPublicCommand extends Command
 {
     protected $signature = 'hostinger:sync-public
                             {--target= : Absolute path to public_html (overrides HOSTINGER_PUBLIC_HTML)}
+                            {--clean : Remove stale/duplicate build directories before publishing}
                             {--dry-run : List files that would be copied}';
 
     protected $description = 'Copy public/ web assets into Hostinger public_html (fixed document root)';
@@ -41,11 +42,36 @@ class HostingerSyncPublicCommand extends Command
             return self::FAILURE;
         }
 
+        $directCheckout = $this->samePath(dirname($source), $target);
+
+        if ($directCheckout) {
+            return $this->handleDirectCheckout($source, $target);
+        }
+
         if (! $this->option('dry-run') && ! File::isDirectory($target)) {
             if (! @mkdir($target, 0755, true) && ! File::isDirectory($target)) {
                 $this->components->error("Cannot create target directory: {$target}");
 
                 return self::FAILURE;
+            }
+        }
+
+        if ($this->option('clean')) {
+            foreach ([
+                $target.DIRECTORY_SEPARATOR.'build',
+                $target.DIRECTORY_SEPARATOR.'public'.DIRECTORY_SEPARATOR.'build',
+            ] as $staleBuild) {
+                if ($this->samePath($staleBuild, $source.DIRECTORY_SEPARATOR.'build')) {
+                    continue;
+                }
+
+                if (File::isDirectory($staleBuild)) {
+                    if ($this->option('dry-run')) {
+                        $this->line("  remove {$staleBuild}");
+                    } else {
+                        File::deleteDirectory($staleBuild);
+                    }
+                }
             }
         }
 
@@ -102,6 +128,41 @@ class HostingerSyncPublicCommand extends Command
         return self::SUCCESS;
     }
 
+    protected function handleDirectCheckout(string $source, string $target): int
+    {
+        $this->components->warn(
+            'The Git checkout is inside public_html. Using root .htaccess to map all requests to public/.'
+        );
+
+        $rootMapper = $target.DIRECTORY_SEPARATOR.'.htaccess';
+
+        if (! File::exists($rootMapper)) {
+            $this->components->error('Root .htaccess is missing; private Laravel files could be exposed.');
+
+            return self::FAILURE;
+        }
+
+        $duplicateBuild = $target.DIRECTORY_SEPARATOR.'build';
+
+        if ($this->option('clean') && File::isDirectory($duplicateBuild)) {
+            if ($this->option('dry-run')) {
+                $this->line("  remove {$duplicateBuild}");
+            } else {
+                File::deleteDirectory($duplicateBuild);
+            }
+        }
+
+        if (! File::exists($source.DIRECTORY_SEPARATOR.'build'.DIRECTORY_SEPARATOR.'manifest.json')) {
+            $this->components->error('Vite manifest missing from public/build — run npm run build.');
+
+            return self::FAILURE;
+        }
+
+        $this->components->info('Direct checkout ready: /build is served from public/build.');
+
+        return self::SUCCESS;
+    }
+
     /**
      * All files under public/, including dotfiles (.htaccess).
      *
@@ -127,5 +188,17 @@ class HostingerSyncPublicCommand extends Command
         }
 
         return false;
+    }
+
+    protected function samePath(string $first, string $second): bool
+    {
+        $firstReal = realpath($first);
+        $secondReal = realpath($second);
+
+        if ($firstReal === false || $secondReal === false) {
+            return false;
+        }
+
+        return rtrim($firstReal, DIRECTORY_SEPARATOR) === rtrim($secondReal, DIRECTORY_SEPARATOR);
     }
 }

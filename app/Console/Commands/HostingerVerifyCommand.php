@@ -44,6 +44,36 @@ class HostingerVerifyCommand extends Command
         $this->components->twoColumnDetail('Laravel root', $root);
         $this->components->twoColumnDetail('Matches this project', realpath(base_path()) === realpath($root) ? 'yes' : 'no');
 
+        $directCheckout = realpath($publicHtml) === realpath(base_path());
+        $canonicalPublic = $directCheckout ? public_path() : $publicHtml;
+        $manifest = $canonicalPublic.DIRECTORY_SEPARATOR.'build'.DIRECTORY_SEPARATOR.'manifest.json';
+
+        if ($directCheckout && ! File::exists($publicHtml.DIRECTORY_SEPARATOR.'.htaccess')) {
+            $this->components->error('Direct public_html checkout requires the repository root .htaccess mapper.');
+
+            return self::FAILURE;
+        }
+
+        if (! File::exists($manifest)) {
+            $this->components->error("Vite manifest missing from canonical public path: {$manifest}");
+
+            return self::FAILURE;
+        }
+
+        if ($directCheckout && File::isDirectory($publicHtml.DIRECTORY_SEPARATOR.'build')) {
+            $this->components->error(
+                'Duplicate public_html/build exists. Run php artisan hostinger:sync-public --clean.'
+            );
+
+            return self::FAILURE;
+        }
+
+        $this->components->twoColumnDetail(
+            'Public mapping',
+            $directCheckout ? 'public_html → public/ via root .htaccess' : 'split public_html sync',
+        );
+        $this->components->twoColumnDetail('Vite manifest', $manifest);
+
         return self::SUCCESS;
     }
 }

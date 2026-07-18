@@ -1,0 +1,35 @@
+# Hostinger fallback when the Git checkout itself is placed in public_html.
+# The preferred deployment keeps this repository outside the web root, but
+# this mapping still exposes only Laravel's public/ directory.
+
+Options -Indexes
+DirectoryIndex public/index.php
+
+<FilesMatch "(^\.|^(artisan|composer\.(json|lock)|package(-lock)?\.json|phpunit\.xml|vite\.config\.js)$)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Stop after the internal mapping has reached Laravel's public directory.
+    RewriteRule ^public(?:/|$) - [L]
+
+    # Keep clean public URLs: /build/* maps to public/build/*, /admin to
+    # public/index.php through public/.htaccess, and private app files 404.
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+<IfModule !mod_rewrite.c>
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Deny from all
+    </IfModule>
+</IfModule>

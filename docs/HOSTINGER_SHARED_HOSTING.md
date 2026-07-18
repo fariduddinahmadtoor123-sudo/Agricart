@@ -34,6 +34,20 @@ Common alternative: `public_html` at `/home/USERNAME/public_html` with repo at `
 
 Optional: copy `deploy/hostinger/app-root.htaccess` to `agricart/.htaccess` so Apache denies HTTP access if the app folder is ever placed under a document root by mistake.
 
+### Existing hPanel Git checkout inside `public_html`
+
+If hPanel has already cloned the repository directly into `public_html`, the tracked
+root `.htaccess` maps every public URL to `public/` and blocks private dot/config
+files. In this compatibility layout:
+
+- `/build/assets/*` is served from `public_html/public/build/assets/*`.
+- `public_html/build` is stale duplication and must be removed.
+- Run `php artisan hostinger:sync-public --clean`; the command detects the direct
+  checkout, removes only the duplicate root build, and keeps `public/build`.
+- Run `php artisan hostinger:verify` afterward.
+
+Moving the repository outside `public_html` remains the preferred long-term layout.
+
 ---
 
 ## First-time setup
@@ -101,7 +115,7 @@ composer install --no-dev --optimize-autoloader
 php artisan migrate --force
 php artisan db:seed --class=Database\\Seeders\\RolesAndPermissionsSeeder --force
 php artisan agricart:repair-bootstrap-owner your@email.com
-php artisan hostinger:sync-public
+php artisan hostinger:sync-public --clean
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
@@ -138,7 +152,7 @@ See also [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md).
 
 | Command | Purpose |
 |---------|---------|
-| `php artisan hostinger:sync-public` | Copy `public/` → `HOSTINGER_PUBLIC_HTML` (includes `.htaccess` and other dotfiles) |
+| `php artisan hostinger:sync-public --clean` | Publish `public/` and remove stale/duplicate build directories safely |
 | `php artisan hostinger:sync-storage` | Mirror `storage/app/public` → `public_html/storage` (fast images; run after uploads) |
 | `php artisan hostinger:sync-public --dry-run` | Preview files |
 | `php artisan hostinger:verify` | Test Laravel root resolution |

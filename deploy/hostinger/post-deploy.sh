@@ -11,7 +11,7 @@ composer install --no-dev --optimize-autoloader
 # npm ci && npm run build
 
 php artisan migrate --force
-php artisan hostinger:sync-public
+php artisan hostinger:sync-public --clean
 php artisan hostinger:sync-storage
 php artisan config:cache
 php artisan route:cache
