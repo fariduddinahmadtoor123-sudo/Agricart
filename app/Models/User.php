@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Filament\Layout\ModuleChrome;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
+use Filament\Models\Contracts\HasAvatar;
 use Filament\Panel;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -35,7 +36,7 @@ use Illuminate\Support\Str;
     'cnic_back_path',
 ])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable implements FilamentUser
+class User extends Authenticatable implements FilamentUser, HasAvatar
 {
     public const STATUS_PENDING = 'pending';
 
@@ -170,6 +171,11 @@ class User extends Authenticatable implements FilamentUser
         return filled($path) ? Storage::disk('public')->url($path) : null;
     }
 
+    public function getFilamentAvatarUrl(): ?string
+    {
+        return $this->publicFileUrl($this->profile_photo_path);
+    }
+
     protected function casts(): array
     {
         return [
@@ -181,4 +187,3 @@ class User extends Authenticatable implements FilamentUser
         ];
     }
 }
-

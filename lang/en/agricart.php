@@ -16,6 +16,26 @@ return [
         'denied' => 'You do not have permission to perform this action.',
     ],
 
+    'admin_profile' => [
+        'title' => 'My Profile',
+        'personal_section' => 'Personal information',
+        'personal_help' => 'Manage your name, address, and profile photo.',
+        'photo' => 'Profile photo',
+        'name_en' => 'Name (English)',
+        'name_ur' => 'Name (Urdu)',
+        'address_en' => 'Address (English)',
+        'address_ur' => 'Address (Urdu)',
+        'contact_section' => 'Contact information',
+        'contact_help' => 'Your primary contact details for the Agricart backend.',
+        'email' => 'Email address',
+        'primary_phone' => 'Primary phone number',
+        'security_section' => 'Password and security',
+        'security_help' => 'Leave the new password blank unless you want to change it. Current password verification is required for password or email changes.',
+        'new_password' => 'New password',
+        'confirm_password' => 'Confirm new password',
+        'current_password' => 'Current password',
+    ],
+
     'actions' => [
         'copy' => 'Copy',
         'copied' => 'Copied',

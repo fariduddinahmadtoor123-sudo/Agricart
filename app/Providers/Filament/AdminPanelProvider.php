@@ -2,7 +2,12 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Auth\EditProfile;
+use App\Filament\Auth\Login;
 use App\Filament\Clusters\Dashboard\OverviewPage as DashboardOverviewPage;
+use App\Http\Middleware\EagerLoadUserRole;
+use App\Http\Middleware\SetAgricartLocale;
+use App\Models\User;
 use Filament\Enums\ThemeMode;
 use Filament\FontProviders\LocalFontProvider;
 use Filament\Http\Middleware\Authenticate;
@@ -13,9 +18,9 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\View\PanelsRenderHook;
+use Illuminate\Contracts\View\View;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
-use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
@@ -29,7 +34,8 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login(\App\Filament\Auth\Login::class)
+            ->login(Login::class)
+            ->profile(EditProfile::class, isSimple: false)
             ->brandName('Agricart')
             ->font('Arial, sans-serif', provider: LocalFontProvider::class)
             ->monoFont('Arial, sans-serif', provider: LocalFontProvider::class)
@@ -46,7 +52,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->viteTheme('resources/css/filament/admin/theme.css')
             ->discoverClusters(in: app_path('Filament/Clusters'), for: 'App\Filament\Clusters')
-            ->homeUrl(fn (): string => auth()->user() instanceof \App\Models\User
+            ->homeUrl(fn (): string => auth()->user() instanceof User
                 ? auth()->user()->defaultAdminHomeUrl()
                 : DashboardOverviewPage::getUrl())
             ->globalSearch(false)
@@ -86,8 +92,8 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
-                \App\Http\Middleware\SetAgricartLocale::class,
-                \App\Http\Middleware\EagerLoadUserRole::class,
+                SetAgricartLocale::class,
+                EagerLoadUserRole::class,
             ])
             ->authMiddleware([
                 Authenticate::class,
