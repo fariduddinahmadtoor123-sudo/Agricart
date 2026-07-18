@@ -226,4 +226,32 @@ return [
             ],
         ],
     ],
+
+    'messages' => [
+        'title' => 'کسٹمر پیغامات',
+        'summary' => 'اسٹور فرنٹ کے فلوٹنگ پیغام فارم سے موصول رابطہ درخواستوں کا محفوظ ان باکس۔',
+        'meta' => [
+            'routes' => ['/admin/store/messages', '/contact-message'],
+            'permissions' => ['store.view', 'store.edit'],
+        ],
+        'sections' => [
+            [
+                'id' => 'purpose',
+                'type' => 'purpose',
+                'heading' => 'مقصد',
+                'paragraphs' => [
+                    'کسٹمر کا نام، فون، اختیاری ای میل، اصل صفحہ اور پیغام دکھائیں۔ مجاز عملہ پیغام پڑھا ہوا، بند یا دوبارہ کھول سکتا ہے۔',
+                ],
+            ],
+            [
+                'id' => 'security',
+                'type' => 'rebuild_notes',
+                'heading' => 'سکیورٹی اور Rebuild نوٹس',
+                'list' => [
+                    'پبلک فارم CSRF، rate limit اور honeypot سے محفوظ ہے؛ اصل IP کے بجائے keyed hash محفوظ ہوتا ہے۔',
+                    'دیکھنے کے لیے store.view اور حالت بدلنے کے لیے store.edit اجازت لازم ہے۔',
+                ],
+            ],
+        ],
+    ],
 ];

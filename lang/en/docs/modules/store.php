@@ -227,4 +227,32 @@ return [
             ],
         ],
     ],
+
+    'messages' => [
+        'title' => 'Customer Messages',
+        'summary' => 'Moderation inbox for contact requests submitted through the storefront floating message form.',
+        'meta' => [
+            'routes' => ['/admin/store/messages', '/contact-message'],
+            'permissions' => ['store.view', 'store.edit'],
+        ],
+        'sections' => [
+            [
+                'id' => 'purpose',
+                'type' => 'purpose',
+                'heading' => 'Purpose',
+                'paragraphs' => [
+                    'List customer name, phone, optional email, source page and message. Authorized staff can mark messages read, close them, or reopen them.',
+                ],
+            ],
+            [
+                'id' => 'security',
+                'type' => 'rebuild_notes',
+                'heading' => 'Security and rebuild notes',
+                'list' => [
+                    'Public submissions are CSRF protected, throttled, honeypot screened and store only a keyed hash of the source IP.',
+                    'Viewing requires store.view; status changes require store.edit.',
+                ],
+            ],
+        ],
+    ],
 ];
