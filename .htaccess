@@ -17,6 +17,10 @@ DirectoryIndex public/index.php
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
+    # Apache does not apply a nested DirectoryIndex reliably after an internal
+    # directory rewrite on Hostinger, so route the domain root explicitly.
+    RewriteRule ^$ public/index.php [L]
+
     # Stop after the internal mapping has reached Laravel's public directory.
     RewriteRule ^public(?:/|$) - [L]
 

@@ -20,6 +20,7 @@ class HostingerPublicMappingTest extends TestCase
 
         $mapper = File::get(base_path('.htaccess'));
 
+        $this->assertStringContainsString('RewriteRule ^$ public/index.php [L]', $mapper);
         $this->assertStringContainsString('RewriteRule ^(.*)$ public/$1 [L]', $mapper);
         $this->assertStringContainsString('composer\.(json|lock)', $mapper);
     }
