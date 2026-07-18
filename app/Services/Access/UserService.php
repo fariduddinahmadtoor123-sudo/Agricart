@@ -33,7 +33,8 @@ class UserService
      */
     public function registerPublic(array $data): User
     {
-        $email = trim((string) ($data['email'] ?? ''));
+        $email = mb_strtolower(trim((string) ($data['email'] ?? '')));
+        $data['email'] = $email;
         $existing = $email !== ''
             ? User::query()->where('email', $email)->first()
             : null;
@@ -56,20 +57,10 @@ class UserService
 
         $validated = $this->validatePublicRegistration($data);
         $validated['user_number'] = $this->nextUserNumber();
+        $validated['status'] = User::STATUS_PENDING;
+        $validated['role_id'] = null;
 
-        $bootstrap = app(BootstrapSuperAdminService::class);
-
-        if ($bootstrap->isFirstUserRegistration()) {
-            $validated['status'] = User::STATUS_ACTIVE;
-            $validated['role_id'] = $bootstrap->superAdminRole()->id;
-        } else {
-            $validated['status'] = User::STATUS_PENDING;
-            $validated['role_id'] = null;
-        }
-
-        $user = User::query()->create($validated);
-
-        return $bootstrap->assignBootstrapOwnerIfEligible($user->fresh(['role']));
+        return User::query()->create($validated)->fresh(['role']);
     }
 
     /**
@@ -86,22 +77,20 @@ class UserService
         $validated = $this->validatePublicRegistration($data, $user->id);
         $validated['rejection_reason'] = null;
         $validated['rejected_at'] = null;
+        $validated['status'] = User::STATUS_PENDING;
+        $validated['role_id'] = null;
 
-        $bootstrap = app(BootstrapSuperAdminService::class);
-
-        if ($bootstrap->isFirstUserRegistration() || $bootstrap->canAssignBootstrapOwner($user)) {
-            $validated['status'] = User::STATUS_ACTIVE;
-            $validated['role_id'] = $bootstrap->superAdminRole()->id;
-        } else {
-            $validated['status'] = User::STATUS_PENDING;
-            $validated['role_id'] = null;
+        foreach (['profile_photo_path', 'cnic_front_path', 'cnic_back_path'] as $field) {
+            if (! filled($validated[$field] ?? null)) {
+                unset($validated[$field]);
+            }
         }
 
         $this->replaceStoredFiles($user, $validated);
 
         $user->update($validated);
 
-        return $bootstrap->assignBootstrapOwnerIfEligible($user->fresh(['role']));
+        return $user->fresh(['role']);
     }
 
     /**
@@ -125,7 +114,7 @@ class UserService
         $next = (int) User::query()->max('id') + 1;
 
         do {
-            $number = 'USR-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
+            $number = 'USR-'.str_pad((string) $next, 5, '0', STR_PAD_LEFT);
             $next++;
         } while (User::query()->where('user_number', $number)->exists());
 

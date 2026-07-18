@@ -4,8 +4,12 @@ namespace App\Livewire\Auth;
 
 use App\Models\User;
 use App\Services\Access\UserService;
+use App\Services\Media\OptimizedImageStorage;
+use App\Support\FriendlyError;
 use App\Support\PakistaniBanks;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
@@ -18,9 +22,13 @@ class RegisterForm extends Component
 
     public string $name = '';
 
+    public string $name_ur = '';
+
     public string $email = '';
 
     public string $address = '';
+
+    public string $address_ur = '';
 
     public string $password = '';
 
@@ -28,12 +36,12 @@ class RegisterForm extends Component
 
     /** @var list<array{contact_person: string, phone_number: string}> */
     public array $phoneRows = [
-        ['contact_person' => '', 'phone_number' => ''],
+        ['contact_person' => '', 'contact_person_ur' => '', 'phone_number' => ''],
     ];
 
     /** @var list<array{bank_name: string, account_title: string, account_number: string}> */
     public array $bankRows = [
-        ['bank_name' => '', 'account_title' => '', 'account_number' => ''],
+        ['bank_name' => '', 'account_title' => '', 'account_title_ur' => '', 'account_number' => ''],
     ];
 
     /** @var array<int, string> */
@@ -55,9 +63,9 @@ class RegisterForm extends Component
 
     public bool $submitted = false;
 
-    public bool $bootstrapOwnerRegistered = false;
-
     public bool $isResubmit = false;
+
+    public string $website = '';
 
     public ?string $statusMessage = null;
 
@@ -83,7 +91,7 @@ class RegisterForm extends Component
 
     public function addPhoneRow(): void
     {
-        $this->phoneRows[] = ['contact_person' => '', 'phone_number' => ''];
+        $this->phoneRows[] = ['contact_person' => '', 'contact_person_ur' => '', 'phone_number' => ''];
     }
 
     public function removePhoneRow(int $index): void
@@ -98,7 +106,7 @@ class RegisterForm extends Component
 
     public function addBankRow(): void
     {
-        $this->bankRows[] = ['bank_name' => '', 'account_title' => '', 'account_number' => ''];
+        $this->bankRows[] = ['bank_name' => '', 'account_title' => '', 'account_title_ur' => '', 'account_number' => ''];
         $this->bankSearches[] = '';
     }
 
@@ -130,8 +138,26 @@ class RegisterForm extends Component
     {
         $this->saving = true;
         $this->statusMessage = null;
+        $storedPaths = [];
 
         try {
+            if (filled($this->website)) {
+                $this->submitted = true;
+
+                return;
+            }
+
+            $this->email = mb_strtolower(trim($this->email));
+            $rateLimitKey = 'staff-registration:'.sha1((string) request()->ip().'|'.$this->email);
+
+            if (RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
+                throw ValidationException::withMessages([
+                    'email' => [__('agricart.auth.register_rate_limited')],
+                ]);
+            }
+
+            RateLimiter::hit($rateLimitKey, 60);
+
             $rejectedUser = User::query()
                 ->where('email', $this->email)
                 ->where('status', User::STATUS_REJECTED)
@@ -141,48 +167,67 @@ class RegisterForm extends Component
 
             $this->validate([
                 'name' => ['required', 'string', 'max:255'],
+                'name_ur' => ['nullable', 'string', 'max:255'],
                 'email' => [
                     'required',
                     'email',
                     'max:255',
                     Rule::unique('users', 'email')->ignore($rejectedUser?->id),
                 ],
-                'address' => ['nullable', 'string', 'max:2000'],
+                'address' => ['required', 'string', 'max:2000'],
+                'address_ur' => ['nullable', 'string', 'max:2000'],
                 'password' => ['required', 'string', 'min:8', 'same:password_confirmation'],
                 'password_confirmation' => ['required', 'string'],
+                'phoneRows.0.phone_number' => ['required', 'string', 'max:30'],
                 'phoneRows.*.phone_number' => ['nullable', 'string', 'max:30'],
                 'phoneRows.*.contact_person' => ['nullable', 'string', 'max:255'],
+                'phoneRows.*.contact_person_ur' => ['nullable', 'string', 'max:255'],
                 'bankRows.*.bank_name' => ['nullable', 'string', 'max:255'],
                 'bankRows.*.account_title' => ['nullable', 'string', 'max:255'],
+                'bankRows.*.account_title_ur' => ['nullable', 'string', 'max:255'],
                 'bankRows.*.account_number' => ['nullable', 'string', 'max:64'],
                 'profilePhotoUpload' => ['nullable', 'image', 'max:5120'],
-                'cnicFrontUpload' => ['nullable', 'image', 'max:5120'],
-                'cnicBackUpload' => ['nullable', 'image', 'max:5120'],
+                'cnicFrontUpload' => [
+                    Rule::requiredIf(! filled($rejectedUser?->cnic_front_path)),
+                    'nullable',
+                    'image',
+                    'max:5120',
+                ],
+                'cnicBackUpload' => [
+                    Rule::requiredIf(! filled($rejectedUser?->cnic_back_path)),
+                    'nullable',
+                    'image',
+                    'max:5120',
+                ],
             ]);
 
             $service = app(UserService::class);
+            $storedPaths['profile_photo_path'] = $this->storeUpload($this->profilePhotoUpload, 'users/profile-photos');
+            $storedPaths['cnic_front_path'] = $this->storeUpload($this->cnicFrontUpload, 'users/cnic');
+            $storedPaths['cnic_back_path'] = $this->storeUpload($this->cnicBackUpload, 'users/cnic');
 
-            $user = $service->registerPublic([
+            $service->registerPublic([
                 'name' => $this->name,
+                'name_ur' => $this->name_ur ?: null,
                 'email' => $this->email,
-                'address' => $this->address ?: null,
+                'address' => $this->address,
+                'address_ur' => $this->address_ur ?: null,
                 'password' => $this->password,
                 'phone_numbers' => $service->normalizePhoneRows($this->phoneRows),
                 'bank_accounts' => $service->normalizeBankRows($this->bankRows),
-                'profile_photo_path' => $this->storeUpload($this->profilePhotoUpload, 'users/profile-photos'),
-                'cnic_front_path' => $this->storeUpload($this->cnicFrontUpload, 'users/cnic'),
-                'cnic_back_path' => $this->storeUpload($this->cnicBackUpload, 'users/cnic'),
+                ...$storedPaths,
             ]);
 
-            $this->bootstrapOwnerRegistered = $user->isSuperAdmin() && $user->status === User::STATUS_ACTIVE;
-
+            $storedPaths = [];
             $this->submitted = true;
         } catch (ValidationException $exception) {
+            $this->deleteStoredPaths($storedPaths);
             $message = collect($exception->errors())->flatten()->first();
             $this->statusMessage = $message ?: __('agricart.auth.register_failed');
             $this->statusType = 'danger';
         } catch (\Throwable $exception) {
-            $this->statusMessage = \App\Support\FriendlyError::message($exception);
+            $this->deleteStoredPaths($storedPaths);
+            $this->statusMessage = FriendlyError::message($exception);
             $this->statusType = 'danger';
         } finally {
             $this->saving = false;
@@ -228,6 +273,18 @@ class RegisterForm extends Component
             return null;
         }
 
-        return app(\App\Services\Media\OptimizedImageStorage::class)->store($upload, $directory);
+        return app(OptimizedImageStorage::class)->store($upload, $directory);
+    }
+
+    /**
+     * @param  array<string, string|null>  $paths
+     */
+    private function deleteStoredPaths(array $paths): void
+    {
+        foreach ($paths as $path) {
+            if (filled($path)) {
+                Storage::disk('public')->delete($path);
+            }
+        }
     }
 }
