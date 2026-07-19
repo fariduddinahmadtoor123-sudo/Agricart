@@ -1,0 +1,169 @@
+<?php
+
+namespace Tests\Feature\Store;
+
+use App\Models\Category;
+use App\Models\Product;
+use App\Models\StorePage;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class StorefrontSearchTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_search_returns_active_categories_subcategories_and_related_products(): void
+    {
+        $parent = $this->category('agriculture', 'Agriculture');
+        $child = $this->category('crop-protection', 'Crop Protection', [
+            'parent_id' => $parent->id,
+            'seo_keywords_en' => 'agriculture inputs, crop care',
+        ]);
+        $inactive = $this->category('hidden-agriculture', 'Hidden Agriculture', [
+            'status' => 'inactive',
+        ]);
+
+        $product = $this->product('field-spray', 'Field Spray', $child);
+        $inactiveProduct = $this->product('hidden-spray', 'Hidden Spray', $parent, [
+            'status' => 'inactive',
+            'seo_keywords_en' => 'agriculture',
+        ]);
+        $this->product('hidden-category-product', 'Hidden Category Product', $inactive);
+
+        $response = $this->get(route('store.search', ['q' => 'agriculture']));
+
+        $response
+            ->assertOk()
+            ->assertSee('Agriculture')
+            ->assertSee('Crop Protection')
+            ->assertSee(__('agricart.storefront.search.category'))
+            ->assertSee(__('agricart.storefront.search.subcategory'))
+            ->assertSee(route('store.category', $parent->slug))
+            ->assertSee(route('store.category', $child->slug))
+            ->assertSee($product->name_en)
+            ->assertSee(route('store.product', $product->slug))
+            ->assertDontSee('Hidden Agriculture')
+            ->assertDontSee($inactiveProduct->name_en)
+            ->assertDontSee('Hidden Category Product');
+    }
+
+    public function test_product_search_covers_descriptions_brands_categories_units_and_search_terms(): void
+    {
+        $category = $this->category('irrigation', 'Irrigation');
+        $product = $this->product('drip-kit', 'Drip Kit', $category, [
+            'short_description_en' => 'Water-efficient precision system',
+            'search_terms' => ['farm water saver', 'micro irrigation'],
+        ]);
+
+        $this->get(route('store.search', ['q' => 'precision']))
+            ->assertOk()
+            ->assertSee($product->name_en);
+
+        $this->get(route('store.search', ['q' => 'water saver']))
+            ->assertOk()
+            ->assertSee($product->name_en);
+
+        $this->get(route('store.search', ['q' => 'Irrigation']))
+            ->assertOk()
+            ->assertSee($product->name_en);
+    }
+
+    public function test_search_returns_only_active_information_pages(): void
+    {
+        $activePage = StorePage::query()->create([
+            'title_en' => 'Agriculture Delivery Guide',
+            'title_ur' => 'زرعی ترسیل رہنما',
+            'slug' => 'agriculture-delivery',
+            'content_en' => '<p>Learn about nationwide farm delivery.</p>',
+            'is_active' => true,
+        ]);
+        StorePage::query()->create([
+            'title_en' => 'Hidden Agriculture Page',
+            'title_ur' => 'مخفی زرعی صفحہ',
+            'slug' => 'hidden-agriculture-page',
+            'content_en' => 'Agriculture',
+            'is_active' => false,
+        ]);
+
+        $this->get(route('store.search', ['q' => 'Agriculture']))
+            ->assertOk()
+            ->assertSee($activePage->title_en)
+            ->assertSee($activePage->publicUrl())
+            ->assertSee(__('agricart.storefront.search.pages'))
+            ->assertDontSee('Hidden Agriculture Page');
+    }
+
+    public function test_fragment_and_suggestions_share_unified_results(): void
+    {
+        $category = $this->category('seeds', 'Seeds');
+        $product = $this->product('hybrid-seed', 'Hybrid Seed', $category);
+        $page = StorePage::query()->create([
+            'title_en' => 'Seed Buying Help',
+            'title_ur' => 'بیج خریداری مدد',
+            'slug' => 'seed-buying-help',
+            'content_en' => 'Seed selection information',
+            'is_active' => true,
+        ]);
+
+        $this->get(route('store.search.fragment', ['q' => 'seed']))
+            ->assertOk()
+            ->assertSee($category->name_en)
+            ->assertSee($product->name_en)
+            ->assertSee($page->title_en);
+
+        $results = $this->getJson(route('store.search.suggest', ['q' => 'seed']))
+            ->assertOk()
+            ->assertJsonPath('query', 'seed')
+            ->json('results');
+
+        $this->assertContains('category', array_column($results, 'type'));
+        $this->assertContains('product', array_column($results, 'type'));
+        $this->assertContains('page', array_column($results, 'type'));
+    }
+
+    public function test_search_requires_two_characters_and_escapes_like_wildcards(): void
+    {
+        $category = $this->category('percentage', '100% Organic');
+
+        $this->get(route('store.search', ['q' => '1']))
+            ->assertOk()
+            ->assertDontSee($category->name_en);
+
+        $this->get(route('store.search', ['q' => '100%']))
+            ->assertOk()
+            ->assertSee($category->name_en);
+
+        $this->getJson(route('store.search.suggest', ['q' => '1']))
+            ->assertOk()
+            ->assertJsonCount(0, 'results');
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
+    private function category(string $slug, string $name, array $overrides = []): Category
+    {
+        return Category::query()->create(array_merge([
+            'slug' => $slug,
+            'code' => 'CAT-'.strtoupper($slug),
+            'status' => 'active',
+            'name_en' => $name,
+            'name_ur' => $name.' اردو',
+        ], $overrides));
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
+    private function product(string $slug, string $name, Category $category, array $overrides = []): Product
+    {
+        return Product::query()->create(array_merge([
+            'category_id' => $category->id,
+            'slug' => $slug,
+            'code' => 'PRD-'.strtoupper($slug),
+            'status' => 'active',
+            'name_en' => $name,
+            'name_ur' => $name.' اردو',
+        ], $overrides));
+    }
+}

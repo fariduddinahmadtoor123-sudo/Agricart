@@ -22,6 +22,8 @@
             @include('store.components.search-results-panel', [
                 'query' => $query,
                 'products' => $products,
+                'categories' => $categories,
+                'pages' => $pages,
             ])
         </div>
     </section>

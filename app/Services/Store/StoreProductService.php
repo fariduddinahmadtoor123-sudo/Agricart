@@ -82,7 +82,7 @@ class StoreProductService
             ->tap(fn (Builder $query) => $this->applyStorefrontSearch($query, $term));
     }
 
-    private function isSearchableTerm(string $term): bool
+    public function isSearchableTerm(string $term): bool
     {
         $term = trim($term);
 
@@ -112,7 +112,7 @@ class StoreProductService
     {
         $parts = preg_split('/\s+/u', trim($term), -1, PREG_SPLIT_NO_EMPTY);
 
-        return is_array($parts) ? array_values($parts) : [];
+        return is_array($parts) ? array_slice(array_values($parts), 0, 8) : [];
     }
 
     public function imageUrl(?Product $product): ?string
@@ -239,19 +239,10 @@ class StoreProductService
             $needle = '%' . $this->escapeLike($token) . '%';
 
             $query->where(function (Builder $inner) use ($token, $needle): void {
-                $inner->where('name_en', 'like', $needle)
-                    ->orWhere('name_ur', 'like', $needle)
-                    ->orWhere('code', 'like', $needle)
-                    ->orWhere('sku', 'like', $needle)
-                    ->orWhere('label_code', 'like', $needle)
-                    ->orWhere('slug', 'like', $needle)
+                $this->applyProductToken($inner, $needle)
                     ->orWhere('code', $token)
                     ->orWhere('sku', $token)
-                    ->orWhere('label_code', $token)
-                    ->orWhereHas('brand', function (Builder $brandQuery) use ($needle): void {
-                        $brandQuery->where('name_en', 'like', $needle)
-                            ->orWhere('name_ur', 'like', $needle);
-                    });
+                    ->orWhere('label_code', $token);
             });
         }
 
@@ -259,24 +250,79 @@ class StoreProductService
             $needle = '%' . $this->escapeLike($term) . '%';
 
             $query->where(function (Builder $inner) use ($term, $needle): void {
-                $inner->where('name_en', 'like', $needle)
-                    ->orWhere('name_ur', 'like', $needle)
-                    ->orWhere('code', 'like', $needle)
-                    ->orWhere('sku', 'like', $needle)
-                    ->orWhere('label_code', 'like', $needle)
-                    ->orWhere('slug', 'like', $needle)
+                $this->applyProductToken($inner, $needle)
                     ->orWhere('code', $term)
-                    ->orWhere('sku', $term)
-                    ->orWhereHas('brand', function (Builder $brandQuery) use ($needle): void {
-                        $brandQuery->where('name_en', 'like', $needle)
-                            ->orWhere('name_ur', 'like', $needle);
-                    });
+                    ->orWhere('sku', $term);
             });
         }
     }
 
+    private function applyProductToken(Builder $query, string $needle): Builder
+    {
+        $columns = [
+            'name_en', 'name_ur', 'code', 'sku', 'label_code', 'slug',
+            'short_description_en', 'short_description_ur',
+            'full_description_en', 'full_description_ur',
+            'usage_guidelines_en', 'usage_guidelines_ur',
+            'benefits_en', 'benefits_ur',
+            'warnings_en', 'warnings_ur',
+            'buying_guide_en', 'buying_guide_ur',
+            'seo_title_en', 'seo_title_ur',
+            'seo_description_en', 'seo_description_ur',
+            'seo_keywords_en', 'seo_keywords_ur',
+            'seo_focus_keyword_en', 'seo_focus_keyword_ur',
+            'search_terms', 'hs_code',
+            'customs_notes_en', 'customs_notes_ur',
+            'import_notes_en', 'import_notes_ur',
+            'export_notes_en', 'export_notes_ur',
+        ];
+
+        foreach ($columns as $index => $column) {
+            $method = $index === 0 ? 'whereRaw' : 'orWhereRaw';
+            $query->{$method}("{$column} LIKE ? ESCAPE '!'", [$needle]);
+        }
+
+        return $query
+            ->orWhereHas('brand', fn (Builder $related) => $this->applyRelatedToken($related, $needle))
+            ->orWhereHas('category', fn (Builder $related) => $this->applyRelatedToken($related, $needle, true))
+            ->orWhereHas('displayCategories', fn (Builder $related) => $this->applyRelatedToken($related, $needle, true))
+            ->orWhereHas('unit', fn (Builder $related) => $this->applyRelatedToken($related, $needle))
+            ->orWhereHas('packUnit', fn (Builder $related) => $this->applyRelatedToken($related, $needle))
+            ->orWhereHas('attributes', function (Builder $related) use ($needle): void {
+                $this->applyRelatedToken($related, $needle)
+                    ->orWhereRaw("product_attribute.value LIKE ? ESCAPE '!'", [$needle]);
+            })
+            ->orWhereHas('controls', function (Builder $related) use ($needle): void {
+                $this->applyRelatedToken($related, $needle)
+                    ->orWhereRaw("value_en LIKE ? ESCAPE '!'", [$needle])
+                    ->orWhereRaw("value_ur LIKE ? ESCAPE '!'", [$needle]);
+            });
+    }
+
+    private function applyRelatedToken(Builder $query, string $needle, bool $includeSearchTerms = false): Builder
+    {
+        if ($includeSearchTerms) {
+            $query->where('status', 'active');
+        }
+
+        $query->where(function (Builder $related) use ($needle, $includeSearchTerms): void {
+            $related->whereRaw("name_en LIKE ? ESCAPE '!'", [$needle])
+                ->orWhereRaw("name_ur LIKE ? ESCAPE '!'", [$needle])
+                ->orWhereRaw("code LIKE ? ESCAPE '!'", [$needle])
+                ->orWhereRaw("slug LIKE ? ESCAPE '!'", [$needle]);
+
+            if ($includeSearchTerms) {
+                $related->orWhereRaw("search_terms LIKE ? ESCAPE '!'", [$needle])
+                    ->orWhereRaw("seo_keywords_en LIKE ? ESCAPE '!'", [$needle])
+                    ->orWhereRaw("seo_keywords_ur LIKE ? ESCAPE '!'", [$needle]);
+            }
+        });
+
+        return $query;
+    }
+
     private function escapeLike(string $value): string
     {
-        return str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $value);
+        return str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $value);
     }
 }
