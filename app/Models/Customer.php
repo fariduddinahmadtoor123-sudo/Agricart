@@ -155,6 +155,11 @@ class Customer extends Authenticatable implements CanResetPasswordContract
         return $this->hasMany(OnlineSaleOrder::class);
     }
 
+    public function phones(): HasMany
+    {
+        return $this->hasMany(CustomerPhone::class)->orderBy('sort_order');
+    }
+
     /**
      * @return array<string, string>
      */

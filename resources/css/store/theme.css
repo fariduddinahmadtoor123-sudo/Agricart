@@ -839,6 +839,10 @@
     border-bottom: 2px solid var(--agricart-primary);
 }
 
+.ag-store-menu__disclosure {
+    display: none;
+}
+
 .ag-store-menu__list {
     display: flex;
     flex-wrap: wrap;
@@ -861,6 +865,36 @@
 .ag-store-menu__link.is-active {
     background: color-mix(in oklab, var(--agricart-primary) 12%, white);
     color: var(--agricart-primary);
+}
+
+@media (max-width: 42rem) {
+    .ag-store-menu__disclosure.is-enhanced {
+        display: block;
+        width: 100%;
+        padding: 0.7rem;
+        border: 0;
+        background: var(--agricart-surface);
+        color: var(--agricart-text);
+        font-weight: 700;
+        text-align: start;
+    }
+
+    .ag-store-menu__list {
+        flex-direction: column;
+    }
+
+    .ag-store-menu__list.is-collapsible {
+        display: none;
+    }
+
+    .ag-store-menu__list.is-collapsible.is-open {
+        display: flex;
+    }
+
+    .ag-store-menu__link {
+        border-block-start: 1px solid var(--agricart-border);
+        border-inline-end: 0;
+    }
 }
 
 /* Main */
@@ -2114,7 +2148,8 @@
     gap: 1rem;
     grid-template-areas:
         "main"
-        "aside";
+        "aside"
+        "completion";
 }
 
 .ag-store-checkout__main {
@@ -2134,6 +2169,7 @@
 }
 
 .ag-store-checkout__completion {
+    grid-area: completion;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
@@ -2210,7 +2246,9 @@
 @media (min-width: 52rem) {
     .ag-store-checkout__layout {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        grid-template-areas: "aside main";
+        grid-template-areas:
+            "aside main"
+            "aside completion";
         align-items: start;
         gap: 1.5rem 1.75rem;
     }
@@ -5084,4 +5122,119 @@ html[dir='rtl'] .ag-store-footer__col--map {
     font-size: 0.8125rem;
     font-weight: 600;
     color: var(--agricart-muted);
+}
+
+.ag-store-visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+.ag-store-skip-link {
+    position: fixed;
+    inset-block-start: 0.5rem;
+    inset-inline-start: 0.5rem;
+    z-index: 1000;
+    padding: 0.65rem 0.85rem;
+    background: #fff;
+    color: var(--agricart-text);
+    border: 2px solid var(--agricart-primary);
+    transform: translateY(-150%);
+}
+
+.ag-store-skip-link:focus {
+    transform: translateY(0);
+}
+
+.ag-store-checkout__bank-destinations {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.ag-store-checkout__bank-destination {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.65rem;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-bg);
+}
+
+.ag-store-checkout__copy-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    overflow-wrap: anywhere;
+}
+
+.ag-store-checkout__copy {
+    border: 1px solid var(--agricart-border);
+    padding: 0.25rem 0.45rem;
+    background: #fff;
+    color: var(--agricart-primary);
+    cursor: pointer;
+}
+
+@media (max-width: 42rem) {
+    .ag-store-cart__table,
+    .ag-store-cart__table tbody,
+    .ag-store-cart__table tr,
+    .ag-store-cart__table td {
+        display: block;
+        width: 100%;
+    }
+
+    .ag-store-cart__table thead,
+    .ag-store-cart__sn {
+        display: none;
+    }
+
+    .ag-store-cart__table tr {
+        position: relative;
+        margin-block-end: 0.75rem;
+        padding: 0.75rem;
+        border: 1px solid var(--agricart-border);
+        background: #fff;
+    }
+
+    .ag-store-cart__table td {
+        padding: 0.35rem 0;
+        border: 0;
+    }
+
+    .ag-store-cart__thumb {
+        float: inline-start;
+        width: 4.25rem !important;
+        margin-inline-end: 0.75rem;
+    }
+
+    .ag-store-cart__product {
+        min-height: 4rem;
+    }
+
+    .ag-store-cart__actions {
+        flex-direction: column;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ag-store-ticker__track {
+        animation: none !important;
+        transform: none !important;
+    }
+
+    .ag-store-ticker__content[aria-hidden="true"] {
+        display: none;
+    }
+
+    *, *::before, *::after {
+        scroll-behavior: auto !important;
+    }
 }

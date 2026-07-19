@@ -1,8 +1,43 @@
 @extends('store.layouts.app')
 
-@section('title', $categoryService->localizedName($category) . ' — ' . ($settings->localized('site_name') ?? config('app.name')))
+@php
+    $categoryName = $categoryService->localizedName($category);
+    $categorySeoTitle = $categoryService->localizedField($category, 'seo_title') ?: $categoryName;
+    $categorySeoDescription = $categoryService->localizedField($category, 'seo_description')
+        ?: $categoryService->localizedField($category, 'short_description')
+        ?: $categoryName;
+    $categoryImage = $categoryService->imageUrl($category);
+    $categorySchema = [
+        '@context' => 'https://schema.org',
+        '@graph' => [
+            [
+                '@type' => 'CollectionPage',
+                'name' => $categoryName,
+                'description' => strip_tags($categorySeoDescription),
+                'url' => route('store.category', $category->slug),
+                'image' => $categoryImage,
+            ],
+            [
+                '@type' => 'BreadcrumbList',
+                'itemListElement' => [
+                    ['@type' => 'ListItem', 'position' => 1, 'name' => __('agricart.storefront.category.home'), 'item' => route('store.home')],
+                    ['@type' => 'ListItem', 'position' => 2, 'name' => $categoryName, 'item' => route('store.category', $category->slug)],
+                ],
+            ],
+        ],
+    ];
+@endphp
+
+@section('title', $categorySeoTitle . ' — ' . ($settings->localized('site_name') ?? config('app.name')))
+@section('seo_description', strip_tags($categorySeoDescription))
+@section('canonical', route('store.category', $category->slug))
+@if ($categoryImage) @section('seo_image', $categoryImage) @endif
+@push('structured-data')
+    <script type="application/ld+json">{!! json_encode($categorySchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
+@endpush
 
 @section('content')
+    <h1 class="ag-store-page-title">{{ $categoryName }}</h1>
     @if ($childCategories->isNotEmpty())
         @include('store.components.category-grid', [
             'categories' => $childCategories,

@@ -24,7 +24,7 @@
                     ])>{{ $statusLabel }}</span>
                 </div>
                 <p class="ag-store-customer-auth__lead ag-store-orders__detail-date">
-                    {{ $order->order_date?->format('l, d M Y') }}
+                    {{ $order->order_date?->locale(app()->getLocale())->translatedFormat(app()->getLocale() === 'ur' ? 'l، d M Y' : 'l, d M Y') }}
                 </p>
             </header>
 
@@ -120,9 +120,9 @@
                     <h2 class="ag-store-orders__section-title">{{ __('agricart.customer.orders.upload_receipt_heading') }}</h2>
                     <p class="ag-store-customer-auth__lead">{{ __('agricart.customer.orders.upload_receipt_lead') }}</p>
 
-                    @if ($order->customerBankReceiptUrl())
+                    @if ($order->customerPaymentProofUrl())
                         <p class="ag-store-orders__note">
-                            <a href="{{ $order->customerBankReceiptUrl() }}" class="ag-store-orders__link" target="_blank" rel="noopener">
+                            <a href="{{ $order->customerPaymentProofUrl() }}" class="ag-store-orders__link" target="_blank" rel="noopener">
                                 {{ __('agricart.customer.orders.view_uploaded_receipt') }}
                             </a>
                         </p>

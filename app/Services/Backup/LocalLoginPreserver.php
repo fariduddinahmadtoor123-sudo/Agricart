@@ -45,6 +45,27 @@ class LocalLoginPreserver
         return $restored;
     }
 
+    /**
+     * Restore missing local accounts and replace same-email archive login
+     * credentials/profile state while retaining restored primary keys.
+     *
+     * @return array{inserted: int, replaced: int}
+     */
+    public function restoreAuthoritative(): array
+    {
+        if ($this->snapshot === null) {
+            return ['inserted' => 0, 'replaced' => 0];
+        }
+
+        $replaced = $this->replaceExistingUsers($this->snapshot['users'])
+            + $this->replaceExistingCustomers($this->snapshot['customers']);
+        $inserted = $this->restoreMissingUsers($this->snapshot['users'])
+            + $this->restoreMissingCustomers($this->snapshot['customers']);
+        $this->snapshot = null;
+
+        return compact('inserted', 'replaced');
+    }
+
     public function ensureBootstrapAdmin(): void
     {
         $email = trim((string) config('backup.bootstrap_admin.email', ''));
@@ -219,6 +240,76 @@ class LocalLoginPreserver
             $payload['updated_at'] = now();
 
             DB::table('customers')->insert($payload);
+            $count++;
+        }
+
+        return $count;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $users
+     */
+    private function replaceExistingUsers(array $users): int
+    {
+        if (! Schema::hasTable('users')) {
+            return 0;
+        }
+
+        $columns = Schema::getColumnListing('users');
+        $count = 0;
+
+        foreach ($users as $row) {
+            $email = trim((string) ($row['email'] ?? ''));
+            $existing = $email === '' ? null : User::query()->where('email', $email)->first();
+
+            if (! $existing instanceof User) {
+                continue;
+            }
+
+            $roleSlug = $row['role_slug'] ?? null;
+            unset($row['role_slug'], $row['id'], $row['created_at'], $row['updated_at'], $row['user_number']);
+
+            if (is_string($roleSlug) && $roleSlug !== '' && Schema::hasTable('roles')) {
+                $roleId = Role::query()->where('slug', $roleSlug)->value('id');
+
+                if ($roleId !== null) {
+                    $row['role_id'] = $roleId;
+                }
+            }
+
+            $payload = array_intersect_key($row, array_flip($columns));
+            $payload['updated_at'] = now();
+            DB::table('users')->where('id', $existing->getKey())->update($payload);
+            $count++;
+        }
+
+        return $count;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $customers
+     */
+    private function replaceExistingCustomers(array $customers): int
+    {
+        if (! Schema::hasTable('customers')) {
+            return 0;
+        }
+
+        $columns = Schema::getColumnListing('customers');
+        $count = 0;
+
+        foreach ($customers as $row) {
+            $email = trim((string) ($row['email'] ?? ''));
+            $existing = $email === '' ? null : Customer::query()->where('email', $email)->first();
+
+            if (! $existing instanceof Customer) {
+                continue;
+            }
+
+            unset($row['id'], $row['created_at'], $row['updated_at'], $row['customer_number']);
+            $payload = array_intersect_key($row, array_flip($columns));
+            $payload['updated_at'] = now();
+            DB::table('customers')->where('id', $existing->getKey())->update($payload);
             $count++;
         }
 

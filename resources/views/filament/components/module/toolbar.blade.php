@@ -99,10 +99,10 @@
         @endif
 
         <div class="agricart-catalog-toolbar__actions">
-            @if (empty($toolbar['hideFilters']))
+            @if (empty($toolbar['hideFilters']) || ! empty($toolbar['filters']) || ! empty($toolbar['filterGroups']))
                 @include('filament.components.module.filter-dropdown', ['toolbar' => $toolbar, 'moduleKey' => $moduleKey])
             @endif
-            @if (empty($toolbar['hideColumns']))
+            @if (empty($toolbar['hideColumns']) || ! empty($toolbar['columns']))
                 @include('filament.components.module.columns-dropdown', ['toolbar' => $toolbar, 'moduleKey' => $moduleKey])
             @endif
 

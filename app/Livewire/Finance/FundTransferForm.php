@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Finance;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\BankAccount;
 use App\Models\Customer;
 use App\Models\Supplier;
@@ -14,6 +15,8 @@ use Livewire\Component;
 
 class FundTransferForm extends Component
 {
+    use AuthorizesSensitiveActions;
+
     public const TYPE_DEPOSIT = 'deposit';
 
     public const TYPE_TRANSFER = 'transfer';
@@ -66,6 +69,7 @@ class FundTransferForm extends Component
     #[On('finance-fund-transfer-form-open')]
     public function openForm(?int $transferId = null, ?string $mode = null): void
     {
+        $this->authorizeAny($transferId ? 'finance.edit' : ['finance.create', 'finance.edit']);
         $this->resetValidation();
         $this->statusMessage = null;
         $this->mode = $mode ?? ($transferId ? 'edit' : 'create');
@@ -76,6 +80,8 @@ class FundTransferForm extends Component
     #[On('finance-fund-transfer-form-action')]
     public function handlePanelAction(string $action): void
     {
+        $this->authorizeAny($this->transferId ? 'finance.edit' : ['finance.create', 'finance.edit']);
+
         if ($action === 'save_close') {
             if ($this->saving) {
                 return;
@@ -87,11 +93,14 @@ class FundTransferForm extends Component
 
     public function updatedTransactionType(): void
     {
+        $this->authorizeAny($this->transferId ? 'finance.edit' : ['finance.create', 'finance.edit']);
         $this->applyTypeDefaults();
     }
 
     public function updatedSourceWallet(): void
     {
+        $this->authorizeAny($this->transferId ? 'finance.edit' : ['finance.create', 'finance.edit']);
+
         if ($this->source_wallet === self::SOURCE_CASH) {
             $this->source_bank_account_id = null;
         }
@@ -99,6 +108,8 @@ class FundTransferForm extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeAny($this->transferId ? 'finance.edit' : ['finance.create', 'finance.edit']);
+
         if ($this->saving) {
             return;
         }
@@ -223,6 +234,19 @@ class FundTransferForm extends Component
 
     public function render(): View
     {
+        if (! $this->canAccessAny(['finance.create', 'finance.edit'])) {
+            return view('livewire.finance.fund-transfers.form', [
+                'transactionTypeOptions' => [],
+                'sourceWalletOptions' => [],
+                'bankAccountOptions' => [],
+                'destinationBankOptions' => [],
+                'supplierOptions' => [],
+                'customerOptions' => [],
+                'purchaserOptions' => [],
+                'formattedDateTime' => '—',
+            ]);
+        }
+
         $bankAccounts = BankAccount::query()
             ->where('status', BankAccount::STATUS_ACTIVE)
             ->orderBy('name_en')

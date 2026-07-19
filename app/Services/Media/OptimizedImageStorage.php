@@ -2,6 +2,7 @@
 
 namespace App\Services\Media;
 
+use App\Models\MediaAsset;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -10,6 +11,10 @@ use RuntimeException;
 
 class OptimizedImageStorage
 {
+    public function __construct(
+        private readonly MediaLibraryService $library,
+    ) {}
+
     /**
      * Store an upload with industry-standard resize + WebP when the preset allows.
      * Falls back to a normal store() if GD cannot process the file.
@@ -26,13 +31,13 @@ class OptimizedImageStorage
         $options = $this->presetOptions($presetKey);
 
         if (! ($options['convert_webp'] ?? false)) {
-            return $file->store($directory, $disk);
+            return $this->storeOriginal($file, $directory, $disk);
         }
 
         $sourcePath = $file->getRealPath();
 
         if (! is_string($sourcePath) || $sourcePath === '' || ! is_readable($sourcePath)) {
-            return $file->store($directory, $disk);
+            return $this->storeOriginal($file, $directory, $disk);
         }
 
         try {
@@ -43,7 +48,7 @@ class OptimizedImageStorage
                 (int) ($options['quality'] ?? 82),
             );
         } catch (\Throwable) {
-            return $file->store($directory, $disk);
+            return $this->storeOriginal($file, $directory, $disk);
         }
 
         $relative = $directory.'/'.Str::random(40).'.webp';
@@ -51,6 +56,14 @@ class OptimizedImageStorage
         if (! Storage::disk($disk)->put($relative, $binary)) {
             throw new RuntimeException('Failed to store optimized image.');
         }
+
+        $this->library->registerPath(
+            $relative,
+            $file->getClientOriginalName(),
+            null,
+            $this->librarySource($directory),
+            $disk,
+        );
 
         return $relative;
     }
@@ -105,7 +118,24 @@ class OptimizedImageStorage
         }
 
         if ($newRelative !== $relativePath) {
-            $storage->delete($relativePath);
+            $oldAsset = MediaAsset::query()
+                ->where('disk', $disk)
+                ->where('path', $relativePath)
+                ->first();
+
+            $this->library->registerPath(
+                $newRelative,
+                $oldAsset?->original_name,
+                $oldAsset?->display_name,
+                $oldAsset?->source_module ?: $this->librarySource($directory),
+                $disk,
+                $oldAsset?->metadata ?? [],
+            );
+
+            if (! $oldAsset?->usages()->exists()) {
+                $storage->delete($relativePath);
+                $oldAsset?->delete();
+            }
         }
 
         return $newRelative;
@@ -202,5 +232,32 @@ class OptimizedImageStorage
         }
 
         return $binary;
+    }
+
+    private function storeOriginal(
+        TemporaryUploadedFile|UploadedFile $file,
+        string $directory,
+        string $disk,
+    ): string {
+        $path = $file->store($directory, $disk);
+
+        if (! is_string($path) || $path === '') {
+            throw new RuntimeException('Failed to store image.');
+        }
+
+        $this->library->registerPath(
+            $path,
+            $file->getClientOriginalName(),
+            null,
+            $this->librarySource($directory),
+            $disk,
+        );
+
+        return $path;
+    }
+
+    private function librarySource(string $directory): string
+    {
+        return mb_substr((string) (strtok($directory, '/') ?: 'library'), 0, 64);
     }
 }

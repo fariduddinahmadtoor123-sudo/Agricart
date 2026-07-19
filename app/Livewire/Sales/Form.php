@@ -2,11 +2,11 @@
 
 namespace App\Livewire\Sales;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\CatalogControl;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Sale;
-use App\Models\User;
 use App\Services\Contacts\CustomerService;
 use App\Services\PricingControls\ChannelPricingEngine;
 use App\Services\PricingControls\QuantityPricingEngine;
@@ -20,6 +20,8 @@ use Livewire\Component;
 
 class Form extends Component
 {
+    use AuthorizesSensitiveActions;
+
     public ?int $saleId = null;
 
     public string $mode = 'create';
@@ -79,6 +81,7 @@ class Form extends Component
     #[On('sale-form-open')]
     public function openForm(?int $saleId = null, string $mode = 'create'): void
     {
+        $this->authorizeAny($mode === 'view' ? ['sales.view', 'sales.edit'] : ($saleId ? 'sales.edit' : 'sales.create'));
         $this->resetForm();
         $this->mode = $mode;
         $this->saleId = $saleId;
@@ -96,6 +99,8 @@ class Form extends Component
     #[On('sale-form-action')]
     public function handlePanelAction(string $action): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'hold' => $this->saveOnHold(),
@@ -300,16 +305,20 @@ class Form extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeAny($this->saleId ? 'sales.edit' : 'sales.create');
         $this->persist(Sale::STATUS_COMPLETED, close: true);
     }
 
     public function saveOnHold(): void
     {
+        $this->authorizeAny($this->saleId ? 'sales.edit' : 'sales.create');
         $this->persist(Sale::STATUS_HELD, close: true);
     }
 
     public function saveAndPrint(): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
         if ($this->isReadonly() && $this->saleId) {
             $this->dispatch('sales-open-print', url: route('admin.sales.print', ['sale' => $this->saleId]));
 
@@ -325,6 +334,22 @@ class Form extends Component
 
     public function render(): View
     {
+        if (! $this->canAccessAny(['sales.view', 'sales.create', 'sales.edit'])) {
+            return view('livewire.sales.form', [
+                'productResults' => [],
+                'customerResults' => [],
+                'selectedCustomer' => null,
+                'paymentOptions' => [],
+                'paymentMethodOptions' => [],
+                'bankAccountOptions' => [],
+                'discountOptions' => [],
+                'printControlsOptions' => [],
+                'localeOptions' => [],
+                'controlsPreview' => [],
+                'cashierName' => '—',
+            ]);
+        }
+
         $service = app(SaleService::class);
 
         return view('livewire.sales.form', [
@@ -418,11 +443,9 @@ class Form extends Component
 
     private function persist(string $targetStatus, bool $close): ?Sale
     {
-        if ($this->isReadonly()) {
-            return null;
-        }
+        $this->authorizeAny($this->saleId ? 'sales.edit' : 'sales.create');
 
-        if (! $this->userCan($this->saleId ? 'edit' : 'create')) {
+        if ($this->isReadonly()) {
             return null;
         }
 
@@ -505,6 +528,7 @@ class Form extends Component
 
     private function loadSale(int $saleId): void
     {
+        $this->authorizeAny($this->mode === 'view' ? ['sales.view', 'sales.edit'] : 'sales.edit');
         $sale = Sale::query()->find($saleId);
 
         if ($sale === null) {
@@ -612,19 +636,11 @@ class Form extends Component
         $this->dispatch('sale-form-busy', saving: $this->saving);
     }
 
-    private function userCan(string $action): bool
+    private function requiredActionPermission(): array|string
     {
-        $user = auth()->user();
-
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
-        return $user->hasPermission('sales.' . $action);
+        return $this->isReadonly()
+            ? ['sales.view', 'sales.edit']
+            : ($this->saleId ? 'sales.edit' : 'sales.create');
     }
 
     private function setStatus(string $message, string $type): void

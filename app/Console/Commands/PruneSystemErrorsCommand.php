@@ -8,13 +8,13 @@ use Illuminate\Support\Facades\Schema;
 
 class PruneSystemErrorsCommand extends Command
 {
-    protected $signature = 'system-errors:prune {--days=90 : Delete resolved errors older than this many days}';
+    protected $signature = 'system-errors:prune {--days= : Delete resolved errors older than this many days}';
 
     protected $description = 'Delete resolved system errors after the configured retention period';
 
     public function handle(): int
     {
-        $days = max(1, (int) $this->option('days'));
+        $days = max(1, (int) ($this->option('days') ?: config('retention.resolved_system_error_days')));
 
         if (! Schema::hasTable('system_errors')) {
             $this->components->info('System errors table does not exist yet.');

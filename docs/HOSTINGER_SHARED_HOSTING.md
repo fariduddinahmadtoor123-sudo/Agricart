@@ -107,19 +107,15 @@ Moving the repository outside `public_html` remains the preferred long-term layo
 
 ## Git deployment workflow (each release)
 
-Run from the **application root** (`agricart/`), not from `public_html`:
+Run from the **application root** (`agricart/`), not from `public_html`. Prefer
+the guarded `deploy/hostinger/post-deploy.sh` script. Configure
+`HEALTHCHECK_URL=https://example.com/up`; the script locks against concurrent
+deploys, preflights before mutation, creates a safety backup, manages maintenance
+mode with failure cleanup, migrates, publishes, caches, restarts queues, and
+verifies health.
 
 ```bash
-git pull origin developer
-composer install --no-dev --optimize-autoloader
-php artisan migrate --force
-php artisan db:seed --class=Database\\Seeders\\RolesAndPermissionsSeeder --force
-php artisan agricart:repair-bootstrap-owner your@email.com
-php artisan hostinger:sync-public --clean
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
-php artisan deploy:preflight
+DEPLOY_BRANCH=developer HEALTHCHECK_URL=https://example.com/up bash deploy/hostinger/post-deploy.sh
 ```
 
 Example script: `deploy/hostinger/post-deploy.sh` (edit paths, then `chmod +x`).
@@ -143,6 +139,10 @@ No Hostinger-specific code in Laravel core; VPS deployments with document root =
 
 - Set `FILESYSTEM_PUBLIC_SERVE=auto` so `/storage/*` is served by Laravel when `php artisan storage:link` cannot run.
 - Do **not** copy `public/storage` during sync (skipped by `hostinger:sync-public`); uploads live in `agricart/storage/app/public`.
+- Prefer a verified `public_html/storage` symlink. If a mirror is unavoidable,
+  preview with `hostinger:sync-storage --dry-run --delete-stale`, then run with
+  `--delete-stale`. The mirror excludes configured private/sensitive prefixes
+  and reports stale files instead of silently retaining them.
 
 See also [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md).
 
@@ -153,7 +153,8 @@ See also [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md).
 | Command | Purpose |
 |---------|---------|
 | `php artisan hostinger:sync-public --clean` | Publish `public/` and remove stale/duplicate build directories safely |
-| `php artisan hostinger:sync-storage` | Mirror `storage/app/public` → `public_html/storage` (fast images; run after uploads) |
+| `php artisan hostinger:sync-storage --dry-run --delete-stale` | Preview approved copies and stale deletions |
+| `php artisan hostinger:sync-storage --delete-stale` | Guarded mirror fallback; excludes private prefixes |
 | `php artisan hostinger:sync-public --dry-run` | Preview files |
 | `php artisan hostinger:verify` | Test Laravel root resolution |
 | `php artisan deploy:preflight` | Includes `hostinger:verify` when `HOSTINGER_PUBLIC_HTML` is set |
@@ -188,3 +189,9 @@ No codebase fork required.
 - Use **Git** or **SSH** to pull into `agricart/`, not into `public_html`.
 - Run **PHP 8.3+** and point CLI to the same version as the site.
 - Cron (if available): `* * * * * cd /home/USERNAME/agricart && php artisan schedule:run >> /dev/null 2>&1`
+- Install that scheduler line exactly once and set `SCHEDULER_CONFIGURED=true`.
+- If persistent workers are unavailable, add a one-per-minute
+  `queue:work --stop-when-empty --tries=3` cron and set
+  `QUEUE_WORKER_CONFIGURED=true`.
+- Leave `SCHEDULER_SHARED_LOCKS=false` for one scheduler. Enable it only for
+  multiple nodes sharing a database/Redis lock cache.

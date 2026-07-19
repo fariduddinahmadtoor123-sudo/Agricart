@@ -3,17 +3,18 @@
 namespace App\Filament\Layout;
 
 use App\Models\User;
-use Illuminate\Support\Str;
+use Filament\Clusters\Cluster;
+use Filament\Pages\Page;
 
 abstract class ClusterPageToolbar
 {
     /**
-     * @return class-string<\Filament\Clusters\Cluster>
+     * @return class-string<Cluster>
      */
     abstract protected static function subNavigationClass(): string;
 
     /**
-     * @return class-string<\Filament\Pages\Page>
+     * @return class-string<Page>
      */
     abstract protected static function overviewPageClass(): string;
 
@@ -46,6 +47,9 @@ abstract class ClusterPageToolbar
         $isOverview = $pageClass === static::overviewPageClass() || $pageClass === null;
         $canCreate = static::userCan('create');
 
+        $filters = static::filtersFor($resourceLabel);
+        $columns = static::columnsFor($resourceLabel);
+
         return [
             'addLabel' => (! $isOverview && $pageClass && $canCreate)
                 ? __('agricart.toolbar.add', ['item' => $resourceLabel])
@@ -56,8 +60,10 @@ abstract class ClusterPageToolbar
             'resourceLabel' => $resourceLabel,
             'resourceSlug' => $resourceSlug,
             'formKey' => static::formKeyFor($resourceSlug),
-            'filters' => static::filtersFor($resourceLabel),
-            'columns' => static::columnsFor($resourceLabel),
+            'filters' => $filters,
+            'columns' => $columns,
+            'hideFilters' => $filters === [],
+            'hideColumns' => $columns === [],
         ];
     }
 
@@ -130,14 +136,7 @@ abstract class ClusterPageToolbar
      */
     public static function filtersFor(string $resourceLabel): array
     {
-        return [
-            ['label' => __('agricart.toolbar.filter_active', ['resource' => $resourceLabel]), 'value' => 'active'],
-            ['label' => __('agricart.toolbar.filter_inactive', ['resource' => $resourceLabel]), 'value' => 'inactive'],
-            ['label' => __('agricart.toolbar.filter_pending'), 'value' => 'pending'],
-            ['label' => __('agricart.toolbar.filter_approved'), 'value' => 'approved'],
-            ['label' => __('agricart.toolbar.filter_rejected'), 'value' => 'rejected'],
-            ['label' => __('agricart.toolbar.filter_created_today'), 'value' => 'created_today'],
-        ];
+        return [];
     }
 
     /**
@@ -145,12 +144,6 @@ abstract class ClusterPageToolbar
      */
     public static function columnsFor(string $resourceLabel): array
     {
-        return [
-            ['label' => __('agricart.toolbar.col_id'), 'value' => 'id', 'visible' => true],
-            ['label' => __('agricart.toolbar.col_name', ['item' => $resourceLabel]), 'value' => 'name', 'visible' => true],
-            ['label' => __('agricart.toolbar.col_status'), 'value' => 'status', 'visible' => true],
-            ['label' => __('agricart.toolbar.col_created'), 'value' => 'created_at', 'visible' => true],
-            ['label' => __('agricart.toolbar.col_updated'), 'value' => 'updated_at', 'visible' => false],
-        ];
+        return [];
     }
 }

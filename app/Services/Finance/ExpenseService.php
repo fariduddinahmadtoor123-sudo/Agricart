@@ -4,6 +4,7 @@ namespace App\Services\Finance;
 
 use App\Models\Expense;
 use App\Models\User;
+use App\Services\Identifiers\DocumentCounterService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -54,14 +55,12 @@ class ExpenseService
 
     public function nextExpenseNumber(): string
     {
-        $next = (int) Expense::query()->max('id') + 1;
-
-        do {
-            $number = 'EXP-'.str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (Expense::query()->where('expense_number', $number)->exists());
-
-        return $number;
+        return app(DocumentCounterService::class)->next(
+            'expenses.expense_number',
+            'EXP-',
+            5,
+            fn (): int => DocumentCounterService::maximumSuffix('expenses', 'expense_number', 'EXP-'),
+        );
     }
 
     /**

@@ -3,8 +3,10 @@
 namespace App\Services\Store;
 
 use App\Models\Customer;
+use App\Services\Identifiers\DocumentCounterService;
 use App\Services\Contacts\CustomerService as ContactCustomerService;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -26,19 +28,22 @@ class CustomerService
         $validated['contacts'] = [['mobile_number' => $validated['phone']]];
         $validated['city_en'] = $validated['city'];
 
-        return Customer::query()->create($validated);
+        return DB::transaction(function () use ($validated): Customer {
+            $customer = Customer::query()->create($validated);
+            app(ContactCustomerService::class)->syncNormalizedPhones($customer, $validated['contacts']);
+
+            return $customer;
+        });
     }
 
     public function nextCustomerNumber(): string
     {
-        $next = (int) Customer::query()->max('id') + 1;
-
-        do {
-            $number = 'CUS-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (Customer::query()->where('customer_number', $number)->exists());
-
-        return $number;
+        return app(DocumentCounterService::class)->next(
+            'customers.customer_number',
+            'CUS-',
+            5,
+            fn (): int => DocumentCounterService::maximumSuffix('customers', 'customer_number', 'CUS-'),
+        );
     }
 
     /**
@@ -123,18 +128,23 @@ class CustomerService
 
         $displayName = trim($validated['first_name'] . ' ' . $validated['last_name']);
 
-        $customer->fill([
-            'first_name' => $validated['first_name'],
-            'last_name' => $validated['last_name'],
-            'email' => $validated['email'],
-            'phone' => $validated['phone'],
-            'display_name' => $displayName,
-            'name_en' => $displayName,
-            'contacts' => [['mobile_number' => $validated['phone']]],
-        ]);
-        $customer->save();
+        return DB::transaction(function () use ($customer, $validated, $displayName): Customer {
+            $customer = Customer::query()->lockForUpdate()->findOrFail($customer->id);
+            $contacts = [['mobile_number' => $validated['phone']]];
+            $customer->fill([
+                'first_name' => $validated['first_name'],
+                'last_name' => $validated['last_name'],
+                'email' => $validated['email'],
+                'phone' => $validated['phone'],
+                'display_name' => $displayName,
+                'name_en' => $displayName,
+                'contacts' => $contacts,
+            ]);
+            $customer->save();
+            app(ContactCustomerService::class)->syncNormalizedPhones($customer, $contacts);
 
-        return $customer;
+            return $customer;
+        });
     }
 
     /**

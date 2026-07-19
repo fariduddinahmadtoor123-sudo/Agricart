@@ -2,9 +2,9 @@
 
 namespace App\Livewire\SaleReturns;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\Customer;
 use App\Models\SaleReturn;
-use App\Models\User;
 use App\Services\PricingControls\ChannelPricingEngine;
 use App\Services\Sales\SaleReturnService;
 use App\Services\Sales\SaleService;
@@ -17,6 +17,8 @@ use Livewire\Component;
 
 class Form extends Component
 {
+    use AuthorizesSensitiveActions;
+
     public ?int $returnId = null;
 
     public string $mode = 'create';
@@ -63,6 +65,7 @@ class Form extends Component
     #[On('sale-return-form-open')]
     public function openForm(?int $returnId = null, string $mode = 'create'): void
     {
+        $this->authorizeAny($mode === 'view' ? ['sales.view', 'sales.edit'] : ($returnId ? 'sales.edit' : 'sales.create'));
         $this->resetForm();
         $this->mode = $mode;
         $this->returnId = $returnId;
@@ -80,6 +83,8 @@ class Form extends Component
     #[On('sale-return-form-action')]
     public function handlePanelAction(string $action): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'print' => $this->saveAndPrint(),
@@ -144,6 +149,8 @@ class Form extends Component
 
     public function loadInvoice(): void
     {
+        $this->authorizeAny($this->returnId ? 'sales.edit' : 'sales.create');
+
         if ($this->isReadonly()) {
             return;
         }
@@ -204,11 +211,14 @@ class Form extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeAny($this->returnId ? 'sales.edit' : 'sales.create');
         $this->persist(close: true);
     }
 
     public function saveAndPrint(): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
         if ($this->isReadonly()) {
             if ($this->returnId) {
                 $this->dispatch('sale-returns-open-print', url: route('admin.sale-returns.print', ['saleReturn' => $this->returnId]));
@@ -228,6 +238,15 @@ class Form extends Component
 
     public function render(): View
     {
+        if (! $this->canAccessAny(['sales.view', 'sales.create', 'sales.edit'])) {
+            return view('livewire.sale-returns.form', [
+                'selectedCustomer' => null,
+                'paymentOptions' => [],
+                'paymentMethodOptions' => [],
+                'bankAccountOptions' => [],
+            ]);
+        }
+
         return view('livewire.sale-returns.form', [
             'selectedCustomer' => $this->customer_id ? Customer::query()->find($this->customer_id) : null,
             'paymentOptions' => collect(SaleService::PAYMENT_STATUSES)
@@ -242,11 +261,9 @@ class Form extends Component
 
     private function persist(bool $close): ?SaleReturn
     {
-        if ($this->isReadonly()) {
-            return null;
-        }
+        $this->authorizeAny($this->returnId ? 'sales.edit' : 'sales.create');
 
-        if (! $this->userCan($this->returnId ? 'edit' : 'create')) {
+        if ($this->isReadonly()) {
             return null;
         }
 
@@ -316,6 +333,7 @@ class Form extends Component
 
     private function loadReturn(int $returnId): void
     {
+        $this->authorizeAny($this->mode === 'view' ? ['sales.view', 'sales.edit'] : 'sales.edit');
         $return = SaleReturn::query()->with('processedBy')->find($returnId);
 
         if ($return === null) {
@@ -409,19 +427,11 @@ class Form extends Component
         $this->dispatch('sale-return-form-busy', saving: $this->saving);
     }
 
-    private function userCan(string $action): bool
+    private function requiredActionPermission(): array|string
     {
-        $user = auth()->user();
-
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
-        return $user->hasPermission('sales.' . $action);
+        return $this->isReadonly()
+            ? ['sales.view', 'sales.edit']
+            : ($this->returnId ? 'sales.edit' : 'sales.create');
     }
 
     private function setStatus(string $message, string $type): void

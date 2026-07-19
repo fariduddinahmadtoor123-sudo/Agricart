@@ -4,8 +4,9 @@ namespace App\Services\Settings;
 
 use App\Models\CompanyProfile;
 use App\Models\StoreSetting;
+use App\Services\Media\OptimizedImageStorage;
+use App\Services\Store\StoreLayoutService;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class CompanyProfileService
@@ -31,11 +32,7 @@ class CompanyProfileService
         $profile = CompanyProfile::current();
 
         if ($logoUpload !== null) {
-            $path = app(\App\Services\Media\OptimizedImageStorage::class)->store($logoUpload, 'store');
-
-            if (filled($profile->logo_path) && $profile->logo_path !== $path) {
-                Storage::disk('public')->delete($profile->logo_path);
-            }
+            $path = app(OptimizedImageStorage::class)->store($logoUpload, 'store');
 
             $data['logo_path'] = $path;
         }
@@ -65,7 +62,6 @@ class CompanyProfileService
         $profile = CompanyProfile::current();
 
         if (filled($profile->logo_path)) {
-            Storage::disk('public')->delete($profile->logo_path);
             $profile->update(['logo_path' => null]);
         }
 
@@ -120,7 +116,7 @@ class CompanyProfileService
             : null;
 
         $store->update($updates);
-        app(\App\Services\Store\StoreLayoutService::class)->clearCache();
+        app(StoreLayoutService::class)->clearCache();
     }
 
     /**
@@ -361,10 +357,10 @@ class CompanyProfileService
     {
         $suffix = $locale === 'ur' ? '_ur' : '_en';
         $parts = array_filter([
-            $row['line1' . $suffix] ?? $row['line1_en'] ?? null,
-            $row['line2' . $suffix] ?? $row['line2_en'] ?? null,
-            $row['city' . $suffix] ?? $row['city_en'] ?? null,
-            $row['province' . $suffix] ?? $row['province_en'] ?? null,
+            $row['line1'.$suffix] ?? $row['line1_en'] ?? null,
+            $row['line2'.$suffix] ?? $row['line2_en'] ?? null,
+            $row['city'.$suffix] ?? $row['city_en'] ?? null,
+            $row['province'.$suffix] ?? $row['province_en'] ?? null,
             $row['country'] ?? null,
         ], static fn ($part): bool => filled($part));
 

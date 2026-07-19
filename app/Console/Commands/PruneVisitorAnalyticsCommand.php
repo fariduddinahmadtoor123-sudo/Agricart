@@ -9,20 +9,23 @@ class PruneVisitorAnalyticsCommand extends Command
 {
     protected $signature = 'analytics:prune
         {--raw-days= : Raw page-view and session retention}
-        {--visitor-days= : Anonymous visitor retention}';
+        {--visitor-days= : Anonymous visitor retention}
+        {--rollup-days= : Aggregated rollup retention}';
 
     protected $description = 'Prune expired raw visitor analytics records in bounded batches';
 
     public function handle(): int
     {
-        $rawDays = max(7, (int) ($this->option('raw-days') ?: config('analytics.raw_retention_days')));
-        $visitorDays = max($rawDays, (int) ($this->option('visitor-days') ?: config('analytics.visitor_retention_days')));
+        $rawDays = max(7, (int) ($this->option('raw-days') ?: config('retention.analytics_raw_days')));
+        $visitorDays = max($rawDays, (int) ($this->option('visitor-days') ?: config('retention.analytics_visitor_days')));
+        $rollupDays = max($rawDays, (int) ($this->option('rollup-days') ?: config('retention.analytics_rollup_days')));
 
         $views = $this->deleteInBatches('analytics_page_views', 'occurred_at', now()->subDays($rawDays));
         $sessions = $this->deleteInBatches('analytics_sessions', 'last_seen_at', now()->subDays($rawDays));
         $visitors = $this->deleteInBatches('analytics_visitors', 'last_seen_at', now()->subDays($visitorDays));
+        $rollups = $this->deleteInBatches('analytics_rollups', 'period_start', now()->subDays($rollupDays));
 
-        $this->components->info("Pruned {$views} page views, {$sessions} sessions, and {$visitors} visitors.");
+        $this->components->info("Pruned {$views} page views, {$sessions} sessions, {$visitors} visitors, and {$rollups} rollups.");
 
         return self::SUCCESS;
     }

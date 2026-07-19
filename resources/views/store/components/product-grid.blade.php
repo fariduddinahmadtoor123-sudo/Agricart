@@ -15,22 +15,24 @@
         <div @class(['ag-store-product-grid', 'ag-store-product-grid--cols-' . $columns])>
             @foreach ($products as $product)
                 @php
-                    $imageUrls = $productService->allImageUrls($product);
+                    $imageData = $productService->allImageData($product);
+                    $imageUrls = array_column($imageData, 'url');
+                    $mainImage = $imageData[0] ?? null;
                     $productUrl = route('store.product', $product->slug);
                 @endphp
                 <article class="ag-store-product-card">
                     <div class="ag-store-product-card__media" data-store-product-card>
                         <a href="{{ $productUrl }}" class="ag-store-product-card__image-link">
                             <div class="ag-store-product-card__image-wrap">
-                                <span class="ag-store-product-card__placeholder" aria-hidden="true">{{ strtoupper(substr($productService->localizedName($product), 0, 1)) }}</span>
+                                <span class="ag-store-product-card__placeholder" aria-hidden="true">{{ mb_strtoupper(mb_substr($productService->localizedName($product), 0, 1)) }}</span>
                                 @if ($imageUrls !== [])
                                     <img
-                                        src="{{ $imageUrls[0] }}"
-                                        alt=""
+                                        src="{{ $mainImage['url'] }}"
+                                        alt="{{ $productService->localizedName($product) }}"
                                         class="ag-store-product-card__image"
                                         data-store-product-card-main
-                                        width="320"
-                                        height="320"
+                                        width="{{ $mainImage['width'] ?? 320 }}"
+                                        height="{{ $mainImage['height'] ?? 320 }}"
                                         decoding="async"
                                         loading="lazy"
                                         onerror="this.classList.add('is-failed')"
@@ -57,7 +59,7 @@
                                         aria-label="{{ __('agricart.storefront.product.image_number', ['number' => $index + 1]) }}"
                                         aria-pressed="{{ $index === 0 ? 'true' : 'false' }}"
                                     >
-                                        <img src="{{ $url }}" alt="" loading="lazy" />
+                                        <img src="{{ $url }}" alt="{{ __('agricart.storefront.product.image_number', ['number' => $index + 1]) }}" loading="lazy" decoding="async" width="64" height="64" />
                                     </button>
                                 @endforeach
                             </div>
@@ -67,7 +69,7 @@
                     <a href="{{ $productUrl }}" class="ag-store-product-card__body">
                         <h3 class="ag-store-product-card__name">{{ $productService->localizedName($product) }}</h3>
                         @if ($product->brand)
-                            <p class="ag-store-product-card__brand">{{ $product->brand->name_en }}</p>
+                            <p class="ag-store-product-card__brand">{{ $productService->localizedBrandName($product) }}</p>
                         @endif
                         @if ($price = $productService->formattedRetailPrice($product))
                             <p class="ag-store-product-card__price">{{ __('agricart.storefront.products.price', ['amount' => $price]) }}</p>

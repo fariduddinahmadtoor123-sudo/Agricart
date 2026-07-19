@@ -4,6 +4,7 @@ namespace App\Livewire\CompanyProfile;
 
 use App\Enums\CategoryAiStatus;
 use App\Filament\Clusters\Store\FooterPage;
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Services\Settings\CompanyProfileEnrichmentService;
 use App\Services\Settings\CompanyProfileService;
 use Illuminate\Contracts\View\View;
@@ -12,6 +13,8 @@ use Livewire\Component;
 
 class Form extends Component
 {
+    use AuthorizesSensitiveActions;
+
     public string $business_name_en = '';
 
     public string $business_name_ur = '';
@@ -58,6 +61,7 @@ class Form extends Component
 
     public function openForm(): void
     {
+        $this->authorizeAny('settings.edit');
         $this->panelIsOpen = true;
         $this->statusMessage = null;
         $this->loadProfile();
@@ -65,11 +69,14 @@ class Form extends Component
 
     public function handlePanelClose(): void
     {
+        $this->authorizeAny('settings.edit');
         $this->panelIsOpen = false;
     }
 
     public function handlePanelAction(string $action): void
     {
+        $this->authorizeAny('settings.edit');
+
         match ($action) {
             'ai' => $this->enrichWithAi(),
             'save_close' => $this->saveAndClose(),
@@ -79,12 +86,15 @@ class Form extends Component
 
     public function addPhoneRow(): void
     {
+        $this->authorizeAny('settings.edit');
         $this->phoneRows[] = app(CompanyProfileService::class)->emptyPhoneRow();
         $this->phoneRows[array_key_last($this->phoneRows)]['is_primary'] = count($this->phoneRows) === 1;
     }
 
     public function removePhoneRow(int $index): void
     {
+        $this->authorizeAny('settings.edit');
+
         if (count($this->phoneRows) <= 1) {
             return;
         }
@@ -96,12 +106,15 @@ class Form extends Component
 
     public function addAddressRow(): void
     {
+        $this->authorizeAny('settings.edit');
         $this->addressRows[] = app(CompanyProfileService::class)->emptyAddressRow();
         $this->addressRows[array_key_last($this->addressRows)]['is_primary'] = count($this->addressRows) === 1;
     }
 
     public function removeAddressRow(int $index): void
     {
+        $this->authorizeAny('settings.edit');
+
         if (count($this->addressRows) <= 1) {
             return;
         }
@@ -113,6 +126,7 @@ class Form extends Component
 
     public function enrichWithAi(): void
     {
+        $this->authorizeAny('settings.edit');
         $this->enriching = true;
         $this->ai_status = CategoryAiStatus::Pending->value;
         $this->statusMessage = null;
@@ -142,6 +156,7 @@ class Form extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeAny('settings.edit');
         $this->saving = true;
         $this->statusMessage = null;
         $this->dispatchBusyState();
@@ -189,7 +204,9 @@ class Form extends Component
     public function render(): View
     {
         return view('livewire.company-profile.form', [
-            'designations' => app(CompanyProfileService::class)->designationOptions(),
+            'designations' => $this->canAccessAny('settings.edit')
+                ? app(CompanyProfileService::class)->designationOptions()
+                : [],
             'storeFooterSettingsUrl' => FooterPage::getUrl(),
         ]);
     }

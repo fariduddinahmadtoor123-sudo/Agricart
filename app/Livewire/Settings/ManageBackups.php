@@ -129,11 +129,15 @@ class ManageBackups extends Component
             $this->restoreConfirm = '';
 
             $merged = (int) session()->pull('backup_restore_merged_logins', 0);
+            $replaced = (int) session()->pull('backup_restore_replaced_logins', 0);
             $clearedAi = (int) session()->pull('backup_restore_cleared_ai_keys', 0);
             $message = __('agricart.backups.messages.restored');
 
             if ($merged > 0) {
                 $message .= ' '.__('agricart.backups.messages.restored_logins_merged', ['count' => $merged]);
+            }
+            if ($replaced > 0) {
+                $message .= ' '.__('agricart.backups.messages.restored_logins_replaced', ['count' => $replaced]);
             }
 
             if ($clearedAi > 0) {

@@ -2,6 +2,8 @@
 
 namespace App\Livewire\Store;
 
+use App\Rules\SafeUrl;
+use App\Services\Media\OptimizedImageStorage;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
 use Livewire\WithFileUploads;
@@ -54,6 +56,10 @@ class HeaderSettings extends BaseStoreSettings
 
     public function mount(): void
     {
+        if (! $this->canManageStoreSettings()) {
+            return;
+        }
+
         $settings = $this->settings();
 
         $this->header_enabled = $settings->header_enabled;
@@ -82,6 +88,7 @@ class HeaderSettings extends BaseStoreSettings
 
     public function updatedLogoUpload(): void
     {
+        $this->authorizeStoreSettings();
         $this->validate([
             'logoUpload' => ['nullable', 'image', 'max:2048'],
         ]);
@@ -90,12 +97,8 @@ class HeaderSettings extends BaseStoreSettings
             return;
         }
 
-        $path = app(\App\Services\Media\OptimizedImageStorage::class)->store($this->logoUpload, 'store');
+        $path = app(OptimizedImageStorage::class)->store($this->logoUpload, 'store');
         $settings = $this->settings();
-
-        if (filled($settings->logo_path)) {
-            Storage::disk('public')->delete($settings->logo_path);
-        }
 
         $settings->update(['logo_path' => $path]);
         $this->logoPreviewUrl = Storage::disk('public')->url($path);
@@ -105,10 +108,10 @@ class HeaderSettings extends BaseStoreSettings
 
     public function removeLogo(): void
     {
+        $this->authorizeStoreSettings();
         $settings = $this->settings();
 
         if (filled($settings->logo_path)) {
-            Storage::disk('public')->delete($settings->logo_path);
             $settings->update(['logo_path' => null]);
         }
 
@@ -118,18 +121,19 @@ class HeaderSettings extends BaseStoreSettings
 
     public function save(): void
     {
+        $this->authorizeStoreSettings();
         $this->validate([
             'site_name_en' => ['nullable', 'string', 'max:255'],
             'site_name_ur' => ['nullable', 'string', 'max:255'],
             'search_placeholder_en' => ['nullable', 'string', 'max:255'],
             'search_placeholder_ur' => ['nullable', 'string', 'max:255'],
-            'social_facebook' => ['nullable', 'string', 'max:500'],
-            'social_instagram' => ['nullable', 'string', 'max:500'],
-            'social_whatsapp' => ['nullable', 'string', 'max:500'],
-            'social_youtube' => ['nullable', 'string', 'max:500'],
-            'social_twitter' => ['nullable', 'string', 'max:500'],
-            'login_url' => ['nullable', 'string', 'max:500'],
-            'register_url' => ['nullable', 'string', 'max:500'],
+            'social_facebook' => ['nullable', 'string', 'max:500', new SafeUrl(false, ['http', 'https'])],
+            'social_instagram' => ['nullable', 'string', 'max:500', new SafeUrl(false, ['http', 'https'])],
+            'social_whatsapp' => ['nullable', 'string', 'max:500', new SafeUrl(false, ['http', 'https'])],
+            'social_youtube' => ['nullable', 'string', 'max:500', new SafeUrl(false, ['http', 'https'])],
+            'social_twitter' => ['nullable', 'string', 'max:500', new SafeUrl(false, ['http', 'https'])],
+            'login_url' => ['nullable', 'string', 'max:500', new SafeUrl],
+            'register_url' => ['nullable', 'string', 'max:500', new SafeUrl],
             'whatsapp_number' => ['nullable', 'string', 'max:30'],
             'whatsapp_message_en' => ['nullable', 'string', 'max:500'],
             'whatsapp_message_ur' => ['nullable', 'string', 'max:500'],

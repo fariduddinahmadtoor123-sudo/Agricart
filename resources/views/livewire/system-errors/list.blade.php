@@ -61,6 +61,8 @@
                                 class="agricart-system-errors__row"
                                 role="button"
                                 tabindex="0"
+                                wire:keydown.enter="openFileEntry('{{ $entry['key'] }}')"
+                                wire:keydown.space.prevent="openFileEntry('{{ $entry['key'] }}')"
                             >
                                 <td>
                                     <span class="agricart-system-errors__severity is-{{ $entry['severity'] }}">
@@ -111,6 +113,8 @@
                             class="agricart-system-errors__row"
                             role="button"
                             tabindex="0"
+                            wire:keydown.enter="openError({{ $error->id }})"
+                            wire:keydown.space.prevent="openError({{ $error->id }})"
                         >
                             @if (in_array('reference', $visibleColumns, true))
                                 <td><code>{{ $error->reference }}</code></td>

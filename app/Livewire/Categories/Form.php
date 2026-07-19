@@ -3,15 +3,20 @@
 namespace App\Livewire\Categories;
 
 use App\Enums\CategoryAiStatus;
+use App\Filament\Forms\CategoryForm;
 use App\Models\Category;
 use App\Models\User;
 use App\Services\Catalog\CategoryEnrichmentService;
 use App\Services\Catalog\CategoryService;
 use App\Services\Catalog\CategoryVisualMappingService;
+use App\Services\Media\MediaLibraryService;
+use App\Services\Media\OptimizedImageStorage;
+use App\Support\FriendlyError;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -342,7 +347,7 @@ class Form extends Component
             $this->dispatch('category-form-scroll', step: 1);
         } catch (\Throwable $exception) {
             $this->ai_status = CategoryAiStatus::Failed->value;
-            $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
+            $this->setStatus(FriendlyError::message($exception), 'danger');
         } finally {
             $aiLock->release();
             $this->enriching = false;
@@ -385,32 +390,32 @@ class Form extends Component
         $canAccess = $this->canAccessCatalogForm();
 
         return view('livewire.categories.form', [
-            'sections' => \App\Filament\Forms\CategoryForm::sections(),
-            'detailSectionKeys' => \App\Filament\Forms\CategoryForm::detailSectionKeys(),
-            'scrollAnchors' => \App\Filament\Forms\CategoryForm::stepScrollAnchors(),
+            'sections' => CategoryForm::sections(),
+            'detailSectionKeys' => CategoryForm::detailSectionKeys(),
+            'scrollAnchors' => CategoryForm::stepScrollAnchors(),
             'filteredDisplayCategoryOptions' => $canAccess
-                ? \App\Filament\Forms\CategoryForm::searchCategoryLabels(
-                $this->display_category_search,
-                $this->categoryId,
-                array_merge($this->display_category_ids, [$this->categoryId]),
+                ? CategoryForm::searchCategoryLabels(
+                    $this->display_category_search,
+                    $this->categoryId,
+                    array_merge($this->display_category_ids, [$this->categoryId]),
                 )
                 : [],
             'filteredParentOptions' => $canAccess
-                ? \App\Filament\Forms\CategoryForm::searchCategoryLabels(
-                $this->parent_search,
-                $this->categoryId,
-                array_filter([$this->categoryId, $this->parent_id]),
+                ? CategoryForm::searchCategoryLabels(
+                    $this->parent_search,
+                    $this->categoryId,
+                    array_filter([$this->categoryId, $this->parent_id]),
                 )
                 : [],
             'selectedDisplayCategories' => $canAccess
-                ? \App\Filament\Forms\CategoryForm::categoryLabelsByIds($this->display_category_ids)
+                ? CategoryForm::categoryLabelsByIds($this->display_category_ids)
                 : collect(),
             'selectedParentLabel' => $canAccess
-                ? \App\Filament\Forms\CategoryForm::labelForId($this->parent_id)
+                ? CategoryForm::labelForId($this->parent_id)
                 : null,
             'hierarchySlotPreviews' => $canAccess ? $this->hierarchySlotPreviews() : [],
-            'statusOptions' => \App\Filament\Forms\CategoryForm::statusOptions(),
-            'aiStatusOptions' => \App\Filament\Forms\CategoryForm::aiStatusOptions(),
+            'statusOptions' => CategoryForm::statusOptions(),
+            'aiStatusOptions' => CategoryForm::aiStatusOptions(),
         ]);
     }
 
@@ -490,7 +495,7 @@ class Form extends Component
             $committed = true;
 
             if (filled($originalImagePath) && $originalImagePath !== $this->storedImagePath) {
-                Storage::disk('public')->delete($originalImagePath);
+                app(MediaLibraryService::class)->deleteFileIfUnused($originalImagePath);
             }
 
             $this->storedImagePath = $payload['image_path'] ?? $this->storedImagePath;
@@ -500,9 +505,9 @@ class Form extends Component
             $this->setStatus(__('agricart.categories.messages.saved'), 'success');
 
             return true;
-        } catch (\Illuminate\Validation\ValidationException $exception) {
+        } catch (ValidationException $exception) {
             if (! $committed && filled($newImagePath)) {
-                Storage::disk('public')->delete($newImagePath);
+                app(MediaLibraryService::class)->deleteFileIfUnused($newImagePath);
                 $this->restoreOriginalImage($originalImagePath);
             }
 
@@ -512,11 +517,11 @@ class Form extends Component
             return false;
         } catch (\Throwable $exception) {
             if (! $committed && filled($newImagePath)) {
-                Storage::disk('public')->delete($newImagePath);
+                app(MediaLibraryService::class)->deleteFileIfUnused($newImagePath);
                 $this->restoreOriginalImage($originalImagePath);
             }
 
-            $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
+            $this->setStatus(FriendlyError::message($exception), 'danger');
 
             return false;
         } finally {
@@ -600,7 +605,7 @@ class Form extends Component
             return null;
         }
 
-        $path = app(\App\Services\Media\OptimizedImageStorage::class)->store($this->imageUpload, 'categories');
+        $path = app(OptimizedImageStorage::class)->store($this->imageUpload, 'categories');
         $this->storedImagePath = $path;
         $this->imagePreviewUrl = Storage::disk('public')->url($path);
         $this->imageUpload = null;
@@ -680,8 +685,8 @@ class Form extends Component
             'seo_title', 'seo_description', 'seo_keywords', 'seo_focus_keyword',
             'customs_notes', 'import_notes', 'export_notes',
         ] as $base) {
-            $this->{$base . '_en'} = $category->{$base . '_en'} ?? '';
-            $this->{$base . '_ur'} = $category->{$base . '_ur'} ?? '';
+            $this->{$base.'_en'} = $category->{$base.'_en'} ?? '';
+            $this->{$base.'_ur'} = $category->{$base.'_ur'} ?? '';
         }
 
         $this->hs_code = $category->hs_code ?? '';

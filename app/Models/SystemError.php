@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Services\Notifications\TopbarNotificationService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class SystemError extends Model
 {
@@ -42,6 +44,9 @@ class SystemError extends Model
         'last_seen_at',
         'resolved_at',
         'resolved_by_id',
+        'resolution_type',
+        'resolution_note',
+        'verified_at',
     ];
 
     protected function casts(): array
@@ -51,7 +56,22 @@ class SystemError extends Model
             'first_seen_at' => 'datetime',
             'last_seen_at' => 'datetime',
             'resolved_at' => 'datetime',
+            'verified_at' => 'datetime',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saved(fn () => TopbarNotificationService::invalidateSystemErrors());
+        static::deleted(fn () => TopbarNotificationService::invalidateSystemErrors());
+    }
+
+    public function increment($column, $amount = 1, array $extra = []): int
+    {
+        $result = parent::increment($column, $amount, $extra);
+        TopbarNotificationService::invalidateSystemErrors();
+
+        return $result;
     }
 
     public function user(): BelongsTo
@@ -62,6 +82,11 @@ class SystemError extends Model
     public function resolvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'resolved_by_id');
+    }
+
+    public function reads(): HasMany
+    {
+        return $this->hasMany(SystemErrorRead::class);
     }
 
     public function isOpen(): bool

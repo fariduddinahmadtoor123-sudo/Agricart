@@ -21,6 +21,7 @@ class UserEnrichmentService
      */
     public function enrich(array $payload): array
     {
+        $payload = $this->minimizePayload($payload);
         $configuration = $this->ai->active();
 
         if ($configuration === null) {
@@ -48,12 +49,12 @@ class UserEnrichmentService
             'payload' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT),
         ])
             . "\n\nReturn ONLY valid JSON (no markdown) with keys: "
-            . 'name_en, name_ur, address_en, address_ur, phone_rows, bank_rows. '
-            . 'phone_rows is an array of objects with contact_person, contact_person_ur, phone_number. '
-            . 'bank_rows is an array of objects with bank_name, account_title, account_title_ur, account_number. '
+            . 'name_en, name_ur, phone_rows, bank_rows. '
+            . 'phone_rows is an array of objects with contact_person and contact_person_ur only. '
+            . 'bank_rows is an array of objects with bank_name, account_title, and account_title_ur only. '
             . 'Fill empty English from Urdu and empty Urdu from English. Keep every provided value unchanged. '
-            . 'Do not invent emails, phone numbers, IBANs, or bank names. '
-            . 'Use Pakistani staff / agriculture retail context. Roman Urdu is acceptable in English address fields when needed.';
+            . 'Do not return addresses, phone numbers, account numbers, emails, IBANs, or other identifiers. '
+            . 'Do not invent bank names. Use Pakistani staff / agriculture retail context.';
 
         $start = microtime(true);
         $result = $this->openRouter->sendChat(
@@ -83,7 +84,7 @@ class UserEnrichmentService
             ];
         }
 
-        $parsed = $this->mergeKnownValues($parsed, $payload);
+        $parsed = $this->minimizeResponse($this->mergeKnownValues($parsed, $payload));
         $parsed['ai_status'] = CategoryAiStatus::Enriched->value;
 
         return [
@@ -98,7 +99,7 @@ class UserEnrichmentService
      */
     private function hasTranslatableInput(array $payload): bool
     {
-        foreach (['name_en', 'name_ur', 'address_en', 'address_ur'] as $key) {
+        foreach (['name_en', 'name_ur'] as $key) {
             if (filled($payload[$key] ?? null)) {
                 return true;
             }
@@ -128,6 +129,41 @@ class UserEnrichmentService
     }
 
     /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function minimizePayload(array $payload): array
+    {
+        $result = [
+            'name_en' => (string) ($payload['name_en'] ?? ''),
+            'name_ur' => (string) ($payload['name_ur'] ?? ''),
+            'phone_rows' => [],
+            'bank_rows' => [],
+        ];
+
+        foreach ($payload['phone_rows'] ?? [] as $row) {
+            if (is_array($row)) {
+                $result['phone_rows'][] = [
+                    'contact_person' => (string) ($row['contact_person'] ?? ''),
+                    'contact_person_ur' => (string) ($row['contact_person_ur'] ?? ''),
+                ];
+            }
+        }
+
+        foreach ($payload['bank_rows'] ?? [] as $row) {
+            if (is_array($row)) {
+                $result['bank_rows'][] = [
+                    'bank_name' => (string) ($row['bank_name'] ?? ''),
+                    'account_title' => (string) ($row['account_title'] ?? ''),
+                    'account_title_ur' => (string) ($row['account_title_ur'] ?? ''),
+                ];
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * @param  array{success: bool, message: string, response: string|null, http_status?: int|null}  $result
      */
     private function logPrompt(AiConfiguration $configuration, string $prompt, array $result, int $durationMs): void
@@ -137,11 +173,12 @@ class UserEnrichmentService
             AiLogType::UserEnrichment,
             'user_form',
             $result['success'],
-            $prompt,
-            $result['response'],
+            null,
+            null,
             $result['success'] ? null : $result['message'],
             $result['http_status'] ?? null,
             $durationMs,
+            ['content_minimized' => true],
         );
     }
 
@@ -173,12 +210,47 @@ class UserEnrichmentService
      */
     private function mergeKnownValues(array $parsed, array $known): array
     {
-        foreach (['name_en', 'name_ur', 'address_en', 'address_ur'] as $key) {
+        foreach (['name_en', 'name_ur'] as $key) {
             if (filled($known[$key] ?? null)) {
                 $parsed[$key] = $known[$key];
             }
         }
 
         return $parsed;
+    }
+
+    /**
+     * @param  array<string, mixed>  $parsed
+     * @return array<string, mixed>
+     */
+    private function minimizeResponse(array $parsed): array
+    {
+        $result = [
+            'name_en' => $parsed['name_en'] ?? null,
+            'name_ur' => $parsed['name_ur'] ?? null,
+            'phone_rows' => [],
+            'bank_rows' => [],
+        ];
+
+        foreach ($parsed['phone_rows'] ?? [] as $row) {
+            if (is_array($row)) {
+                $result['phone_rows'][] = [
+                    'contact_person' => $row['contact_person'] ?? null,
+                    'contact_person_ur' => $row['contact_person_ur'] ?? null,
+                ];
+            }
+        }
+
+        foreach ($parsed['bank_rows'] ?? [] as $row) {
+            if (is_array($row)) {
+                $result['bank_rows'][] = [
+                    'bank_name' => $row['bank_name'] ?? null,
+                    'account_title' => $row['account_title'] ?? null,
+                    'account_title_ur' => $row['account_title_ur'] ?? null,
+                ];
+            }
+        }
+
+        return $result;
     }
 }

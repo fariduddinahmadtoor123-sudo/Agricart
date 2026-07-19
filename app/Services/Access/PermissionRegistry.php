@@ -105,6 +105,16 @@ class PermissionRegistry
             'label_ur' => 'پرنٹ پروفائلز کا انتظام',
         ];
         $groups['settings']['permissions'][] = [
+            'key' => 'settings.ai.manage',
+            'label_en' => 'Manage AI configuration',
+            'label_ur' => 'اے آئی کنفیگریشن کا انتظام',
+        ];
+        $groups['settings']['permissions'][] = [
+            'key' => 'settings.ai.logs.view',
+            'label_en' => 'View AI activity logs',
+            'label_ur' => 'اے آئی سرگرمی لاگز دیکھیں',
+        ];
+        $groups['settings']['permissions'][] = [
             'key' => 'settings.system-errors.view',
             'label_en' => 'View sanitized system errors',
             'label_ur' => 'محفوظ سسٹم ایررز دیکھیں',
@@ -113,6 +123,16 @@ class PermissionRegistry
             'key' => 'settings.system-errors.manage',
             'label_en' => 'Resolve and manage system errors',
             'label_ur' => 'سسٹم ایررز حل اور مینج کریں',
+        ];
+        $groups['settings']['permissions'][] = [
+            'key' => 'settings.media.view',
+            'label_en' => 'View media library',
+            'label_ur' => 'میڈیا لائبریری دیکھیں',
+        ];
+        $groups['settings']['permissions'][] = [
+            'key' => 'settings.media.manage',
+            'label_en' => 'Manage media library',
+            'label_ur' => 'میڈیا لائبریری مینج کریں',
         ];
 
         return $groups;

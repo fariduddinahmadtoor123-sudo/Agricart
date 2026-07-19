@@ -6,6 +6,7 @@ use App\Models\BankAccount;
 use App\Models\Expense;
 use App\Models\ExpensePayment;
 use App\Models\User;
+use App\Services\Identifiers\DocumentCounterService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -73,14 +74,10 @@ class ExpensePaymentService
 
     public function nextPaymentNumber(): string
     {
-        $next = (int) ExpensePayment::query()->max('id') + 1;
-
-        do {
-            $number = 'EXPAY-'.str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (ExpensePayment::query()->where('payment_number', $number)->exists());
-
-        return $number;
+        return app(DocumentCounterService::class)->next(
+            'expense_payments.payment_number', 'EXPAY-', 5,
+            fn (): int => DocumentCounterService::maximumSuffix('expense_payments', 'payment_number', 'EXPAY-'),
+        );
     }
 
     private function postLedger(ExpensePayment $payment, ?User $actor): void

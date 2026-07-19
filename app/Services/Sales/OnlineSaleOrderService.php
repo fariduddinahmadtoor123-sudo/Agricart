@@ -2,12 +2,15 @@
 
 namespace App\Services\Sales;
 
+use App\Jobs\SendOnlineOrderPlacedNotification;
 use App\Models\Customer;
 use App\Models\OnlineSaleOrder;
 use App\Models\OnlineSaleOrderItem;
 use App\Models\Product;
+use App\Models\Sale;
 use App\Models\User;
 use App\Services\Finance\BankAccountService;
+use App\Services\Identifiers\DocumentCounterService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -23,18 +26,12 @@ class OnlineSaleOrderService
 
     public function nextOrderNumber(): string
     {
-        $latest = OnlineSaleOrder::query()
-            ->where('order_number', 'like', 'WEB-%')
-            ->orderByDesc('id')
-            ->value('order_number');
-
-        $sequence = 1;
-
-        if (is_string($latest) && preg_match('/^WEB-(\d+)$/', $latest, $matches)) {
-            $sequence = (int) $matches[1] + 1;
-        }
-
-        return 'WEB-' . str_pad((string) $sequence, 5, '0', STR_PAD_LEFT);
+        return app(DocumentCounterService::class)->next(
+            'online_sale_orders.order_number',
+            'WEB-',
+            5,
+            fn (): int => DocumentCounterService::maximumSuffix('online_sale_orders', 'order_number', 'WEB-'),
+        );
     }
 
     /**
@@ -44,6 +41,7 @@ class OnlineSaleOrderService
     {
         $validated = validator($payload, [
             'customer_id' => ['required', 'integer', 'exists:customers,id'],
+            'checkout_token' => ['required', 'string', 'max:64'],
             'locale' => ['nullable', 'string', Rule::in(self::LOCALES)],
             'customer_payment_method' => ['nullable', 'string', Rule::in(SaleService::PAYMENT_METHODS)],
             'customer_payment_note' => ['nullable', 'string', 'max:2000'],
@@ -55,8 +53,8 @@ class OnlineSaleOrderService
             'ship_city' => ['nullable', 'string', 'max:128'],
             'rows' => ['required', 'array', 'min:1'],
             'rows.*.product_id' => ['required', 'integer', 'exists:products,id'],
-            'rows.*.quantity' => ['required', 'string'],
-            'rows.*.unit_price' => ['nullable', 'string'],
+            'rows.*.quantity' => ['required', 'numeric', 'gt:0'],
+            'rows.*.unit_price' => ['nullable', 'numeric', 'min:0'],
             'rows.*.price_tier_key' => ['nullable', 'string', 'max:32'],
         ])->validate();
 
@@ -69,6 +67,18 @@ class OnlineSaleOrderService
         }
 
         return DB::transaction(function () use ($validated, $rows): OnlineSaleOrder {
+            Customer::query()->lockForUpdate()->findOrFail((int) $validated['customer_id']);
+
+            $existing = OnlineSaleOrder::query()
+                ->where('customer_id', (int) $validated['customer_id'])
+                ->where('checkout_token', $validated['checkout_token'])
+                ->first();
+
+            if ($existing !== null) {
+                return $existing->load(['items', 'customer']);
+            }
+
+            $rows = $this->lockAndValidateCheckoutRows($rows);
             $subtotal = $this->subtotalFromRows($rows);
             $total = $subtotal;
             $paymentMethod = $validated['customer_payment_method'] ?? null;
@@ -78,6 +88,7 @@ class OnlineSaleOrderService
 
             $order = OnlineSaleOrder::query()->create([
                 'order_number' => $this->nextOrderNumber(),
+                'checkout_token' => $validated['checkout_token'],
                 'customer_id' => (int) $validated['customer_id'],
                 'order_date' => now()->toDateString(),
                 'locale' => $this->normalizeLocale((string) ($validated['locale'] ?? 'en')),
@@ -107,10 +118,71 @@ class OnlineSaleOrderService
 
             $order = $order->fresh(['items', 'customer']);
 
-            app(\App\Services\Store\OnlineStoreOrderNotifier::class)->orderPlaced($order);
+            SendOnlineOrderPlacedNotification::dispatch($order->id);
 
             return $order;
-        });
+        }, 5);
+    }
+
+    public function convertToSale(OnlineSaleOrder $order, User $actor): Sale
+    {
+        return DB::transaction(function () use ($order, $actor): Sale {
+            $order = OnlineSaleOrder::query()
+                ->with('items')
+                ->lockForUpdate()
+                ->findOrFail($order->id);
+
+            if ($order->sale_id !== null) {
+                return Sale::query()->findOrFail($order->sale_id);
+            }
+
+            if ($order->order_status === OnlineSaleOrder::STATUS_CANCELLED) {
+                throw ValidationException::withMessages([
+                    'order' => [__('online_sale_orders.validation.converted_locked')],
+                ]);
+            }
+
+            $productIds = $order->items->pluck('product_id')->filter()->map(fn ($id): int => (int) $id)->unique()->sort()->values();
+            Product::query()->whereIn('id', $productIds)->orderBy('id')->lockForUpdate()->get();
+
+            $sale = $this->saleService->complete([
+                'customer_id' => $order->customer_id,
+                'cashier_id' => $actor->id,
+                'sale_date' => now()->toDateString(),
+                'locale' => $order->locale,
+                'payment_status' => $order->payment_status,
+                'payment_method' => $order->payment_method ?: $order->customer_payment_method ?: 'cash',
+                'bank_account_id' => $order->bank_account_id,
+                'price_display' => 'plain',
+                'discount_type' => null,
+                'discount_value' => 0,
+                'amount_paid' => $order->amount_paid,
+                'print_controls' => false,
+                'notes' => 'Converted from online order '.$order->order_number,
+                'rows' => $order->items->map(fn (OnlineSaleOrderItem $item): array => [
+                    'product_id' => $item->product_id,
+                    'product_name_en' => $item->product_name_en,
+                    'product_name_ur' => $item->product_name_ur,
+                    'brand_name_en' => $item->brand_name_en,
+                    'brand_name_ur' => $item->brand_name_ur,
+                    'unit_label' => $item->unit_label,
+                    'image_path' => $item->image_path,
+                    'quantity' => $item->quantity,
+                    'unit_price' => $item->unit_price,
+                    'price_tier_key' => $item->price_tier_key,
+                    'line_total' => $item->line_total,
+                ])->all(),
+            ]);
+
+            $order->forceFill([
+                'sale_id' => $sale->id,
+                'order_status' => OnlineSaleOrder::STATUS_CONVERTED,
+                'converted_at' => now(),
+                'converted_by_id' => $actor->id,
+            ])->save();
+
+            return $sale;
+        }, 5);
     }
 
     /**
@@ -171,7 +243,7 @@ class OnlineSaleOrderService
         }
 
         if ($upload !== null) {
-            $path = $upload->store('online-orders/customer-receipts/' . $order->id, 'public');
+            $path = $upload->store('online-orders/customer-receipts/'.$order->id, 'local');
             $order->customer_bank_receipt_path = $path;
         }
 
@@ -184,33 +256,40 @@ class OnlineSaleOrderService
 
     public function verifyCustomerPaymentProof(OnlineSaleOrder $order, User $reviewer): OnlineSaleOrder
     {
-        if ($order->isLocked()) {
-            throw ValidationException::withMessages([
-                'order' => [__('online_sale_orders.validation.converted_locked')],
-            ]);
-        }
+        return DB::transaction(function () use ($order, $reviewer): OnlineSaleOrder {
+            $order = OnlineSaleOrder::query()->lockForUpdate()->findOrFail($order->id);
 
-        $order->customer_payment_proof_status = OnlineSaleOrder::PROOF_VERIFIED;
-        $order->payment_proof_rejection_note = null;
-        $order->payment_proof_reviewed_at = now();
-        $order->payment_proof_reviewed_by_id = $reviewer->id;
-        $order->payment_status = 'paid';
-        $order->amount_paid = $order->total_amount;
+            if ($order->customer_payment_proof_status === OnlineSaleOrder::PROOF_VERIFIED) {
+                return $order->fresh(['items', 'customer', 'paymentProofReviewedBy']);
+            }
 
-        if ($order->payment_method === '' || $order->payment_method === null) {
-            $order->payment_method = $order->customer_payment_method ?: 'bank_transfer';
-        }
+            if ($order->isLocked()) {
+                throw ValidationException::withMessages([
+                    'order' => [__('online_sale_orders.validation.converted_locked')],
+                ]);
+            }
 
-        if ($order->order_status === OnlineSaleOrder::STATUS_PENDING) {
-            $order->order_status = OnlineSaleOrder::STATUS_PAYMENT_RECEIVED;
-        }
+            $order->customer_payment_proof_status = OnlineSaleOrder::PROOF_VERIFIED;
+            $order->payment_proof_rejection_note = null;
+            $order->payment_proof_reviewed_at = now();
+            $order->payment_proof_reviewed_by_id = $reviewer->id;
+            $order->payment_status = 'paid';
+            $order->amount_paid = $order->total_amount;
 
-        $order->save();
+            if ($order->payment_method === '' || $order->payment_method === null) {
+                $order->payment_method = $order->customer_payment_method ?: 'bank_transfer';
+            }
 
-        app(OnlineOrderDispatchService::class)->enterDispatchQueueIfPaid($order->fresh());
-        app(BankAccountService::class)->recordOnlineOrderReceiptIfApplicable($order->fresh());
+            if ($order->order_status === OnlineSaleOrder::STATUS_PENDING) {
+                $order->order_status = OnlineSaleOrder::STATUS_PAYMENT_RECEIVED;
+            }
 
-        return $order->fresh(['items', 'customer', 'paymentProofReviewedBy']);
+            $order->save();
+            app(OnlineOrderDispatchService::class)->enterDispatchQueueIfPaid($order->fresh());
+            app(BankAccountService::class)->recordOnlineOrderReceiptIfApplicable($order->fresh());
+
+            return $order->fresh(['items', 'customer', 'paymentProofReviewedBy']);
+        });
     }
 
     public function rejectCustomerPaymentProof(OnlineSaleOrder $order, User $reviewer, ?string $note = null): OnlineSaleOrder
@@ -253,7 +332,7 @@ class OnlineSaleOrderService
                 'exists:bank_accounts,id',
                 Rule::requiredIf(($payload['payment_method'] ?? '') === 'bank_transfer'),
             ],
-            'amount_paid' => ['nullable', 'string'],
+            'amount_paid' => ['nullable', 'numeric', 'min:0'],
             'admin_notes' => ['nullable', 'string', 'max:5000'],
             'supplier_ids' => ['nullable', 'array'],
             'supplier_ids.*' => ['integer', 'exists:suppliers,id'],
@@ -369,7 +448,7 @@ class OnlineSaleOrderService
             'customer_payment_note' => (string) ($order->customer_payment_note ?? ''),
             'customer_payment_reference' => (string) ($order->customer_payment_reference ?? ''),
             'customer_payment_proof_status' => (string) ($order->customer_payment_proof_status ?? OnlineSaleOrder::PROOF_NONE),
-            'customer_bank_receipt_url' => $order->customerBankReceiptUrl(),
+            'customer_bank_receipt_url' => $order->adminPaymentProofUrl(),
             'payment_proof_rejection_note' => (string) ($order->payment_proof_rejection_note ?? ''),
             'payment_method' => (string) ($order->payment_method ?? ''),
             'bank_account_id' => $order->bank_account_id,
@@ -443,6 +522,53 @@ class OnlineSaleOrderService
         }
 
         return $normalized;
+    }
+
+    /**
+     * Checkout reserves no inventory. It locks and validates current stock;
+     * conversion to a completed Sale performs the single stock deduction.
+     *
+     * @param  list<array<string, mixed>>  $rows
+     * @return list<array<string, mixed>>
+     */
+    private function lockAndValidateCheckoutRows(array $rows): array
+    {
+        $quantities = [];
+
+        foreach ($rows as $row) {
+            $productId = (int) ($row['product_id'] ?? 0);
+            $quantities[$productId] = ($quantities[$productId] ?? 0.0)
+                + $this->saleService->numeric((string) ($row['quantity'] ?? '0'));
+        }
+
+        $products = Product::query()
+            ->whereIn('id', array_keys($quantities))
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('id');
+
+        foreach ($quantities as $productId => $quantity) {
+            $product = $products->get($productId);
+
+            if ($product === null || $product->status !== 'active') {
+                throw ValidationException::withMessages([
+                    'rows' => [__('agricart.storefront.cart.product_unavailable')],
+                ]);
+            }
+
+            if (! $this->saleService->allowsOverselling()
+                && $product->stock_qty !== null
+                && $quantity > (float) $product->stock_qty + 0.0001) {
+                throw ValidationException::withMessages([
+                    'rows' => [__('agricart.storefront.cart.insufficient_stock', [
+                        'available' => $this->saleService->formatQty((float) $product->stock_qty),
+                    ])],
+                ]);
+            }
+        }
+
+        return $rows;
     }
 
     /**

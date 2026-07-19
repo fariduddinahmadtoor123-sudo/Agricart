@@ -3,6 +3,7 @@
 namespace App\Livewire\Users;
 
 use App\Enums\CategoryAiStatus;
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Access\UserEnrichmentService;
@@ -19,7 +20,7 @@ use Livewire\WithFileUploads;
 
 class Form extends Component
 {
-    use WithFileUploads;
+    use AuthorizesSensitiveActions, WithFileUploads;
 
     public ?int $userId = null;
 
@@ -94,7 +95,9 @@ class Form extends Component
     #[On('user-form-open')]
     public function openForm(?int $userId = null, string $mode = 'create', string $formContext = 'settings'): void
     {
-        $this->formContext = $formContext === 'staff' ? 'staff' : 'settings';
+        $context = $formContext === 'staff' ? 'staff' : 'settings';
+        $this->authorizeUserForm($context, $userId);
+        $this->formContext = $context;
         $this->resetForm();
         $this->mode = $mode;
         $this->userId = $userId;
@@ -110,6 +113,8 @@ class Form extends Component
     #[On('user-form-action')]
     public function handlePanelAction(string $action): void
     {
+        $this->authorizeUserForm($this->formContext, $this->userId);
+
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'save_next' => $this->saveAndAddNext(),
@@ -120,11 +125,13 @@ class Form extends Component
 
     public function updated($property): void
     {
+        $this->authorizeUserForm($this->formContext, $this->userId);
+
         if ($this->suppressAiEnrich || $this->isReadonly() || $this->enriching) {
             return;
         }
 
-        if (preg_match('/^(name_ur|name|address_ur|address)$/', (string) $property)) {
+        if (preg_match('/^(name_ur|name)$/', (string) $property)) {
             $this->maybeAutoEnrichFromField();
 
             return;
@@ -138,6 +145,8 @@ class Form extends Component
 
     public function enrichWithAi(bool $fromAuto = false): void
     {
+        $this->authorizeUserForm($this->formContext, $this->userId);
+
         if ($this->isReadonly()) {
             return;
         }
@@ -191,10 +200,15 @@ class Form extends Component
         return [
             'name_en' => $this->name,
             'name_ur' => $this->name_ur,
-            'address_en' => $this->address,
-            'address_ur' => $this->address_ur,
-            'phone_rows' => $this->phoneRows,
-            'bank_rows' => $this->bankRows,
+            'phone_rows' => array_map(static fn (array $row): array => [
+                'contact_person' => (string) ($row['contact_person'] ?? ''),
+                'contact_person_ur' => (string) ($row['contact_person_ur'] ?? ''),
+            ], $this->phoneRows),
+            'bank_rows' => array_map(static fn (array $row): array => [
+                'bank_name' => (string) ($row['bank_name'] ?? ''),
+                'account_title' => (string) ($row['account_title'] ?? ''),
+                'account_title_ur' => (string) ($row['account_title_ur'] ?? ''),
+            ], $this->bankRows),
         ];
     }
 
@@ -287,6 +301,7 @@ class Form extends Component
 
     public function updatedProfilePhotoUpload(): void
     {
+        $this->authorizeUserForm($this->formContext, $this->userId);
         $this->validateOnly('profilePhotoUpload', [
             'profilePhotoUpload' => ['nullable', 'image', 'max:5120'],
         ]);
@@ -296,6 +311,7 @@ class Form extends Component
 
     public function updatedCnicFrontUpload(): void
     {
+        $this->authorizeUserForm($this->formContext, $this->userId);
         $this->validateOnly('cnicFrontUpload', [
             'cnicFrontUpload' => ['nullable', 'image', 'max:5120'],
         ]);
@@ -305,6 +321,7 @@ class Form extends Component
 
     public function updatedCnicBackUpload(): void
     {
+        $this->authorizeUserForm($this->formContext, $this->userId);
         $this->validateOnly('cnicBackUpload', [
             'cnicBackUpload' => ['nullable', 'image', 'max:5120'],
         ]);
@@ -314,6 +331,8 @@ class Form extends Component
 
     public function addPhoneRow(): void
     {
+        $this->authorizeUserForm($this->formContext, $this->userId);
+
         if ($this->isReadonly()) {
             return;
         }
@@ -323,6 +342,8 @@ class Form extends Component
 
     public function removePhoneRow(int $index): void
     {
+        $this->authorizeUserForm($this->formContext, $this->userId);
+
         if ($this->isReadonly() || count($this->phoneRows) <= 1) {
             return;
         }
@@ -333,6 +354,8 @@ class Form extends Component
 
     public function addBankRow(): void
     {
+        $this->authorizeUserForm($this->formContext, $this->userId);
+
         if ($this->isReadonly()) {
             return;
         }
@@ -343,6 +366,8 @@ class Form extends Component
 
     public function removeBankRow(int $index): void
     {
+        $this->authorizeUserForm($this->formContext, $this->userId);
+
         if ($this->isReadonly() || count($this->bankRows) <= 1) {
             return;
         }
@@ -355,6 +380,8 @@ class Form extends Component
 
     public function selectBank(int $index, string $bankName): void
     {
+        $this->authorizeUserForm($this->formContext, $this->userId);
+
         if ($this->isReadonly()) {
             return;
         }
@@ -365,6 +392,8 @@ class Form extends Component
 
     public function clearBank(int $index): void
     {
+        $this->authorizeUserForm($this->formContext, $this->userId);
+
         if ($this->isReadonly()) {
             return;
         }
@@ -375,6 +404,8 @@ class Form extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeUserForm($this->formContext, $this->userId);
+
         if ($this->persist()) {
             $this->dispatch('users-saved');
             $this->dispatch('staff-members-saved');
@@ -384,6 +415,8 @@ class Form extends Component
 
     public function saveAndAddNext(): void
     {
+        $this->authorizeUserForm($this->formContext, $this->userId);
+
         if ($this->persist()) {
             $this->dispatch('users-saved');
             $this->dispatch('staff-members-saved');
@@ -398,12 +431,15 @@ class Form extends Component
 
     public function render(): View
     {
+        $authorized = $this->canManageForm();
         $statuses = $this->formContext === 'staff'
             ? [User::STATUS_ACTIVE, User::STATUS_INACTIVE]
             : UserService::statuses();
 
         return view('livewire.users.form', [
-            'roleOptions' => Role::query()->orderBy('name')->pluck('name', 'id')->all(),
+            'roleOptions' => $authorized
+                ? Role::query()->orderBy('name')->pluck('name', 'id')->all()
+                : [],
             'statusOptions' => collect($statuses)
                 ->mapWithKeys(fn (string $status): array => [
                     $status => __("agricart.users.statuses.{$status}"),
@@ -441,17 +477,13 @@ class Form extends Component
 
     private function persist(): bool
     {
+        $this->authorizeUserForm($this->formContext, $this->userId);
+
         if ($this->isReadonly()) {
             return false;
         }
 
         $user = auth()->user();
-
-        if (! $user instanceof \App\Models\User || ! $this->canManageForm()) {
-            $this->setStatus(__('agricart.access.denied'), 'danger');
-
-            return false;
-        }
 
         $this->saving = true;
         $this->statusMessage = null;
@@ -707,6 +739,15 @@ class Form extends Component
         }
 
         return $user->hasPermission('settings.users.manage');
+    }
+
+    private function authorizeUserForm(string $context, ?int $userId): void
+    {
+        $permissions = $context === 'staff'
+            ? ($userId ? ['staff.edit'] : ['staff.create', 'staff.edit'])
+            : ['settings.users.manage'];
+
+        $this->authorizeAny($permissions);
     }
 
     private function assignDefaultRole(): void

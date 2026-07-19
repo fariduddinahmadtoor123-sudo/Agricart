@@ -2,14 +2,15 @@
 
 namespace App\Services\Catalog;
 
-use App\Models\Category;
 use App\Models\CatalogAttribute;
 use App\Models\CatalogControl;
+use App\Models\Category;
 use App\Models\PackingUnit;
 use App\Models\Product;
+use App\Services\Media\MediaLibraryService;
+use App\Services\Identifiers\DocumentCounterService;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -154,7 +155,7 @@ class ProductService
         $product->delete();
 
         foreach (array_unique($mediaPaths) as $path) {
-            Storage::disk('public')->delete($path);
+            app(MediaLibraryService::class)->deleteFileIfUnused($path);
         }
 
         CatalogCache::forgetOverviewStats();
@@ -172,7 +173,7 @@ class ProductService
         $counter = 1;
 
         while ($this->slugExists($slug, $exceptId)) {
-            $slug = $original . '-' . $counter;
+            $slug = $original.'-'.$counter;
             $counter++;
         }
 
@@ -181,14 +182,12 @@ class ProductService
 
     public function nextCode(): string
     {
-        $next = (int) Product::query()->max('id') + 1;
-
-        do {
-            $code = 'PRD-' . str_pad((string) $next, 6, '0', STR_PAD_LEFT);
-            $next++;
-        } while (Product::query()->where('code', $code)->exists());
-
-        return $code;
+        return app(DocumentCounterService::class)->next(
+            'products.code',
+            'PRD-',
+            6,
+            fn (): int => DocumentCounterService::maximumSuffix('products', 'code', 'PRD-'),
+        );
     }
 
     /**

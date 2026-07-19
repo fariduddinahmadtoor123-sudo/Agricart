@@ -3,6 +3,7 @@
 namespace App\Services\PricingControls;
 
 use App\Models\SecretCodingProfile;
+use App\Services\Identifiers\DocumentCounterService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
@@ -103,14 +104,10 @@ class SecretCodingService
 
     public function nextProfileNumber(): string
     {
-        $next = (int) SecretCodingProfile::query()->max('id') + 1;
-
-        do {
-            $number = 'SCP-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (SecretCodingProfile::query()->where('profile_number', $number)->exists());
-
-        return $number;
+        return app(DocumentCounterService::class)->next(
+            'secret_coding_profiles.profile_number', 'SCP-', 5,
+            fn (): int => DocumentCounterService::maximumSuffix('secret_coding_profiles', 'profile_number', 'SCP-'),
+        );
     }
 
     /**

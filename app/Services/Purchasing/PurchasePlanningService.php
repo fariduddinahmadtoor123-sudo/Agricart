@@ -5,6 +5,7 @@ namespace App\Services\Purchasing;
 use App\Models\Product;
 use App\Models\PurchasePlanningItem;
 use App\Models\PurchasePlanningSheet;
+use App\Services\Identifiers\DocumentCounterService;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -58,14 +59,12 @@ class PurchasePlanningService
 
     public function nextPlanningNumber(): string
     {
-        $next = (int) PurchasePlanningSheet::query()->max('id') + 1;
-
-        do {
-            $number = 'PLN-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (PurchasePlanningSheet::query()->where('planning_number', $number)->exists());
-
-        return $number;
+        return app(DocumentCounterService::class)->next(
+            'purchase_planning_sheets.planning_number',
+            'PLN-',
+            5,
+            fn (): int => DocumentCounterService::maximumSuffix('purchase_planning_sheets', 'planning_number', 'PLN-'),
+        );
     }
 
     /**

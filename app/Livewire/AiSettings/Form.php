@@ -3,6 +3,7 @@
 namespace App\Livewire\AiSettings;
 
 use App\Enums\AiProvider;
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Services\Ai\AiConfigurationService;
 use App\Services\Ai\AiProviderRegistry;
 use Illuminate\Contracts\View\View;
@@ -11,6 +12,8 @@ use Livewire\Component;
 
 class Form extends Component
 {
+    use AuthorizesSensitiveActions;
+
     public string $provider = 'openrouter';
 
     public string $apiKey = '';
@@ -38,6 +41,10 @@ class Form extends Component
 
     public function mount(AiProviderRegistry $registry): void
     {
+        if (! $this->canAccessAny('settings.ai.manage')) {
+            return;
+        }
+
         $enabled = collect($registry->providerOptions())
             ->first(fn (array $option): bool => $option['enabled']);
 
@@ -46,16 +53,20 @@ class Form extends Component
 
     public function updatedProvider(): void
     {
+        $this->authorizeAny('settings.ai.manage');
         $this->resetModelState();
     }
 
     public function updatedApiKey(): void
     {
+        $this->authorizeAny('settings.ai.manage');
         $this->resetModelState();
     }
 
     public function loadModels(AiProviderRegistry $registry): void
     {
+        $this->authorizeAny('settings.ai.manage');
+
         $this->validate([
             'provider' => ['required', Rule::enum(AiProvider::class)],
             'apiKey' => ['required', 'string', 'min:8'],
@@ -93,6 +104,8 @@ class Form extends Component
 
     public function selectModel(string $modelId): void
     {
+        $this->authorizeAny('settings.ai.manage');
+
         $model = collect($this->models)->firstWhere('id', $modelId);
 
         if ($model === null) {
@@ -107,6 +120,8 @@ class Form extends Component
 
     public function testConnection(AiConfigurationService $service): void
     {
+        $this->authorizeAny('settings.ai.manage');
+
         if (! $this->validateBeforeSave()) {
             return;
         }
@@ -132,6 +147,8 @@ class Form extends Component
 
     public function saveAndClose(AiConfigurationService $service): void
     {
+        $this->authorizeAny('settings.ai.manage');
+
         if (! $this->validateBeforeSave()) {
             return;
         }
@@ -176,7 +193,9 @@ class Form extends Component
     public function render(AiProviderRegistry $registry): View
     {
         return view('livewire.ai-settings.form', [
-            'providerOptions' => $registry->providerOptions(),
+            'providerOptions' => $this->canAccessAny('settings.ai.manage')
+                ? $registry->providerOptions()
+                : [],
         ]);
     }
 

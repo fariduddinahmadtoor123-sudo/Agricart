@@ -27,6 +27,12 @@ class SystemErrorReportFormatter
             'Last seen: '.($error->last_seen_at?->toIso8601String() ?: 'unknown'),
         ];
 
+        if ($error->status === SystemError::STATUS_RESOLVED) {
+            $lines[] = 'Resolution type: '.($error->resolution_type ?: 'unknown');
+            $lines[] = 'Resolution: '.($error->resolution_note ?: 'No resolution note recorded.');
+            $lines[] = 'Verified at: '.($error->verified_at?->toIso8601String() ?: 'unknown');
+        }
+
         if (filled($error->context)) {
             $lines[] = 'Context: '.json_encode($error->context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         }

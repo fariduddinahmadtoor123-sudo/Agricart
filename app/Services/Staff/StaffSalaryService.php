@@ -32,14 +32,18 @@ class StaffSalaryService
             ->latest('effective_from');
     }
 
-    public function currentForUser(User $member): ?StaffSalaryAssignment
+    public function currentForUser(User $member, Carbon|string|null $asOf = null): ?StaffSalaryAssignment
     {
+        $date = $asOf instanceof Carbon
+            ? $asOf->toDateString()
+            : ($asOf !== null ? Carbon::parse($asOf)->toDateString() : now()->toDateString());
+
         return StaffSalaryAssignment::query()
             ->where('user_id', $member->id)
-            ->where('effective_from', '<=', now()->toDateString())
-            ->where(function (Builder $query): void {
+            ->where('effective_from', '<=', $date)
+            ->where(function (Builder $query) use ($date): void {
                 $query->whereNull('effective_to')
-                    ->orWhere('effective_to', '>=', now()->toDateString());
+                    ->orWhere('effective_to', '>=', $date);
             })
             ->orderByDesc('effective_from')
             ->first();
@@ -74,21 +78,31 @@ class StaffSalaryService
         }
 
         return DB::transaction(function () use ($member, $data, $actor, $effectiveFrom, $gross): StaffSalaryAssignment {
-            $previous = $this->currentForUser($member);
+            User::query()->whereKey($member->id)->lockForUpdate()->firstOrFail();
+            $timeline = StaffSalaryAssignment::query()
+                ->where('user_id', $member->id)
+                ->orderBy('effective_from')
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+            $futureExists = $timeline->contains(
+                fn (StaffSalaryAssignment $row): bool => $row->effective_from->gte($effectiveFrom),
+            );
 
-            if ($previous !== null && $previous->effective_from->gte($effectiveFrom)) {
+            if ($futureExists) {
                 throw ValidationException::withMessages([
                     'effective_from' => [__('agricart.staff.pay_management.messages.effective_after_previous')],
                 ]);
             }
 
+            $previous = $timeline->last();
             if ($previous !== null) {
                 $previous->update([
                     'effective_to' => $effectiveFrom->copy()->subDay()->toDateString(),
                 ]);
             }
 
-            return StaffSalaryAssignment::query()->create([
+            $created = StaffSalaryAssignment::query()->create([
                 'user_id' => $member->id,
                 'monthly_gross' => $gross,
                 'currency' => $data['currency'] ?? 'PKR',
@@ -97,6 +111,12 @@ class StaffSalaryService
                 'notes' => filled($data['notes'] ?? null) ? trim((string) $data['notes']) : null,
                 'created_by' => $actor->id,
             ]);
+
+            $this->assertValidTimeline(
+                StaffSalaryAssignment::query()->where('user_id', $member->id)->orderBy('effective_from')->get(),
+            );
+
+            return $created;
         });
     }
 
@@ -123,12 +143,64 @@ class StaffSalaryService
 
         $effectiveFrom = Carbon::parse($data['effective_from'])->startOfDay();
 
-        $assignment->update([
-            'monthly_gross' => $gross,
-            'effective_from' => $effectiveFrom->toDateString(),
-            'notes' => filled($data['notes'] ?? null) ? trim((string) $data['notes']) : null,
-        ]);
+        return DB::transaction(function () use ($assignment, $gross, $effectiveFrom, $data): StaffSalaryAssignment {
+            User::query()->whereKey($assignment->user_id)->lockForUpdate()->firstOrFail();
+            $timeline = StaffSalaryAssignment::query()
+                ->where('user_id', $assignment->user_id)
+                ->orderBy('effective_from')
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get();
+            $locked = $timeline->firstWhere('id', $assignment->id);
 
-        return $assignment->fresh(['user.role']);
+            if (! $locked instanceof StaffSalaryAssignment) {
+                abort(404);
+            }
+
+            $locked->forceFill([
+                'monthly_gross' => $gross,
+                'effective_from' => $effectiveFrom->toDateString(),
+                'notes' => filled($data['notes'] ?? null) ? trim((string) $data['notes']) : null,
+            ]);
+            $this->assertValidTimeline($timeline);
+            $locked->save();
+
+            return $locked->fresh(['user.role']);
+        });
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, StaffSalaryAssignment>  $timeline
+     */
+    private function assertValidTimeline(\Illuminate\Support\Collection $timeline): void
+    {
+        $previousEnd = null;
+        $index = 0;
+
+        foreach ($timeline->sortBy(fn (StaffSalaryAssignment $row): string => $row->effective_from->format('Y-m-d').str_pad((string) $row->id, 20, '0', STR_PAD_LEFT))->values() as $row) {
+            $from = $row->effective_from->copy()->startOfDay();
+            $to = $row->effective_to?->copy()->startOfDay();
+
+            if ($to !== null && $to->lt($from)) {
+                throw ValidationException::withMessages([
+                    'effective_from' => [__('agricart.staff.pay_management.messages.effective_after_previous')],
+                ]);
+            }
+
+            if ($index > 0 && $previousEnd === null) {
+                throw ValidationException::withMessages([
+                    'effective_from' => [__('agricart.staff.pay_management.messages.effective_after_previous')],
+                ]);
+            }
+
+            if ($previousEnd instanceof Carbon && $from->lte($previousEnd)) {
+                throw ValidationException::withMessages([
+                    'effective_from' => [__('agricart.staff.pay_management.messages.effective_after_previous')],
+                ]);
+            }
+
+            $previousEnd = $to;
+            $index++;
+        }
     }
 }

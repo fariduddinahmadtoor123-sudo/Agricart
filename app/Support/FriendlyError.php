@@ -25,16 +25,16 @@ class FriendlyError
             }
         }
 
-        report($exception);
-
         $raw = $exception->getMessage();
-
-        if ($exception instanceof DecryptException || self::contains($raw, ['MAC is invalid', 'payload is invalid', 'Unable to decrypt'])) {
-            return __('agricart.errors.decrypt');
-        }
 
         if ($exception instanceof ConnectionException || self::contains($raw, ['cURL error', 'Could not resolve host', 'Connection refused', 'Connection timed out', 'timed out', 'SSL certificate'])) {
             return __('agricart.errors.connection');
+        }
+
+        report($exception);
+
+        if ($exception instanceof DecryptException || self::contains($raw, ['MAC is invalid', 'payload is invalid', 'Unable to decrypt'])) {
+            return __('agricart.errors.decrypt');
         }
 
         if ($exception instanceof QueryException || self::contains($raw, ['SQLSTATE'])) {

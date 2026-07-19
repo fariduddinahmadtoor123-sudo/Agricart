@@ -1,6 +1,51 @@
 @extends('store.layouts.app')
 
-@section('title', $productService->localizedName($product) . ' — ' . ($settings->localized('site_name') ?? config('app.name')))
+@php
+    $productName = $productService->localizedName($product);
+    $productSeoTitle = $productService->localizedField($product, 'seo_title') ?: $productName;
+    $productSeoDescription = $productService->localizedField($product, 'seo_description')
+        ?: $productService->localizedField($product, 'short_description')
+        ?: $productName;
+    $productSchema = [
+        '@context' => 'https://schema.org',
+        '@graph' => [
+            [
+                '@type' => 'Product',
+                'name' => $productName,
+                'description' => strip_tags($productSeoDescription),
+                'sku' => $product->sku ?: $product->code,
+                'image' => $imageUrls,
+                'brand' => $product->brand ? ['@type' => 'Brand', 'name' => $productService->localizedBrandName($product)] : null,
+                'offers' => $buyPrice ? [
+                    '@type' => 'Offer',
+                    'url' => route('store.product', $product->slug),
+                    'priceCurrency' => 'PKR',
+                    'price' => $buyPrice['price'] ?? $buyPrice['formatted'],
+                    'availability' => (float) ($product->stock_qty ?? 0) > 0
+                        ? 'https://schema.org/InStock'
+                        : 'https://schema.org/OutOfStock',
+                ] : null,
+            ],
+            [
+                '@type' => 'BreadcrumbList',
+                'itemListElement' => array_values(array_filter([
+                    ['@type' => 'ListItem', 'position' => 1, 'name' => __('agricart.storefront.category.home'), 'item' => route('store.home')],
+                    $product->category ? ['@type' => 'ListItem', 'position' => 2, 'name' => $categoryService->localizedName($product->category), 'item' => route('store.category', $product->category->slug)] : null,
+                    ['@type' => 'ListItem', 'position' => $product->category ? 3 : 2, 'name' => $productName, 'item' => route('store.product', $product->slug)],
+                ])),
+            ],
+        ],
+    ];
+@endphp
+
+@section('title', $productSeoTitle . ' — ' . ($settings->localized('site_name') ?? config('app.name')))
+@section('seo_description', strip_tags($productSeoDescription))
+@section('canonical', route('store.product', $product->slug))
+@section('seo_type', 'product')
+@if ($imageUrls !== []) @section('seo_image', $imageUrls[0]) @endif
+@push('structured-data')
+    <script type="application/ld+json">{!! json_encode($productSchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
+@endpush
 
 @section('content')
     <nav class="ag-store-breadcrumb ag-store-breadcrumb--compact" aria-label="{{ __('agricart.storefront.category.breadcrumb') }}">
@@ -38,7 +83,7 @@
             </div>
 
             <div class="ag-store-pdp__side-panel ag-store-pdp__buy-card">
-                <h1 class="ag-store-pdp__title">{{ $productService->localizedName($product) }}</h1>
+                <h1 class="ag-store-pdp__title">{{ $productName }}</h1>
 
                 @if (! $isActive)
                     <p class="ag-store-pdp__status ag-store-pdp__status--deactivated">

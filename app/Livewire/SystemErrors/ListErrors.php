@@ -4,6 +4,7 @@ namespace App\Livewire\SystemErrors;
 
 use App\Livewire\SystemErrors\Concerns\AuthorizesSystemErrors;
 use App\Models\SystemError;
+use App\Services\SystemErrors\SystemErrorReadService;
 use App\Services\SystemErrors\SystemLogFileReader;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
@@ -37,10 +38,12 @@ class ListErrors extends Component
 
     public bool $canManage = false;
 
-    public function mount(): void
+    public function mount(SystemErrorReadService $reads): void
     {
         $user = $this->authorizeSystemErrorView();
         $this->canManage = $user->isSuperAdmin() || $user->hasPermission('settings.system-errors.manage');
+        $reads->markCurrentCriticalErrorsRead($user);
+        $this->dispatch('topbar-notifications-refresh');
         $this->syncColumnCheckboxes();
     }
 

@@ -10,15 +10,19 @@ use App\Models\CatalogControl;
 use App\Models\Category;
 use App\Models\PackingUnit;
 use App\Models\Product;
+use App\Models\Unit;
 use App\Models\User;
+use App\Services\Catalog\CategoryVisualMappingService;
 use App\Services\Catalog\ProductEnrichmentService;
 use App\Services\Catalog\ProductService;
-use App\Services\Catalog\CategoryVisualMappingService;
+use App\Services\Media\MediaLibraryService;
+use App\Services\Media\OptimizedImageStorage;
 use App\Services\PricingControls\QuantityPricingEngine;
-use App\Models\Unit;
+use App\Support\FriendlyError;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Livewire\WithFileUploads;
@@ -241,7 +245,7 @@ class Form extends Component
             $this->validate([
                 'imageUpload' => ['required', 'image', 'max:5120'],
             ]);
-        } catch (\Illuminate\Validation\ValidationException $exception) {
+        } catch (ValidationException $exception) {
             $message = collect($exception->errors())->flatten()->first();
             $this->setStatus($message ?: __('agricart.products.messages.image_invalid'), 'danger');
             $this->imageUpload = null;
@@ -293,7 +297,7 @@ class Form extends Component
             $this->validate([
                 "galleryUploads.{$index}" => ['required', 'image', 'max:5120'],
             ]);
-        } catch (\Illuminate\Validation\ValidationException $exception) {
+        } catch (ValidationException $exception) {
             $message = collect($exception->errors())->flatten()->first();
             $this->setStatus($message ?: __('agricart.products.messages.image_invalid'), 'danger');
             $this->galleryUploads[$index] = null;
@@ -601,7 +605,7 @@ class Form extends Component
             $this->dispatch('product-form-scroll', step: 1);
         } catch (\Throwable $exception) {
             $this->ai_status = CategoryAiStatus::Failed->value;
-            $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
+            $this->setStatus(FriendlyError::message($exception), 'danger');
         } finally {
             $this->enriching = false;
             $this->dispatchBusyState();
@@ -680,7 +684,7 @@ class Form extends Component
             return null;
         }
 
-        return $mapCode . '-P?';
+        return $mapCode.'-P?';
     }
 
     private function categoryVisualMapCode(): ?string
@@ -785,7 +789,7 @@ class Form extends Component
             $this->setStatus(__('agricart.products.messages.saved'), 'success');
 
             return true;
-        } catch (\Illuminate\Validation\ValidationException $exception) {
+        } catch (ValidationException $exception) {
             if (! $committed) {
                 $this->deleteStoredPaths($newlyStoredPaths);
                 $this->restoreOriginalMedia($originalImagePath, $originalGalleryPaths);
@@ -801,7 +805,7 @@ class Form extends Component
                 $this->restoreOriginalMedia($originalImagePath, $originalGalleryPaths);
             }
 
-            $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
+            $this->setStatus(FriendlyError::message($exception), 'danger');
 
             return false;
         } finally {
@@ -911,7 +915,7 @@ class Form extends Component
             return null;
         }
 
-        $path = app(\App\Services\Media\OptimizedImageStorage::class)->store($this->imageUpload, 'products');
+        $path = app(OptimizedImageStorage::class)->store($this->imageUpload, 'products');
         $this->storedImagePath = $path;
         $this->imagePreviewUrl = Storage::disk('public')->url($path);
         $this->imageUpload = null;
@@ -931,7 +935,7 @@ class Form extends Component
                 continue;
             }
 
-            $path = app(\App\Services\Media\OptimizedImageStorage::class)->store($upload, 'products/gallery');
+            $path = app(OptimizedImageStorage::class)->store($upload, 'products/gallery');
             $this->storedGalleryPaths[$index] = $path;
             $this->galleryPreviewUrls[$index] = Storage::disk('public')->url($path);
             $this->galleryUploads[$index] = null;
@@ -968,7 +972,7 @@ class Form extends Component
     {
         foreach (array_unique($paths) as $path) {
             if (filled($path)) {
-                Storage::disk('public')->delete($path);
+                app(MediaLibraryService::class)->deleteFileIfUnused($path);
             }
         }
     }
@@ -1265,7 +1269,7 @@ class Form extends Component
             return [];
         }
 
-        $needle = '%' . $term . '%';
+        $needle = '%'.$term.'%';
 
         return Brand::query()
             ->when($this->brand_id, fn ($query) => $query->where('id', '!=', $this->brand_id))
@@ -1278,7 +1282,7 @@ class Form extends Component
             ->limit(20)
             ->get()
             ->mapWithKeys(fn (Brand $brand): array => [
-                $brand->id => $brand->name_en . ($brand->name_ur ? ' — ' . $brand->name_ur : ''),
+                $brand->id => $brand->name_en.($brand->name_ur ? ' — '.$brand->name_ur : ''),
             ])
             ->all();
     }
@@ -1326,7 +1330,7 @@ class Form extends Component
                 continue;
             }
 
-            $labels[$index] = $attribute->name_en . ($attribute->name_ur ? ' — ' . $attribute->name_ur : '');
+            $labels[$index] = $attribute->name_en.($attribute->name_ur ? ' — '.$attribute->name_ur : '');
         }
 
         return $labels;
@@ -1355,7 +1359,7 @@ class Form extends Component
                 ->map(fn ($id): int => (int) $id)
                 ->all();
 
-            $needle = '%' . $term . '%';
+            $needle = '%'.$term.'%';
 
             $optionsByRow[$index] = CatalogAttribute::query()
                 ->when($usedElsewhere !== [], fn ($query) => $query->whereNotIn('id', $usedElsewhere))
@@ -1369,7 +1373,7 @@ class Form extends Component
                 ->limit(20)
                 ->get()
                 ->mapWithKeys(fn (CatalogAttribute $attribute): array => [
-                    $attribute->id => $attribute->name_en . ($attribute->name_ur ? ' — ' . $attribute->name_ur : ''),
+                    $attribute->id => $attribute->name_en.($attribute->name_ur ? ' — '.$attribute->name_ur : ''),
                 ])
                 ->all();
         }
@@ -1399,7 +1403,7 @@ class Form extends Component
             return [];
         }
 
-        $needle = '%' . $term . '%';
+        $needle = '%'.$term.'%';
 
         return Unit::query()
             ->when($this->unit_id, fn ($query) => $query->where('id', '!=', $this->unit_id))
@@ -1414,7 +1418,7 @@ class Form extends Component
             ->limit(20)
             ->get()
             ->mapWithKeys(fn (Unit $unit): array => [
-                $unit->id => $unit->name_en . ($unit->abbreviation_en ? ' (' . $unit->abbreviation_en . ')' : ''),
+                $unit->id => $unit->name_en.($unit->abbreviation_en ? ' ('.$unit->abbreviation_en.')' : ''),
             ])
             ->all();
     }
@@ -1430,7 +1434,7 @@ class Form extends Component
             return [];
         }
 
-        $needle = '%' . $term . '%';
+        $needle = '%'.$term.'%';
 
         return PackingUnit::query()
             ->when($this->pack_unit_id, fn ($query) => $query->where('id', '!=', $this->pack_unit_id))
@@ -1443,7 +1447,7 @@ class Form extends Component
             ->limit(20)
             ->get()
             ->mapWithKeys(fn (PackingUnit $packingUnit): array => [
-                $packingUnit->id => $packingUnit->name_en . ($packingUnit->name_ur ? ' — ' . $packingUnit->name_ur : ''),
+                $packingUnit->id => $packingUnit->name_en.($packingUnit->name_ur ? ' — '.$packingUnit->name_ur : ''),
             ])
             ->all();
     }
@@ -1481,7 +1485,7 @@ class Form extends Component
             return [];
         }
 
-        $needle = '%' . $term . '%';
+        $needle = '%'.$term.'%';
         $exclude = collect($this->selectedControls)->pluck('id')->all();
 
         return CatalogControl::query()

@@ -2,16 +2,18 @@
 
 namespace App\Livewire\SecretCodings;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\SecretCodingProfile;
 use App\Services\PricingControls\SecretCodingService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class ListSecretCodings extends Component
 {
-    use WithPagination;
+    use AuthorizesSensitiveActions, WithPagination;
 
     /** @var list<string> */
     public array $visibleColumns = ['profile_number', 'name_en', 'name_ur', 'digit_mapping', 'status'];
@@ -23,12 +25,14 @@ class ListSecretCodings extends Component
     #[On('secret-codings-saved')]
     public function refreshList(): void
     {
+        $this->authorizeAny(['marketplace.view', 'marketplace.edit']);
         $this->resetPage();
     }
 
     #[On('secret-codings-search')]
     public function updateSearch(string $query): void
     {
+        $this->authorizeAny(['marketplace.view', 'marketplace.edit']);
         $this->search = $query;
         $this->resetPage();
     }
@@ -36,6 +40,8 @@ class ListSecretCodings extends Component
     #[On('secret-codings-filter')]
     public function applyFilter(string $filter): void
     {
+        $this->authorizeAny(['marketplace.view', 'marketplace.edit']);
+
         if (! str_contains($filter, ':')) {
             return;
         }
@@ -51,6 +57,7 @@ class ListSecretCodings extends Component
     #[On('secret-codings-clear-filters')]
     public function clearFilters(): void
     {
+        $this->authorizeAny(['marketplace.view', 'marketplace.edit']);
         $this->statusFilter = '';
         $this->resetPage();
     }
@@ -58,6 +65,8 @@ class ListSecretCodings extends Component
     #[On('secret-codings-column-toggle')]
     public function toggleColumn(string $column, bool $visible): void
     {
+        $this->authorizeAny(['marketplace.view', 'marketplace.edit']);
+
         if ($visible && ! in_array($column, $this->visibleColumns, true)) {
             $this->visibleColumns[] = $column;
         }
@@ -78,6 +87,7 @@ class ListSecretCodings extends Component
 
     public function openEdit(int $recordId): void
     {
+        $this->authorizeAny('marketplace.edit');
         $record = SecretCodingProfile::query()->find($recordId);
 
         if ($record === null) {
@@ -96,6 +106,13 @@ class ListSecretCodings extends Component
 
     public function render(): View
     {
+        if (! $this->canAccessAny(['marketplace.view', 'marketplace.edit'])) {
+            return view('livewire.secret-codings.list', [
+                'records' => new LengthAwarePaginator([], 0, 15),
+                'mappingService' => app(SecretCodingService::class),
+            ]);
+        }
+
         app(SecretCodingService::class)->ensureDefaultProfile();
 
         $service = app(SecretCodingService::class);

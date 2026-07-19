@@ -15,6 +15,7 @@ class BackupService
 
     public function __construct(
         private readonly DatabaseDumper $databaseDumper,
+        private readonly BackupArchive $archive,
     ) {}
 
     public function create(string $type): BackupEntry
@@ -382,56 +383,7 @@ class BackupService
      */
     private function validateBackupZip(string $path): array
     {
-        $zip = new ZipArchive;
-
-        if ($zip->open($path) !== true) {
-            throw ValidationException::withMessages([
-                'uploadFile' => __('agricart.backups.messages.invalid_archive'),
-            ]);
-        }
-
-        $manifestRaw = $zip->getFromName('manifest.json');
-
-        if (! is_string($manifestRaw)) {
-            $zip->close();
-
-            throw ValidationException::withMessages([
-                'uploadFile' => __('agricart.backups.messages.invalid_manifest'),
-            ]);
-        }
-
-        $manifest = json_decode($manifestRaw, true);
-
-        if (! is_array($manifest)) {
-            $zip->close();
-
-            throw ValidationException::withMessages([
-                'uploadFile' => __('agricart.backups.messages.invalid_manifest'),
-            ]);
-        }
-
-        $type = (string) ($manifest['type'] ?? '');
-
-        if (! in_array($type, [self::TYPE_FULL, self::TYPE_DATABASE], true)) {
-            $zip->close();
-
-            throw ValidationException::withMessages([
-                'uploadFile' => __('agricart.backups.messages.invalid_type'),
-            ]);
-        }
-
-        $hasDatabase = $zip->locateName('database.sql') !== false
-            || $zip->locateName('database.sqlite') !== false;
-
-        $zip->close();
-
-        if (! $hasDatabase) {
-            throw ValidationException::withMessages([
-                'uploadFile' => __('agricart.backups.messages.database_missing'),
-            ]);
-        }
-
-        return $manifest;
+        return $this->archive->inspect($path)['manifest'];
     }
 
     /**

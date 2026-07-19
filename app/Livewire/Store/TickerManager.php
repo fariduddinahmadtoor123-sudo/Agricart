@@ -3,6 +3,7 @@
 namespace App\Livewire\Store;
 
 use App\Models\StoreTickerMessage;
+use App\Rules\SafeUrl;
 use Illuminate\Contracts\View\View;
 
 class TickerManager extends BaseStoreSettings
@@ -21,6 +22,10 @@ class TickerManager extends BaseStoreSettings
 
     public function mount(): void
     {
+        if (! $this->canManageStoreSettings()) {
+            return;
+        }
+
         $settings = $this->settings();
         $this->ticker_enabled = $settings->ticker_enabled;
         $this->ticker_speed = $settings->ticker_speed;
@@ -28,6 +33,7 @@ class TickerManager extends BaseStoreSettings
 
     public function saveSettings(): void
     {
+        $this->authorizeStoreSettings();
         $this->validate([
             'ticker_speed' => ['required', 'integer', 'min:10', 'max:100'],
         ]);
@@ -44,10 +50,11 @@ class TickerManager extends BaseStoreSettings
 
     public function saveMessage(): void
     {
+        $this->authorizeStoreSettings();
         $this->validate([
             'text_en' => ['required', 'string', 'max:500'],
             'text_ur' => ['nullable', 'string', 'max:500'],
-            'link' => ['nullable', 'string', 'max:500'],
+            'link' => ['nullable', 'string', 'max:500', new SafeUrl],
         ]);
 
         $payload = [
@@ -73,6 +80,7 @@ class TickerManager extends BaseStoreSettings
 
     public function editMessage(int $id): void
     {
+        $this->authorizeStoreSettings();
         $message = StoreTickerMessage::query()->findOrFail($id);
 
         $this->editingId = $message->id;
@@ -83,6 +91,7 @@ class TickerManager extends BaseStoreSettings
 
     public function deleteMessage(int $id): void
     {
+        $this->authorizeStoreSettings();
         StoreTickerMessage::query()->whereKey($id)->delete();
 
         if ($this->editingId === $id) {
@@ -94,6 +103,7 @@ class TickerManager extends BaseStoreSettings
 
     public function toggleMessage(int $id): void
     {
+        $this->authorizeStoreSettings();
         $message = StoreTickerMessage::query()->findOrFail($id);
         $message->update(['is_active' => ! $message->is_active]);
         $this->flashSaved();
@@ -101,6 +111,7 @@ class TickerManager extends BaseStoreSettings
 
     public function resetMessageForm(): void
     {
+        $this->authorizeStoreSettings();
         $this->editingId = null;
         $this->text_en = '';
         $this->text_ur = '';
@@ -110,7 +121,9 @@ class TickerManager extends BaseStoreSettings
     public function render(): View
     {
         return view('livewire.store.ticker-manager', [
-            'messages' => StoreTickerMessage::query()->orderBy('sort_order')->orderBy('id')->get(),
+            'messages' => $this->canManageStoreSettings()
+                ? StoreTickerMessage::query()->orderBy('sort_order')->orderBy('id')->get()
+                : collect(),
         ]);
     }
 }

@@ -20,9 +20,15 @@ $stub = static function (string $title, string $summary, string $route, array $p
 };
 
 return [
-    'store-profile' => $stub('Store Profile', 'Company identity اور storefront chrome؛ Settings کا landing page، overview نہیں۔', '/admin/settings/store-profile', ['settings.view'], [
+    'overview' => $stub('Settings Overview', 'ہر authorized settings area کے links والا الگ orientation page؛ Business Profile الگ رہتا ہے۔', '/admin/settings/overview', ['settings.view'], [
+        'Settings sidebar اب Business Profile کے بجائے dedicated Overview کھولتا ہے۔',
+    ], [
+        'Page read-only رکھیں اور inaccessible links چھپائیں۔',
+    ], ['page' => 'App\\Filament\\Clusters\\Settings\\OverviewPage']),
+
+    'store-profile' => $stub('Store Profile', 'Company identity اور storefront chrome؛ Settings Overview سے الگ۔', '/admin/settings/store-profile', ['settings.view'], [
         'یہ صفحہ company-profile management دکھاتا ہے۔ StoreSetting public store کے top bar، header، social، menu، category grid، WhatsApp اور footer fields رکھتا ہے۔',
-        'Settings cluster میں OverviewPage نہیں؛ orientation اسی صفحے کی docs میں ہے۔',
+        'Dedicated Settings Overview orientation دیتا ہے؛ یہ صفحہ Business Profile تک محدود ہے۔',
     ], [
         'CompanyProfile اور StoreSetting کی حدود واضح کر کے دونوں کو explicit UI دیں۔',
         'Media/public identity version اور audit کریں، URLs/phone/map validate کریں، save پر store cache clear کریں۔',
@@ -36,6 +42,16 @@ return [
         'Rate change تاریخی invoices recalculate نہ کرے؛ applied rate/base/tax line پر snapshot ہو۔',
         'settings.tax.manage اور audit شامل کریں۔',
     ], ['page' => 'App\\Filament\\Clusters\\Settings\\TaxSystemPage', 'status' => 'placeholder UI']),
+
+    'media-library' => $stub('میڈیا لائبریری', 'Public application images کی searchable registry اور محفوظ reuse workflow۔', '/admin/settings/media-library', ['settings.media.view', 'settings.media.manage'], [
+        'Catalog، store، company، customer، supplier اور user profile کی public تصاویر شامل؛ CNIC، receipts، proofs، bills اور cards خارج ہیں۔',
+        'اصل upload نام metadata میں محفوظ اور physical path محفوظ random رہتا ہے۔',
+        'Usage records shared اور historical snapshot تصاویر کو accidental deletion سے بچاتے ہیں۔',
+    ], [
+        'صرف unused تصویر Trash میں جا سکتی ہے اور permanent deletion 30 دن بعد ہے۔',
+        'Backfill idempotent ہے اور موجودہ files copy نہیں کرتا۔',
+        'ہر نئی public-image upload کو OptimizedImageStorage اور MediaUsageObserver کے ذریعے register رکھیں۔',
+    ], ['page' => 'App\\Filament\\Clusters\\Settings\\MediaLibraryPage', 'livewire' => ['App\\Livewire\\Media\\ListMedia', 'App\\Livewire\\Media\\Form'], 'service' => 'App\\Services\\Media\\MediaLibraryService', 'models' => ['App\\Models\\MediaAsset', 'App\\Models\\MediaUsage']]),
 
     'ai-settings' => [
         'title' => 'AI Settings', 'summary' => 'Provider credentials، model discovery، tests، pause/resume اور active configuration۔',
@@ -71,6 +87,8 @@ return [
         'Unhandled اور explicitly reported exceptions fingerprint، redact اور occurrence کے مطابق group ہو کر Open یا Resolved حالت میں دکھتے ہیں۔',
         'File-log fallback صرف محدود laravel*.log entries پڑھتا ہے؛ arbitrary paths، raw request payloads، credentials، cookies یا authorization headers ظاہر نہیں ہوتے۔',
         'Copy Technical Report maintainers کے ساتھ شیئر کرنے کے لیے محفوظ diagnostic bundle بناتا ہے۔',
+        'Bell alert ہر user کے unread critical occurrences دکھاتا ہے؛ System Errors کھولنے پر موجود alerts read اور نئی recurrence دوبارہ unread ہوتی ہے۔',
+        'Ignored external connection failures AI Logs میں رہتے ہیں؛ verified storage-link limitation resolution reason کے ساتھ reconcile ہو سکتی ہے۔',
     ], [
         'Database persistence best-effort رہے تاکہ logging failure اصل application exception کو تبدیل نہ کرے۔',
         'Open records محفوظ اور resolved records 90 دن بعد prune ہوں؛ file-log access read-only اور محدود رہے۔',
@@ -137,10 +155,10 @@ return [
     ],
 
     'backups' => $stub('Backups', 'Database/full archives create، import، list، restore، export اور delete۔', '/admin/settings/backups', ['settings.view', 'settings.backups.manage'], [
-        'Current manager full/database backup، incoming import، controller upload، products/categories export اور RESTORE confirmation کے بعد restore دیتا ہے۔ Safety backup/local login preservation options ہیں؛ restored AI keys clear ہو سکتی ہیں۔',
+        'Manager full/database backup، incoming import، products/categories export اور RESTORE confirmation کے بعد restore دیتا ہے۔ ZIP entries extraction سے پہلے مکمل validate ہوتی ہیں اور approved files random private work directory میں stream ہوتی ہیں۔ Production میں local logins default authoritative ہیں اور private audit report بنتی ہے۔',
     ], [
-        'settings.backups.manage، re-auth، CSRF، signature/integrity، encryption، off-site copy اور restore audit۔',
-        'Isolated restore tests، retention، size/upload limits، DB compatibility اور recovery objectives document کریں۔',
-        'Backup archives public web root میں نہ ہوں۔',
+        'settings.backups.manage، re-auth، CSRF، safety backup، encrypted off-site copy اور restore audit لازم رکھیں۔',
+        'Limits compressed upload، entry count، per-entry/total uncompressed size، compression ratio، retention اور DB compatibility پر لاگو ہیں۔',
+        'Backup archives، restore work directories اور audit reports public web root میں نہ ہوں۔',
     ], ['page' => 'App\\Filament\\Clusters\\Settings\\BackupsPage', 'livewire' => 'App\\Livewire\\Settings\\ManageBackups', 'services' => ['App\\Services\\Backup\\BackupService', 'App\\Services\\Backup\\RestoreService']]),
 ];

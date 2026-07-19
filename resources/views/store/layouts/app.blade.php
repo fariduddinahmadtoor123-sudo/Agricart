@@ -1,16 +1,42 @@
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ app()->getLocale() === 'ur' ? 'rtl' : 'ltr' }}">
 <head>
+    @php
+        $siteName = $settings->localized('site_name') ?? config('app.name');
+        $seoTitle = trim($__env->yieldContent('title', $siteName));
+        $seoDescription = trim($__env->yieldContent('seo_description', (string) ($settings->localized('footer_tagline') ?? $siteName)));
+        $canonical = trim($__env->yieldContent('canonical', request()->url()));
+        $seoImage = trim($__env->yieldContent('seo_image', (string) ($logo_url ?? '')));
+        $noindex = request()->routeIs(
+            'store.search', 'store.search.*', 'store.cart', 'store.checkout', 'store.checkout.*',
+            'store.customer.*', 'auth.*'
+        );
+    @endphp
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', $settings->localized('site_name') ?? config('app.name'))</title>
+    <title>{{ $seoTitle }}</title>
+    <meta name="description" content="{{ $seoDescription }}">
+    <meta name="robots" content="{{ $noindex ? 'noindex,follow' : 'index,follow,max-image-preview:large' }}">
+    <link rel="canonical" href="{{ $canonical }}">
+    <meta property="og:locale" content="{{ app()->getLocale() === 'ur' ? 'ur_PK' : 'en_PK' }}">
+    <meta property="og:type" content="@yield('seo_type', 'website')">
+    <meta property="og:site_name" content="{{ $siteName }}">
+    <meta property="og:title" content="{{ $seoTitle }}">
+    <meta property="og:description" content="{{ $seoDescription }}">
+    <meta property="og:url" content="{{ $canonical }}">
+    @if ($seoImage !== '')<meta property="og:image" content="{{ $seoImage }}">@endif
+    <meta name="twitter:card" content="{{ $seoImage !== '' ? 'summary_large_image' : 'summary' }}">
+    <meta name="twitter:title" content="{{ $seoTitle }}">
+    <meta name="twitter:description" content="{{ $seoDescription }}">
+    @stack('structured-data')
     @livewireStyles
     @vite(['resources/css/app.css', 'resources/css/store/theme.css', 'resources/js/store.js'])
     @include('store.components.search-box-styles')
     @stack('styles')
 </head>
 <body class="ag-store">
+    <a href="#store-main" class="ag-store-skip-link">{{ __('agricart.storefront.accessibility.skip_to_main') }}</a>
     @if ($settings->top_bar_enabled)
         @include('store.components.top-bar')
     @endif
@@ -27,7 +53,7 @@
         @include('store.components.menu')
     @endif
 
-    <main class="ag-store-main">
+    <main id="store-main" class="ag-store-main" tabindex="-1">
         @if (! ($onlineStoreChannel['enabled'] ?? true))
             <div class="ag-store__container ag-store-channel-banner-wrap">
                 <div class="ag-store-channel-banner" role="status">

@@ -57,6 +57,7 @@ class Product extends Model
         'seo_focus_keyword_en',
         'seo_focus_keyword_ur',
         'search_terms',
+        'search_document',
         'hs_code',
         'customs_notes_en',
         'customs_notes_ur',
@@ -90,6 +91,33 @@ class Product extends Model
             'ai_generated_at' => 'datetime',
             'stock_qty' => 'decimal:2',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (Product $product): void {
+            $fields = [
+                'name_en', 'name_ur', 'code', 'sku', 'label_code', 'slug',
+                'short_description_en', 'short_description_ur',
+                'full_description_en', 'full_description_ur',
+                'usage_guidelines_en', 'usage_guidelines_ur',
+                'benefits_en', 'benefits_ur', 'warnings_en', 'warnings_ur',
+                'buying_guide_en', 'buying_guide_ur',
+                'seo_title_en', 'seo_title_ur', 'seo_description_en', 'seo_description_ur',
+                'seo_keywords_en', 'seo_keywords_ur', 'search_terms', 'hs_code',
+            ];
+
+            $product->search_document = trim(implode(' ', array_filter(array_map(
+                static function (string $field) use ($product): string {
+                    $value = $product->{$field};
+
+                    return is_array($value)
+                        ? implode(' ', array_filter(array_map('strval', $value)))
+                        : strip_tags((string) $value);
+                },
+                $fields,
+            ))));
+        });
     }
 
     public function category(): BelongsTo

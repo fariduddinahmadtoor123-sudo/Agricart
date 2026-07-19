@@ -21,7 +21,7 @@ class BankAccountService
 {
     public function formatMoney(float $amount): string
     {
-        return number_format($amount, 2) . ' PKR';
+        return number_format($amount, 2).' PKR';
     }
 
     public function balance(BankAccount $account): float
@@ -49,10 +49,10 @@ class BankAccountService
         $data = $this->prepareAccountData($data);
         $validated = $this->validateAccount($data);
         $opening = round((float) ($validated['opening_balance'] ?? 0), 2);
-        unset($validated['opening_balance']);
+        $validated['opening_balance'] = $opening;
 
         $accountNumber = trim((string) ($validated['account_number'] ?? ''));
-        $lockKey = 'finance-bank-create:' . ($actor?->id ?? 'guest') . ':' . md5($accountNumber . '|' . ($validated['name_en'] ?? ''));
+        $lockKey = 'finance-bank-create:'.($actor?->id ?? 'guest').':'.md5($accountNumber.'|'.($validated['name_en'] ?? ''));
 
         return Cache::lock($lockKey, 15)->block(10, function () use ($validated, $opening, $actor, $accountNumber): BankAccount {
             if ($accountNumber !== '') {
@@ -122,13 +122,28 @@ class BankAccountService
             ]);
         }
 
-        $this->assertSufficientBalance($from, $amount);
         $group = (string) Str::uuid();
         $description = __('agricart.finance.banks.ledger.transfer_to', ['name' => $to->displayName()]);
 
         DB::transaction(function () use ($from, $to, $amount, $transactionDate, $notes, $actor, $group, $description, $fundTransferId): void {
+            $locked = BankAccount::query()
+                ->whereIn('id', [$from->id, $to->id])
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+            $lockedFrom = $locked->get($from->id);
+            $lockedTo = $locked->get($to->id);
+
+            if (! $lockedFrom instanceof BankAccount || ! $lockedTo instanceof BankAccount) {
+                throw ValidationException::withMessages([
+                    'source_bank_account_id' => ['The selected bank account is unavailable.'],
+                ]);
+            }
+
+            $this->assertSufficientBalance($lockedFrom, $amount);
             $this->postTransaction(
-                $from,
+                $lockedFrom,
                 BankAccountTransaction::TYPE_TRANSFER_OUT,
                 BankAccountTransaction::DIRECTION_DEBIT,
                 $amount,
@@ -144,7 +159,7 @@ class BankAccountService
             );
 
             $this->postTransaction(
-                $to,
+                $lockedTo,
                 BankAccountTransaction::TYPE_TRANSFER_IN,
                 BankAccountTransaction::DIRECTION_CREDIT,
                 $amount,
@@ -194,22 +209,24 @@ class BankAccountService
         ?User $actor = null,
         ?int $fundTransferId = null,
     ): void {
-        $this->assertSufficientBalance($from, $amount);
-
-        $this->postTransaction(
-            $from,
-            BankAccountTransaction::TYPE_SUPPLIER_PAYMENT,
-            BankAccountTransaction::DIRECTION_DEBIT,
-            $amount,
-            $transactionDate,
-            __('agricart.finance.banks.ledger.supplier_payment', ['name' => $supplier->displayBusinessName()]),
-            [
-                'supplier_id' => $supplier->id,
-                'notes' => $notes,
-                'fund_transfer_id' => $fundTransferId,
-            ],
-            $actor,
-        );
+        DB::transaction(function () use ($from, $supplier, $amount, $transactionDate, $notes, $actor, $fundTransferId): void {
+            $locked = BankAccount::query()->lockForUpdate()->findOrFail($from->id);
+            $this->assertSufficientBalance($locked, $amount);
+            $this->postTransaction(
+                $locked,
+                BankAccountTransaction::TYPE_SUPPLIER_PAYMENT,
+                BankAccountTransaction::DIRECTION_DEBIT,
+                $amount,
+                $transactionDate,
+                __('agricart.finance.banks.ledger.supplier_payment', ['name' => $supplier->displayBusinessName()]),
+                [
+                    'supplier_id' => $supplier->id,
+                    'notes' => $notes,
+                    'fund_transfer_id' => $fundTransferId,
+                ],
+                $actor,
+            );
+        });
     }
 
     public function receiveCustomerPayment(
@@ -248,23 +265,25 @@ class BankAccountService
         ?int $expenseId = null,
         ?int $expensePaymentId = null,
     ): void {
-        $this->assertSufficientBalance($from, $amount);
-
-        $this->postTransaction(
-            $from,
-            BankAccountTransaction::TYPE_EXPENSE_PAYMENT,
-            BankAccountTransaction::DIRECTION_DEBIT,
-            $amount,
-            $transactionDate,
-            $description,
-            [
-                'notes' => $notes,
-                'fund_transfer_id' => $fundTransferId,
-                'expense_id' => $expenseId,
-                'expense_payment_id' => $expensePaymentId,
-            ],
-            $actor,
-        );
+        DB::transaction(function () use ($from, $amount, $transactionDate, $description, $notes, $fundTransferId, $actor, $expenseId, $expensePaymentId): void {
+            $locked = BankAccount::query()->lockForUpdate()->findOrFail($from->id);
+            $this->assertSufficientBalance($locked, $amount);
+            $this->postTransaction(
+                $locked,
+                BankAccountTransaction::TYPE_EXPENSE_PAYMENT,
+                BankAccountTransaction::DIRECTION_DEBIT,
+                $amount,
+                $transactionDate,
+                $description,
+                [
+                    'notes' => $notes,
+                    'fund_transfer_id' => $fundTransferId,
+                    'expense_id' => $expenseId,
+                    'expense_payment_id' => $expensePaymentId,
+                ],
+                $actor,
+            );
+        });
     }
 
     public function recordOnlineOrderReceiptIfApplicable(OnlineSaleOrder $order): void
@@ -279,7 +298,12 @@ class BankAccountService
             return;
         }
 
-        if (BankAccountTransaction::query()->where('online_sale_order_id', $order->id)->exists()) {
+        $sourceKey = 'online-sale-order:'.$order->id;
+
+        if (BankAccountTransaction::query()
+            ->where('online_sale_order_id', $order->id)
+            ->orWhere('source_key', $sourceKey)
+            ->exists()) {
             return;
         }
 
@@ -296,7 +320,10 @@ class BankAccountService
             $paid,
             $order->order_date?->toDateString() ?? now()->toDateString(),
             __('agricart.finance.banks.ledger.online_order_receipt', ['number' => $order->order_number]),
-            ['online_sale_order_id' => $order->id],
+            [
+                'online_sale_order_id' => $order->id,
+                'source_key' => $sourceKey,
+            ],
             null,
         );
     }
@@ -341,29 +368,32 @@ class BankAccountService
             return;
         }
 
-        $paid = (float) $return->amount_paid;
+        DB::transaction(function () use ($return): void {
+            $lockedReturn = SaleReturn::query()->lockForUpdate()->findOrFail($return->id);
+            $paid = (float) $lockedReturn->amount_paid;
 
-        if ($paid <= 0 || BankAccountTransaction::query()->where('sale_return_id', $return->id)->exists()) {
-            return;
-        }
+            if ($paid <= 0 || BankAccountTransaction::query()->where('sale_return_id', $lockedReturn->id)->exists()) {
+                return;
+            }
 
-        $account = BankAccount::query()->find($return->bank_account_id);
+            $account = BankAccount::query()->lockForUpdate()->find($lockedReturn->bank_account_id);
 
-        if ($account === null || ! $account->isActive()) {
-            return;
-        }
+            if ($account === null || ! $account->isActive()) {
+                return;
+            }
 
-        $this->assertSufficientBalance($account, $paid);
-        $this->postTransaction(
-            $account,
-            BankAccountTransaction::TYPE_SALE_REFUND,
-            BankAccountTransaction::DIRECTION_DEBIT,
-            $paid,
-            $return->return_date?->toDateString() ?? now()->toDateString(),
-            __('agricart.finance.banks.ledger.sale_return_refund', ['number' => $return->return_number]),
-            ['sale_return_id' => $return->id],
-            auth()->user() instanceof User ? auth()->user() : null,
-        );
+            $this->assertSufficientBalance($account, $paid);
+            $this->postTransaction(
+                $account,
+                BankAccountTransaction::TYPE_SALE_REFUND,
+                BankAccountTransaction::DIRECTION_DEBIT,
+                $paid,
+                $lockedReturn->return_date?->toDateString() ?? now()->toDateString(),
+                __('agricart.finance.banks.ledger.sale_return_refund', ['number' => $lockedReturn->return_number]),
+                ['sale_return_id' => $lockedReturn->id],
+                auth()->user() instanceof User ? auth()->user() : null,
+            );
+        });
     }
 
     /**
@@ -494,6 +524,6 @@ class BankAccountService
 
     private function nextAccountCode(int $id): string
     {
-        return 'BANK-' . str_pad((string) $id, 4, '0', STR_PAD_LEFT);
+        return 'BANK-'.str_pad((string) $id, 4, '0', STR_PAD_LEFT);
     }
 }

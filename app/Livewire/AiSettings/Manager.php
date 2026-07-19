@@ -2,6 +2,7 @@
 
 namespace App\Livewire\AiSettings;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\AiConfiguration;
 use App\Services\Ai\AiConfigurationService;
 use Illuminate\Contracts\View\View;
@@ -10,6 +11,8 @@ use Livewire\Component;
 
 class Manager extends Component
 {
+    use AuthorizesSensitiveActions;
+
     public ?AiConfiguration $activeConfiguration = null;
 
     public string $testPrompt = '';
@@ -24,6 +27,10 @@ class Manager extends Component
 
     public function mount(AiConfigurationService $service): void
     {
+        if (! $this->canAccessAny('settings.ai.manage')) {
+            return;
+        }
+
         $this->testPrompt = __('agricart.ai.manager.default_prompt');
         $this->loadActiveConfiguration($service);
     }
@@ -31,12 +38,15 @@ class Manager extends Component
     #[On('ai-settings-saved')]
     public function refreshConfiguration(AiConfigurationService $service): void
     {
+        $this->authorizeAny('settings.ai.manage');
         $this->loadActiveConfiguration($service);
         $this->resetPromptState();
     }
 
     public function sendTestPrompt(AiConfigurationService $service): void
     {
+        $this->authorizeAny('settings.ai.manage');
+
         $this->validate([
             'testPrompt' => ['required', 'string', 'min:2', 'max:500'],
         ]);
@@ -72,6 +82,8 @@ class Manager extends Component
 
     public function retestConnection(AiConfigurationService $service): void
     {
+        $this->authorizeAny('settings.ai.manage');
+
         if ($this->activeConfiguration === null) {
             return;
         }
@@ -84,6 +96,8 @@ class Manager extends Component
 
     public function pauseAi(AiConfigurationService $service): void
     {
+        $this->authorizeAny('settings.ai.manage');
+
         if ($this->activeConfiguration === null || $this->activeConfiguration->isPaused()) {
             return;
         }
@@ -95,6 +109,8 @@ class Manager extends Component
 
     public function resumeAi(AiConfigurationService $service): void
     {
+        $this->authorizeAny('settings.ai.manage');
+
         if ($this->activeConfiguration === null || ! $this->activeConfiguration->isPaused()) {
             return;
         }
@@ -107,6 +123,8 @@ class Manager extends Component
 
     public function deleteConfiguration(AiConfigurationService $service): void
     {
+        $this->authorizeAny('settings.ai.manage');
+
         if ($this->activeConfiguration === null) {
             return;
         }

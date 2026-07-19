@@ -87,21 +87,19 @@ class StaffAttendanceService
                     'marked_by' => $actor->id,
                 ];
 
-                $record = StaffAttendanceRecord::query()
-                    ->where('user_id', $member->id)
-                    ->whereDate('attendance_date', $dateString)
-                    ->first();
-
-                if ($record !== null) {
-                    $record->update($values);
-
-                    continue;
-                }
-
-                StaffAttendanceRecord::query()->create([
+                StaffAttendanceRecord::query()->upsert([[
                     'user_id' => $member->id,
                     'attendance_date' => $dateString,
                     ...$values,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]], ['user_id', 'attendance_date'], [
+                    'status',
+                    'leave_type',
+                    'is_paid_day',
+                    'notes',
+                    'marked_by',
+                    'updated_at',
                 ]);
             }
         });
@@ -119,47 +117,28 @@ class StaffAttendanceService
 
         $dateString = $date->toDateString();
         $publicHoliday = $this->leaveService->publicHolidayOn($date);
-        $existingUserIds = StaffAttendanceRecord::query()
-            ->whereDate('attendance_date', $dateString)
-            ->pluck('user_id')
-            ->all();
-
-        $existingLookup = array_fill_keys($existingUserIds, true);
-        $created = 0;
-
         $members = app(StaffMemberService::class)->rosterQuery()->get();
+        $rows = [];
 
         foreach ($members as $member) {
-            if (isset($existingLookup[$member->id])) {
-                continue;
-            }
-
-            if ($publicHoliday !== null) {
-                StaffAttendanceRecord::query()->create([
-                    'user_id' => $member->id,
-                    'attendance_date' => $dateString,
-                    'status' => StaffAttendanceRecord::STATUS_PUBLIC_HOLIDAY,
-                    'leave_type' => StaffAttendanceRecord::LEAVE_PUBLIC,
-                    'is_paid_day' => $publicHoliday->is_paid,
-                    'notes' => null,
-                    'marked_by' => null,
-                ]);
-            } else {
-                StaffAttendanceRecord::query()->create([
-                    'user_id' => $member->id,
-                    'attendance_date' => $dateString,
-                    'status' => StaffAttendanceRecord::STATUS_ABSENT_UNPAID,
-                    'leave_type' => StaffAttendanceRecord::LEAVE_UNPAID,
-                    'is_paid_day' => false,
-                    'notes' => null,
-                    'marked_by' => null,
-                ]);
-            }
-
-            $created++;
+            $rows[] = [
+                'user_id' => $member->id,
+                'attendance_date' => $dateString,
+                'status' => $publicHoliday !== null
+                    ? StaffAttendanceRecord::STATUS_PUBLIC_HOLIDAY
+                    : StaffAttendanceRecord::STATUS_ABSENT_UNPAID,
+                'leave_type' => $publicHoliday !== null
+                    ? StaffAttendanceRecord::LEAVE_PUBLIC
+                    : StaffAttendanceRecord::LEAVE_UNPAID,
+                'is_paid_day' => $publicHoliday?->is_paid ?? false,
+                'notes' => null,
+                'marked_by' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
         }
 
-        return $created;
+        return $rows === [] ? 0 : StaffAttendanceRecord::query()->insertOrIgnore($rows);
     }
 
     /**

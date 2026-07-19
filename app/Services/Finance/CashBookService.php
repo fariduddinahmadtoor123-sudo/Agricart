@@ -6,6 +6,7 @@ use App\Models\CashBookTransaction;
 use App\Models\Sale;
 use App\Models\SaleReturn;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class CashBookService
@@ -42,21 +43,27 @@ class CashBookService
             ]);
         }
 
-        $this->assertSufficientBalance($amount);
+        return DB::transaction(function () use ($amount, $transactionDate, $description, $fundTransferId, $notes, $actor, $expenseId, $expensePaymentId, $saleId, $saleReturnId): CashBookTransaction {
+            $this->lockWallet();
+            $this->assertSufficientBalance($amount);
 
-        return CashBookTransaction::query()->create([
-            'fund_transfer_id' => $fundTransferId,
-            'expense_id' => $expenseId,
-            'expense_payment_id' => $expensePaymentId,
-            'sale_id' => $saleId,
-            'sale_return_id' => $saleReturnId,
-            'direction' => CashBookTransaction::DIRECTION_OUT,
-            'amount' => $amount,
-            'transaction_date' => $transactionDate,
-            'description' => $description,
-            'notes' => $notes,
-            'created_by' => $actor?->id,
-        ]);
+            $transaction = CashBookTransaction::query()->create([
+                'fund_transfer_id' => $fundTransferId,
+                'expense_id' => $expenseId,
+                'expense_payment_id' => $expensePaymentId,
+                'sale_id' => $saleId,
+                'sale_return_id' => $saleReturnId,
+                'direction' => CashBookTransaction::DIRECTION_OUT,
+                'amount' => $amount,
+                'transaction_date' => $transactionDate,
+                'description' => $description,
+                'notes' => $notes,
+                'created_by' => $actor?->id,
+            ]);
+            $this->syncLockedBalance();
+
+            return $transaction;
+        });
     }
 
     public function recordIn(
@@ -79,19 +86,25 @@ class CashBookService
             ]);
         }
 
-        return CashBookTransaction::query()->create([
-            'fund_transfer_id' => $fundTransferId,
-            'expense_id' => $expenseId,
-            'expense_payment_id' => $expensePaymentId,
-            'sale_id' => $saleId,
-            'sale_return_id' => $saleReturnId,
-            'direction' => CashBookTransaction::DIRECTION_IN,
-            'amount' => $amount,
-            'transaction_date' => $transactionDate,
-            'description' => $description,
-            'notes' => $notes,
-            'created_by' => $actor?->id,
-        ]);
+        return DB::transaction(function () use ($amount, $transactionDate, $description, $fundTransferId, $notes, $actor, $expenseId, $expensePaymentId, $saleId, $saleReturnId): CashBookTransaction {
+            $this->lockWallet();
+            $transaction = CashBookTransaction::query()->create([
+                'fund_transfer_id' => $fundTransferId,
+                'expense_id' => $expenseId,
+                'expense_payment_id' => $expensePaymentId,
+                'sale_id' => $saleId,
+                'sale_return_id' => $saleReturnId,
+                'direction' => CashBookTransaction::DIRECTION_IN,
+                'amount' => $amount,
+                'transaction_date' => $transactionDate,
+                'description' => $description,
+                'notes' => $notes,
+                'created_by' => $actor?->id,
+            ]);
+            $this->syncLockedBalance();
+
+            return $transaction;
+        });
     }
 
     public function recordSaleReceiptIfApplicable(Sale $sale): void
@@ -151,5 +164,24 @@ class CashBookService
                 'amount' => [__('agricart.finance.fund_transfers.messages.insufficient_cash')],
             ]);
         }
+    }
+
+    private function lockWallet(): void
+    {
+        DB::table('cash_wallet_balances')->insertOrIgnore([
+            'id' => 1,
+            'balance' => 0,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('cash_wallet_balances')->where('id', 1)->lockForUpdate()->first();
+    }
+
+    private function syncLockedBalance(): void
+    {
+        DB::table('cash_wallet_balances')->where('id', 1)->update([
+            'balance' => $this->balance(),
+            'updated_at' => now(),
+        ]);
     }
 }

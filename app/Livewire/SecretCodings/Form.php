@@ -2,6 +2,7 @@
 
 namespace App\Livewire\SecretCodings;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\SecretCodingProfile;
 use App\Services\PricingControls\SecretCodingEngine;
 use App\Services\PricingControls\SecretCodingService;
@@ -12,6 +13,8 @@ use Livewire\Component;
 
 class Form extends Component
 {
+    use AuthorizesSensitiveActions;
+
     public ?int $secretCodingId = null;
 
     public string $mode = 'create';
@@ -37,6 +40,10 @@ class Form extends Component
 
     public function mount(): void
     {
+        if (! $this->canAccessAny(['marketplace.view', 'marketplace.edit'])) {
+            return;
+        }
+
         $this->profile_number = app(SecretCodingService::class)->nextProfileNumber();
         $this->digitSlots = SecretCodingService::emptyDigitSlots();
     }
@@ -44,6 +51,11 @@ class Form extends Component
     #[On('secret-coding-form-open')]
     public function openForm(?int $secretCodingId = null, string $mode = 'create'): void
     {
+        $this->authorizeAny(
+            $mode === 'view'
+                ? ['marketplace.view', 'marketplace.edit']
+                : 'marketplace.edit'
+        );
         $this->resetForm();
         $this->mode = $mode;
         $this->secretCodingId = $secretCodingId;
@@ -56,6 +68,8 @@ class Form extends Component
     #[On('secret-coding-form-action')]
     public function handlePanelAction(string $action): void
     {
+        $this->authorizeAny('marketplace.edit');
+
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'save_next' => $this->saveAndAddNext(),
@@ -65,6 +79,8 @@ class Form extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeAny('marketplace.edit');
+
         if ($this->persist()) {
             $this->dispatch('secret-codings-saved');
             $this->dispatch('close-form-panel');
@@ -73,6 +89,8 @@ class Form extends Component
 
     public function saveAndAddNext(): void
     {
+        $this->authorizeAny('marketplace.edit');
+
         if ($this->persist()) {
             $this->dispatch('secret-codings-saved');
             $this->resetForm();
@@ -99,6 +117,7 @@ class Form extends Component
 
     private function loadRecord(int $recordId): void
     {
+        $this->authorizeAny(['marketplace.view', 'marketplace.edit']);
         $record = SecretCodingProfile::query()->findOrFail($recordId);
 
         $this->profile_number = $record->profile_number;
@@ -111,6 +130,8 @@ class Form extends Component
 
     private function persist(): bool
     {
+        $this->authorizeAny('marketplace.edit');
+
         if ($this->isReadonly()) {
             return false;
         }

@@ -4,6 +4,7 @@ namespace App\Livewire\Auth;
 
 use App\Models\User;
 use App\Services\Access\UserService;
+use App\Services\Media\MediaLibraryService;
 use App\Services\Media\OptimizedImageStorage;
 use App\Support\FriendlyError;
 use App\Support\PakistaniBanks;
@@ -299,8 +300,7 @@ class RegisterForm extends Component
         ?TemporaryUploadedFile $upload,
         string $directory,
         string $disk = 'public',
-    ): ?string
-    {
+    ): ?string {
         if ($upload === null) {
             return null;
         }
@@ -318,7 +318,11 @@ class RegisterForm extends Component
                 $disk = in_array($field, ['cnic_front_path', 'cnic_back_path'], true)
                     ? 'local'
                     : 'public';
-                Storage::disk($disk)->delete($path);
+                if ($disk === 'public') {
+                    app(MediaLibraryService::class)->deleteFileIfUnused($path);
+                } else {
+                    Storage::disk($disk)->delete($path);
+                }
             }
         }
     }

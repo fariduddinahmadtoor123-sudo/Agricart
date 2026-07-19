@@ -4,6 +4,7 @@ namespace App\Services\Sales;
 
 use App\Models\SaleQuotation;
 use App\Models\SaleQuotationItem;
+use App\Services\Identifiers\DocumentCounterService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -112,14 +113,12 @@ class SaleQuotationService
 
     public function nextQuotationNumber(): string
     {
-        $next = (int) SaleQuotation::query()->max('id') + 1;
-
-        do {
-            $number = 'SQ-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (SaleQuotation::query()->where('quotation_number', $number)->exists());
-
-        return $number;
+        return app(DocumentCounterService::class)->next(
+            'sale_quotations.quotation_number',
+            'SQ-',
+            5,
+            fn (): int => DocumentCounterService::maximumSuffix('sale_quotations', 'quotation_number', 'SQ-'),
+        );
     }
 
     /**

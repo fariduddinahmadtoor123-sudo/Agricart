@@ -69,7 +69,15 @@ DB_PASSWORD=...
 SESSION_DRIVER=database
 SESSION_SECURE_COOKIE=true   # or omit; auto when APP_URL is https
 
-TRUSTED_PROXIES=*            # behind Hostinger / Cloudflare SSL termination
+TRUSTED_PROXIES=10.0.0.0/8   # prefer provider-specific CIDRs
+ALLOW_WILDCARD_TRUSTED_PROXIES=false
+SCHEDULER_CONFIGURED=true
+QUEUE_WORKER_CONFIGURED=true
+SECURITY_CSP_MODE=report-only # required; use enforce only after inline-script migration
+
+LOG_CHANNEL=daily
+LOG_LEVEL=warning
+LOG_DAILY_DAYS=14
 
 FILESYSTEM_DISK=local
 FILESYSTEM_PUBLIC_SERVE=auto
@@ -159,6 +167,51 @@ Helper: `App\Support\MediaDisk` reads `FILESYSTEM_MEDIA_DISK` for future S3 migr
 
 ---
 
+## Hardened deployment sequence
+
+Use `deploy/hostinger/post-deploy.sh` as the reference sequence. It takes a
+portable directory lock, runs `deploy:preflight --environment-only` before
+migrations or public sync, creates a private database safety backup, enters
+maintenance mode, migrates, publishes, caches, restarts queue workers, exits
+maintenance, runs full preflight, and checks `HEALTHCHECK_URL`. Its trap restores
+service and releases the lock after failures. It never performs an automatic
+database restore.
+
+`deploy:preflight` blocks production when environment/debug/HTTPS/cookie/logging/
+proxy/scheduler/queue/storage requirements are unsafe. `TRUSTED_PROXIES=*` is
+accepted only with `ALLOW_WILDCARD_TRUSTED_PROXIES=true`; explicit provider CIDRs
+are preferred.
+
+Storefront language selection is cookie/session based. Locale switch endpoints
+redirect back to the current page and are not stable, crawlable locale URLs, so
+the storefront intentionally omits `hreflang` alternates until locale-prefixed
+canonical routes are implemented.
+
+`SECURITY_CSP_MODE` is mandatory in production. Keep `report-only` while the
+current inline scripts are present; switching to `enforce` is an explicit
+operator decision after those scripts are migrated to nonces or hashes.
+
+## Backup restore safety
+
+Imported ZIPs are fully enumerated before extraction. Absolute/drive/traversal
+paths, links/special files, duplicate critical files, unsupported paths, excessive
+entry counts and sizes, and unsafe compression ratios are rejected. Approved
+entries are streamed into a random `storage/app/private` work directory.
+
+Production login preservation defaults to `BACKUP_PRODUCTION_LOGIN_MODE=authoritative`:
+captured local logins replace same-email archive login rows and missing local
+accounts are restored. Local development uses merge-missing behavior. Every
+preserved-login restore writes a private JSON audit report. Keep the safety backup
+enabled and require an authenticated Settings operator.
+
+## Retention policy
+
+Raw analytics (90 days), visitor identities (760), rollups (1095), inquiry request
+metadata (90), closed inquiries (730), AI logs (90), resolved system errors (90),
+and media trash (30) are configurable in `.env` and pruned by the scheduler.
+Open inquiries, open system errors, orders, invoices, payments, inventory,
+accounting, payroll, and other legal/business records are not pruned by these jobs.
+
 ## Deploy steps (checklist)
 
 ### 1. Prepare release (local or CI)
@@ -229,6 +282,19 @@ php artisan queue:work --sleep=3 --tries=3
 ```
 
 Hostinger shared: often cron only; long-running workers may not be available — use `QUEUE_CONNECTION=database` and cron-based `queue:work --stop-when-empty` if supported.
+
+Install exactly one Hostinger scheduler cron:
+
+```cron
+* * * * * cd /home/USERNAME/agricart && php artisan schedule:run >> /dev/null 2>&1
+* * * * * cd /home/USERNAME/agricart && php artisan queue:work --stop-when-empty --tries=3 >> /dev/null 2>&1
+```
+
+Set `SCHEDULER_CONFIGURED=true` and `QUEUE_WORKER_CONFIGURED=true` only after
+these are active. Jobs use `withoutOverlapping`. Leave
+`SCHEDULER_SHARED_LOCKS=false` for a single Hostinger scheduler; enable it only
+when every scheduler node uses the same database/Redis cache and then
+`onOneServer` locks are safe.
 
 ---
 

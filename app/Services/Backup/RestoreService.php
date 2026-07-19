@@ -10,7 +10,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
-use ZipArchive;
 
 class RestoreService
 {
@@ -18,6 +17,7 @@ class RestoreService
         private readonly BackupService $backups,
         private readonly DatabaseImporter $databaseImporter,
         private readonly LocalLoginPreserver $localLogins,
+        private readonly BackupArchive $archive,
     ) {}
 
     public function restore(string $backupId, bool $createSafetyBackup = true, bool $preserveLocalLogins = true): void
@@ -33,9 +33,10 @@ class RestoreService
         }
 
         $zipPath = $this->backups->absolutePath($entry->filename);
-        $workDir = storage_path('app/restore-work-' . $backupId);
+        $workDir = storage_path('app/private/restore-work-'.bin2hex(random_bytes(16)));
+        $inspection = $this->archive->inspect($zipPath, 'restore');
 
-        File::ensureDirectoryExists($workDir);
+        File::ensureDirectoryExists($workDir, 0700);
 
         $shouldPreserve = $preserveLocalLogins && (bool) config('backup.preserve_local_logins', true);
 
@@ -50,23 +51,7 @@ class RestoreService
 
             Artisan::call('down', ['--retry' => 60]);
 
-            $zip = new ZipArchive;
-
-            if ($zip->open($zipPath) !== true) {
-                throw ValidationException::withMessages([
-                    'restore' => __('agricart.backups.messages.zip_failed'),
-                ]);
-            }
-
-            if (! $zip->extractTo($workDir)) {
-                $zip->close();
-
-                throw ValidationException::withMessages([
-                    'restore' => __('agricart.backups.messages.zip_failed'),
-                ]);
-            }
-
-            $zip->close();
+            $this->archive->extractApproved($zipPath, $workDir, $inspection['entries']);
 
             $databaseFile = $this->resolveDatabaseFile($workDir);
 
@@ -83,9 +68,21 @@ class RestoreService
             }
 
             $merged = 0;
+            $replaced = 0;
 
             if ($shouldPreserve) {
-                $merged = $this->localLogins->restoreMissing();
+                $authoritative = app()->environment('production')
+                    && config('backup.production_login_mode', 'authoritative') === 'authoritative';
+
+                if ($authoritative) {
+                    $loginReport = $this->localLogins->restoreAuthoritative();
+                    $merged = $loginReport['inserted'];
+                    $replaced = $loginReport['replaced'];
+                } else {
+                    $merged = $this->localLogins->restoreMissing();
+                }
+
+                $this->writeLoginAudit($backupId, $merged, $replaced, $authoritative);
             }
 
             $this->localLogins->ensureBootstrapAdmin();
@@ -101,6 +98,9 @@ class RestoreService
             // Stash merge count for UI flash (optional).
             if ($merged > 0) {
                 session()->flash('backup_restore_merged_logins', $merged);
+            }
+            if ($replaced > 0) {
+                session()->flash('backup_restore_replaced_logins', $replaced);
             }
 
             if ($clearedAiKeys > 0) {
@@ -159,5 +159,25 @@ class RestoreService
         File::ensureDirectoryExists($targetRoot);
 
         File::copyDirectory($filesDir, $targetRoot);
+    }
+
+    private function writeLoginAudit(string $backupId, int $inserted, int $replaced, bool $authoritative): void
+    {
+        $directory = storage_path('app/private/backup-restore-audit');
+        File::ensureDirectoryExists($directory, 0700);
+        $report = [
+            'backup_id' => $backupId,
+            'restored_at' => now()->toIso8601String(),
+            'actor_user_id' => Auth::id(),
+            'environment' => app()->environment(),
+            'login_mode' => $authoritative ? 'authoritative-local' : 'merge-missing',
+            'inserted_accounts' => $inserted,
+            'replaced_accounts' => $replaced,
+        ];
+
+        File::put(
+            $directory.DIRECTORY_SEPARATOR.now()->format('Ymd_His').'_'.bin2hex(random_bytes(4)).'.json',
+            json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES).PHP_EOL,
+        );
     }
 }

@@ -41,6 +41,8 @@
         title: @js($formPanelDefaults['addRecord']),
         resourceLabel: @js($formPanelDefaults['record']),
         formKey: null,
+        pendingOpenDetail: null,
+        lastFocusedElement: null,
         currentStep: 1,
         progressSteps: @js($progressSteps),
         defaults: @js($formPanelDefaults),
@@ -112,6 +114,9 @@
         open(detail = {}) {
             const incomingFormKey = detail.formKey ?? null;
             const incomingMode = ['create', 'edit', 'view'].includes(detail.mode) ? detail.mode : 'create';
+            if (! this.isOpen && ! detail.__formMounted) {
+                this.lastFocusedElement = document.activeElement;
+            }
             const controlSignature = incomingFormKey === 'controls'
                 ? `${detail.controlId ?? 'new'}:${incomingMode}`
                 : null;
@@ -126,6 +131,16 @@
             this.formMode = incomingMode;
             this.controlOpenSignature = controlSignature;
             this.currentStep = 1;
+
+            if (! detail.__formMounted && incomingFormKey) {
+                this.pendingOpenDetail = { ...detail };
+                this.isOpen = true;
+                this.minimized = false;
+                this.backdropPressed = false;
+                document.body.classList.add('agricart-form-panel-open');
+                window.Livewire.dispatch('form-panel-mount', { formKey: incomingFormKey, mode: incomingMode });
+                return;
+            }
 
             if (this.formKey === 'categories') {
                 this.resetCategoryForm();
@@ -480,8 +495,9 @@
             this.isOpen = true;
             this.minimized = false;
             this.backdropPressed = false;
-            this.size = ['ai-settings', 'ai-log-detail', 'system-error-detail', 'categories', 'brands', 'units', 'packing-units', 'attributes', 'controls', 'products', 'users', 'staff', 'roles', 'company-profile', 'suppliers', 'customers', 'staff-salary', 'staff-attendance', 'staff-advance', 'staff-leave', 'staff-payroll', 'finance-bank', 'finance-fund-transfer', 'finance-expense-category', 'finance-expense', 'finance-expense-payment', 'purchase-planning', 'purchase-payment-summary', 'purchase-quotations', 'purchases', 'sales', 'sale-quotations', 'sale-returns', 'online-orders', 'price-controls', 'quantity-controls', 'secret-coding', 'sales-channel'].includes(this.formKey) ? 'stretched' : 'normal';
+            this.size = ['ai-settings', 'ai-log-detail', 'system-error-detail', 'media-library', 'categories', 'brands', 'units', 'packing-units', 'attributes', 'controls', 'products', 'users', 'staff', 'roles', 'company-profile', 'suppliers', 'customers', 'staff-salary', 'staff-attendance', 'staff-advance', 'staff-leave', 'staff-payroll', 'finance-bank', 'finance-fund-transfer', 'finance-expense-category', 'finance-expense', 'finance-expense-payment', 'purchase-planning', 'purchase-payment-summary', 'purchase-quotations', 'purchases', 'sales', 'sale-quotations', 'sale-returns', 'online-orders', 'price-controls', 'quantity-controls', 'secret-coding', 'sales-channel'].includes(this.formKey) ? 'stretched' : 'normal';
             document.body.classList.add('agricart-form-panel-open');
+            this.$nextTick(() => this.focusPanel());
 
             if (this.formKey === 'ai-log-detail' && detail.logId) {
                 window.Livewire.dispatch('ai-log-detail-open', { logId: detail.logId });
@@ -493,6 +509,13 @@
                 } else if (detail.fileKey) {
                     window.Livewire.dispatch('system-error-file-detail-open', { fileKey: detail.fileKey });
                 }
+            }
+
+            if (this.formKey === 'media-library') {
+                window.Livewire.dispatch('media-form-open', {
+                    assetId: detail.assetId ?? null,
+                    mode: detail.mode ?? 'create',
+                });
             }
         },
         close(notify = true) {
@@ -546,6 +569,16 @@
             this.financeExpenseAiEnriching = false;
             this.financeExpensePaymentSaving = false;
             document.body.classList.remove('agricart-form-panel-open');
+            window.Livewire.dispatch('form-panel-unmount');
+
+            const focusTarget = this.lastFocusedElement;
+            this.lastFocusedElement = null;
+            this.pendingOpenDetail = null;
+            this.$nextTick(() => {
+                if (focusTarget?.isConnected && typeof focusTarget.focus === 'function') {
+                    focusTarget.focus();
+                }
+            });
 
             if (notify) {
                 window.dispatchEvent(new CustomEvent('close-form-panel', { bubbles: true }));
@@ -1249,7 +1282,7 @@
                 'agricart-form-panel--normal': this.size === 'normal',
                 'agricart-form-panel--stretched': this.size === 'stretched',
                 'agricart-form-panel--maximized': this.size === 'maximized',
-                'agricart-form-panel--wide': this.formKey === 'ai-settings' || this.formKey === 'ai-log-detail' || this.formKey === 'system-error-detail' || this.formKey === 'categories' || this.formKey === 'brands' || this.formKey === 'units' || this.formKey === 'packing-units' || this.formKey === 'attributes' || this.formKey === 'controls' || this.formKey === 'products' || this.formKey === 'labels' || this.formKey === 'users' || this.formKey === 'staff' || this.formKey === 'roles' || this.formKey === 'company-profile' || this.formKey === 'suppliers' || this.formKey === 'customers' || this.formKey === 'purchase-planning' || this.formKey === 'purchase-payment-summary' || this.formKey === 'purchase-quotations' || this.formKey === 'purchases' || this.formKey === 'sales' || this.formKey === 'sale-quotations' || this.formKey === 'sale-returns' || this.formKey === 'online-orders' || this.formKey === 'price-controls' || this.formKey === 'quantity-controls' || this.formKey === 'secret-coding' || this.formKey === 'sales-channel' || this.formKey === 'staff-salary' || this.formKey === 'staff-attendance' || this.formKey === 'staff-advance' || this.formKey === 'staff-leave' || this.formKey === 'staff-payroll' || this.formKey === 'finance-bank' || this.formKey === 'finance-fund-transfer' || this.formKey === 'finance-expense-category' || this.formKey === 'finance-expense' || this.formKey === 'finance-expense-payment',
+                'agricart-form-panel--wide': this.formKey === 'ai-settings' || this.formKey === 'ai-log-detail' || this.formKey === 'system-error-detail' || this.formKey === 'media-library' || this.formKey === 'categories' || this.formKey === 'brands' || this.formKey === 'units' || this.formKey === 'packing-units' || this.formKey === 'attributes' || this.formKey === 'controls' || this.formKey === 'products' || this.formKey === 'labels' || this.formKey === 'users' || this.formKey === 'staff' || this.formKey === 'roles' || this.formKey === 'company-profile' || this.formKey === 'suppliers' || this.formKey === 'customers' || this.formKey === 'purchase-planning' || this.formKey === 'purchase-payment-summary' || this.formKey === 'purchase-quotations' || this.formKey === 'purchases' || this.formKey === 'sales' || this.formKey === 'sale-quotations' || this.formKey === 'sale-returns' || this.formKey === 'online-orders' || this.formKey === 'price-controls' || this.formKey === 'quantity-controls' || this.formKey === 'secret-coding' || this.formKey === 'sales-channel' || this.formKey === 'staff-salary' || this.formKey === 'staff-attendance' || this.formKey === 'staff-advance' || this.formKey === 'staff-leave' || this.formKey === 'staff-payroll' || this.formKey === 'finance-bank' || this.formKey === 'finance-fund-transfer' || this.formKey === 'finance-expense-category' || this.formKey === 'finance-expense' || this.formKey === 'finance-expense-payment',
             };
         },
         hasTextSelection() {
@@ -1282,11 +1315,42 @@
 
             this.close();
         },
+        focusPanel() {
+            const panel = this.$el.querySelector('.agricart-form-panel');
+            const target = panel?.querySelector(
+                'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+            );
+            (target || panel)?.focus?.();
+        },
+        trapFocus(event) {
+            const panel = event.currentTarget;
+            const focusable = [...panel.querySelectorAll(
+                'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+            )].filter((element) => element.offsetParent !== null);
+
+            if (focusable.length === 0) {
+                event.preventDefault();
+                panel.focus();
+                return;
+            }
+
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (! event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        },
         enhanceStatusAlerts() {
             window.agricartEnhanceFormPanelAlerts?.(this.$el?.querySelector?.('.agricart-form-panel__body'));
         },
     }"
     x-on:open-form-panel.window="open($event.detail); $nextTick(() => enhanceStatusAlerts())"
+    x-on:form-panel-mounted.window="if (pendingOpenDetail) { open({ ...pendingOpenDetail, __formMounted: true }); $nextTick(() => { enhanceStatusAlerts(); focusPanel(); }); }"
     x-on:close-form-panel.window="close(false)"
     x-on:category-form-busy.window="categoryAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); categorySaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:brand-form-busy.window="brandAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); brandSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
@@ -1340,13 +1404,15 @@
             role="dialog"
             aria-modal="true"
             x-bind:aria-label="title"
+            tabindex="-1"
+            x-on:keydown.tab="trapFocus($event)"
         >
             <header class="agricart-form-panel__header">
                 <div class="agricart-form-panel__header-main">
                     <h2 class="agricart-form-panel__title" x-text="title"></h2>
                     <p
                         class="agricart-form-panel__subtitle"
-                        x-show="formKey !== 'products' && formKey !== 'users' && formKey !== 'staff' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'customers' && formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'sales' && formKey !== 'sale-quotations' && formKey !== 'sale-returns' && formKey !== 'online-orders' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding' && formKey !== 'sales-channel' && formKey !== 'staff-salary' && formKey !== 'staff-attendance' && formKey !== 'staff-advance' && formKey !== 'staff-leave' && formKey !== 'staff-payroll' && formKey !== 'finance-bank' && formKey !== 'finance-fund-transfer' && formKey !== 'finance-expense-category' && formKey !== 'finance-expense' && formKey !== 'finance-expense-payment' && resourceLabel"
+                        x-show="formKey !== 'media-library' && formKey !== 'products' && formKey !== 'users' && formKey !== 'staff' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'customers' && formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'sales' && formKey !== 'sale-quotations' && formKey !== 'sale-returns' && formKey !== 'online-orders' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding' && formKey !== 'sales-channel' && formKey !== 'staff-salary' && formKey !== 'staff-attendance' && formKey !== 'staff-advance' && formKey !== 'staff-leave' && formKey !== 'staff-payroll' && formKey !== 'finance-bank' && formKey !== 'finance-fund-transfer' && formKey !== 'finance-expense-category' && formKey !== 'finance-expense' && formKey !== 'finance-expense-payment' && resourceLabel"
                         x-text="resourceLabel"
                         x-cloak
                     ></p>
@@ -1402,163 +1468,17 @@
 
             <div class="agricart-form-panel__body">
                 <div class="agricart-form-panel__sections">
-                    <div x-show="formKey === 'ai-settings'" x-cloak>
-                        <livewire:ai-settings.form />
+                    <div x-show="formKey" x-cloak>
+                        <livewire:form-panel.dynamic-form />
                     </div>
 
-                    <div x-show="formKey === 'ai-log-detail'" x-cloak>
-                        <livewire:ai-logs.detail />
-                    </div>
-
-                    <div x-show="formKey === 'system-error-detail'" x-cloak>
-                        <livewire:system-errors.detail />
-                    </div>
-
-                    <div x-show="formKey === 'categories'" x-cloak>
-                        <livewire:categories.form />
-                    </div>
-
-                    <div x-show="formKey === 'brands'" x-cloak>
-                        <livewire:brands.form />
-                    </div>
-
-                    <div x-show="formKey === 'units'" x-cloak>
-                        <livewire:units.form />
-                    </div>
-
-                    <div x-show="formKey === 'packing-units'" x-cloak>
-                        <livewire:packing-units.form />
-                    </div>
-
-                    <div x-show="formKey === 'attributes'" x-cloak>
-                        <livewire:attributes.form />
-                    </div>
-
-                    <div x-show="formKey === 'controls'" x-cloak>
-                        <livewire:controls.form />
-                    </div>
-
-                    <div x-show="formKey === 'products'" x-cloak>
-                        <livewire:products.form />
-                    </div>
-
-                    <div x-show="formKey === 'labels'" x-cloak>
-                        <livewire:labels.print-labels-form />
-                    </div>
-
-                    <div x-show="formKey === 'users' || formKey === 'staff'" x-cloak>
-                        <livewire:users.form />
-                    </div>
-
-                    <div x-show="formKey === 'roles'" x-cloak>
-                        <livewire:roles.form />
-                    </div>
-
-                    <div x-show="formKey === 'company-profile'" x-cloak>
-                        <livewire:company-profile.form />
-                    </div>
-
-                    <div x-show="formKey === 'suppliers'" x-cloak>
-                        <livewire:suppliers.form />
-                    </div>
-
-                    <div x-show="formKey === 'customers'" x-cloak>
-                        <livewire:customers.form />
-                    </div>
-
-                    <div x-show="formKey === 'staff-salary'" x-cloak>
-                        <livewire:staff.salary-assignment-form />
-                    </div>
-
-                    <div x-show="formKey === 'staff-attendance'" x-cloak>
-                        <livewire:staff.daily-attendance-form />
-                    </div>
-
-                    <div x-show="formKey === 'staff-advance'" x-cloak>
-                        <livewire:staff.advance-transaction-form />
-                    </div>
-                    <div x-show="formKey === 'staff-leave'" x-cloak>
-                        <livewire:staff.leave-settings-form />
-                    </div>
-                    <div x-show="formKey === 'staff-payroll'" x-cloak>
-                        <livewire:staff.payroll-roll-form />
-                    </div>
-
-                    <div x-show="formKey === 'finance-bank'" x-cloak>
-                        <livewire:finance.bank-account-form />
-                    </div>
-
-                    <div x-show="formKey === 'finance-fund-transfer'" x-cloak>
-                        <livewire:finance.fund-transfer-form />
-                    </div>
-
-                    <div x-show="formKey === 'finance-expense-category'" x-cloak>
-                        <livewire:finance.expense-category-form />
-                    </div>
-
-                    <div x-show="formKey === 'finance-expense'" x-cloak>
-                        <livewire:finance.expense-form />
-                    </div>
-
-                    <div x-show="formKey === 'finance-expense-payment'" x-cloak>
-                        <livewire:finance.expense-payment-form />
-                    </div>
-
-                    <div x-show="formKey === 'purchase-planning'" x-cloak>
-                        <livewire:purchase-planning.form />
-                    </div>
-
-                    <div x-show="formKey === 'purchase-payment-summary'" x-cloak>
-                        <livewire:purchase-payment-summaries.form />
-                    </div>
-
-                    <div x-show="formKey === 'purchase-quotations'" x-cloak>
-                        <livewire:purchase-quotations.form />
-                    </div>
-
-                    <div x-show="formKey === 'purchases'" x-cloak>
-                        <livewire:purchases.form />
-                    </div>
-
-                    <div x-show="formKey === 'sales'" x-cloak>
-                        <livewire:sales.form />
-                    </div>
-
-                    <div x-show="formKey === 'sale-quotations'" x-cloak>
-                        <livewire:sale-quotations.form />
-                    </div>
-
-                    <div x-show="formKey === 'sale-returns'" x-cloak>
-                        <livewire:sale-returns.form />
-                    </div>
-
-                    <div x-show="formKey === 'online-orders'" x-cloak>
-                        <livewire:online-sale-orders.form />
-                    </div>
-
-                    <div x-show="formKey === 'price-controls'" x-cloak>
-                        <livewire:price-controls.form />
-                    </div>
-
-                    <div x-show="formKey === 'quantity-controls'" x-cloak>
-                        <livewire:quantity-controls.form />
-                    </div>
-
-                    <div x-show="formKey === 'secret-coding'" x-cloak>
-                        <livewire:secret-codings.form />
-                    </div>
-
-                    <div x-show="formKey === 'sales-channel'" x-cloak>
-                        <livewire:sales-channels.form />
-                    </div>
-
-                    <div x-show="formKey !== 'ai-settings' && formKey !== 'ai-log-detail' && formKey !== 'system-error-detail' && formKey !== 'categories' && formKey !== 'brands' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls' && formKey !== 'products' && formKey !== 'labels' && formKey !== 'users' && formKey !== 'staff' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'customers' && formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'sales' && formKey !== 'sale-quotations' && formKey !== 'sale-returns' && formKey !== 'online-orders' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding' && formKey !== 'sales-channel' && formKey !== 'staff-salary' && formKey !== 'staff-attendance' && formKey !== 'staff-advance' && formKey !== 'staff-leave' && formKey !== 'staff-payroll' && formKey !== 'finance-bank' && formKey !== 'finance-fund-transfer' && formKey !== 'finance-expense-category' && formKey !== 'finance-expense' && formKey !== 'finance-expense-payment'">
+                    <div x-show="formKey !== 'ai-settings' && formKey !== 'ai-log-detail' && formKey !== 'system-error-detail' && formKey !== 'media-library' && formKey !== 'categories' && formKey !== 'brands' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls' && formKey !== 'products' && formKey !== 'labels' && formKey !== 'users' && formKey !== 'staff' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'customers' && formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'sales' && formKey !== 'sale-quotations' && formKey !== 'sale-returns' && formKey !== 'online-orders' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding' && formKey !== 'sales-channel' && formKey !== 'staff-salary' && formKey !== 'staff-attendance' && formKey !== 'staff-advance' && formKey !== 'staff-leave' && formKey !== 'staff-payroll' && formKey !== 'finance-bank' && formKey !== 'finance-fund-transfer' && formKey !== 'finance-expense-category' && formKey !== 'finance-expense' && formKey !== 'finance-expense-payment'">
                         @include('filament.components.form-panel.sample-fields')
                     </div>
                 </div>
             </div>
 
-            <footer class="agricart-form-panel__footer" x-show="formKey !== 'ai-settings' && formKey !== 'ai-log-detail' && formKey !== 'system-error-detail'">
+            <footer class="agricart-form-panel__footer" x-show="formKey !== 'ai-settings' && formKey !== 'ai-log-detail' && formKey !== 'system-error-detail' && formKey !== 'media-library'">
                 @include('filament.components.form-panel.footer')
             </footer>
         </div>

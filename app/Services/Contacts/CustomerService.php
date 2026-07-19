@@ -3,11 +3,14 @@
 namespace App\Services\Contacts;
 
 use App\Models\Customer;
+use App\Models\CustomerPhone;
 use App\Models\OnlineSaleOrder;
 use App\Models\Sale;
 use App\Models\SaleReturn;
+use App\Services\Media\OptimizedImageStorage;
+use App\Services\Identifiers\DocumentCounterService;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -29,7 +32,12 @@ class CustomerService
 
         $validated = $this->applyOfflineLegacyFields($validated);
 
-        return Customer::query()->create($validated);
+        return DB::transaction(function () use ($validated): Customer {
+            $customer = Customer::query()->create($validated);
+            $this->syncNormalizedPhones($customer, $validated['contacts'] ?? []);
+
+            return $customer;
+        });
     }
 
     public function update(Customer $customer, array $data): Customer
@@ -41,20 +49,18 @@ class CustomerService
             $validated = $this->applyOfflineLegacyFields($validated, $customer);
         }
 
-        $this->replaceStoredPhoto($customer, $validated);
+        return DB::transaction(function () use ($customer, $validated): Customer {
+            $locked = Customer::query()->lockForUpdate()->findOrFail($customer->id);
+            $locked->update($validated);
+            $this->syncNormalizedPhones($locked, $validated['contacts'] ?? $locked->contacts ?? []);
 
-        $customer->update($validated);
-
-        return $customer->fresh();
+            return $locked->fresh();
+        });
     }
 
     public function delete(Customer $customer): void
     {
         $this->assertDeletable($customer);
-
-        if (filled($customer->profile_photo_path)) {
-            Storage::disk('public')->delete($customer->profile_photo_path);
-        }
 
         $customer->delete();
     }
@@ -74,14 +80,12 @@ class CustomerService
 
     public function nextCustomerNumber(): string
     {
-        $next = (int) Customer::query()->max('id') + 1;
-
-        do {
-            $number = 'CUS-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (Customer::query()->where('customer_number', $number)->exists());
-
-        return $number;
+        return app(DocumentCounterService::class)->next(
+            'customers.customer_number',
+            'CUS-',
+            5,
+            fn (): int => DocumentCounterService::maximumSuffix('customers', 'customer_number', 'CUS-'),
+        );
     }
 
     /**
@@ -151,18 +155,22 @@ class CustomerService
             return null;
         }
 
-        $candidates = Customer::query()
-            ->when($exceptId !== null, fn ($query) => $query->where('id', '!=', $exceptId))
-            ->where(function ($query) use ($needle): void {
-                $query->where('phone', 'like', '%' . $needle . '%')
-                    ->orWhere('contacts', 'like', '%' . $needle . '%');
-            })
-            ->limit(30)
-            ->get();
+        $customerId = CustomerPhone::query()
+            ->where('canonical_phone', $needle)
+            ->when($exceptId !== null, fn ($query) => $query->where('customer_id', '!=', $exceptId))
+            ->value('customer_id');
 
-        return $candidates->first(function (Customer $customer) use ($needle): bool {
-            return in_array($needle, $this->customerPhoneKeys($customer), true);
-        });
+        if ($customerId !== null) {
+            return Customer::query()->find($customerId);
+        }
+
+        // Compatibility fallback while a deployment has legacy rows not yet normalized.
+        return Customer::query()
+            ->when($exceptId !== null, fn ($query) => $query->where('id', '!=', $exceptId))
+            ->where(fn ($query) => $query->where('phone', 'like', '%'.$needle.'%')->orWhere('contacts', 'like', '%'.$needle.'%'))
+            ->limit(30)
+            ->get()
+            ->first(fn (Customer $customer): bool => in_array($needle, $this->customerPhoneKeys($customer), true));
     }
 
     /**
@@ -176,7 +184,7 @@ class CustomerService
             return [];
         }
 
-        $needle = '%' . $term . '%';
+        $needle = '%'.$term.'%';
         $normalized = $this->normalizePhone($term);
 
         $customers = Customer::query()
@@ -190,7 +198,7 @@ class CustomerService
                     ->orWhere('last_name', 'like', $needle);
 
                 if ($normalized !== '') {
-                    $query->orWhere('phone', 'like', '%' . $normalized . '%');
+                    $query->orWhere('phone', 'like', '%'.$normalized.'%');
                 }
 
                 if (ctype_digit($term)) {
@@ -413,7 +421,7 @@ class CustomerService
 
         if (! filled($validated['email'] ?? null)) {
             $number = (string) ($validated['customer_number'] ?? $existing?->customer_number ?? $this->nextCustomerNumber());
-            $validated['email'] = 'offline.' . Str::lower($number) . '@contacts.agricart.local';
+            $validated['email'] = 'offline.'.Str::lower($number).'@contacts.agricart.local';
         }
 
         if (! filled($validated['password'] ?? null) && $existing === null) {
@@ -435,23 +443,30 @@ class CustomerService
 
     private function storeUploadedPhoto(TemporaryUploadedFile $file): string
     {
-        return app(\App\Services\Media\OptimizedImageStorage::class)->store($file, 'customers/photos');
+        return app(OptimizedImageStorage::class)->store($file, 'customers/photos');
     }
 
     /**
-     * @param  array<string, mixed>  $validated
+     * Keep the indexed canonical table authoritative while retaining legacy JSON.
+     *
+     * @param  list<array{mobile_number?: string}>  $phones
      */
-    private function replaceStoredPhoto(Customer $customer, array &$validated): void
+    public function syncNormalizedPhones(Customer $customer, array $phones): void
     {
-        if (! array_key_exists('profile_photo_path', $validated)) {
-            return;
-        }
+        CustomerPhone::query()->where('customer_id', $customer->id)->delete();
 
-        if (
-            filled($customer->profile_photo_path)
-            && $customer->profile_photo_path !== $validated['profile_photo_path']
-        ) {
-            Storage::disk('public')->delete($customer->profile_photo_path);
+        foreach ($this->normalizePhoneRows($phones) as $sort => $row) {
+            $canonical = $this->normalizePhone($row['mobile_number']);
+            if ($canonical === '') {
+                continue;
+            }
+
+            CustomerPhone::query()->create([
+                'customer_id' => $customer->id,
+                'phone' => $row['mobile_number'],
+                'canonical_phone' => $canonical,
+                'sort_order' => $sort,
+            ]);
         }
     }
 }

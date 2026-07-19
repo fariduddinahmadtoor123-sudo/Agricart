@@ -3,6 +3,7 @@
 namespace App\Services\Access;
 
 use App\Models\User;
+use App\Services\Identifiers\DocumentCounterService;
 use App\Support\PakistaniBanks;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
@@ -112,14 +113,12 @@ class UserService
 
     public function nextUserNumber(): string
     {
-        $next = (int) User::query()->max('id') + 1;
-
-        do {
-            $number = 'USR-'.str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (User::query()->where('user_number', $number)->exists());
-
-        return $number;
+        return app(DocumentCounterService::class)->next(
+            'users.user_number',
+            'USR-',
+            5,
+            fn (): int => DocumentCounterService::maximumSuffix('users', 'user_number', 'USR-'),
+        );
     }
 
     /**
@@ -234,10 +233,11 @@ class UserService
             $oldPath = $user->{$field};
 
             if (filled($newPath) && filled($oldPath) && $newPath !== $oldPath) {
-                $disk = in_array($field, ['cnic_front_path', 'cnic_back_path'], true)
-                    ? 'local'
-                    : 'public';
-                Storage::disk($disk)->delete($oldPath);
+                if ($field === 'profile_photo_path') {
+                    continue;
+                } else {
+                    Storage::disk('local')->delete($oldPath);
+                }
             }
         }
     }

@@ -9,13 +9,6 @@
     }
 
     function initStoreSearch() {
-        var searchPage = document.querySelector('[data-store-search-page]');
-        var resultsHost = searchPage ? searchPage.querySelector('[data-store-search-results]') : null;
-        var titleEl = searchPage ? searchPage.querySelector('[data-store-search-title]') : null;
-        var titleForTemplate = searchPage ? (searchPage.dataset.storeSearchTitleFor || '') : '';
-        var titleDefault = searchPage ? (searchPage.dataset.storeSearchTitleDefault || '') : '';
-        var emptyQueryMessage = searchPage ? (searchPage.dataset.storeSearchEmptyQuery || '') : '';
-
         document.querySelectorAll('[data-store-search]').forEach(function (root) {
             if (root.dataset.storeSearchReady === '1') {
                 return;
@@ -23,109 +16,149 @@
             root.dataset.storeSearchReady = '1';
 
             var input = root.querySelector('[data-store-search-input]');
-            var liveUrl = root.dataset.storeSearchLiveUrl || '/search';
-            var fragmentUrl = root.dataset.storeSearchFragmentUrl || '';
+            var form = root.querySelector('[data-store-search-form]');
+            var list = root.querySelector('[data-store-search-list]');
+            var status = root.querySelector('[data-store-search-status]');
+            var suggestUrl = root.dataset.storeSearchSuggestUrl || '/search/suggest';
             var minChars = parseInt(root.dataset.storeSearchMinChars || '2', 10);
 
-            if (!input) {
+            if (!input || !form || !list || !status) {
                 return;
             }
 
             var debounceTimer = null;
             var fetchController = null;
-            var lastQuery = null;
+            var options = [];
+            var activeIndex = -1;
 
-            function updateTitle(query) {
-                if (!titleEl) {
-                    return;
-                }
-                if (query.length >= minChars) {
-                    titleEl.textContent = titleForTemplate.replace('__QUERY__', query);
-                } else {
-                    titleEl.textContent = titleDefault;
-                }
+            function announce(message) {
+                status.textContent = '';
+                window.setTimeout(function () { status.textContent = message; }, 20);
             }
 
-            function runLiveSearch() {
-                var query = input.value.trim();
+            function closeList() {
+                list.hidden = true;
+                list.innerHTML = '';
+                options = [];
+                activeIndex = -1;
+                input.setAttribute('aria-expanded', 'false');
+                input.removeAttribute('aria-activedescendant');
+            }
 
-                if (query === lastQuery) {
+            function setActive(index) {
+                if (options.length === 0) {
                     return;
                 }
-                lastQuery = query;
+                activeIndex = (index + options.length) % options.length;
+                options.forEach(function (option, optionIndex) {
+                    option.setAttribute('aria-selected', optionIndex === activeIndex ? 'true' : 'false');
+                    option.classList.toggle('is-active', optionIndex === activeIndex);
+                });
+                input.setAttribute('aria-activedescendant', options[activeIndex].id);
+                options[activeIndex].scrollIntoView({ block: 'nearest' });
+            }
 
-                if (searchPage && resultsHost && fragmentUrl) {
-                    updateTitle(query);
+            function renderResults(results, searchUrl) {
+                if (!Array.isArray(results) || results.length === 0) {
+                    closeList();
+                    announce(root.dataset.storeSearchEmpty || '');
+                    return;
+                }
 
-                    if (query.length < minChars) {
-                        var clearUrl = new URL(liveUrl, window.location.origin);
-                        window.history.replaceState(null, '', clearUrl.pathname);
-                        resultsHost.innerHTML = '<div class="ag-store-empty">' + escapeHtml(emptyQueryMessage || titleDefault) + '</div>';
-                        return;
-                    }
+                list.innerHTML = results.map(function (result, index) {
+                    var meta = [result.type_label, result.code, result.brand].filter(Boolean).join(' · ');
+                    return '<a id="' + list.id + '-option-' + index + '" role="option" aria-selected="false" class="ag-store-search-suggestions__option" href="' +
+                        escapeHtml(result.url) + '" data-store-search-option><span class="ag-store-search-suggestions__name">' +
+                        escapeHtml(result.name) + '</span>' + (meta ? '<span class="ag-store-search-suggestions__meta">' +
+                        escapeHtml(meta) + '</span>' : '') + '</a>';
+                }).join('') + '<a role="option" aria-selected="false" class="ag-store-search-suggestions__option ag-store-search-suggestions__all" href="' +
+                    escapeHtml(searchUrl) + '" data-store-search-option>{{ e(__('agricart.storefront.search.view_all')) }}</a>';
+                list.hidden = false;
+                input.setAttribute('aria-expanded', 'true');
+                options = Array.prototype.slice.call(list.querySelectorAll('[data-store-search-option]'));
+                activeIndex = -1;
+                announce((root.dataset.storeSearchCount || ':count results').replace(':count', String(results.length)));
+            }
 
+            function fetchSuggestions() {
+                var query = input.value.trim();
+                if (query.length < minChars) {
                     if (fetchController) {
                         fetchController.abort();
                     }
-                    fetchController = new AbortController();
-
-                    var fragmentRequest = new URL(fragmentUrl, window.location.origin);
-                    fragmentRequest.searchParams.set('q', query);
-
-                    var pageUrl = new URL(liveUrl, window.location.origin);
-                    pageUrl.searchParams.set('q', query);
-                    window.history.replaceState(null, '', pageUrl.toString());
-
-                    fetch(fragmentRequest.toString(), {
-                        headers: {
-                            Accept: 'text/html',
-                            'X-Requested-With': 'XMLHttpRequest',
-                        },
-                        credentials: 'same-origin',
-                        signal: fetchController.signal,
-                    })
-                        .then(function (response) {
-                            if (!response.ok) {
-                                throw new Error('Search fragment failed');
-                            }
-                            return response.text();
-                        })
-                        .then(function (html) {
-                            resultsHost.innerHTML = html;
-                        })
-                        .catch(function (error) {
-                            if (error.name !== 'AbortError') {
-                                window.location.assign(pageUrl.toString());
-                            }
-                        });
-
+                    closeList();
                     return;
                 }
 
-                if (query.length < minChars) {
-                    return;
+                if (fetchController) {
+                    fetchController.abort();
                 }
+                fetchController = new AbortController();
+                announce(root.dataset.storeSearchLoading || '');
 
-                var destination = new URL(liveUrl, window.location.origin);
-                destination.searchParams.set('q', query);
-
-                if (window.location.href !== destination.href) {
-                    window.location.assign(destination.toString());
-                }
+                var requestUrl = new URL(suggestUrl, window.location.origin);
+                requestUrl.searchParams.set('q', query);
+                fetch(requestUrl.toString(), {
+                    headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin',
+                    signal: fetchController.signal,
+                }).then(function (response) {
+                    if (!response.ok) {
+                        throw new Error('Suggestion request failed');
+                    }
+                    return response.json();
+                }).then(function (payload) {
+                    if (input.value.trim() === payload.query) {
+                        renderResults(payload.results, payload.search_url);
+                    }
+                }).catch(function (error) {
+                    if (error.name !== 'AbortError') {
+                        closeList();
+                        announce(root.dataset.storeSearchError || '');
+                    }
+                });
             }
 
-            function scheduleLiveSearch() {
+            input.addEventListener('input', function () {
                 window.clearTimeout(debounceTimer);
-                debounceTimer = window.setTimeout(runLiveSearch, 380);
-            }
-
-            input.addEventListener('input', scheduleLiveSearch);
-
-            lastQuery = input.value.trim();
-
-            if (searchPage && input.value.trim().length >= minChars) {
-                scheduleLiveSearch();
-            }
+                debounceTimer = window.setTimeout(fetchSuggestions, 250);
+            });
+            input.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape') {
+                    closeList();
+                    return;
+                }
+                if (list.hidden || options.length === 0) {
+                    return;
+                }
+                if (event.key === 'ArrowDown') {
+                    event.preventDefault();
+                    setActive(activeIndex + 1);
+                } else if (event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    setActive(activeIndex - 1);
+                } else if (event.key === 'Home') {
+                    event.preventDefault();
+                    setActive(0);
+                } else if (event.key === 'End') {
+                    event.preventDefault();
+                    setActive(options.length - 1);
+                } else if (event.key === 'Enter' && activeIndex >= 0) {
+                    event.preventDefault();
+                    window.location.assign(options[activeIndex].href);
+                }
+            });
+            input.addEventListener('focus', function () {
+                if (options.length > 0) {
+                    list.hidden = false;
+                    input.setAttribute('aria-expanded', 'true');
+                }
+            });
+            document.addEventListener('pointerdown', function (event) {
+                if (!root.contains(event.target)) {
+                    closeList();
+                }
+            });
         });
     }
 

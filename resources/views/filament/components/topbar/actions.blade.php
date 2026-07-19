@@ -23,6 +23,7 @@
 
 <div
     class="agricart-topbar-actions"
+    x-on:topbar-notifications-refresh.window="refreshNotifications()"
     x-data="{
         clockDate: '',
         clockTime: '',
@@ -285,7 +286,7 @@
     </div>
 
     <div class="agricart-topbar-actions__cluster">
-        <div class="agricart-topbar-actions__clock" aria-live="polite">
+        <div class="agricart-topbar-actions__clock">
             <time
                 class="agricart-topbar-actions__clock-date"
                 :datetime="clockIso"

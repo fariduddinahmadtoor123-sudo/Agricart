@@ -41,7 +41,7 @@
                             </div>
 
                             <div class="ag-store-orders__card-meta">
-                                <span>{{ $order->order_date?->format('d M Y') }}</span>
+                                <span>{{ $order->order_date?->locale(app()->getLocale())->translatedFormat('d M Y') }}</span>
                                 <span aria-hidden="true">·</span>
                                 <span class="ag-store-orders__card-total">
                                     {{ __('agricart.storefront.products.price', ['amount' => $sales->formatMoney((float) $order->total_amount)]) }}

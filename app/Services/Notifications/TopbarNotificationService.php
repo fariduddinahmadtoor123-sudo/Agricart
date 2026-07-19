@@ -10,6 +10,8 @@ use App\Models\OnlineSaleOrder;
 use App\Models\StoreInquiry;
 use App\Models\SystemError;
 use App\Models\User;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 
 class TopbarNotificationService
 {
@@ -42,10 +44,7 @@ class TopbarNotificationService
             ),
             $this->item(
                 key: 'system_errors',
-                count: SystemError::query()
-                    ->where('status', SystemError::STATUS_OPEN)
-                    ->where('severity', SystemError::SEVERITY_CRITICAL)
-                    ->count(),
+                count: $this->unreadCriticalSystemErrors(),
                 pageClass: SystemErrorsPage::class,
             ),
         ]));
@@ -54,6 +53,43 @@ class TopbarNotificationService
             'total' => array_sum(array_column($items, 'count')),
             'items' => $items,
         ];
+    }
+
+    private function unreadCriticalSystemErrors(): int
+    {
+        $user = auth()->user();
+        $version = (int) Cache::get('topbar-notifications:system-errors:version', 1);
+        $userKey = $user instanceof User ? (string) $user->id : 'guest';
+
+        return Cache::remember(
+            "topbar-notifications:system-errors:{$version}:{$userKey}",
+            now()->addSeconds(15),
+            fn (): int => $this->queryUnreadCriticalSystemErrors($user),
+        );
+    }
+
+    public static function invalidateSystemErrors(): void
+    {
+        if (! Cache::increment('topbar-notifications:system-errors:version')) {
+            Cache::forever('topbar-notifications:system-errors:version', 2);
+        }
+    }
+
+    private function queryUnreadCriticalSystemErrors(?User $user): int
+    {
+        $query = SystemError::query()
+            ->where('status', SystemError::STATUS_OPEN)
+            ->where('severity', SystemError::SEVERITY_CRITICAL);
+
+        if ($user instanceof User && Schema::hasTable('system_error_reads')) {
+            $query->whereDoesntHave('reads', function ($reads) use ($user): void {
+                $reads
+                    ->where('user_id', $user->id)
+                    ->whereColumn('occurrences_seen', '>=', 'system_errors.occurrences');
+            });
+        }
+
+        return $query->count();
     }
 
     /**

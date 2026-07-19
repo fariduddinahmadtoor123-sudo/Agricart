@@ -26,7 +26,7 @@
                         <a href="{{ $result['url'] }}" class="ag-store-search-link-card">
                             <span class="ag-store-search-link-card__visual">
                                 @if ($result['image'])
-                                    <img src="{{ $result['image'] }}" alt="" loading="lazy" />
+                                    <img src="{{ $result['image'] }}" alt="{{ $result['name'] }}" loading="lazy" decoding="async" width="64" height="64" />
                                 @else
                                     <span aria-hidden="true">{{ mb_strtoupper(mb_substr($result['name'], 0, 1)) }}</span>
                                 @endif
@@ -89,7 +89,7 @@
                             <a href="{{ $productUrl }}" class="ag-store-product-card__image-link">
                                 <div class="ag-store-product-card__image-wrap">
                                     @if ($imageUrl)
-                                        <img src="{{ $imageUrl }}" alt="" class="ag-store-product-card__image" loading="lazy" />
+                                        <img src="{{ $imageUrl }}" alt="{{ $productService->localizedName($product) }}" class="ag-store-product-card__image" loading="lazy" decoding="async" width="320" height="320" />
                                     @else
                                         <span class="ag-store-product-card__placeholder">{{ mb_strtoupper(mb_substr($name, 0, 1)) }}</span>
                                     @endif

@@ -46,6 +46,7 @@ class BankAccountTransaction extends Model
         'expense_id',
         'expense_payment_id',
         'transfer_group',
+        'source_key',
         'description',
         'notes',
         'created_by',

@@ -6,8 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-use Illuminate\Support\Facades\Storage;
-
 class OnlineSaleOrder extends Model
 {
     public const STATUS_PENDING = 'pending';
@@ -82,6 +80,7 @@ class OnlineSaleOrder extends Model
     /** @var list<string> */
     protected $fillable = [
         'order_number',
+        'checkout_token',
         'customer_id',
         'sale_id',
         'order_date',
@@ -110,6 +109,7 @@ class OnlineSaleOrder extends Model
         'admin_notes',
         'converted_at',
         'converted_by_id',
+        'notification_dispatched_at',
         'assigned_user_id',
     ];
 
@@ -124,6 +124,7 @@ class OnlineSaleOrder extends Model
             'total_amount' => 'decimal:2',
             'amount_paid' => 'decimal:2',
             'converted_at' => 'datetime',
+            'notification_dispatched_at' => 'datetime',
             'payment_proof_reviewed_at' => 'datetime',
         ];
     }
@@ -155,8 +156,20 @@ class OnlineSaleOrder extends Model
 
     public function customerBankReceiptUrl(): ?string
     {
+        return $this->adminPaymentProofUrl();
+    }
+
+    public function customerPaymentProofUrl(): ?string
+    {
         return filled($this->customer_bank_receipt_path)
-            ? Storage::disk('public')->url($this->customer_bank_receipt_path)
+            ? route('store.customer.orders.payment-proof.show', $this->order_number)
+            : null;
+    }
+
+    public function adminPaymentProofUrl(): ?string
+    {
+        return filled($this->customer_bank_receipt_path)
+            ? route('admin.online-sale-orders.payment-proof.show', $this)
             : null;
     }
 

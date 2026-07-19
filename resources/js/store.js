@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         speed = Math.min(100, Math.max(10, speed));
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
         const applySpeed = () => {
             const duration = Math.max(8, 120 - speed);
@@ -25,6 +26,13 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         applySpeed();
+        if (reducedMotion) {
+            root.classList.add('is-paused');
+            pauseBtn?.setAttribute('aria-pressed', 'true');
+            if (pauseBtn) {
+                pauseBtn.textContent = '▶';
+            }
+        }
 
         pauseBtn?.addEventListener('click', () => {
             const paused = root.classList.toggle('is-paused');
@@ -66,6 +74,43 @@ document.addEventListener('DOMContentLoaded', () => {
                     item.setAttribute('aria-pressed', active ? 'true' : 'false');
                 });
             });
+        });
+    });
+
+    document.querySelectorAll('[data-store-menu-toggle]').forEach((button) => {
+        const menu = document.getElementById(button.getAttribute('aria-controls'));
+
+        if (! menu) {
+            return;
+        }
+
+        button.classList.add('is-enhanced');
+        menu.classList.add('is-collapsible');
+
+        button.addEventListener('click', () => {
+            const open = button.getAttribute('aria-expanded') !== 'true';
+            button.setAttribute('aria-expanded', open ? 'true' : 'false');
+            menu.classList.toggle('is-open', open);
+        });
+    });
+
+    document.querySelectorAll('[data-copy-value]').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const value = button.dataset.copyValue ?? '';
+            try {
+                await navigator.clipboard.writeText(value);
+            } catch {
+                const input = document.createElement('textarea');
+                input.value = value;
+                input.setAttribute('readonly', '');
+                input.style.position = 'fixed';
+                input.style.opacity = '0';
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                input.remove();
+            }
+            button.textContent = button.dataset.copySuccess ?? button.textContent;
         });
     });
 

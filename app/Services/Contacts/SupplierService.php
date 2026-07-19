@@ -8,6 +8,8 @@ use App\Models\Purchase;
 use App\Models\PurchasePaymentSummaryItem;
 use App\Models\PurchaseQuotation;
 use App\Models\Supplier;
+use App\Services\Media\OptimizedImageStorage;
+use App\Services\Identifiers\DocumentCounterService;
 use App\Support\PakistaniBanks;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
@@ -65,7 +67,11 @@ class SupplierService
 
         foreach (['profile_photo_path', 'card_front_path', 'card_back_path'] as $field) {
             if (filled($supplier->{$field})) {
-                Storage::disk('public')->delete($supplier->{$field});
+                if ($field === 'profile_photo_path') {
+                    continue;
+                } else {
+                    Storage::disk('public')->delete($supplier->{$field});
+                }
             }
         }
 
@@ -95,14 +101,12 @@ class SupplierService
 
     public function nextSupplierCode(): string
     {
-        $next = (int) Supplier::query()->max('id') + 1;
-
-        do {
-            $code = 'SUP-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (Supplier::query()->where('supplier_code', $code)->exists());
-
-        return $code;
+        return app(DocumentCounterService::class)->next(
+            'suppliers.supplier_code',
+            'SUP-',
+            5,
+            fn (): int => DocumentCounterService::maximumSuffix('suppliers', 'supplier_code', 'SUP-'),
+        );
     }
 
     /**
@@ -331,7 +335,7 @@ class SupplierService
 
     public function storeUpload(TemporaryUploadedFile $upload, string $directory): string
     {
-        return app(\App\Services\Media\OptimizedImageStorage::class)->store($upload, $directory);
+        return app(OptimizedImageStorage::class)->store($upload, $directory);
     }
 
     /**
@@ -351,7 +355,11 @@ class SupplierService
             $newPath = $validated[$field];
 
             if (filled($newPath) && filled($existing) && $newPath !== $existing) {
-                Storage::disk('public')->delete($existing);
+                if ($field === 'profile_photo_path') {
+                    continue;
+                } else {
+                    Storage::disk('public')->delete($existing);
+                }
             }
 
             if (empty($newPath)) {

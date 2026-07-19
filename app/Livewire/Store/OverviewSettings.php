@@ -16,6 +16,10 @@ class OverviewSettings extends BaseStoreSettings
 
     public function mount(): void
     {
+        if (! $this->canManageStoreSettings()) {
+            return;
+        }
+
         $settings = $this->settings();
 
         $this->category_grid_enabled = $settings->category_grid_enabled;
@@ -26,6 +30,7 @@ class OverviewSettings extends BaseStoreSettings
 
     public function save(): void
     {
+        $this->authorizeStoreSettings();
         $this->validate([
             'category_grid_columns' => ['required', 'integer', 'min:3', 'max:6'],
             'category_grid_title_en' => ['nullable', 'string', 'max:255'],

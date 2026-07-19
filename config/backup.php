@@ -18,6 +18,13 @@ return [
     'retention_count' => (int) env('BACKUP_RETENTION_COUNT', 10),
     'max_total_bytes' => (int) env('BACKUP_MAX_TOTAL_BYTES', 100 * 1024 * 1024 * 1024),
     'max_file_bytes' => (int) env('BACKUP_MAX_FILE_BYTES', 6 * 1024 * 1024 * 1024),
+    'archive' => [
+        'max_entries' => (int) env('BACKUP_ARCHIVE_MAX_ENTRIES', 100000),
+        'max_entry_bytes' => (int) env('BACKUP_ARCHIVE_MAX_ENTRY_BYTES', 2 * 1024 * 1024 * 1024),
+        'max_uncompressed_bytes' => (int) env('BACKUP_ARCHIVE_MAX_UNCOMPRESSED_BYTES', 20 * 1024 * 1024 * 1024),
+        'max_compression_ratio' => (float) env('BACKUP_ARCHIVE_MAX_COMPRESSION_RATIO', 200),
+        'max_manifest_bytes' => (int) env('BACKUP_ARCHIVE_MAX_MANIFEST_BYTES', 64 * 1024),
+    ],
 
     /*
     |--------------------------------------------------------------------------
@@ -57,9 +64,9 @@ return [
     |--------------------------------------------------------------------------
     |
     | Full restore replaces the database. When preserve_local_logins is true,
-    | staff/customers that existed before restore are re-added if their email
-    | is missing from the restored data (same password hashes). Emails that
-    | already exist in the backup keep the backup password (source of truth).
+    | Production defaults to authoritative local replacement: captured local
+    | login rows replace same-email archive rows and missing rows are restored.
+    | Local development keeps the safer merge-missing behavior.
     |
     | bootstrap_admin is always ensured after restore when email/password are set
     | (default local admin for Laragon / Hostinger testing).
@@ -69,6 +76,7 @@ return [
         env('BACKUP_PRESERVE_LOCAL_LOGINS', true),
         FILTER_VALIDATE_BOOLEAN,
     ),
+    'production_login_mode' => env('BACKUP_PRODUCTION_LOGIN_MODE', 'authoritative'),
     'bootstrap_admin' => [
         // Empty by default — never ship a known password. Set in local .env only.
         'email' => env('BACKUP_BOOTSTRAP_ADMIN_EMAIL'),

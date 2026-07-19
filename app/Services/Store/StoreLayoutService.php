@@ -14,9 +14,16 @@ use Illuminate\Support\Facades\Storage;
 
 class StoreLayoutService
 {
+    /** @var array<string, array<string, mixed>> */
+    private array $requestCache = [];
+
     public function clearCache(): void
     {
-        Cache::forget('store.layout');
+        Cache::forget('store.layout.'.app()->getLocale());
+        Cache::forget('store.layout.en');
+        Cache::forget('store.layout.ur');
+        Cache::forget('store.layout.selection');
+        $this->requestCache = [];
     }
 
     /**
@@ -36,9 +43,20 @@ class StoreLayoutService
      */
     public function layoutData(): array
     {
-        // Do not cache Eloquent models — serialized models can become __PHP_Incomplete_Class
-        // when the cache is read before autoloading, which breaks the storefront.
-        return $this->buildLayoutData();
+        $locale = app()->getLocale();
+
+        if (isset($this->requestCache[$locale])) {
+            return $this->requestCache[$locale];
+        }
+
+        // Shared cache only stores scalar mutation/version metadata. Eloquent models remain
+        // request-local so no serialized model graph can become stale or incomplete.
+        Cache::rememberForever('store.layout.'.$locale, static fn (): array => [
+            'locale' => $locale,
+            'version' => 1,
+        ]);
+
+        return $this->requestCache[$locale] = $this->buildLayoutData();
     }
 
     /**
@@ -58,24 +76,34 @@ class StoreLayoutService
      */
     private function buildLayoutData(): array
     {
+        $selection = Cache::remember('store.layout.selection', now()->addMinutes(30), static fn (): array => [
+            'ticker' => StoreTickerMessage::query()->where('is_active', true)->pluck('id')->all(),
+            'menu' => StoreMenuItem::query()->where('is_active', true)->pluck('id')->all(),
+            'auto_menu_pages' => StorePage::query()->where('is_active', true)->where('show_in_menu', true)->pluck('id')->all(),
+            'quick_links' => StoreFooterLink::query()->where('group', StoreFooterLink::GROUP_QUICK)->where('is_active', true)->pluck('id')->all(),
+            'registration_links' => StoreFooterLink::query()->where('group', StoreFooterLink::GROUP_REGISTRATION)->where('is_active', true)->pluck('id')->all(),
+            'quick_pages' => StorePage::query()->where('is_active', true)->where('show_in_quick_links', true)->pluck('id')->all(),
+            'registration_pages' => StorePage::query()->where('is_active', true)->where('show_in_registration', true)->pluck('id')->all(),
+            'policy_pages' => StorePage::query()->where('is_active', true)->where('show_in_footer', true)->pluck('id')->all(),
+        ]);
+
         $settings = StoreSetting::current();
 
         $tickerMessages = StoreTickerMessage::query()
-            ->where('is_active', true)
+            ->whereKey($selection['ticker'])
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get();
 
         $menuItems = StoreMenuItem::query()
-            ->where('is_active', true)
+            ->whereKey($selection['menu'])
             ->with(['category:id,slug', 'storePage:id,slug'])
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get();
 
         $autoMenuPages = StorePage::query()
-            ->where('is_active', true)
-            ->where('show_in_menu', true)
+            ->whereKey($selection['auto_menu_pages'])
             ->whereNotIn('id', $menuItems->pluck('store_page_id')->filter()->all())
             ->orderBy('sort_order')
             ->orderBy('id')
@@ -84,40 +112,35 @@ class StoreLayoutService
         $menuNavEntries = $this->mergeNavEntries($autoMenuPages, $menuItems);
 
         $footerQuickLinks = StoreFooterLink::query()
-            ->where('group', StoreFooterLink::GROUP_QUICK)
-            ->where('is_active', true)
+            ->whereKey($selection['quick_links'])
             ->with(['category:id,slug', 'storePage:id,slug,title_en,title_ur'])
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get();
 
         $footerRegistrationLinks = StoreFooterLink::query()
-            ->where('group', StoreFooterLink::GROUP_REGISTRATION)
-            ->where('is_active', true)
+            ->whereKey($selection['registration_links'])
             ->with(['category:id,slug', 'storePage:id,slug,title_en,title_ur'])
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get();
 
         $footerQuickPages = StorePage::query()
-            ->where('is_active', true)
-            ->where('show_in_quick_links', true)
+            ->whereKey($selection['quick_pages'])
             ->whereNotIn('id', $footerQuickLinks->pluck('store_page_id')->filter()->all())
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get(['id', 'slug', 'title_en', 'title_ur', 'sort_order']);
 
         $footerRegistrationPages = StorePage::query()
-            ->where('is_active', true)
-            ->where('show_in_registration', true)
+            ->whereKey($selection['registration_pages'])
             ->whereNotIn('id', $footerRegistrationLinks->pluck('store_page_id')->filter()->all())
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get(['id', 'slug', 'title_en', 'title_ur', 'sort_order']);
 
         $footerPolicyPages = StorePage::query()
-            ->where('is_active', true)
-            ->where('show_in_footer', true)
+            ->whereKey($selection['policy_pages'])
             ->orderBy('sort_order')
             ->orderBy('id')
             ->get(['id', 'slug', 'title_en', 'title_ur']);

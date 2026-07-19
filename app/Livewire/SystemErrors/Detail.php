@@ -4,6 +4,7 @@ namespace App\Livewire\SystemErrors;
 
 use App\Livewire\SystemErrors\Concerns\AuthorizesSystemErrors;
 use App\Models\SystemError;
+use App\Services\SystemErrors\SystemErrorReadService;
 use App\Services\SystemErrors\SystemErrorReportFormatter;
 use App\Services\SystemErrors\SystemLogFileReader;
 use Filament\Notifications\Notification;
@@ -36,6 +37,11 @@ class Detail extends Component
         $this->report = $this->error instanceof SystemError
             ? app(SystemErrorReportFormatter::class)->format($this->error)
             : '';
+
+        if ($this->error instanceof SystemError) {
+            app(SystemErrorReadService::class)->markRead($this->error, $user);
+            $this->dispatch('topbar-notifications-refresh');
+        }
     }
 
     #[On('system-error-file-detail-open')]
@@ -72,6 +78,9 @@ class Detail extends Component
             'status' => SystemError::STATUS_RESOLVED,
             'resolved_at' => now(),
             'resolved_by_id' => $user->id,
+            'resolution_type' => 'manual',
+            'resolution_note' => __('agricart.system_errors.messages.manually_resolved'),
+            'verified_at' => now(),
         ]);
         $this->error->refresh()->load(['user', 'resolvedBy']);
         $this->report = app(SystemErrorReportFormatter::class)->format($this->error);
@@ -95,6 +104,9 @@ class Detail extends Component
             'status' => SystemError::STATUS_OPEN,
             'resolved_at' => null,
             'resolved_by_id' => null,
+            'resolution_type' => null,
+            'resolution_note' => null,
+            'verified_at' => null,
         ]);
         $this->error->refresh()->load(['user', 'resolvedBy']);
         $this->report = app(SystemErrorReportFormatter::class)->format($this->error);

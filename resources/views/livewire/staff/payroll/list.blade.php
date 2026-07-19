@@ -102,5 +102,8 @@
                 </tbody>
             </table>
         </div>
+        @if ($members->hasPages())
+            <div class="mt-4">{{ $members->links() }}</div>
+        @endif
     @endif
 </div>

@@ -9,6 +9,9 @@ use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SaleReturn;
 use App\Models\SaleReturnItem;
+use App\Services\Finance\BankAccountService;
+use App\Services\Identifiers\DocumentCounterService;
+use App\Services\Finance\CashBookService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -80,6 +83,7 @@ class SaleReturnService
             'image_path' => $item->image_path,
             'sold_quantity' => (string) ($item->quantity ?? '0'),
             'unit_price' => (string) ($item->unit_price ?? '0'),
+            'unit_cost_snapshot' => (string) ($item->unit_cost_snapshot ?? '0'),
             'return_quantity' => '0',
             'return_amount' => '0',
         ];
@@ -122,11 +126,11 @@ class SaleReturnService
      */
     public function create(array $data): SaleReturn
     {
-        $validated = $this->validate($data);
-        $rows = $validated['rows'];
-        unset($validated['rows']);
+        return DB::transaction(function () use ($data): SaleReturn {
+            $validated = $this->validate($data);
+            $rows = $validated['rows'];
+            unset($validated['rows']);
 
-        return DB::transaction(function () use ($validated, $rows): SaleReturn {
             if (! filled($validated['return_number'] ?? null)) {
                 $validated['return_number'] = $this->nextReturnNumber();
             }
@@ -138,8 +142,8 @@ class SaleReturnService
             $this->adjustStock($rows, 1);
 
             $return = $return->fresh(['items', 'customer', 'sale', 'processedBy']);
-            app(\App\Services\Finance\CashBookService::class)->recordSaleReturnRefundIfApplicable($return);
-            app(\App\Services\Finance\BankAccountService::class)->recordSaleReturnRefundIfApplicable($return);
+            app(CashBookService::class)->recordSaleReturnRefundIfApplicable($return);
+            app(BankAccountService::class)->recordSaleReturnRefundIfApplicable($return);
 
             return $return;
         });
@@ -151,11 +155,13 @@ class SaleReturnService
     public function update(SaleReturn $return, array $data): SaleReturn
     {
         $this->assertFinanciallyEditable($return);
-        $validated = $this->validate($data, $return->id);
-        $rows = $validated['rows'];
-        unset($validated['rows']);
 
-        return DB::transaction(function () use ($return, $validated, $rows): SaleReturn {
+        return DB::transaction(function () use ($return, $data): SaleReturn {
+            $return = SaleReturn::query()->lockForUpdate()->findOrFail($return->id);
+            $this->assertFinanciallyEditable($return);
+            $validated = $this->validate($data, $return->id);
+            $rows = $validated['rows'];
+            unset($validated['rows']);
             $return->loadMissing('items');
             $oldRows = $return->items->map(fn (SaleReturnItem $item): array => [
                 'product_id' => $item->product_id,
@@ -177,6 +183,8 @@ class SaleReturnService
         $this->assertFinanciallyEditable($return);
 
         DB::transaction(function () use ($return): void {
+            $return = SaleReturn::query()->lockForUpdate()->findOrFail($return->id);
+            $this->assertFinanciallyEditable($return);
             $return->loadMissing('items');
             $rows = $return->items->map(fn (SaleReturnItem $item): array => [
                 'product_id' => $item->product_id,
@@ -221,6 +229,8 @@ class SaleReturnService
                 'image_path' => $item->image_path,
                 'sold_quantity' => (string) ($item->sold_quantity ?? '0'),
                 'unit_price' => (string) ($item->unit_price ?? '0'),
+                'unit_cost_snapshot' => (string) ($item->unit_cost_snapshot ?? '0'),
+                'cogs_reversal_snapshot' => (string) ($item->cogs_reversal_snapshot ?? '0'),
                 'return_quantity' => (string) ($item->return_quantity ?? '0'),
                 'return_amount' => (string) ($item->return_amount ?? '0'),
             ];
@@ -249,14 +259,12 @@ class SaleReturnService
 
     public function nextReturnNumber(): string
     {
-        $next = (int) SaleReturn::query()->max('id') + 1;
-
-        do {
-            $number = 'RET-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (SaleReturn::query()->where('return_number', $number)->exists());
-
-        return $number;
+        return app(DocumentCounterService::class)->next(
+            'sale_returns.return_number',
+            'RET-',
+            5,
+            fn (): int => DocumentCounterService::maximumSuffix('sale_returns', 'return_number', 'RET-'),
+        );
     }
 
     /**
@@ -282,13 +290,13 @@ class SaleReturnService
             'amount_paid' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'rows' => ['required', 'array', 'min:1'],
-            'rows.*.sale_item_id' => ['nullable', 'integer', 'exists:sale_items,id'],
-            'rows.*.product_id' => ['required', 'integer', 'exists:products,id'],
-            'rows.*.sold_quantity' => ['nullable', 'string', 'max:32'],
-            'rows.*.return_quantity' => ['required', 'string', 'max:32'],
+            'rows.*.sale_item_id' => ['required', 'integer'],
+            'rows.*.product_id' => ['nullable', 'integer'],
+            'rows.*.sold_quantity' => ['nullable'],
+            'rows.*.return_quantity' => ['required', 'numeric', 'min:0'],
             'rows.*.return_amount' => ['nullable', 'string', 'max:32'],
-            'rows.*.unit_price' => ['required', 'string', 'max:32'],
-            'rows.*.product_name_en' => ['required', 'string', 'max:255'],
+            'rows.*.unit_price' => ['nullable'],
+            'rows.*.product_name_en' => ['nullable', 'string', 'max:255'],
             'rows.*.product_name_ur' => ['nullable', 'string', 'max:255'],
             'rows.*.brand_name_en' => ['nullable', 'string', 'max:255'],
             'rows.*.brand_name_ur' => ['nullable', 'string', 'max:255'],
@@ -296,21 +304,88 @@ class SaleReturnService
             'rows.*.image_path' => ['nullable', 'string', 'max:500'],
         ])->validate();
 
-        $rows = $this->recalculateRows($validated['rows']);
-        $rows = $this->billableRows($rows);
+        $sale = Sale::query()->lockForUpdate()->find((int) $validated['sale_id']);
 
-        if ($rows === []) {
+        if ($sale === null || ! $sale->isCompleted()) {
+            throw ValidationException::withMessages([
+                'sale_id' => [__('sale_returns.validation.sale_not_found')],
+            ]);
+        }
+
+        $requested = [];
+
+        foreach ($validated['rows'] as $row) {
+            $saleItemId = (int) $row['sale_item_id'];
+            $quantity = (float) $row['return_quantity'];
+
+            if ($quantity > 0) {
+                $requested[$saleItemId] = ($requested[$saleItemId] ?? 0.0) + $quantity;
+            }
+        }
+
+        if ($requested === []) {
             throw ValidationException::withMessages([
                 'rows' => [__('sale_returns.validation.items_required')],
             ]);
         }
 
-        $this->assertReturnQuantities($rows, (int) $validated['sale_id'], $ignoreReturnId);
+        $saleItems = SaleItem::query()
+            ->where('sale_id', $sale->id)
+            ->whereIn('id', array_keys($requested))
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get()
+            ->keyBy('id');
+
+        if ($saleItems->count() !== count($requested)) {
+            throw ValidationException::withMessages([
+                'rows' => [__('sale_returns.validation.sale_not_found')],
+            ]);
+        }
+
+        SaleReturn::query()->where('sale_id', $sale->id)->orderBy('id')->lockForUpdate()->get(['id']);
+        $existing = SaleReturnItem::query()
+            ->whereIn('sale_item_id', array_keys($requested))
+            ->when($ignoreReturnId !== null, fn ($query) => $query->where('sale_return_id', '!=', $ignoreReturnId))
+            ->orderBy('id')
+            ->lockForUpdate()
+            ->get()
+            ->groupBy('sale_item_id');
+
+        $rows = [];
+
+        foreach ($requested as $saleItemId => $returnQty) {
+            /** @var SaleItem $item */
+            $item = $saleItems->get($saleItemId);
+            $soldQty = $this->saleService->numeric((string) $item->quantity);
+            $alreadyReturned = $existing->get($saleItemId, collect())
+                ->sum(fn (SaleReturnItem $existingItem): float => $this->saleService->numeric((string) $existingItem->return_quantity));
+
+            if ($returnQty > $soldQty + 0.0001 || $returnQty + $alreadyReturned > $soldQty + 0.0001) {
+                throw ValidationException::withMessages([
+                    'rows' => [__('sale_returns.validation.qty_exceeds_remaining')],
+                ]);
+            }
+
+            $trusted = $this->rowFromSaleItem($item);
+            $trusted['return_quantity'] = $this->saleService->formatQty($returnQty);
+            $trusted['return_amount'] = $this->saleService->formatMoney(
+                $returnQty * $this->saleService->numeric((string) $item->unit_price),
+            );
+            $rows[] = $trusted;
+        }
 
         $subtotal = $this->refundSubtotalFromRows($rows);
         $paid = $this->saleService->numeric((string) ($validated['amount_paid'] ?? '0'));
         $total = $subtotal;
 
+        if ($paid > $total + 0.001) {
+            throw ValidationException::withMessages([
+                'amount_paid' => [__('online_sale_orders.validation.amount_paid_exceeds_total')],
+            ]);
+        }
+
+        $validated['customer_id'] = $sale->customer_id;
         $validated['refund_subtotal'] = $subtotal;
         $validated['refund_total'] = $total;
         $validated['amount_paid'] = $paid;
@@ -335,55 +410,6 @@ class SaleReturnService
     /**
      * @param  list<array<string, mixed>>  $rows
      */
-    private function assertReturnQuantities(array $rows, int $saleId, ?int $ignoreReturnId): void
-    {
-        foreach ($rows as $index => $row) {
-            $returnQty = $this->saleService->numeric((string) ($row['return_quantity'] ?? '0'));
-            $soldQty = $this->saleService->numeric((string) ($row['sold_quantity'] ?? '0'));
-            $saleItemId = (int) ($row['sale_item_id'] ?? 0);
-
-            if ($returnQty > $soldQty) {
-                throw ValidationException::withMessages([
-                    "rows.{$index}.return_quantity" => [__('sale_returns.validation.qty_exceeds_sold')],
-                ]);
-            }
-
-            if ($saleItemId <= 0) {
-                continue;
-            }
-
-            $alreadyReturned = $this->returnedQuantityForSaleItem($saleItemId, $saleId, $ignoreReturnId);
-
-            if ($returnQty + $alreadyReturned > $soldQty) {
-                throw ValidationException::withMessages([
-                    "rows.{$index}.return_quantity" => [__('sale_returns.validation.qty_exceeds_remaining')],
-                ]);
-            }
-        }
-    }
-
-    private function returnedQuantityForSaleItem(int $saleItemId, int $saleId, ?int $ignoreReturnId): float
-    {
-        $query = SaleReturnItem::query()
-            ->where('sale_item_id', $saleItemId)
-            ->whereHas('saleReturn', fn ($q) => $q->where('sale_id', $saleId));
-
-        if ($ignoreReturnId !== null) {
-            $query->where('sale_return_id', '!=', $ignoreReturnId);
-        }
-
-        $sum = 0.0;
-
-        foreach ($query->get(['return_quantity']) as $item) {
-            $sum += $this->saleService->numeric((string) ($item->return_quantity ?? '0'));
-        }
-
-        return $sum;
-    }
-
-    /**
-     * @param  list<array<string, mixed>>  $rows
-     */
     private function syncItems(SaleReturn $return, array $rows): void
     {
         $return->items()->delete();
@@ -392,7 +418,7 @@ class SaleReturnService
             SaleReturnItem::query()->create([
                 'sale_return_id' => $return->id,
                 'sale_item_id' => isset($row['sale_item_id']) ? (int) $row['sale_item_id'] : null,
-                'product_id' => (int) $row['product_id'],
+                'product_id' => filled($row['product_id'] ?? null) ? (int) $row['product_id'] : null,
                 'sort_order' => $index,
                 'product_name_en' => (string) $row['product_name_en'],
                 'product_name_ur' => (string) ($row['product_name_ur'] ?? ''),
@@ -402,6 +428,12 @@ class SaleReturnService
                 'image_path' => $row['image_path'] ?? null,
                 'sold_quantity' => (string) ($row['sold_quantity'] ?? ''),
                 'unit_price' => (string) ($row['unit_price'] ?? ''),
+                'unit_cost_snapshot' => (string) ($row['unit_cost_snapshot'] ?? '0'),
+                'cogs_reversal_snapshot' => round(
+                    $this->saleService->numeric((string) ($row['return_quantity'] ?? '0'))
+                    * $this->saleService->numeric((string) ($row['unit_cost_snapshot'] ?? '0')),
+                    4,
+                ),
                 'return_quantity' => (string) ($row['return_quantity'] ?? ''),
                 'return_amount' => (string) ($row['return_amount'] ?? ''),
             ]);
@@ -413,6 +445,8 @@ class SaleReturnService
      */
     private function adjustStock(array $rows, int $direction): void
     {
+        $deltas = [];
+
         foreach ($rows as $row) {
             $productId = (int) ($row['product_id'] ?? 0);
             $qty = $this->saleService->numeric((string) ($row['return_quantity'] ?? '0'));
@@ -420,6 +454,14 @@ class SaleReturnService
             if ($productId <= 0 || $qty <= 0) {
                 continue;
             }
+
+            $deltas[$productId] = ($deltas[$productId] ?? 0.0) + $qty;
+        }
+
+        ksort($deltas);
+
+        foreach ($deltas as $productId => $qty) {
+            Product::query()->lockForUpdate()->find($productId);
 
             if ($direction > 0) {
                 Product::query()->whereKey($productId)->increment('stock_qty', $qty);

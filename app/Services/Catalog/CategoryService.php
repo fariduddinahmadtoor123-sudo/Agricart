@@ -4,10 +4,10 @@ namespace App\Services\Catalog;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Services\Media\MediaLibraryService;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -136,7 +136,7 @@ class CategoryService
         );
 
         if (filled($imagePath)) {
-            Storage::disk('public')->delete($imagePath);
+            app(MediaLibraryService::class)->deleteFileIfUnused($imagePath);
         }
 
         CatalogCache::forgetOverviewStats();
@@ -205,7 +205,7 @@ class CategoryService
         $counter = 1;
 
         while ($this->slugExists($slug, $exceptId)) {
-            $slug = $original . '-' . $counter;
+            $slug = $original.'-'.$counter;
             $counter++;
         }
 

@@ -2,7 +2,7 @@
 
 namespace App\Filament\Layout;
 
-use App\Filament\Clusters\Settings\StoreSettingPage;
+use App\Filament\Clusters\Settings\OverviewPage;
 use App\Models\User;
 use Filament\Support\Icons\Heroicon;
 
@@ -15,7 +15,7 @@ class SettingsPageToolbar extends ClusterPageToolbar
 
     protected static function overviewPageClass(): string
     {
-        return StoreSettingPage::class;
+        return OverviewPage::class;
     }
 
     protected static function defaultResourceLabel(): string
@@ -97,6 +97,18 @@ class SettingsPageToolbar extends ClusterPageToolbar
                 'filters' => [],
                 'filterGroups' => static::systemErrorFilterGroups(),
                 'columns' => static::systemErrorColumns(),
+                'interactive' => true,
+            ],
+            'media-library' => [
+                ...$config,
+                'addLabel' => static::userCanManageMedia() ? __('agricart.media.actions.upload') : null,
+                'formKey' => 'media-library',
+                'searchPlaceholder' => __('agricart.media.search'),
+                'livewirePrefix' => 'media-library',
+                'filters' => [],
+                'filterGroups' => static::mediaFilterGroups(),
+                'columns' => [],
+                'hideColumns' => true,
                 'interactive' => true,
             ],
             'ai-settings' => [
@@ -234,6 +246,57 @@ class SettingsPageToolbar extends ClusterPageToolbar
         ];
     }
 
+    /**
+     * @return list<array{label: string, filters: list<array{label: string, value: string}>}>
+     */
+    protected static function mediaFilterGroups(): array
+    {
+        return [
+            [
+                'label' => __('agricart.media.filters.source'),
+                'filters' => [
+                    ['label' => __('agricart.media.sources.products'), 'value' => 'source:products'],
+                    ['label' => __('agricart.media.sources.categories'), 'value' => 'source:categories'],
+                    ['label' => __('agricart.media.sources.brands'), 'value' => 'source:brands'],
+                    ['label' => __('agricart.media.sources.store'), 'value' => 'source:store'],
+                    ['label' => __('agricart.media.sources.profiles'), 'value' => 'source:profiles'],
+                    ['label' => __('agricart.media.sources.library'), 'value' => 'source:library'],
+                ],
+            ],
+            [
+                'label' => __('agricart.media.filters.usage'),
+                'filters' => [
+                    ['label' => __('agricart.media.filters.used'), 'value' => 'usage:used'],
+                    ['label' => __('agricart.media.filters.unused'), 'value' => 'usage:unused'],
+                ],
+            ],
+            [
+                'label' => __('agricart.media.filters.type'),
+                'filters' => [
+                    ['label' => 'WebP', 'value' => 'type:webp'],
+                    ['label' => 'JPEG', 'value' => 'type:jpeg'],
+                    ['label' => 'PNG', 'value' => 'type:png'],
+                    ['label' => 'GIF', 'value' => 'type:gif'],
+                ],
+            ],
+            [
+                'label' => __('agricart.media.filters.date'),
+                'filters' => [
+                    ['label' => __('agricart.media.filters.today'), 'value' => 'date:today'],
+                    ['label' => __('agricart.media.filters.seven_days'), 'value' => 'date:7days'],
+                    ['label' => __('agricart.media.filters.thirty_days'), 'value' => 'date:30days'],
+                ],
+            ],
+            [
+                'label' => __('agricart.media.filters.status'),
+                'filters' => [
+                    ['label' => __('agricart.media.filters.active'), 'value' => 'status:active'],
+                    ['label' => __('agricart.media.filters.trash'), 'value' => 'status:trash'],
+                ],
+            ],
+        ];
+    }
+
     protected static function userCanManageUsers(): bool
     {
         $user = auth()->user();
@@ -256,5 +319,13 @@ class SettingsPageToolbar extends ClusterPageToolbar
 
         return $user instanceof User
             && ($user->isSuperAdmin() || $user->hasPermission('settings.printing.manage'));
+    }
+
+    protected static function userCanManageMedia(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User
+            && ($user->isSuperAdmin() || $user->hasPermission('settings.media.manage'));
     }
 }

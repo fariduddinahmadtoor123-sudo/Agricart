@@ -48,4 +48,51 @@ class HostingerPublicMappingTest extends TestCase
             File::deleteDirectory($target);
         }
     }
+
+    public function test_storage_mirror_dry_run_reports_stale_files_without_deleting_them(): void
+    {
+        $target = storage_path('framework/testing/hostinger-storage-'.str()->random(8));
+        $stale = $target.'/storage/stale.txt';
+
+        try {
+            File::ensureDirectoryExists(dirname($stale));
+            File::put($stale, 'stale');
+
+            $this->artisan('hostinger:sync-storage', [
+                '--target' => $target,
+                '--dry-run' => true,
+                '--delete-stale' => true,
+            ])
+                ->expectsOutputToContain('stale storage/stale.txt (would delete)')
+                ->assertSuccessful();
+
+            $this->assertFileExists($stale);
+        } finally {
+            File::deleteDirectory($target);
+        }
+    }
+
+    public function test_storage_mirror_refuses_a_destination_link_to_the_wrong_source(): void
+    {
+        $target = storage_path('framework/testing/hostinger-storage-link-'.str()->random(8));
+        $wrong = storage_path('framework/testing/hostinger-storage-wrong-'.str()->random(8));
+        File::ensureDirectoryExists($target);
+        File::ensureDirectoryExists($wrong);
+
+        if (! @symlink($wrong, $target.'/storage')) {
+            File::deleteDirectory($target);
+            File::deleteDirectory($wrong);
+            $this->markTestSkipped('Creating symlinks is unavailable on this platform.');
+        }
+
+        try {
+            $this->artisan('hostinger:sync-storage', ['--target' => $target])
+                ->expectsOutputToContain('does not resolve exactly')
+                ->assertFailed();
+        } finally {
+            @unlink($target.'/storage');
+            File::deleteDirectory($target);
+            File::deleteDirectory($wrong);
+        }
+    }
 }

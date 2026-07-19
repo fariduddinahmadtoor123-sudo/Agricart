@@ -6,9 +6,14 @@ use App\Models\Product;
 use App\Models\QuantityChannelTier;
 use App\Models\QuantityControl;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class QuantityPricingEngine
 {
+    private ?QuantityControl $activeProfileMemo = null;
+
+    private bool $activeProfileLoaded = false;
+
     /** @var array<string, array{price_field: string, name_en: string, name_ur: string}> */
     public const PRICE_TIER_TYPES = [
         'retail' => [
@@ -47,11 +52,53 @@ class QuantityPricingEngine
 
     public function activeProfile(): ?QuantityControl
     {
-        return QuantityControl::query()
-            ->where('status', 'active')
-            ->with(['tiers' => fn ($query) => $query->orderBy('sort_order')->orderBy('id')])
-            ->orderBy('id')
-            ->first();
+        if ($this->activeProfileLoaded) {
+            return $this->activeProfileMemo;
+        }
+
+        $payload = Cache::remember('quantity-pricing.active-profile.v1', now()->addMinutes(30), function (): ?array {
+            $profile = QuantityControl::query()
+                ->where('status', 'active')
+                ->with(['tiers' => fn ($query) => $query->orderBy('sort_order')->orderBy('id')])
+                ->orderBy('id')
+                ->first();
+
+            if ($profile === null) {
+                return null;
+            }
+
+            return [
+                'profile' => $profile->getAttributes(),
+                'tiers' => $profile->tiers->map(
+                    static fn (QuantityChannelTier $tier): array => $tier->getAttributes(),
+                )->all(),
+            ];
+        });
+
+        $this->activeProfileLoaded = true;
+
+        if ($payload === null) {
+            return $this->activeProfileMemo = null;
+        }
+
+        $profile = (new QuantityControl)->setRawAttributes($payload['profile'], true);
+        $profile->exists = true;
+        $tiers = collect($payload['tiers'])->map(function (array $attributes): QuantityChannelTier {
+            $tier = (new QuantityChannelTier)->setRawAttributes($attributes, true);
+            $tier->exists = true;
+
+            return $tier;
+        });
+        $profile->setRelation('tiers', $tiers);
+
+        return $this->activeProfileMemo = $profile;
+    }
+
+    public function clearCache(): void
+    {
+        Cache::forget('quantity-pricing.active-profile.v1');
+        $this->activeProfileLoaded = false;
+        $this->activeProfileMemo = null;
     }
 
     /**

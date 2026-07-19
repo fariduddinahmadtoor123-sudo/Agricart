@@ -7,10 +7,14 @@ use App\Models\Brand;
 use App\Models\User;
 use App\Services\Catalog\BrandEnrichmentService;
 use App\Services\Catalog\BrandService;
+use App\Services\Media\MediaLibraryService;
+use App\Services\Media\OptimizedImageStorage;
+use App\Support\FriendlyError;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
@@ -187,7 +191,7 @@ class Form extends Component
             $this->setStatus($result['message'], 'success');
         } catch (\Throwable $exception) {
             $this->ai_status = CategoryAiStatus::Failed->value;
-            $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
+            $this->setStatus(FriendlyError::message($exception), 'danger');
         } finally {
             $aiLock->release();
             $this->enriching = false;
@@ -284,7 +288,7 @@ class Form extends Component
             $committed = true;
 
             if (filled($originalImagePath) && $originalImagePath !== $this->storedImagePath) {
-                Storage::disk('public')->delete($originalImagePath);
+                app(MediaLibraryService::class)->deleteFileIfUnused($originalImagePath);
             }
 
             $this->storedImagePath = $payload['image_path'] ?? $this->storedImagePath;
@@ -294,9 +298,9 @@ class Form extends Component
             $this->setStatus(__('agricart.brands.messages.saved'), 'success');
 
             return true;
-        } catch (\Illuminate\Validation\ValidationException $exception) {
+        } catch (ValidationException $exception) {
             if (! $committed && filled($newImagePath)) {
-                Storage::disk('public')->delete($newImagePath);
+                app(MediaLibraryService::class)->deleteFileIfUnused($newImagePath);
                 $this->restoreOriginalImage($originalImagePath);
             }
 
@@ -306,11 +310,11 @@ class Form extends Component
             return false;
         } catch (\Throwable $exception) {
             if (! $committed && filled($newImagePath)) {
-                Storage::disk('public')->delete($newImagePath);
+                app(MediaLibraryService::class)->deleteFileIfUnused($newImagePath);
                 $this->restoreOriginalImage($originalImagePath);
             }
 
-            $this->setStatus(\App\Support\FriendlyError::message($exception), 'danger');
+            $this->setStatus(FriendlyError::message($exception), 'danger');
 
             return false;
         } finally {
@@ -353,7 +357,7 @@ class Form extends Component
             return null;
         }
 
-        $path = app(\App\Services\Media\OptimizedImageStorage::class)->store($this->imageUpload, 'brands');
+        $path = app(OptimizedImageStorage::class)->store($this->imageUpload, 'brands');
         $this->storedImagePath = $path;
         $this->imagePreviewUrl = Storage::disk('public')->url($path);
         $this->imageUpload = null;

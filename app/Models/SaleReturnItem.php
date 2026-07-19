@@ -21,9 +21,34 @@ class SaleReturnItem extends Model
         'image_path',
         'sold_quantity',
         'unit_price',
+        'unit_cost_snapshot',
+        'cogs_reversal_snapshot',
         'return_quantity',
         'return_amount',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'unit_cost_snapshot' => 'decimal:4',
+            'cogs_reversal_snapshot' => 'decimal:4',
+        ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (SaleReturnItem $item): void {
+            if ($item->unit_cost_snapshot !== null) {
+                return;
+            }
+
+            $unitCost = (float) (SaleItem::query()
+                ->whereKey($item->sale_item_id)
+                ->value('unit_cost_snapshot') ?? 0);
+            $item->unit_cost_snapshot = $unitCost;
+            $item->cogs_reversal_snapshot = round((float) $item->return_quantity * $unitCost, 4);
+        });
+    }
 
     public function saleReturn(): BelongsTo
     {

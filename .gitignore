@@ -19,9 +19,19 @@
 /public/laravel-root.php
 /public/storage
 /storage/*.key
+/storage/fonts/
 /storage/pail
 /vendor
 _ide_helper.php
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# Local database dumps, archives, and one-off repair scripts
+*.sql
+*.sql.gz
+/database/*.php
+/database/*.zip
+/database/*.tar
+/database/*.tar.gz
+/database/*.7z

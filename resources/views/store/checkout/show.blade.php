@@ -28,6 +28,7 @@
 
         <form method="post" action="{{ route('store.checkout.place') }}" class="ag-store-checkout__layout" enctype="multipart/form-data">
             @csrf
+            <input type="hidden" name="checkout_token" value="{{ old('checkout_token', $checkoutToken) }}" />
 
             <div class="ag-store-checkout__main">
                 <section class="ag-store-checkout__panel ag-store-checkout__panel--delivery" aria-labelledby="checkout-step-delivery">
@@ -79,33 +80,6 @@
                     </div>
                 </section>
 
-                <div class="ag-store-checkout__completion">
-                    <section class="ag-store-checkout__panel ag-store-checkout__panel--notes" aria-labelledby="checkout-step-notes">
-                        <header class="ag-store-checkout__panel-head ag-store-checkout__panel-head--compact">
-                            <span class="ag-store-checkout__step-badge" aria-hidden="true">3</span>
-                            <h2 id="checkout-step-notes" class="ag-store-checkout__panel-title">{{ __('agricart.storefront.checkout.order_notes') }}</h2>
-                        </header>
-                        <div class="ag-store-checkout__panel-body ag-store-checkout__panel-body--tight">
-                            <label class="ag-store-checkout__field ag-store-checkout__field--flush">
-                                <span class="ag-store-checkout__label ag-store-checkout__label--muted">{{ __('agricart.storefront.checkout.order_notes_hint') }}</span>
-                                <textarea
-                                    name="customer_notes"
-                                    class="ag-store-checkout__textarea ag-store-checkout__textarea--compact"
-                                    rows="2"
-                                    placeholder="{{ __('agricart.storefront.checkout.order_notes_placeholder') }}"
-                                >{{ old('customer_notes') }}</textarea>
-                            </label>
-                        </div>
-                    </section>
-
-                    <div class="ag-store-checkout__notice" role="note">
-                        <p>{{ __('agricart.storefront.checkout.notice') }}</p>
-                    </div>
-
-                    <button type="submit" class="ag-store-btn ag-store-btn--primary ag-store-btn--block ag-store-checkout__submit">
-                        {{ __('agricart.storefront.checkout.place_order') }}
-                    </button>
-                </div>
             </div>
 
             <aside class="ag-store-checkout__aside" aria-label="{{ __('agricart.storefront.checkout.order_summary') }}">
@@ -122,9 +96,9 @@
                                 <div class="ag-store-checkout__item-thumb">
                                     <a href="{{ route('store.product', $p->slug) }}" class="ag-store-checkout__thumb-link">
                                         @if ($thumbUrl)
-                                            <img src="{{ $thumbUrl }}" alt="" class="ag-store-checkout__thumb-img" loading="lazy" width="56" height="56" />
+                                            <img src="{{ $thumbUrl }}" alt="{{ $productService->localizedName($p) }}" class="ag-store-checkout__thumb-img" loading="lazy" decoding="async" width="56" height="56" />
                                         @else
-                                            <span class="ag-store-checkout__thumb-placeholder">{{ strtoupper(substr($productService->localizedName($p), 0, 1)) }}</span>
+                                            <span class="ag-store-checkout__thumb-placeholder">{{ mb_strtoupper(mb_substr($productService->localizedName($p), 0, 1)) }}</span>
                                         @endif
                                     </a>
                                 </div>
@@ -186,6 +160,29 @@
                         <div class="ag-store-checkout__bank-panel">
                             <p class="ag-store-checkout__bank-panel-lead">{{ __('agricart.storefront.checkout.bank_payment_lead') }}</p>
 
+                            @if ($bankTransferAccounts->isNotEmpty())
+                                <div class="ag-store-checkout__bank-destinations">
+                                    @foreach ($bankTransferAccounts as $account)
+                                        @php($identifier = $account->displayAccountIdentifier())
+                                        <article class="ag-store-checkout__bank-destination">
+                                            <strong>{{ $account->displayBankName() ?: $account->displayName() }}</strong>
+                                            <span>{{ $account->account_title }}</span>
+                                            @if ($identifier !== '')
+                                                <span class="ag-store-checkout__copy-row">
+                                                    <code>{{ $identifier }}</code>
+                                                    <button
+                                                        type="button"
+                                                        class="ag-store-checkout__copy"
+                                                        data-copy-value="{{ $identifier }}"
+                                                        data-copy-success="{{ __('agricart.storefront.accessibility.copied') }}"
+                                                    >{{ __('agricart.storefront.accessibility.copy') }}</button>
+                                                </span>
+                                            @endif
+                                        </article>
+                                    @endforeach
+                                </div>
+                            @endif
+
                             <label class="ag-store-checkout__field">
                                 <span class="ag-store-checkout__label">{{ __('agricart.storefront.checkout.payment_reference') }}</span>
                                 <input
@@ -226,6 +223,34 @@
                     </div>
                 </section>
             </aside>
+
+            <div class="ag-store-checkout__completion">
+                <section class="ag-store-checkout__panel ag-store-checkout__panel--notes" aria-labelledby="checkout-step-notes">
+                    <header class="ag-store-checkout__panel-head ag-store-checkout__panel-head--compact">
+                        <span class="ag-store-checkout__step-badge" aria-hidden="true">3</span>
+                        <h2 id="checkout-step-notes" class="ag-store-checkout__panel-title">{{ __('agricart.storefront.checkout.order_notes') }}</h2>
+                    </header>
+                    <div class="ag-store-checkout__panel-body ag-store-checkout__panel-body--tight">
+                        <label class="ag-store-checkout__field ag-store-checkout__field--flush">
+                            <span class="ag-store-checkout__label ag-store-checkout__label--muted">{{ __('agricart.storefront.checkout.order_notes_hint') }}</span>
+                            <textarea
+                                name="customer_notes"
+                                class="ag-store-checkout__textarea ag-store-checkout__textarea--compact"
+                                rows="2"
+                                placeholder="{{ __('agricart.storefront.checkout.order_notes_placeholder') }}"
+                            >{{ old('customer_notes') }}</textarea>
+                        </label>
+                    </div>
+                </section>
+
+                <div class="ag-store-checkout__notice" role="note">
+                    <p>{{ __('agricart.storefront.checkout.notice') }}</p>
+                </div>
+
+                <button type="submit" class="ag-store-btn ag-store-btn--primary ag-store-btn--block ag-store-checkout__submit">
+                    {{ __('agricart.storefront.checkout.place_order') }}
+                </button>
+            </div>
         </form>
     </div>
 @endsection

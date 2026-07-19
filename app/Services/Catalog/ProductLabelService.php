@@ -5,6 +5,7 @@ namespace App\Services\Catalog;
 use App\Models\Category;
 use App\Models\CompanyProfile;
 use App\Models\Product;
+use App\Services\Identifiers\DocumentCounterService;
 
 class ProductLabelService
 {
@@ -30,13 +31,16 @@ class ProductLabelService
      */
     public function nextLabelAssignment(string $visualMapCode): array
     {
-        $sequence = (int) Product::query()
-            ->where('category_visual_map_code', $visualMapCode)
-            ->max('label_sequence') + 1;
+        $sequence = app(DocumentCounterService::class)->nextInteger(
+            'product_labels.'.hash('sha256', $visualMapCode),
+            fn (): int => (int) Product::query()
+                ->where('category_visual_map_code', $visualMapCode)
+                ->max('label_sequence'),
+        );
 
         return [
-            'label_sequence' => max(1, $sequence),
-            'label_code' => $visualMapCode.'-P'.max(1, $sequence),
+            'label_sequence' => $sequence,
+            'label_code' => $visualMapCode.'-P'.$sequence,
         ];
     }
 

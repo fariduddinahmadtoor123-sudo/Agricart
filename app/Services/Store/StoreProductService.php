@@ -3,21 +3,26 @@
 namespace App\Services\Store;
 
 use App\Models\Category;
+use App\Models\MediaAsset;
 use App\Models\Product;
 use App\Services\SalesChannels\SalesChannelService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class StoreProductService
 {
+    /** @var array<string, array{url: string, width: ?int, height: ?int}> */
+    private array $imageMetadata = [];
+
     /**
      * @return LengthAwarePaginator<int, Product>
      */
     public function paginatedProductsForCategory(Category $category, int $perPage = 36): LengthAwarePaginator
     {
-        return Product::query()
+        $products = Product::query()
             ->where('status', 'active')
             ->where(function ($query) use ($category): void {
                 $query->where('category_id', $category->id)
@@ -32,6 +37,10 @@ class StoreProductService
             ->orderBy('id')
             ->paginate($perPage)
             ->withQueryString();
+
+        $this->primeImageMetadata($products->items());
+
+        return $products;
     }
 
     /**
@@ -47,12 +56,16 @@ class StoreProductService
                 ->paginate($perPage);
         }
 
-        return $this->storefrontSearchQuery($term)
+        $products = $this->storefrontSearchQuery($term)
             ->with(['brand'])
-            ->orderBy('name_en')
+            ->tap(fn (Builder $query) => $this->orderBySearchRelevance($query, $term))
             ->orderBy('id')
             ->paginate($perPage)
             ->withQueryString();
+
+        $this->primeImageMetadata($products->items());
+
+        return $products;
     }
 
     /**
@@ -67,12 +80,16 @@ class StoreProductService
             return new EloquentCollection;
         }
 
-        return $this->storefrontSearchQuery($term)
+        $products = $this->storefrontSearchQuery($term)
             ->with(['brand'])
-            ->orderBy('name_en')
+            ->tap(fn (Builder $query) => $this->orderBySearchRelevance($query, $term))
             ->orderBy('id')
             ->limit($limit)
             ->get();
+
+        $this->primeImageMetadata($products);
+
+        return $products;
     }
 
     private function storefrontSearchQuery(string $term): Builder
@@ -122,6 +139,18 @@ class StoreProductService
         }
 
         return Storage::disk('public')->url($product->image_path);
+    }
+
+    /**
+     * @return array{url: string, width: ?int, height: ?int}|null
+     */
+    public function imageData(?Product $product): ?array
+    {
+        if ($product === null || ! filled($product->image_path)) {
+            return null;
+        }
+
+        return $this->imageDataForPath((string) $product->image_path);
     }
 
     public function localizedName(Product $product): string
@@ -203,6 +232,96 @@ class StoreProductService
         return $urls;
     }
 
+    /**
+     * @return list<array{url: string, width: ?int, height: ?int}>
+     */
+    public function allImageData(Product $product): array
+    {
+        $paths = array_values(array_filter([
+            $product->image_path,
+            ...($product->gallery_images ?? []),
+        ], static fn (mixed $path): bool => is_string($path) && filled($path)));
+
+        $missing = array_values(array_filter($paths, fn (string $path): bool => ! array_key_exists($path, $this->imageMetadata)));
+
+        if ($missing !== []) {
+            $assets = MediaAsset::query()
+                ->where('disk', 'public')
+                ->whereIn('path', $missing)
+                ->get(['path', 'width', 'height'])
+                ->keyBy('path');
+
+            foreach ($missing as $path) {
+                $asset = $assets->get($path);
+                $this->imageMetadata[$path] = [
+                    'url' => Storage::disk('public')->url($path),
+                    'width' => $asset?->width,
+                    'height' => $asset?->height,
+                ];
+            }
+        }
+
+        return collect($paths)
+            ->map(fn (string $path): array => $this->imageMetadata[$path])
+            ->unique('url')
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array{url: string, width: ?int, height: ?int}
+     */
+    private function imageDataForPath(string $path): array
+    {
+        if (! isset($this->imageMetadata[$path])) {
+            $asset = MediaAsset::query()
+                ->where('disk', 'public')
+                ->where('path', $path)
+                ->first(['width', 'height']);
+
+            $this->imageMetadata[$path] = [
+                'url' => Storage::disk('public')->url($path),
+                'width' => $asset?->width,
+                'height' => $asset?->height,
+            ];
+        }
+
+        return $this->imageMetadata[$path];
+    }
+
+    /**
+     * @param  iterable<int, Product>  $products
+     */
+    private function primeImageMetadata(iterable $products): void
+    {
+        $paths = collect($products)
+            ->flatMap(static fn (Product $product): array => array_values(array_filter([
+                $product->image_path,
+                ...($product->gallery_images ?? []),
+            ], static fn (mixed $path): bool => is_string($path) && filled($path))))
+            ->unique()
+            ->values();
+
+        if ($paths->isEmpty()) {
+            return;
+        }
+
+        $assets = MediaAsset::query()
+            ->where('disk', 'public')
+            ->whereIn('path', $paths)
+            ->get(['path', 'width', 'height'])
+            ->keyBy('path');
+
+        foreach ($paths as $path) {
+            $asset = $assets->get($path);
+            $this->imageMetadata[$path] = [
+                'url' => Storage::disk('public')->url($path),
+                'width' => $asset?->width,
+                'height' => $asset?->height,
+            ];
+        }
+    }
+
     public function localizedField(Product $product, string $base): ?string
     {
         $localizedKey = $base . '_' . app()->getLocale();
@@ -239,7 +358,7 @@ class StoreProductService
             $needle = '%' . $this->escapeLike($token) . '%';
 
             $query->where(function (Builder $inner) use ($token, $needle): void {
-                $this->applyProductToken($inner, $needle)
+                $this->applyProductToken($inner, $needle, $token)
                     ->orWhere('code', $token)
                     ->orWhere('sku', $token)
                     ->orWhere('label_code', $token);
@@ -250,14 +369,14 @@ class StoreProductService
             $needle = '%' . $this->escapeLike($term) . '%';
 
             $query->where(function (Builder $inner) use ($term, $needle): void {
-                $this->applyProductToken($inner, $needle)
+                $this->applyProductToken($inner, $needle, $term)
                     ->orWhere('code', $term)
                     ->orWhere('sku', $term);
             });
         }
     }
 
-    private function applyProductToken(Builder $query, string $needle): Builder
+    private function applyProductToken(Builder $query, string $needle, string $token): Builder
     {
         $columns = [
             'name_en', 'name_ur', 'code', 'sku', 'label_code', 'slug',
@@ -277,9 +396,23 @@ class StoreProductService
             'export_notes_en', 'export_notes_ur',
         ];
 
-        foreach ($columns as $index => $column) {
-            $method = $index === 0 ? 'whereRaw' : 'orWhereRaw';
-            $query->{$method}("{$column} LIKE ? ESCAPE '!'", [$needle]);
+        if (DB::getDriverName() === 'mysql') {
+            $booleanToken = preg_replace('/[^\pL\pN_-]+/u', '', $token) ?? '';
+
+            if (mb_strlen($booleanToken) >= 3) {
+                $query->whereRaw(
+                    'MATCH(search_document) AGAINST (? IN BOOLEAN MODE)',
+                    ['+'.$booleanToken.'*'],
+                );
+            } else {
+                $query->whereRaw("search_document LIKE ? ESCAPE '!'", [$needle]);
+            }
+        } else {
+            $query->whereRaw("search_document LIKE ? ESCAPE '!'", [$needle]);
+
+            foreach ($columns as $column) {
+                $query->orWhereRaw("{$column} LIKE ? ESCAPE '!'", [$needle]);
+            }
         }
 
         return $query
@@ -319,6 +452,40 @@ class StoreProductService
         });
 
         return $query;
+    }
+
+    private function orderBySearchRelevance(Builder $query, string $term): void
+    {
+        $normalized = mb_strtolower(trim($term));
+        $prefix = $this->escapeLike($normalized).'%';
+
+        $query->orderByRaw(
+            'CASE
+                WHEN LOWER(COALESCE(sku, \'\')) = ? OR LOWER(COALESCE(code, \'\')) = ? OR LOWER(COALESCE(label_code, \'\')) = ? THEN 0
+                WHEN LOWER(COALESCE(sku, \'\')) LIKE ? ESCAPE \'!\' OR LOWER(COALESCE(code, \'\')) LIKE ? ESCAPE \'!\' OR LOWER(COALESCE(label_code, \'\')) LIKE ? ESCAPE \'!\' THEN 1
+                WHEN LOWER(COALESCE(name_en, \'\')) = ? OR LOWER(COALESCE(name_ur, \'\')) = ? THEN 2
+                WHEN LOWER(COALESCE(name_en, \'\')) LIKE ? ESCAPE \'!\' OR LOWER(COALESCE(name_ur, \'\')) LIKE ? ESCAPE \'!\' THEN 3
+                ELSE 4 END',
+            [$normalized, $normalized, $normalized, $prefix, $prefix, $prefix, $normalized, $normalized, $prefix, $prefix],
+        );
+
+        if (DB::getDriverName() === 'mysql') {
+            $booleanTokens = collect($this->searchTokens($term))
+                ->map(static fn (string $token): string => preg_replace('/[^\pL\pN_-]+/u', '', $token) ?? '')
+                ->filter(static fn (string $token): bool => mb_strlen($token) >= 2)
+                ->take(8)
+                ->map(static fn (string $token): string => '+'.$token.'*')
+                ->implode(' ');
+
+            if ($booleanTokens !== '') {
+                $query->orderByRaw(
+                    'MATCH(search_document) AGAINST (? IN BOOLEAN MODE) DESC',
+                    [$booleanTokens],
+                );
+            }
+        }
+
+        $query->orderBy('name_en');
     }
 
     private function escapeLike(string $value): string

@@ -4,6 +4,7 @@ namespace App\Services\Catalog;
 
 use App\Models\CatalogControl;
 use App\Models\Product;
+use App\Services\Identifiers\DocumentCounterService;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -90,14 +91,10 @@ class ControlService
 
     public function nextCode(): string
     {
-        $next = (int) CatalogControl::query()->max('id') + 1;
-
-        do {
-            $code = 'CTL-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (CatalogControl::query()->where('code', $code)->exists());
-
-        return $code;
+        return app(DocumentCounterService::class)->next(
+            'catalog_controls.code', 'CTL-', 5,
+            fn (): int => DocumentCounterService::maximumSuffix('controls', 'code', 'CTL-'),
+        );
     }
 
     /**

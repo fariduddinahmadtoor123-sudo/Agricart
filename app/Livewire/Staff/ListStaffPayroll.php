@@ -10,9 +10,12 @@ use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class ListStaffPayroll extends Component
 {
+    use WithPagination;
+
     public string $payrollMonth = '';
 
     /** @var list<string> */
@@ -42,6 +45,7 @@ class ListStaffPayroll extends Component
     public function updateSearch(string $query): void
     {
         $this->search = $query;
+        $this->resetPage();
     }
 
     #[On('staff-payroll-set-month')]
@@ -113,12 +117,9 @@ class ListStaffPayroll extends Component
                 });
             })
             ->orderBy('name')
-            ->get();
+            ->paginate(50);
 
-        $rows = [];
-        foreach ($members as $member) {
-            $rows[$member->id] = $payroll->summaryForUser($member, $month);
-        }
+        $rows = $payroll->summariesForRoster($members->getCollection(), $month);
 
         return view('livewire.staff.payroll.list', [
             'members' => $members,

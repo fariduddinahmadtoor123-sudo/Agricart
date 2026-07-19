@@ -16,8 +16,9 @@
             @foreach ($categories as $item)
                 @php
                     $imageUrl = $categoryService->imageUrl($item);
-                    $letter = strtoupper(substr($categoryService->localizedName($item), 0, 1));
-                    $priority = $loop->index < 4;
+                    $categoryName = $categoryService->localizedName($item);
+                    $letter = mb_strtoupper(mb_substr($categoryName, 0, 1));
+                    $priority = $loop->first;
                 @endphp
                 <a href="{{ route('store.category', $item->slug) }}" class="ag-store-category-card">
                     <div class="ag-store-category-card__image-wrap">
@@ -25,7 +26,7 @@
                         @if ($imageUrl)
                             <img
                                 src="{{ $imageUrl }}"
-                                alt=""
+                                alt="{{ $categoryName }}"
                                 class="ag-store-category-card__image"
                                 width="320"
                                 height="320"
@@ -35,7 +36,7 @@
                             />
                         @endif
                     </div>
-                    <span class="ag-store-category-card__name">{{ $categoryService->localizedName($item) }}</span>
+                    <span class="ag-store-category-card__name">{{ $categoryName }}</span>
                 </a>
             @endforeach
         </div>

@@ -28,6 +28,7 @@ use App\Http\Controllers\Store\CustomerAuthController;
 use App\Http\Controllers\Store\CustomerLogoutController;
 use App\Http\Controllers\Store\CustomerOrderController;
 use App\Http\Controllers\Store\CustomerOrderPaymentController;
+use App\Http\Controllers\Store\CustomerPaymentProofController;
 use App\Http\Controllers\Store\CustomerPasswordResetController;
 use App\Http\Controllers\Store\CustomerProfileController;
 use App\Http\Controllers\Store\HomeController;
@@ -52,19 +53,21 @@ Route::middleware([
         ->middleware('guest:customer')
         ->name('store.customer.login');
     Route::post('/login', [CustomerAuthController::class, 'login'])
-        ->middleware('guest:customer')
+        ->middleware(['guest:customer', 'throttle:customer-login'])
         ->name('store.customer.login.submit');
     Route::post('/customer-register', [CustomerAuthController::class, 'register'])
-        ->middleware('guest:customer')
+        ->middleware(['guest:customer', 'throttle:customer-register'])
         ->name('store.customer.register.submit');
     Route::middleware('guest:customer')->group(function (): void {
         Route::get('/forgot-password', [CustomerPasswordResetController::class, 'create'])
             ->name('store.customer.password.request');
         Route::post('/forgot-password', [CustomerPasswordResetController::class, 'store'])
+            ->middleware('throttle:customer-password-reset')
             ->name('store.customer.password.email');
         Route::get('/reset-password/{token}', [CustomerPasswordResetController::class, 'edit'])
             ->name('store.customer.password.reset');
         Route::post('/reset-password', [CustomerPasswordResetController::class, 'update'])
+            ->middleware('throttle:customer-password-reset')
             ->name('store.customer.password.update');
     });
     Route::post('/logout', CustomerLogoutController::class)
@@ -77,7 +80,10 @@ Route::middleware([
         Route::post('/account/password', [CustomerProfileController::class, 'updatePassword'])->name('store.customer.account.password');
         Route::get('/account/orders', [CustomerOrderController::class, 'index'])->name('store.customer.orders');
         Route::get('/account/orders/{order}', [CustomerOrderController::class, 'show'])->name('store.customer.orders.show');
+        Route::get('/account/orders/{order}/payment-proof', [CustomerPaymentProofController::class, 'customer'])
+            ->name('store.customer.orders.payment-proof.show');
         Route::post('/account/orders/{order}/payment-proof', [CustomerOrderPaymentController::class, 'store'])
+            ->middleware('throttle:customer-payment-proof')
             ->name('store.customer.orders.payment-proof');
     });
     Route::get('/register', [RegisterController::class, 'show'])->name('auth.register');
@@ -107,7 +113,9 @@ Route::middleware([
     Route::post('/cart/update', [CartController::class, 'update'])->name('store.cart.update');
     Route::post('/cart/remove/{productId}', [CartController::class, 'remove'])->name('store.cart.remove');
     Route::get('/checkout', [CheckoutController::class, 'show'])->name('store.checkout');
-    Route::post('/checkout', [CheckoutController::class, 'place'])->name('store.checkout.place');
+    Route::post('/checkout', [CheckoutController::class, 'place'])
+        ->middleware('throttle:store-checkout')
+        ->name('store.checkout.place');
     Route::get('/checkout/success/{order}', [CheckoutController::class, 'success'])->name('store.checkout.success');
 });
 
@@ -118,7 +126,15 @@ Route::get('/locale/{locale}', function (string $locale) {
 
     $redirect = request()->query('redirect', '/');
 
-    if (! is_string($redirect) || ! str_starts_with($redirect, '/')) {
+    if (
+        ! is_string($redirect)
+        || ! str_starts_with($redirect, '/')
+        || str_starts_with($redirect, '//')
+        || str_contains($redirect, '\\')
+        || preg_match('/[\x00-\x1F\x7F]/', $redirect)
+        || parse_url($redirect, PHP_URL_SCHEME) !== null
+        || parse_url($redirect, PHP_URL_HOST) !== null
+    ) {
         $redirect = '/';
     }
 
@@ -181,4 +197,6 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
         ->name('admin.bank-accounts.history-print');
     Route::get('/online-sale-orders/{order}/packing-slip', [OnlineSaleOrderPackingSlipPrintController::class, 'show'])
         ->name('admin.online-sale-orders.packing-slip');
+    Route::get('/online-sale-orders/{order}/payment-proof', [CustomerPaymentProofController::class, 'admin'])
+        ->name('admin.online-sale-orders.payment-proof.show');
 });

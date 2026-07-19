@@ -4,6 +4,7 @@ namespace App\Livewire\Store;
 
 use App\Models\Category;
 use App\Models\StoreMenuItem;
+use App\Rules\SafeUrl;
 use Illuminate\Contracts\View\View;
 
 class MenuManager extends BaseStoreSettings
@@ -32,6 +33,10 @@ class MenuManager extends BaseStoreSettings
 
     public function mount(): void
     {
+        if (! $this->canManageStoreSettings()) {
+            return;
+        }
+
         $settings = $this->settings();
 
         $this->menu_enabled = $settings->menu_enabled;
@@ -42,6 +47,7 @@ class MenuManager extends BaseStoreSettings
 
     public function saveSettings(): void
     {
+        $this->authorizeStoreSettings();
         $this->validate([
             'menu_home_label_en' => ['nullable', 'string', 'max:255'],
             'menu_home_label_ur' => ['nullable', 'string', 'max:255'],
@@ -61,10 +67,11 @@ class MenuManager extends BaseStoreSettings
 
     public function saveItem(): void
     {
+        $this->authorizeStoreSettings();
         $this->validate([
             'label_en' => ['required', 'string', 'max:255'],
             'label_ur' => ['nullable', 'string', 'max:255'],
-            'url' => ['nullable', 'string', 'max:500'],
+            'url' => ['nullable', 'string', 'max:500', new SafeUrl],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'store_page_id' => ['nullable', 'integer', 'exists:store_pages,id'],
         ]);
@@ -101,6 +108,7 @@ class MenuManager extends BaseStoreSettings
 
     public function editItem(int $id): void
     {
+        $this->authorizeStoreSettings();
         $item = StoreMenuItem::query()->findOrFail($id);
 
         $this->editingId = $item->id;
@@ -114,6 +122,7 @@ class MenuManager extends BaseStoreSettings
 
     public function deleteItem(int $id): void
     {
+        $this->authorizeStoreSettings();
         StoreMenuItem::query()->whereKey($id)->delete();
 
         if ($this->editingId === $id) {
@@ -125,6 +134,7 @@ class MenuManager extends BaseStoreSettings
 
     public function toggleItem(int $id): void
     {
+        $this->authorizeStoreSettings();
         $item = StoreMenuItem::query()->findOrFail($id);
         $item->update(['is_active' => ! $item->is_active]);
         $this->flashSaved();
@@ -132,6 +142,7 @@ class MenuManager extends BaseStoreSettings
 
     public function moveItem(int $id, string $direction): void
     {
+        $this->authorizeStoreSettings();
         $items = StoreMenuItem::query()
             ->orderBy('sort_order')
             ->orderBy('id')
@@ -161,6 +172,7 @@ class MenuManager extends BaseStoreSettings
 
     public function resetItemForm(): void
     {
+        $this->authorizeStoreSettings();
         $this->editingId = null;
         $this->label_en = '';
         $this->label_ur = '';
@@ -172,6 +184,14 @@ class MenuManager extends BaseStoreSettings
 
     public function render(): View
     {
+        if (! $this->canManageStoreSettings()) {
+            return view('livewire.store.menu-manager', [
+                'items' => collect(),
+                'categories' => collect(),
+                'pages' => collect(),
+            ]);
+        }
+
         return view('livewire.store.menu-manager', [
             'items' => StoreMenuItem::query()->with(['category:id,name_en,slug', 'storePage:id,title_en,slug'])->orderBy('sort_order')->orderBy('id')->get(),
             'categories' => Category::query()->where('status', 'active')->orderBy('name_en')->limit(200)->get(['id', 'name_en', 'slug']),

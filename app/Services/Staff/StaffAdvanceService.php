@@ -15,16 +15,22 @@ class StaffAdvanceService
     /**
      * Positive = staff owes company. Negative = company owes staff.
      */
-    public function balanceForUser(User $member): float
+    public function balanceForUser(User $member, Carbon|string|null $asOf = null): float
     {
+        $date = $asOf instanceof Carbon
+            ? $asOf->toDateString()
+            : ($asOf !== null ? Carbon::parse($asOf)->toDateString() : null);
+
         $advances = (float) StaffAdvanceTransaction::query()
             ->where('user_id', $member->id)
             ->where('type', StaffAdvanceTransaction::TYPE_ADVANCE)
+            ->when($date !== null, fn (Builder $query) => $query->whereDate('transaction_date', '<=', $date))
             ->sum('amount');
 
         $repayments = (float) StaffAdvanceTransaction::query()
             ->where('user_id', $member->id)
             ->where('type', StaffAdvanceTransaction::TYPE_REPAYMENT)
+            ->when($date !== null, fn (Builder $query) => $query->whereDate('transaction_date', '<=', $date))
             ->sum('amount');
 
         return round($advances - $repayments, 2);
@@ -33,7 +39,7 @@ class StaffAdvanceService
     /**
      * @return Collection<int, array{user_id: int, balance: float, owes_us: float, we_owe: float}>
      */
-    public function balancesForRoster(Collection $userIds): Collection
+    public function balancesForRoster(Collection $userIds, Carbon|string|null $asOf = null): Collection
     {
         if ($userIds->isEmpty()) {
             return collect();
@@ -44,6 +50,10 @@ class StaffAdvanceService
             ->selectRaw("SUM(CASE WHEN type = ? THEN amount ELSE 0 END) as advances_total", [StaffAdvanceTransaction::TYPE_ADVANCE])
             ->selectRaw("SUM(CASE WHEN type = ? THEN amount ELSE 0 END) as repayments_total", [StaffAdvanceTransaction::TYPE_REPAYMENT])
             ->whereIn('user_id', $userIds)
+            ->when($asOf !== null, function (Builder $query) use ($asOf): void {
+                $date = $asOf instanceof Carbon ? $asOf->toDateString() : Carbon::parse($asOf)->toDateString();
+                $query->whereDate('transaction_date', '<=', $date);
+            })
             ->groupBy('user_id')
             ->get();
 

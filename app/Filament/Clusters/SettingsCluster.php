@@ -2,7 +2,7 @@
 
 namespace App\Filament\Clusters;
 
-use App\Filament\Clusters\Settings\StoreSettingPage;
+use App\Filament\Clusters\Settings\OverviewPage;
 use BackedEnum;
 use Filament\Support\Icons\Heroicon;
 
@@ -20,6 +20,6 @@ class SettingsCluster extends BaseAgricartCluster
 
     public static function getNavigationUrl(): string
     {
-        return StoreSettingPage::getUrl();
+        return OverviewPage::getUrl();
     }
 }

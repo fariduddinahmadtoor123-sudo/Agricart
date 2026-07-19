@@ -5,6 +5,8 @@ namespace App\Livewire\Store;
 use App\Models\Category;
 use App\Models\StoreFooterLink;
 use App\Models\StorePage;
+use App\Rules\SafeUrl;
+use App\Services\Media\OptimizedImageStorage;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
 use Livewire\WithFileUploads;
@@ -67,6 +69,10 @@ class FooterSettings extends BaseStoreSettings
 
     public function mount(): void
     {
+        if (! $this->canManageStoreSettings()) {
+            return;
+        }
+
         $settings = $this->settings();
 
         $this->footer_enabled = $settings->footer_enabled;
@@ -92,6 +98,7 @@ class FooterSettings extends BaseStoreSettings
 
     public function updatedFooterLogoUpload(): void
     {
+        $this->authorizeStoreSettings();
         $this->validate([
             'footerLogoUpload' => ['nullable', 'image', 'max:2048'],
         ]);
@@ -100,12 +107,8 @@ class FooterSettings extends BaseStoreSettings
             return;
         }
 
-        $path = app(\App\Services\Media\OptimizedImageStorage::class)->store($this->footerLogoUpload, 'store');
+        $path = app(OptimizedImageStorage::class)->store($this->footerLogoUpload, 'store');
         $settings = $this->settings();
-
-        if (filled($settings->footer_logo_path)) {
-            Storage::disk('public')->delete($settings->footer_logo_path);
-        }
 
         $settings->update(['footer_logo_path' => $path]);
         $this->footerLogoPreviewUrl = Storage::disk('public')->url($path);
@@ -115,10 +118,10 @@ class FooterSettings extends BaseStoreSettings
 
     public function removeFooterLogo(): void
     {
+        $this->authorizeStoreSettings();
         $settings = $this->settings();
 
         if (filled($settings->footer_logo_path)) {
-            Storage::disk('public')->delete($settings->footer_logo_path);
             $settings->update(['footer_logo_path' => null]);
         }
 
@@ -128,6 +131,7 @@ class FooterSettings extends BaseStoreSettings
 
     public function saveSettings(): void
     {
+        $this->authorizeStoreSettings();
         $this->validate([
             'footer_tagline_en' => ['nullable', 'string', 'max:500'],
             'footer_tagline_ur' => ['nullable', 'string', 'max:500'],
@@ -168,11 +172,12 @@ class FooterSettings extends BaseStoreSettings
 
     public function saveLink(): void
     {
+        $this->authorizeStoreSettings();
         $this->validate([
-            'link_group' => ['required', 'in:' . StoreFooterLink::GROUP_QUICK . ',' . StoreFooterLink::GROUP_REGISTRATION],
+            'link_group' => ['required', 'in:'.StoreFooterLink::GROUP_QUICK.','.StoreFooterLink::GROUP_REGISTRATION],
             'label_en' => ['required', 'string', 'max:255'],
             'label_ur' => ['nullable', 'string', 'max:255'],
-            'url' => ['nullable', 'string', 'max:500'],
+            'url' => ['nullable', 'string', 'max:500', new SafeUrl],
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'store_page_id' => ['nullable', 'integer', 'exists:store_pages,id'],
         ]);
@@ -227,6 +232,7 @@ class FooterSettings extends BaseStoreSettings
 
     public function editLink(int $id): void
     {
+        $this->authorizeStoreSettings();
         $link = StoreFooterLink::query()->findOrFail($id);
 
         $this->editingId = $link->id;
@@ -241,6 +247,7 @@ class FooterSettings extends BaseStoreSettings
 
     public function deleteLink(int $id): void
     {
+        $this->authorizeStoreSettings();
         StoreFooterLink::query()->whereKey($id)->delete();
 
         if ($this->editingId === $id) {
@@ -252,6 +259,7 @@ class FooterSettings extends BaseStoreSettings
 
     public function toggleLink(int $id): void
     {
+        $this->authorizeStoreSettings();
         $link = StoreFooterLink::query()->findOrFail($id);
         $link->update(['is_active' => ! $link->is_active]);
         $this->flashSaved();
@@ -259,6 +267,7 @@ class FooterSettings extends BaseStoreSettings
 
     public function moveLink(int $id, string $direction): void
     {
+        $this->authorizeStoreSettings();
         $link = StoreFooterLink::query()->findOrFail($id);
 
         $links = StoreFooterLink::query()
@@ -291,6 +300,7 @@ class FooterSettings extends BaseStoreSettings
 
     public function resetLinkForm(): void
     {
+        $this->authorizeStoreSettings();
         $this->editingId = null;
         $this->link_group = StoreFooterLink::GROUP_QUICK;
         $this->label_en = '';
@@ -303,6 +313,16 @@ class FooterSettings extends BaseStoreSettings
 
     public function render(): View
     {
+        if (! $this->canManageStoreSettings()) {
+            return view('livewire.store.footer-settings', [
+                'quickLinks' => collect(),
+                'registrationLinks' => collect(),
+                'categories' => collect(),
+                'pages' => collect(),
+                'policyPages' => collect(),
+            ]);
+        }
+
         return view('livewire.store.footer-settings', [
             'quickLinks' => StoreFooterLink::query()
                 ->where('group', StoreFooterLink::GROUP_QUICK)

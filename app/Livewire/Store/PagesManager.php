@@ -37,6 +37,8 @@ class PagesManager extends BaseStoreSettings
 
     public function updatedTitleEn(string $value): void
     {
+        $this->authorizeStoreSettings();
+
         if ($this->editingId !== null || $this->slugManuallyEdited) {
             return;
         }
@@ -46,6 +48,7 @@ class PagesManager extends BaseStoreSettings
 
     public function updatedSlug(): void
     {
+        $this->authorizeStoreSettings();
         $this->slugManuallyEdited = true;
     }
 
@@ -60,6 +63,7 @@ class PagesManager extends BaseStoreSettings
 
     public function savePage(): void
     {
+        $this->authorizeStoreSettings();
         $this->validate([
             'title_en' => ['required', 'string', 'max:255'],
             'title_ur' => ['nullable', 'string', 'max:255'],
@@ -109,6 +113,7 @@ class PagesManager extends BaseStoreSettings
 
     public function editPage(int $id): void
     {
+        $this->authorizeStoreSettings();
         $page = StorePage::query()->findOrFail($id);
 
         $this->editingId = $page->id;
@@ -128,6 +133,7 @@ class PagesManager extends BaseStoreSettings
 
     public function deletePage(int $id): void
     {
+        $this->authorizeStoreSettings();
         StorePage::query()->whereKey($id)->delete();
 
         if ($this->editingId === $id) {
@@ -139,6 +145,7 @@ class PagesManager extends BaseStoreSettings
 
     public function togglePage(int $id): void
     {
+        $this->authorizeStoreSettings();
         $page = StorePage::query()->findOrFail($id);
         $page->update(['is_active' => ! $page->is_active]);
         $this->flashSaved();
@@ -146,6 +153,7 @@ class PagesManager extends BaseStoreSettings
 
     public function resetPageForm(): void
     {
+        $this->authorizeStoreSettings();
         $this->editingId = null;
         $this->title_en = '';
         $this->title_ur = '';
@@ -164,7 +172,9 @@ class PagesManager extends BaseStoreSettings
     public function render(): View
     {
         return view('livewire.store.pages-manager', [
-            'pages' => StorePage::query()->orderBy('sort_order')->orderBy('id')->get(),
+            'pages' => $this->canManageStoreSettings()
+                ? StorePage::query()->orderBy('sort_order')->orderBy('id')->get()
+                : collect(),
         ]);
     }
 }

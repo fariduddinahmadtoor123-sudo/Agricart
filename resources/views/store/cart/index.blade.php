@@ -43,29 +43,37 @@
                             <td class="ag-store-cart__thumb">
                                 <a href="{{ route('store.product', $p->slug) }}" class="ag-store-cart__thumb-link">
                                     @if ($thumbUrl)
-                                        <img src="{{ $thumbUrl }}" alt="" class="ag-store-cart__thumb-img" loading="lazy" width="56" height="56" />
+                                        <img src="{{ $thumbUrl }}" alt="{{ $productService->localizedName($p) }}" class="ag-store-cart__thumb-img" loading="lazy" decoding="async" width="56" height="56" />
                                     @else
-                                        <span class="ag-store-cart__thumb-placeholder">{{ strtoupper(substr($productService->localizedName($p), 0, 1)) }}</span>
+                                        <span class="ag-store-cart__thumb-placeholder">{{ mb_strtoupper(mb_substr($productService->localizedName($p), 0, 1)) }}</span>
                                     @endif
                                 </a>
                             </td>
                             <td class="ag-store-cart__product">
                                 <a href="{{ route('store.product', $p->slug) }}" class="ag-store-cart__name">{{ $productService->localizedName($p) }}</a>
                                 @if ($p->brand)
-                                    <span class="ag-store-cart__brand">{{ $p->brand->name_en }}</span>
+                                    <span class="ag-store-cart__brand">{{ $productService->localizedBrandName($p) }}</span>
                                 @endif
                             </td>
-                            <td>{{ __('agricart.storefront.products.price', ['amount' => $line['unit_price_formatted']]) }}</td>
-                            <td>
+                            <td data-label="{{ __('agricart.storefront.cart.col_price') }}">{{ __('agricart.storefront.products.price', ['amount' => $line['unit_price_formatted']]) }}</td>
+                            <td data-label="{{ __('agricart.storefront.cart.col_quantity') }}">
                                 <form method="post" action="{{ route('store.cart.update') }}" class="ag-store-cart__qty-form">
                                     @csrf
                                     <input type="hidden" name="product_id" value="{{ $p->id }}" />
-                                    <input type="number" name="quantity" class="ag-store-cart__qty-input" value="{{ $line['quantity'] }}" min="0" step="1" />
+                                    <input
+                                        type="number"
+                                        name="quantity"
+                                        class="ag-store-cart__qty-input"
+                                        value="{{ $line['quantity'] }}"
+                                        min="0"
+                                        step="1"
+                                        aria-label="{{ __('agricart.storefront.cart.col_quantity') }}: {{ $productService->localizedName($p) }}"
+                                    />
                                     <button type="submit" class="ag-store-cart__update">{{ __('agricart.storefront.cart.update') }}</button>
                                 </form>
                             </td>
-                            <td>{{ __('agricart.storefront.products.price', ['amount' => $line['line_total_formatted']]) }}</td>
-                            <td>
+                            <td data-label="{{ __('agricart.storefront.cart.col_total') }}">{{ __('agricart.storefront.products.price', ['amount' => $line['line_total_formatted']]) }}</td>
+                            <td data-label="{{ __('agricart.storefront.cart.remove') }}">
                                 <form method="post" action="{{ route('store.cart.remove', $p->id) }}">
                                     @csrf
                                     <button type="submit" class="ag-store-cart__remove">{{ __('agricart.storefront.cart.remove') }}</button>

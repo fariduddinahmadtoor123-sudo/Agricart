@@ -8,12 +8,16 @@
         @if ($activeUrl)
             <img
                 src="{{ $activeUrl }}"
-                alt=""
+                alt="{{ $productService->localizedName($product) }}"
                 class="ag-store-product-gallery__main-image"
                 data-store-product-gallery-main
+                width="720"
+                height="720"
+                decoding="async"
+                fetchpriority="high"
             />
         @else
-            <span class="ag-store-product-gallery__placeholder">{{ strtoupper(substr($productService->localizedName($product), 0, 1)) }}</span>
+            <span class="ag-store-product-gallery__placeholder">{{ mb_strtoupper(mb_substr($productService->localizedName($product), 0, 1)) }}</span>
         @endif
     </div>
 
@@ -29,7 +33,7 @@
                     aria-label="{{ __('agricart.storefront.product.image_number', ['number' => $index + 1]) }}"
                     aria-pressed="{{ $index === 0 ? 'true' : 'false' }}"
                 >
-                    <img src="{{ $url }}" alt="" loading="lazy" />
+                    <img src="{{ $url }}" alt="{{ __('agricart.storefront.product.image_number', ['number' => $index + 1]) }}" loading="lazy" decoding="async" width="72" height="72" />
                 </button>
             @endforeach
         </div>

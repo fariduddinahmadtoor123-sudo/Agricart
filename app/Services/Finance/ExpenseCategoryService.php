@@ -3,6 +3,7 @@
 namespace App\Services\Finance;
 
 use App\Models\ExpenseCategory;
+use App\Services\Identifiers\DocumentCounterService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -52,14 +53,10 @@ class ExpenseCategoryService
 
     public function nextCode(): string
     {
-        $next = (int) ExpenseCategory::query()->max('id') + 1;
-
-        do {
-            $code = 'EXC-'.str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (ExpenseCategory::query()->where('code', $code)->exists());
-
-        return $code;
+        return app(DocumentCounterService::class)->next(
+            'expense_categories.code', 'EXC-', 5,
+            fn (): int => DocumentCounterService::maximumSuffix('expense_categories', 'code', 'EXC-'),
+        );
     }
 
     /**

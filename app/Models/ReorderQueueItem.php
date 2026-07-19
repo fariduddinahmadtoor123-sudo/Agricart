@@ -20,6 +20,7 @@ class ReorderQueueItem extends Model
         'required_qty',
         'previous_price',
         'status',
+        'active_key',
         'send_count',
         'queued_at',
         'fulfilled_at',

@@ -5,14 +5,10 @@ namespace App\Notifications\Store;
 use App\Mail\Store\OnlineOrderPlacedMail;
 use App\Models\Customer;
 use App\Models\OnlineSaleOrder;
-use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class OnlineOrderPlacedNotification extends Notification implements ShouldQueue
+class OnlineOrderPlacedNotification extends Notification
 {
-    use Queueable;
-
     public function __construct(
         public OnlineSaleOrder $order,
     ) {}

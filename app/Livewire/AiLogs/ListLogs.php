@@ -2,15 +2,17 @@
 
 namespace App\Livewire\AiLogs;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\AiLog;
 use Illuminate\Contracts\View\View;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 class ListLogs extends Component
 {
-    use WithPagination;
+    use AuthorizesSensitiveActions, WithPagination;
 
     /** @var list<string> */
     public array $visibleColumns = [
@@ -30,12 +32,17 @@ class ListLogs extends Component
 
     public function mount(): void
     {
+        if (! $this->canAccessAny('settings.ai.logs.view')) {
+            return;
+        }
+
         $this->syncColumnCheckboxes();
     }
 
     #[On('ai-logs-search')]
     public function updateSearch(string $query): void
     {
+        $this->authorizeAny('settings.ai.logs.view');
         $this->search = $query;
         $this->resetPage();
     }
@@ -43,6 +50,8 @@ class ListLogs extends Component
     #[On('ai-logs-filter')]
     public function applyFilter(string $filter): void
     {
+        $this->authorizeAny('settings.ai.logs.view');
+
         if (! str_contains($filter, ':')) {
             return;
         }
@@ -63,6 +72,7 @@ class ListLogs extends Component
     #[On('ai-logs-clear-filters')]
     public function clearFilters(): void
     {
+        $this->authorizeAny('settings.ai.logs.view');
         $this->statusFilter = '';
         $this->typeFilter = '';
         $this->resetPage();
@@ -71,6 +81,8 @@ class ListLogs extends Component
     #[On('ai-logs-column-toggle')]
     public function toggleColumn(string $column, bool $visible): void
     {
+        $this->authorizeAny('settings.ai.logs.view');
+
         if ($visible && ! in_array($column, $this->visibleColumns, true)) {
             $this->visibleColumns[] = $column;
         }
@@ -91,6 +103,7 @@ class ListLogs extends Component
 
     public function openLog(int $logId): void
     {
+        $this->authorizeAny('settings.ai.logs.view');
         $log = AiLog::query()->find($logId);
 
         if ($log === null) {
@@ -108,6 +121,12 @@ class ListLogs extends Component
 
     public function render(): View
     {
+        if (! $this->canAccessAny('settings.ai.logs.view')) {
+            return view('livewire.ai-logs.list', [
+                'logs' => new LengthAwarePaginator([], 0, 15),
+            ]);
+        }
+
         $logs = AiLog::query()
             ->when(filled($this->search), function ($query): void {
                 $needle = '%' . $this->search . '%';

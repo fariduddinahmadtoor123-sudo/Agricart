@@ -4,6 +4,7 @@ namespace App\Services\PricingControls;
 
 use App\Models\QuantityChannelTier;
 use App\Models\QuantityControl;
+use App\Services\Identifiers\DocumentCounterService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -58,7 +59,7 @@ class QuantityControlService
     {
         $validated = $this->validateProfile($data);
 
-        return DB::transaction(function () use ($validated): QuantityControl {
+        $profile = DB::transaction(function () use ($validated): QuantityControl {
             if (! filled($validated['control_number'] ?? null)) {
                 $validated['control_number'] = $this->nextControlNumber();
             }
@@ -67,12 +68,17 @@ class QuantityControlService
 
             return QuantityControl::query()->create($validated);
         });
+
+        $this->engine->clearCache();
+
+        return $profile;
     }
 
     public function update(QuantityControl $record, array $data): QuantityControl
     {
         $validated = $this->validateProfile($data, $record->id);
         $record->update($validated);
+        $this->engine->clearCache();
 
         return $record->fresh(['creator', 'tiers']);
     }
@@ -86,19 +92,24 @@ class QuantityControlService
         }
 
         $record->delete();
+        $this->engine->clearCache();
     }
 
     public function createTier(QuantityControl $profile, array $data): QuantityChannelTier
     {
         $validated = $this->validateTier($data, $profile);
 
-        return $profile->tiers()->create($validated);
+        $tier = $profile->tiers()->create($validated);
+        $this->engine->clearCache();
+
+        return $tier;
     }
 
     public function updateTier(QuantityChannelTier $tier, array $data): QuantityChannelTier
     {
         $validated = $this->validateTier($data, $tier->quantityControl, $tier->id);
         $tier->update($validated);
+        $this->engine->clearCache();
 
         return $tier->fresh();
     }
@@ -106,18 +117,17 @@ class QuantityControlService
     public function deleteTier(QuantityChannelTier $tier): void
     {
         $tier->delete();
+        $this->engine->clearCache();
     }
 
     public function nextControlNumber(): string
     {
-        $next = (int) QuantityControl::query()->max('id') + 1;
-
-        do {
-            $number = 'QTC-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (QuantityControl::query()->where('control_number', $number)->exists());
-
-        return $number;
+        return app(DocumentCounterService::class)->next(
+            'quantity_controls.control_number',
+            'QTC-',
+            5,
+            fn (): int => DocumentCounterService::maximumSuffix('quantity_controls', 'control_number', 'QTC-'),
+        );
     }
 
     private function ensureSqliteMinQuantityIndexRemoved(): void

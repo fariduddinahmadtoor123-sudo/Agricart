@@ -2,10 +2,15 @@
 
 namespace App\Services\Sales;
 
+use App\Models\BankAccountTransaction;
+use App\Models\CashBookTransaction;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SaleItem;
+use App\Models\SaleReturn;
 use App\Services\Finance\BankAccountService;
+use App\Services\Finance\CashBookService;
+use App\Services\Identifiers\DocumentCounterService;
 use App\Services\PricingControls\QuantityPricingEngine;
 use App\Services\Purchasing\PurchaseService;
 use Illuminate\Support\Facades\DB;
@@ -33,6 +38,7 @@ class SaleService
     public function __construct(
         private readonly PurchaseService $purchaseService,
         private readonly QuantityPricingEngine $quantityPricing,
+        private readonly HistoricalCostingService $costing,
     ) {}
 
     /**
@@ -80,7 +86,7 @@ class SaleService
 
             if ($status === Sale::STATUS_COMPLETED) {
                 app(BankAccountService::class)->recordSaleReceiptIfApplicable($sale);
-                app(\App\Services\Finance\CashBookService::class)->recordSaleReceiptIfApplicable($sale);
+                app(CashBookService::class)->recordSaleReceiptIfApplicable($sale);
             }
 
             return $sale;
@@ -117,7 +123,7 @@ class SaleService
 
             if ($status === Sale::STATUS_COMPLETED) {
                 app(BankAccountService::class)->recordSaleReceiptIfApplicable($sale);
-                app(\App\Services\Finance\CashBookService::class)->recordSaleReceiptIfApplicable($sale);
+                app(CashBookService::class)->recordSaleReceiptIfApplicable($sale);
             }
 
             return $sale;
@@ -127,13 +133,15 @@ class SaleService
     public function delete(Sale $sale): void
     {
         DB::transaction(function () use ($sale): void {
-            if ($sale->isCompleted()) {
-                $sale->loadMissing('items');
-                $rows = $sale->items->map(fn (SaleItem $item): array => [
-                    'product_id' => $item->product_id,
-                    'quantity' => (string) $item->quantity,
-                ])->all();
-                $this->restoreStock($this->billableRows($rows));
+            $sale = Sale::query()->lockForUpdate()->findOrFail($sale->id);
+            $hasFinancialPosting = CashBookTransaction::query()->where('sale_id', $sale->id)->exists()
+                || BankAccountTransaction::query()->where('sale_id', $sale->id)->exists();
+            $hasReturns = SaleReturn::query()->where('sale_id', $sale->id)->exists();
+
+            if ($sale->isCompleted() || $hasFinancialPosting || $hasReturns) {
+                throw ValidationException::withMessages([
+                    'sale' => [__('pos.validation.completed_locked')],
+                ]);
             }
 
             $sale->delete();
@@ -195,14 +203,12 @@ class SaleService
 
     public function nextSaleNumber(): string
     {
-        $next = (int) Sale::query()->max('id') + 1;
-
-        do {
-            $number = 'SAL-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (Sale::query()->where('sale_number', $number)->exists());
-
-        return $number;
+        return app(DocumentCounterService::class)->next(
+            'sales.sale_number',
+            'SAL-',
+            5,
+            fn (): int => DocumentCounterService::maximumSuffix('sales', 'sale_number', 'SAL-'),
+        );
     }
 
     /**
@@ -388,8 +394,8 @@ class SaleService
             'notes' => ['nullable', 'string', 'max:5000'],
             'rows' => ['required', 'array', 'min:1'],
             'rows.*.product_id' => ['required', 'integer', 'exists:products,id'],
-            'rows.*.quantity' => ['required', 'string', 'max:32'],
-            'rows.*.unit_price' => ['required', 'string', 'max:32'],
+            'rows.*.quantity' => ['required', 'numeric', 'min:0'],
+            'rows.*.unit_price' => ['required', 'numeric', 'min:0'],
             'rows.*.line_total' => ['nullable', 'string', 'max:32'],
             'rows.*.product_name_en' => ['required', 'string', 'max:255'],
             'rows.*.product_name_ur' => ['nullable', 'string', 'max:255'],
@@ -439,6 +445,12 @@ class SaleService
         $total = max(0, round($subtotal - $discountAmount, 2));
         $paid = $this->numeric((string) ($validated['amount_paid'] ?? '0'));
 
+        if ($paid > $total + 0.001) {
+            throw ValidationException::withMessages([
+                'amount_paid' => [__('online_sale_orders.validation.amount_paid_exceeds_total')],
+            ]);
+        }
+
         $validated['subtotal'] = $subtotal;
         $validated['discount_amount'] = $discountAmount;
         $validated['total_amount'] = $total;
@@ -473,6 +485,13 @@ class SaleService
         $persistRows = $status === Sale::STATUS_COMPLETED ? $this->billableRows($rows) : $rows;
 
         foreach ($persistRows as $index => $row) {
+            $quantity = $this->numeric((string) ($row['quantity'] ?? '0'));
+            $cost = $this->costing->resolve(
+                (int) $row['product_id'],
+                $sale->sale_date?->toDateString() ?? now()->toDateString(),
+            );
+            $unitCost = $cost['unit_cost'] ?? 0.0;
+
             SaleItem::query()->create([
                 'sale_id' => $sale->id,
                 'product_id' => (int) $row['product_id'],
@@ -485,6 +504,9 @@ class SaleService
                 'image_path' => $row['image_path'] ?? null,
                 'quantity' => (string) ($row['quantity'] ?? ''),
                 'unit_price' => (string) ($row['unit_price'] ?? ''),
+                'unit_cost_snapshot' => $unitCost,
+                'cogs_snapshot' => round($quantity * $unitCost, 4),
+                'costing_policy' => $cost['policy'] ?? 'no_purchase_history_v1',
                 'price_tier_key' => (string) ($row['price_tier_key'] ?? ''),
                 'line_total' => (string) ($row['line_total'] ?? ''),
             ]);

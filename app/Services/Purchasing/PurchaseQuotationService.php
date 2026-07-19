@@ -5,6 +5,7 @@ namespace App\Services\Purchasing;
 use App\Models\Product;
 use App\Models\PurchaseQuotation;
 use App\Models\PurchaseQuotationItem;
+use App\Services\Identifiers\DocumentCounterService;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -60,14 +61,12 @@ class PurchaseQuotationService
 
     public function nextQuotationNumber(): string
     {
-        $next = (int) PurchaseQuotation::query()->max('id') + 1;
-
-        do {
-            $number = 'QUO-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (PurchaseQuotation::query()->where('quotation_number', $number)->exists());
-
-        return $number;
+        return app(DocumentCounterService::class)->next(
+            'purchase_quotations.quotation_number',
+            'QUO-',
+            5,
+            fn (): int => DocumentCounterService::maximumSuffix('purchase_quotations', 'quotation_number', 'QUO-'),
+        );
     }
 
     /**

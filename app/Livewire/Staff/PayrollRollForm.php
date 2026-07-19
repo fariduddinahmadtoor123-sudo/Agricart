@@ -76,9 +76,8 @@ class PayrollRollForm extends Component
             }
         }
 
-        $this->rolls = $query->get()
-            ->map(fn (User $member): array => $service->rollForUser($member, $month))
-            ->all();
+        $members = $query->limit(StaffPayrollService::ROLL_LIMIT)->get();
+        $this->rolls = $service->rollsForRoster($members, $month);
 
         $this->generated = true;
     }
@@ -87,6 +86,7 @@ class PayrollRollForm extends Component
     {
         $roster = app(StaffMemberService::class)->rosterQuery()
             ->orderBy('name')
+            ->limit(StaffPayrollService::ROLL_LIMIT)
             ->get(['id', 'name', 'user_number']);
 
         $service = app(StaffPayrollService::class);

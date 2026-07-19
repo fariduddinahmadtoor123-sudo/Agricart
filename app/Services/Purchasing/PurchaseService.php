@@ -7,11 +7,13 @@ use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\Supplier;
 use App\Services\Catalog\ProductSearchQuery;
+use App\Services\Identifiers\DocumentCounterService;
 use App\Services\PricingControls\ChannelPricingEngine;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
@@ -130,14 +132,12 @@ class PurchaseService
 
     public function nextPurchaseNumber(): string
     {
-        $next = (int) Purchase::query()->max('id') + 1;
-
-        do {
-            $number = 'PUR-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (Purchase::query()->where('purchase_number', $number)->exists());
-
-        return $number;
+        return app(DocumentCounterService::class)->next(
+            'purchases.purchase_number',
+            'PUR-',
+            5,
+            fn (): int => DocumentCounterService::maximumSuffix('purchases', 'purchase_number', 'PUR-'),
+        );
     }
 
     public function supplierBalance(Supplier $supplier): float
@@ -200,7 +200,7 @@ class PurchaseService
             return [];
         }
 
-        $needle = '%' . $term . '%';
+        $needle = '%'.$term.'%';
 
         return Supplier::query()
             ->where('status', 'active')
@@ -350,19 +350,19 @@ class PurchaseService
     public function validate(array $data, ?int $exceptId = null): array
     {
         $rules = [
-            'purchase_number' => ['nullable', 'string', 'max:32', \Illuminate\Validation\Rule::unique('purchases', 'purchase_number')->ignore($exceptId)],
+            'purchase_number' => ['nullable', 'string', 'max:32', Rule::unique('purchases', 'purchase_number')->ignore($exceptId)],
             'supplier_id' => ['required', 'integer', 'exists:suppliers,id'],
             'purchaser_id' => ['required', 'integer', 'exists:users,id'],
-            'locale' => ['required', 'string', 'in:' . implode(',', self::LOCALES)],
+            'locale' => ['required', 'string', 'in:'.implode(',', self::LOCALES)],
             'purchase_date' => ['required', 'date'],
-            'delivery_status' => ['required', 'string', 'in:' . implode(',', self::DELIVERY_STATUSES)],
-            'payment_status' => ['required', 'string', 'in:' . implode(',', self::PAYMENT_STATUSES)],
-            'dispute_status' => ['required', 'string', 'in:' . implode(',', self::DISPUTE_STATUSES)],
+            'delivery_status' => ['required', 'string', 'in:'.implode(',', self::DELIVERY_STATUSES)],
+            'payment_status' => ['required', 'string', 'in:'.implode(',', self::PAYMENT_STATUSES)],
+            'dispute_status' => ['required', 'string', 'in:'.implode(',', self::DISPUTE_STATUSES)],
             'supplier_balance_snapshot' => ['nullable', 'numeric'],
-            'subtotal' => ['nullable', 'numeric'],
+            'subtotal' => ['nullable', 'numeric', 'min:0'],
             'amount_paid' => ['nullable', 'numeric', 'min:0'],
-            'total_amount' => ['nullable', 'numeric'],
-            'balance_due' => ['nullable', 'numeric'],
+            'total_amount' => ['nullable', 'numeric', 'min:0'],
+            'balance_due' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string', 'max:2000'],
             'created_by' => ['nullable', 'integer', 'exists:users,id'],
             'items' => ['required', 'array', 'min:1'],
@@ -370,14 +370,14 @@ class PurchaseService
             'items.*.product_name_en' => ['required', 'string', 'max:255'],
             'items.*.product_name_ur' => ['nullable', 'string', 'max:255'],
             'items.*.image_path' => ['nullable', 'string', 'max:500'],
-            'items.*.required_qty' => ['nullable', 'string', 'max:32'],
-            'items.*.purchase_qty' => ['nullable', 'string', 'max:32'],
-            'items.*.previous_price' => ['nullable', 'string', 'max:32'],
-            'items.*.current_rate' => ['nullable', 'string', 'max:32'],
-            'items.*.landing_cost' => ['nullable', 'string', 'max:32'],
-            'items.*.cost_price' => ['nullable', 'string', 'max:32'],
-            'items.*.sale_price' => ['nullable', 'string', 'max:32'],
-            'items.*.line_total' => ['nullable', 'string', 'max:32'],
+            'items.*.required_qty' => ['nullable', 'numeric', 'min:0'],
+            'items.*.purchase_qty' => ['nullable', 'numeric', 'min:0'],
+            'items.*.previous_price' => ['nullable', 'numeric', 'min:0'],
+            'items.*.current_rate' => ['nullable', 'numeric', 'min:0'],
+            'items.*.landing_cost' => ['nullable', 'numeric', 'min:0'],
+            'items.*.cost_price' => ['nullable', 'numeric', 'min:0'],
+            'items.*.sale_price' => ['nullable', 'numeric', 'min:0'],
+            'items.*.line_total' => ['nullable', 'numeric', 'min:0'],
         ];
 
         $validator = validator($data, $rules);
@@ -561,7 +561,7 @@ class PurchaseService
             ? $supplier->business_name_ur
             : $supplier->business_name_en;
 
-        return trim($supplier->supplier_code . ' — ' . $name);
+        return trim($supplier->supplier_code.' — '.$name);
     }
 
     private function productLabel(Product $product, ?string $locale = null): string

@@ -21,9 +21,40 @@ class SaleItem extends Model
         'image_path',
         'quantity',
         'unit_price',
+        'unit_cost_snapshot',
+        'cogs_snapshot',
+        'costing_policy',
         'price_tier_key',
         'line_total',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'unit_cost_snapshot' => 'decimal:4',
+            'cogs_snapshot' => 'decimal:4',
+        ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (SaleItem $item): void {
+            if ($item->unit_cost_snapshot !== null) {
+                return;
+            }
+
+            $saleDate = Sale::query()->whereKey($item->sale_id)->value('sale_date');
+            $cost = app(\App\Services\Sales\HistoricalCostingService::class)->resolve(
+                (int) $item->product_id,
+                (string) ($saleDate ?: now()->toDateString()),
+            );
+            $unitCost = $cost['unit_cost'] ?? 0.0;
+
+            $item->unit_cost_snapshot = $unitCost;
+            $item->cogs_snapshot = round((float) $item->quantity * $unitCost, 4);
+            $item->costing_policy = $cost['policy'] ?? 'no_purchase_history_v1';
+        });
+    }
 
     public function sale(): BelongsTo
     {

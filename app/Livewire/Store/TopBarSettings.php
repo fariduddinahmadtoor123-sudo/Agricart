@@ -26,6 +26,10 @@ class TopBarSettings extends BaseStoreSettings
 
     public function mount(): void
     {
+        if (! $this->canManageStoreSettings()) {
+            return;
+        }
+
         $settings = $this->settings();
 
         $this->top_bar_enabled = $settings->top_bar_enabled;
@@ -41,6 +45,7 @@ class TopBarSettings extends BaseStoreSettings
 
     public function save(): void
     {
+        $this->authorizeStoreSettings();
         $this->validate([
             'top_bar_left_en' => ['nullable', 'string', 'max:500'],
             'top_bar_left_ur' => ['nullable', 'string', 'max:500'],

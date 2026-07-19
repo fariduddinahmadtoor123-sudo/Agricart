@@ -4,10 +4,11 @@ namespace App\Services\Catalog;
 
 use App\Models\Brand;
 use App\Models\Product;
+use App\Services\Identifiers\DocumentCounterService;
+use App\Services\Media\MediaLibraryService;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -82,7 +83,7 @@ class BrandService
         );
 
         if (filled($imagePath)) {
-            Storage::disk('public')->delete($imagePath);
+            app(MediaLibraryService::class)->deleteFileIfUnused($imagePath);
         }
 
         CatalogCache::forgetOverviewStats();
@@ -100,7 +101,7 @@ class BrandService
         $counter = 1;
 
         while ($this->slugExists($slug, $exceptId)) {
-            $slug = $original . '-' . $counter;
+            $slug = $original.'-'.$counter;
             $counter++;
         }
 
@@ -109,14 +110,10 @@ class BrandService
 
     public function nextCode(): string
     {
-        $next = (int) Brand::query()->max('id') + 1;
-
-        do {
-            $code = 'BRD-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (Brand::query()->where('code', $code)->exists());
-
-        return $code;
+        return app(DocumentCounterService::class)->next(
+            'brands.code', 'BRD-', 5,
+            fn (): int => DocumentCounterService::maximumSuffix('brands', 'code', 'BRD-'),
+        );
     }
 
     /**

@@ -9,12 +9,14 @@ use App\Models\ReorderQueueBatch;
 use App\Models\ReorderQueueItem;
 use App\Models\Sale;
 use App\Services\PricingControls\SecretCodingEngine;
+use App\Services\Identifiers\DocumentCounterService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class ReorderService
 {
     public const STALE_DAYS = 7;
+    public const CANDIDATE_LIMIT = 500;
 
     public function __construct(
         private readonly PurchaseService $purchaseService,
@@ -27,18 +29,46 @@ class ReorderService
      */
     public function reorderCandidates(string $locale = 'en', string $filter = 'available'): Collection
     {
-        $pendingProductIds = $this->pendingQueueProductIds();
+        $queueStats = ReorderQueueItem::query()
+            ->select('product_id')
+            ->selectRaw('MAX(send_count) as send_count')
+            ->selectRaw("MAX(CASE WHEN status = ? THEN 1 ELSE 0 END) as in_queue", [ReorderQueueItem::STATUS_PENDING])
+            ->groupBy('product_id');
 
-        return Product::query()
+        $products = Product::query()
+            ->leftJoinSub($queueStats, 'queue_stats', 'queue_stats.product_id', '=', 'products.id')
+            ->select('products.*')
+            ->selectRaw('COALESCE(queue_stats.send_count, 0) as queue_send_count')
+            ->selectRaw('COALESCE(queue_stats.in_queue, 0) as queue_in_queue')
             ->where('status', 'active')
             ->whereNotNull('required_qty')
             ->where('required_qty', '!=', '')
-            ->orderBy('name_en')
-            ->get()
-            ->filter(fn (Product $product): bool => $this->needsReorder($product))
-            ->map(function (Product $product) use ($locale, $pendingProductIds): array {
-                $inQueue = in_array($product->id, $pendingProductIds, true);
-                $sendCount = $this->productQueueSendCount($product->id);
+            ->whereRaw("CAST(COALESCE(NULLIF(products.stock_qty, ''), '0') AS DECIMAL(14,4)) < CAST(products.required_qty AS DECIMAL(14,4))")
+            ->when($filter === 'in_queue', fn ($query) => $query->where('queue_stats.in_queue', 1))
+            ->when($filter === 'available', fn ($query) => $query->where(fn ($inner) => $inner->whereNull('queue_stats.in_queue')->orWhere('queue_stats.in_queue', 0)))
+            ->when($filter === 'repeated', fn ($query) => $query
+                ->where('queue_stats.send_count', '>', 0)
+                ->where(fn ($inner) => $inner->whereNull('queue_stats.in_queue')->orWhere('queue_stats.in_queue', 0)))
+            ->orderBy('products.name_en')
+            ->limit(self::CANDIDATE_LIMIT)
+            ->get();
+
+        $previousPrices = PurchaseItem::query()
+            ->join('purchases', 'purchases.id', '=', 'purchase_items.purchase_id')
+            ->whereIn('purchase_items.product_id', $products->pluck('id'))
+            ->whereNotNull('purchase_items.current_rate')
+            ->where('purchase_items.current_rate', '!=', '')
+            ->orderByDesc('purchases.purchase_date')
+            ->orderByDesc('purchases.id')
+            ->orderByDesc('purchase_items.id')
+            ->get(['purchase_items.product_id', 'purchase_items.current_rate'])
+            ->unique('product_id')
+            ->pluck('current_rate', 'product_id');
+
+        return $products
+            ->map(function (Product $product) use ($locale, $previousPrices): array {
+                $inQueue = (bool) $product->getAttribute('queue_in_queue');
+                $sendCount = (int) $product->getAttribute('queue_send_count');
 
                 return [
                     'product_id' => $product->id,
@@ -47,18 +77,10 @@ class ReorderService
                     'image_path' => $product->image_path,
                     'stock_qty' => $this->numericStock($product),
                     'required_qty' => $this->orderQty($product),
-                    'previous_price' => $this->purchaseService->previousPurchasePrice($product->id),
+                    'previous_price' => (string) ($previousPrices[$product->id] ?? ''),
                     'in_queue' => $inQueue,
                     'send_count' => $sendCount,
                 ];
-            })
-            ->filter(function (array $row) use ($filter): bool {
-                return match ($filter) {
-                    'in_queue' => $row['in_queue'],
-                    'available' => ! $row['in_queue'],
-                    'repeated' => $row['send_count'] > 0 && ! $row['in_queue'],
-                    default => true,
-                };
             })
             ->values();
     }
@@ -98,12 +120,13 @@ class ReorderService
             return null;
         }
 
-        return DB::transaction(function () use ($toQueue, $notes): ReorderQueueBatch {
+        return DB::transaction(function () use ($toQueue, $notes): ?ReorderQueueBatch {
             $batch = ReorderQueueBatch::query()->create([
                 'batch_number' => $this->nextBatchNumber(),
                 'notes' => $notes,
                 'created_by' => auth()->id(),
             ]);
+            $inserted = 0;
 
             foreach ($toQueue as $productId) {
                 $product = Product::query()->find($productId);
@@ -114,15 +137,24 @@ class ReorderService
 
                 $sendCount = $this->productQueueSendCount($productId) + 1;
 
-                ReorderQueueItem::query()->create([
+                $inserted += ReorderQueueItem::query()->insertOrIgnore([
                     'reorder_queue_batch_id' => $batch->id,
                     'product_id' => $product->id,
                     'required_qty' => $this->orderQty($product),
                     'previous_price' => $this->purchaseService->previousPurchasePrice($product->id),
                     'status' => ReorderQueueItem::STATUS_PENDING,
+                    'active_key' => 'product:'.$product->id,
                     'send_count' => $sendCount,
                     'queued_at' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
+            }
+
+            if ($inserted === 0) {
+                $batch->delete();
+
+                return null;
             }
 
             return $batch->fresh(['items.product']);
@@ -144,6 +176,7 @@ class ReorderService
             ->update([
                 'status' => ReorderQueueItem::STATUS_FULFILLED,
                 'fulfilled_at' => now(),
+                'active_key' => null,
             ]);
     }
 
@@ -303,14 +336,12 @@ class ReorderService
 
     public function nextBatchNumber(): string
     {
-        $next = (int) ReorderQueueBatch::query()->max('id') + 1;
-
-        do {
-            $number = 'ROQ-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (ReorderQueueBatch::query()->where('batch_number', $number)->exists());
-
-        return $number;
+        return app(DocumentCounterService::class)->next(
+            'reorder_queue_batches.batch_number',
+            'ROQ-',
+            5,
+            fn (): int => DocumentCounterService::maximumSuffix('reorder_queue_batches', 'batch_number', 'ROQ-'),
+        );
     }
 
     /**

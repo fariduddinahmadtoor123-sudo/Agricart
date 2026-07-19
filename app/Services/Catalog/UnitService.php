@@ -4,6 +4,7 @@ namespace App\Services\Catalog;
 
 use App\Models\Unit;
 use App\Models\Product;
+use App\Services\Identifiers\DocumentCounterService;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -89,14 +90,10 @@ class UnitService
 
     public function nextCode(): string
     {
-        $next = (int) Unit::query()->max('id') + 1;
-
-        do {
-            $code = 'UNT-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (Unit::query()->where('code', $code)->exists());
-
-        return $code;
+        return app(DocumentCounterService::class)->next(
+            'units.code', 'UNT-', 5,
+            fn (): int => DocumentCounterService::maximumSuffix('units', 'code', 'UNT-'),
+        );
     }
 
     /**

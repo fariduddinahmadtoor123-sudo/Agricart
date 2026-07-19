@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class StockReportService
 {
+    public const INTERACTIVE_ROW_LIMIT = 500;
+
     public function __construct(
         private readonly ReorderService $reorder,
     ) {}
@@ -24,35 +26,30 @@ class StockReportService
     public function build(?string $search = null, ?string $stockFilter = null, ?string $categoryFilter = null): array
     {
         $locale = app()->getLocale();
-        $products = $this->query($search, $stockFilter, $categoryFilter)->get();
+        $baseQuery = $this->query($search, $stockFilter, $categoryFilter);
+        $products = (clone $baseQuery)->limit(self::INTERACTIVE_ROW_LIMIT)->get();
+        $cast = \Illuminate\Support\Facades\DB::connection()->getDriverName() === 'sqlite' ? 'REAL' : 'DECIMAL(14,4)';
+        $stock = "CAST(COALESCE(NULLIF(stock_qty, ''), '0') AS {$cast})";
+        $alert = "CAST(COALESCE(NULLIF(alert_qty, ''), '0') AS {$cast})";
+        $required = "CAST(COALESCE(NULLIF(required_qty, ''), '0') AS {$cast})";
+        $totals = (clone $baseQuery)
+            ->reorder()
+            ->setEagerLoads([])
+            ->selectRaw('COUNT(*) as total_skus')
+            ->selectRaw("SUM(CASE WHEN {$stock} > 0 THEN 1 ELSE 0 END) as in_stock")
+            ->selectRaw("SUM(CASE WHEN {$stock} > 0 AND {$alert} > 0 AND {$stock} <= {$alert} THEN 1 ELSE 0 END) as low_stock")
+            ->selectRaw("SUM(CASE WHEN {$stock} <= 0 THEN 1 ELSE 0 END) as out_of_stock")
+            ->selectRaw("SUM(CASE WHEN {$required} > 0 AND {$stock} < {$required} THEN 1 ELSE 0 END) as on_reorder")
+            ->selectRaw("COALESCE(SUM({$stock}), 0) as total_on_hand")
+            ->first();
 
         $rows = [];
-        $kpiIn = 0;
-        $kpiLow = 0;
-        $kpiOut = 0;
-        $kpiReorder = 0;
-        $totalOnHand = 0.0;
 
         foreach ($products as $product) {
             $onHand = $this->numeric($product->stock_qty);
             $status = $this->statusFor($product, $onHand);
             $reserved = 0.0;
             $available = $onHand - $reserved;
-
-            if ($status === 'out') {
-                $kpiOut++;
-            } elseif ($status === 'low') {
-                $kpiLow++;
-                $kpiIn++;
-            } else {
-                $kpiIn++;
-            }
-
-            if ($this->reorder->needsReorder($product)) {
-                $kpiReorder++;
-            }
-
-            $totalOnHand += $onHand;
 
             $rows[] = [
                 'id' => $product->id,
@@ -74,12 +71,12 @@ class StockReportService
         return [
             'rows' => $rows,
             'kpis' => [
-                'total_skus' => count($rows),
-                'in_stock' => $kpiIn,
-                'low_stock' => $kpiLow,
-                'out_of_stock' => $kpiOut,
-                'on_reorder' => $kpiReorder,
-                'total_on_hand' => $this->formatQty($totalOnHand),
+                'total_skus' => (int) ($totals?->total_skus ?? 0),
+                'in_stock' => (int) ($totals?->in_stock ?? 0),
+                'low_stock' => (int) ($totals?->low_stock ?? 0),
+                'out_of_stock' => (int) ($totals?->out_of_stock ?? 0),
+                'on_reorder' => (int) ($totals?->on_reorder ?? 0),
+                'total_on_hand' => $this->formatQty((float) ($totals?->total_on_hand ?? 0)),
             ],
             'generated_at' => now()->toDateTimeString(),
         ];

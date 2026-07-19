@@ -63,8 +63,9 @@ class StoreCartService
             ];
         }
 
+        $proposedQuantity = $this->quantityFromItems($items, $productId);
+        $this->assertStockForProduct($product, $proposedQuantity);
         $this->persist($items);
-        $this->assertStockForProduct($product, $this->lineQuantity($productId));
     }
 
     public function setQuantity(int $productId, float $quantity): void
@@ -94,8 +95,8 @@ class StoreCartService
             ]);
         }
 
-        $this->persist($items);
         $this->assertStockForProduct($product, $quantity);
+        $this->persist($items);
     }
 
     public function remove(int $productId): void
@@ -409,7 +410,15 @@ class StoreCartService
 
     private function lineQuantity(int $productId): float
     {
-        foreach ($this->rawItems() as $item) {
+        return $this->quantityFromItems($this->rawItems(), $productId);
+    }
+
+    /**
+     * @param  list<array{product_id: int, quantity: string}>  $items
+     */
+    private function quantityFromItems(array $items, int $productId): float
+    {
+        foreach ($items as $item) {
             if ((int) $item['product_id'] === $productId) {
                 return $this->saleService->numeric((string) $item['quantity']);
             }

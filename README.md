@@ -1,5 +1,17 @@
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
+# Agricart
+
+Agricart is a Laravel 13 / Filament 4 commerce and operations application. Local development uses Laragon at `http://agricart.test`; production requires HTTPS, secure cookies, bounded daily logs, a durable queue worker, and the Laravel scheduler.
+
+- Deployment: [docs/PRODUCTION_DEPLOYMENT.md](docs/PRODUCTION_DEPLOYMENT.md)
+- Hostinger: [docs/HOSTINGER_SHARED_HOSTING.md](docs/HOSTINGER_SHARED_HOSTING.md)
+- Configuration and retention defaults: [.env.example](.env.example)
+
+Run `php artisan deploy:preflight --environment-only` before production mutations. The guarded Hostinger script locks deployment, creates a safety backup, uses maintenance mode, migrates and publishes, rebuilds caches, restarts queues, runs full preflight, and verifies `HEALTHCHECK_URL`.
+
+Backup ZIPs remain private and are enumerated before extraction. Only validated regular files are streamed into a random private working directory.
+
 <p align="center">
 <a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>

@@ -21,14 +21,24 @@ $stub = static function (string $title, string $summary, string $route, array $p
 };
 
 return [
+    'overview' => $stub(
+        'Settings Overview',
+        'A dedicated orientation page linking to each authorized settings area while Business Profile remains separate.',
+        '/admin/settings/overview',
+        ['settings.view'],
+        ['The Settings sidebar destination opens this overview instead of redirecting into Business Profile.'],
+        ['Keep this page read-only and hide links the current user cannot access.'],
+        ['page' => 'App\\Filament\\Clusters\\Settings\\OverviewPage']
+    ),
+
     'store-profile' => $stub(
         'Store Profile',
-        'Company identity and storefront chrome configuration; this is the Settings landing page in place of a cluster overview.',
+        'Company identity and storefront chrome configuration, separate from the Settings overview.',
         '/admin/settings/store-profile',
         ['settings.view'],
         [
             'The page currently combines company-profile management with settings context. StoreSetting separately holds storefront top bar, header, social, menu, category grid, WhatsApp, and footer fields consumed by the public store.',
-            'There is no Settings Overview page in the cluster; documentation orientation belongs here.',
+            'The dedicated Settings Overview provides orientation; this page remains focused on Business Profile.',
         ],
         [
             'Clarify whether CompanyProfile and StoreSetting are one settings aggregate or two bounded records, then expose both explicitly.',
@@ -50,6 +60,24 @@ return [
             'Add settings.tax.manage and tax-change audit records.',
         ],
         ['page' => 'App\\Filament\\Clusters\\Settings\\TaxSystemPage', 'status' => 'placeholder UI']
+    ),
+
+    'media-library' => $stub(
+        'Media Library',
+        'A searchable registry and safe reuse workflow for public application images.',
+        '/admin/settings/media-library',
+        ['settings.media.view', 'settings.media.manage'],
+        [
+            'The library indexes public catalog, store, company, customer, supplier, and user profile images while excluding CNICs, receipts, proofs, bills, and cards.',
+            'Original upload names are retained as metadata; random physical paths prevent unsafe filenames and collisions.',
+            'Usage records protect shared and historical snapshot images from accidental deletion.',
+        ],
+        [
+            'Only unused images can enter Trash, and permanent deletion is delayed for 30 days.',
+            'Backfill is idempotent and does not copy existing files.',
+            'Keep every new public-image producer registered through OptimizedImageStorage and MediaUsageObserver.',
+        ],
+        ['page' => 'App\\Filament\\Clusters\\Settings\\MediaLibraryPage', 'livewire' => ['App\\Livewire\\Media\\ListMedia', 'App\\Livewire\\Media\\Form'], 'service' => 'App\\Services\\Media\\MediaLibraryService', 'models' => ['App\\Models\\MediaAsset', 'App\\Models\\MediaUsage']]
     ),
 
     'ai-settings' => [
@@ -95,6 +123,8 @@ return [
             'Unhandled and explicitly reported exceptions are fingerprinted, redacted, grouped by occurrence, and shown with Open or Resolved status.',
             'The file-log fallback reads only bounded laravel*.log entries and never exposes arbitrary paths, raw request payloads, credentials, cookies, or authorization headers.',
             'Copy Technical Report produces a sanitized diagnostic bundle suitable for sharing with maintainers.',
+            'Bell alerts are per-user unread notifications: opening System Errors acknowledges current critical occurrences, while a later recurrence becomes unread again.',
+            'Ignored transient HTTP connection failures remain in AI Logs; verified hosting storage-link limitations can be reconciled with a recorded resolution reason.',
         ],
         [
             'Keep database persistence best-effort so a logging failure never replaces the original application exception.',
@@ -172,8 +202,8 @@ return [
         'Create, import, list, restore, export, and delete database/full backup archives.',
         '/admin/settings/backups',
         ['settings.view', 'settings.backups.manage'],
-        ['Current manager creates full or database backups, imports incoming archives, uploads through a controller route, exports products/categories, and restores only after typing RESTORE. Restore can create a safety backup and preserve local logins; restored AI keys may be cleared.'],
-        ['Require settings.backups.manage, re-authentication, CSRF, archive signature/integrity checks, encryption, off-site copies, and restore audit.', 'Test restores automatically in an isolated environment; document retention, maximum size, PHP upload limits, database-driver compatibility, and recovery objectives.', 'Never expose backup archives from the public web root.'],
+        ['The manager creates full or database backups, imports incoming archives, exports products/categories, and restores only after typing RESTORE. ZIP entries are enumerated before extraction and approved files are streamed into a random private work directory. Production local-login preservation is authoritative by default and writes a private audit report.'],
+        ['Keep settings.backups.manage, re-authentication, CSRF, safety backups, encrypted off-site copies, and restore audits.', 'Configured limits cover compressed upload size, entry count, per-entry/total uncompressed size, compression ratio, retention, and database-driver compatibility.', 'Never expose archives, restore work directories, or audit reports from the public web root.'],
         ['page' => 'App\\Filament\\Clusters\\Settings\\BackupsPage', 'livewire' => 'App\\Livewire\\Settings\\ManageBackups', 'services' => ['App\\Services\\Backup\\BackupService', 'App\\Services\\Backup\\RestoreService']]
     ),
 ];

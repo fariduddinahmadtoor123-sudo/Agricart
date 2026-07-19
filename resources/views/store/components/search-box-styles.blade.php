@@ -21,6 +21,42 @@
     .ag-store-header__search--live .ag-store-header__search-input {
         padding-inline-end: 0.75rem;
     }
+    .ag-store-search-suggestions {
+        position: absolute;
+        inset-block-start: calc(100% + 0.25rem);
+        inset-inline: 0;
+        max-height: min(24rem, 65vh);
+        overflow-y: auto;
+        border: 1px solid var(--agricart-border, #d1d5db);
+        background: var(--agricart-surface, #fff);
+        box-shadow: 0 0.75rem 1.5rem rgba(15, 23, 42, 0.14);
+    }
+    .ag-store-search-suggestions__option {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+        padding: 0.65rem 0.75rem;
+        border-block-end: 1px solid var(--agricart-border, #d1d5db);
+        color: var(--agricart-text, #0f172a);
+        text-decoration: none;
+    }
+    .ag-store-search-suggestions__option:hover,
+    .ag-store-search-suggestions__option:focus-visible,
+    .ag-store-search-suggestions__option.is-active {
+        background: color-mix(in srgb, var(--agricart-primary, #83b735) 12%, white);
+        outline: none;
+    }
+    .ag-store-search-suggestions__name {
+        font-weight: 700;
+    }
+    .ag-store-search-suggestions__meta {
+        color: var(--agricart-muted, #64748b);
+        font-size: 0.75rem;
+    }
+    .ag-store-search-suggestions__all {
+        color: var(--agricart-primary, #83b735);
+        font-weight: 700;
+    }
 
     /* Search results — same grid as category/product cards (works without Vite rebuild) */
     .ag-store-search-results-grid.ag-store-product-grid {

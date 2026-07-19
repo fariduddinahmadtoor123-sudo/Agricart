@@ -4,6 +4,7 @@ namespace App\Services\Catalog;
 
 use App\Models\PackingUnit;
 use App\Models\Product;
+use App\Services\Identifiers\DocumentCounterService;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -91,14 +92,10 @@ class PackingUnitService
 
     public function nextCode(): string
     {
-        $next = (int) PackingUnit::query()->max('id') + 1;
-
-        do {
-            $code = 'PKG-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (PackingUnit::query()->where('code', $code)->exists());
-
-        return $code;
+        return app(DocumentCounterService::class)->next(
+            'packing_units.code', 'PKG-', 5,
+            fn (): int => DocumentCounterService::maximumSuffix('packing_units', 'code', 'PKG-'),
+        );
     }
 
     /**

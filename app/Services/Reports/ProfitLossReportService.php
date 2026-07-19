@@ -5,7 +5,6 @@ namespace App\Services\Reports;
 use App\Models\Customer;
 use App\Models\ExpensePayment;
 use App\Models\FundTransfer;
-use App\Models\PurchaseItem;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SaleReturn;
@@ -17,6 +16,8 @@ use Illuminate\Support\Facades\DB;
 
 class ProfitLossReportService
 {
+    public const INTERACTIVE_ROW_LIMIT = 500;
+
     /**
      * @return array{
      *     rows: list<array<string, mixed>>,
@@ -56,13 +57,15 @@ class ProfitLossReportService
         }
 
         /** @var Collection<int, Sale> $sales */
-        $sales = $salesQuery->orderByDesc('sale_date')->orderByDesc('id')->get();
+        $sales = $salesQuery->orderByDesc('sale_date')
+            ->orderByDesc('id')
+            ->limit(self::INTERACTIVE_ROW_LIMIT)
+            ->get();
 
         $saleIds = $sales->pluck('id')->all();
-        $unitCostHistory = $this->unitCostHistory();
         $itemsBySale = $this->saleItemsBySale($saleIds);
         $returnsBySale = $this->returnsBySale($saleIds);
-        $returnQtyBySaleProduct = $this->returnQtyBySaleProduct($saleIds);
+        $returnCogsBySale = $this->returnCogsBySale($saleIds);
 
         $rows = [];
         $sumNet = 0.0;
@@ -77,11 +80,11 @@ class ProfitLossReportService
             $gross = $this->numeric($sale->total_amount);
             $returns = $returnsBySale[$saleId] ?? 0.0;
             $net = $gross - $returns;
-            $cogs = $this->invoiceCogs(
-                items: $itemsBySale[$saleId] ?? collect(),
-                returnQtyByProduct: $returnQtyBySaleProduct[$saleId] ?? [],
-                saleDate: $saleDate,
-                history: $unitCostHistory,
+            $cogs = max(
+                0.0,
+                ($itemsBySale[$saleId] ?? collect())->sum(
+                    fn (SaleItem $item): float => $this->numeric($item->cogs_snapshot),
+                ) - ($returnCogsBySale[$saleId] ?? 0.0),
             );
             $profit = $net - $cogs;
             $result = $this->resultKey($profit);
@@ -194,40 +197,6 @@ class ProfitLossReportService
     }
 
     /**
-     * @param  Collection<int, SaleItem>  $items
-     * @param  array<int, float>  $returnQtyByProduct
-     * @param  array<int, list<array{date: string, cost: float}>>  $history
-     */
-    private function invoiceCogs(
-        Collection $items,
-        array $returnQtyByProduct,
-        string $saleDate,
-        array $history,
-    ): float {
-        $cogs = 0.0;
-        $returnedUsed = [];
-
-        foreach ($items as $item) {
-            $productId = (int) ($item->product_id ?? 0);
-            $qty = $this->numeric($item->quantity);
-            $returned = 0.0;
-
-            if ($productId > 0) {
-                $availableReturn = $returnQtyByProduct[$productId] ?? 0.0;
-                $already = $returnedUsed[$productId] ?? 0.0;
-                $returned = min($qty, max(0.0, $availableReturn - $already));
-                $returnedUsed[$productId] = $already + $returned;
-            }
-
-            $netQty = max(0.0, $qty - $returned);
-            $unitCost = $productId > 0 ? $this->unitCostAsOf($history, $productId, $saleDate) : 0.0;
-            $cogs += $netQty * $unitCost;
-        }
-
-        return max(0.0, $cogs);
-    }
-
-    /**
      * @param  list<int>  $saleIds
      * @return array<int, Collection<int, SaleItem>>
      */
@@ -239,7 +208,7 @@ class ProfitLossReportService
 
         return SaleItem::query()
             ->whereIn('sale_id', $saleIds)
-            ->get(['id', 'sale_id', 'product_id', 'quantity'])
+            ->get(['id', 'sale_id', 'cogs_snapshot'])
             ->groupBy(fn (SaleItem $item): int => (int) $item->sale_id)
             ->all();
     }
@@ -268,102 +237,21 @@ class ProfitLossReportService
      * @param  list<int>  $saleIds
      * @return array<int, array<int, float>>
      */
-    private function returnQtyBySaleProduct(array $saleIds): array
+    private function returnCogsBySale(array $saleIds): array
     {
         if ($saleIds === []) {
             return [];
         }
 
-        $rows = SaleReturnItem::query()
+        return SaleReturnItem::query()
             ->join('sale_returns', 'sale_returns.id', '=', 'sale_return_items.sale_return_id')
             ->whereIn('sale_returns.sale_id', $saleIds)
-            ->whereNotNull('sale_return_items.product_id')
             ->selectRaw('sale_returns.sale_id as sale_id')
-            ->selectRaw('sale_return_items.product_id as product_id')
-            ->selectRaw($this->qtySumExpression('sale_return_items.return_quantity').' as qty')
-            ->groupBy('sale_returns.sale_id', 'sale_return_items.product_id')
-            ->get();
-
-        $map = [];
-
-        foreach ($rows as $row) {
-            $saleId = (int) $row->sale_id;
-            $productId = (int) $row->product_id;
-            $map[$saleId][$productId] = $this->numeric($row->qty);
-        }
-
-        return $map;
-    }
-
-    /**
-     * Purchase cost timeline per product (newest first).
-     *
-     * @return array<int, list<array{date: string, cost: float}>>
-     */
-    private function unitCostHistory(): array
-    {
-        $rows = PurchaseItem::query()
-            ->join('purchases', 'purchases.id', '=', 'purchase_items.purchase_id')
-            ->whereNotNull('purchase_items.product_id')
-            ->orderByDesc('purchases.purchase_date')
-            ->orderByDesc('purchase_items.id')
-            ->get([
-                'purchase_items.product_id',
-                'purchases.purchase_date',
-                'purchase_items.cost_price',
-                'purchase_items.current_rate',
-            ]);
-
-        $history = [];
-
-        foreach ($rows as $row) {
-            $productId = (int) $row->product_id;
-
-            if ($productId <= 0) {
-                continue;
-            }
-
-            $cost = $this->numeric($row->cost_price);
-            if ($cost <= 0) {
-                $cost = $this->numeric($row->current_rate);
-            }
-
-            if ($cost <= 0) {
-                continue;
-            }
-
-            $date = $row->purchase_date instanceof \DateTimeInterface
-                ? $row->purchase_date->format('Y-m-d')
-                : (string) $row->purchase_date;
-
-            $history[$productId][] = [
-                'date' => $date,
-                'cost' => $cost,
-            ];
-        }
-
-        return $history;
-    }
-
-    /**
-     * @param  array<int, list<array{date: string, cost: float}>>  $history
-     */
-    private function unitCostAsOf(array $history, int $productId, string $saleDate): float
-    {
-        $entries = $history[$productId] ?? [];
-
-        if ($entries === []) {
-            return 0.0;
-        }
-
-        foreach ($entries as $entry) {
-            if ($saleDate === '' || $entry['date'] <= $saleDate) {
-                return $entry['cost'];
-            }
-        }
-
-        // Sale before any purchase on record — use earliest known cost.
-        return $entries[array_key_last($entries)]['cost'];
+            ->selectRaw('COALESCE(SUM(sale_return_items.cogs_reversal_snapshot), 0) as cogs')
+            ->groupBy('sale_returns.sale_id')
+            ->pluck('cogs', 'sale_id')
+            ->map(fn ($value): float => $this->numeric($value))
+            ->all();
     }
 
     private function resultKey(float $profit): string

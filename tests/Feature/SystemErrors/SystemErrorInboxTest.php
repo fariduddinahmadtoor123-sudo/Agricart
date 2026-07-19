@@ -12,11 +12,14 @@ use App\Models\SystemError;
 use App\Models\User;
 use App\Services\Notifications\TopbarNotificationService;
 use App\Services\SystemErrors\SystemErrorCaptureService;
+use App\Services\SystemErrors\SystemErrorLifecycleService;
+use App\Services\SystemErrors\SystemErrorReadService;
 use App\Services\SystemErrors\SystemErrorReportFormatter;
 use App\Services\SystemErrors\SystemErrorSanitizer;
 use App\Services\SystemErrors\SystemLogFileReader;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
@@ -81,6 +84,7 @@ class SystemErrorInboxTest extends TestCase
         $capture = app(SystemErrorCaptureService::class);
 
         $this->assertNull($capture->capture(ValidationException::withMessages(['name' => 'Required'])));
+        $this->assertNull($capture->capture(new ConnectionException('OpenRouter timed out.')));
 
         Schema::drop('system_errors');
 
@@ -193,6 +197,31 @@ class SystemErrorInboxTest extends TestCase
         $item = collect($summary['items'])->firstWhere('key', 'system_errors');
 
         $this->assertSame(1, $item['count'] ?? null);
+
+        app(SystemErrorReadService::class)->markCurrentCriticalErrorsRead(auth()->user());
+        $readSummary = app(TopbarNotificationService::class)->summary();
+        $this->assertNull(collect($readSummary['items'])->firstWhere('key', 'system_errors'));
+
+        $openCritical->increment('occurrences');
+        $recurrenceSummary = app(TopbarNotificationService::class)->summary();
+        $this->assertSame(
+            1,
+            collect($recurrenceSummary['items'])->firstWhere('key', 'system_errors')['count'] ?? null,
+        );
+    }
+
+    public function test_ignored_connection_errors_have_no_historical_reconciliation_branch(): void
+    {
+        $error = $this->systemError([
+            'exception_class' => ConnectionException::class,
+            'last_seen_at' => now()->subMinutes(31),
+        ]);
+
+        $resolved = app(SystemErrorLifecycleService::class)->reconcile();
+
+        $this->assertSame(0, $resolved);
+        $this->assertSame(SystemError::STATUS_OPEN, $error->refresh()->status);
+        $this->assertNull($error->resolution_type);
     }
 
     private function repeatableException(): RuntimeException

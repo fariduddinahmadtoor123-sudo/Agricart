@@ -191,6 +191,11 @@
             <button type="button" class="agricart-categories__action" wire:click="printPackingSlip">
                 {{ __('online_sale_orders.actions.packing_slip') }}
             </button>
+            @if ($this->canConfirmPayment())
+                <button type="button" class="agricart-categories__action is-primary" wire:click="convertToSale" wire:loading.attr="disabled">
+                    Convert to Sale
+                </button>
+            @endif
         </div>
     @endif
     <div class="agricart-sale-form__status-row agricart-sale-form__status-row--four-fields">

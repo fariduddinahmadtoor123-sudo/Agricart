@@ -5,6 +5,7 @@ namespace App\Services\Purchasing;
 use App\Models\PurchasePaymentSummary;
 use App\Models\PurchasePaymentSummaryItem;
 use App\Models\Supplier;
+use App\Services\Identifiers\DocumentCounterService;
 use App\Services\PricingControls\SecretCodingEngine;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -78,14 +79,12 @@ class PurchasePaymentSummaryService
 
     public function nextSummaryNumber(): string
     {
-        $next = (int) PurchasePaymentSummary::query()->max('id') + 1;
-
-        do {
-            $number = 'PPS-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (PurchasePaymentSummary::query()->where('summary_number', $number)->exists());
-
-        return $number;
+        return app(DocumentCounterService::class)->next(
+            'purchase_payment_summaries.summary_number',
+            'PPS-',
+            5,
+            fn (): int => DocumentCounterService::maximumSuffix('purchase_payment_summaries', 'summary_number', 'PPS-'),
+        );
     }
 
     /**

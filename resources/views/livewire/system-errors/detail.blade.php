@@ -37,7 +37,17 @@
             <div><span>{{ __('agricart.system_errors.detail.first_seen') }}</span><strong>{{ $error->first_seen_at?->format('M j, Y g:i:s A') }}</strong></div>
             <div><span>{{ __('agricart.system_errors.columns.last_seen') }}</span><strong>{{ $error->last_seen_at?->format('M j, Y g:i:s A') }}</strong></div>
             <div><span>{{ __('agricart.system_errors.detail.environment') }}</span><strong>{{ $error->environment ?: '—' }}</strong></div>
+            @if ($error->verified_at)
+                <div><span>{{ __('agricart.system_errors.detail.verified_at') }}</span><strong>{{ $error->verified_at->format('M j, Y g:i:s A') }}</strong></div>
+            @endif
         </div>
+
+        @if (filled($error->resolution_note))
+            <section class="agricart-system-error-detail__section">
+                <h3>{{ __('agricart.system_errors.detail.resolution') }}</h3>
+                <pre>{{ $error->resolution_note }}</pre>
+            </section>
+        @endif
 
         <section class="agricart-system-error-detail__section">
             <h3>{{ __('agricart.system_errors.columns.message') }}</h3>

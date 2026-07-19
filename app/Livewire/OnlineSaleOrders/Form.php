@@ -373,6 +373,32 @@ class Form extends Component
         }
     }
 
+    public function convertToSale(): void
+    {
+        if (! $this->canConfirmPayment() || ! $this->orderId) {
+            return;
+        }
+
+        $this->saving = true;
+        $this->dispatchBusyState();
+
+        try {
+            $order = OnlineSaleOrder::query()->findOrFail($this->orderId);
+            app(OnlineSaleOrderService::class)->convertToSale($order, auth()->user());
+            $this->loadOrder($this->orderId);
+            $this->setStatus(__('online_sale_orders.messages.updated', ['number' => $order->order_number]), 'success');
+            $this->dispatch('online-sale-orders-saved');
+        } catch (ValidationException $exception) {
+            $this->setStatus((string) (collect($exception->errors())->flatten()->first()
+                ?? __('online_sale_orders.messages.save_failed')), 'error');
+        } catch (\Throwable) {
+            $this->setStatus(__('online_sale_orders.messages.save_failed'), 'error');
+        } finally {
+            $this->saving = false;
+            $this->dispatchBusyState();
+        }
+    }
+
     public function saveAndPrint(): void
     {
         if (! $this->canConfirmPayment()) {

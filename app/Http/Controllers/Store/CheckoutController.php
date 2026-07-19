@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Store;
 
 use App\Http\Controllers\Controller;
+use App\Models\BankAccount;
 use App\Models\Customer;
 use App\Models\OnlineSaleOrder;
 use App\Services\Sales\OnlineSaleOrderService;
@@ -17,6 +18,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -53,7 +55,15 @@ class CheckoutController extends Controller
             'paymentMethods' => collect(SaleService::PAYMENT_METHODS)
                 ->mapWithKeys(fn (string $method): array => [$method => __('pos.payment_methods.' . $method)])
                 ->all(),
+            'bankTransferAccounts' => BankAccount::query()
+                ->where('status', BankAccount::STATUS_ACTIVE)
+                ->orderBy('account_code')
+                ->get([
+                    'id', 'name_en', 'name_ur', 'bank_name_en', 'bank_name_ur',
+                    'account_title', 'account_number', 'iban', 'currency',
+                ]),
             'provinces' => config('pakistani_provinces', []),
+            'checkoutToken' => (string) Str::uuid(),
         ]);
     }
 
@@ -78,6 +88,7 @@ class CheckoutController extends Controller
         $customer = Auth::guard('customer')->user();
 
         $validated = $request->validate([
+            'checkout_token' => ['required', 'string', 'max:64'],
             'customer_payment_method' => ['required', 'string', Rule::in(SaleService::PAYMENT_METHODS)],
             'customer_payment_note' => ['nullable', 'string', 'max:2000'],
             'customer_payment_reference' => ['nullable', 'string', 'max:128'],
@@ -110,6 +121,7 @@ class CheckoutController extends Controller
 
             $order = $orders->createFromCheckout([
                 'customer_id' => $customer->id,
+                'checkout_token' => $validated['checkout_token'],
                 'locale' => app()->getLocale(),
                 'customer_payment_method' => $validated['customer_payment_method'],
                 'customer_payment_note' => $validated['customer_payment_note'] ?? null,
@@ -125,7 +137,7 @@ class CheckoutController extends Controller
             if ($validated['customer_payment_method'] === 'bank_transfer' && $request->hasFile('bank_receipt')) {
                 $path = $request->file('bank_receipt')->store(
                     'online-orders/customer-receipts/' . $order->id,
-                    'public',
+                    'local',
                 );
                 $order->update([
                     'customer_bank_receipt_path' => $path,

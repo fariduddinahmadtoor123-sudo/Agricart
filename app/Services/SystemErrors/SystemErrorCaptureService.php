@@ -3,10 +3,12 @@
 namespace App\Services\SystemErrors;
 
 use App\Models\SystemError;
+use App\Services\Notifications\TopbarNotificationService;
 use Error;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -43,35 +45,45 @@ class SystemErrorCaptureService
             $fingerprint = $this->fingerprint($exception, $message, $file);
             $attributes = $this->attributes($exception, $message, $file, $httpStatus);
 
-            return DB::transaction(function () use ($fingerprint, $attributes, $now): SystemError {
-                $existing = SystemError::query()
-                    ->where('fingerprint', $fingerprint)
-                    ->lockForUpdate()
-                    ->first();
-
-                if ($existing instanceof SystemError) {
-                    $existing->update([
-                        ...$attributes,
-                        'status' => SystemError::STATUS_OPEN,
-                        'occurrences' => $existing->occurrences + 1,
-                        'last_seen_at' => $now,
-                        'resolved_at' => null,
-                        'resolved_by_id' => null,
-                    ]);
-
-                    return $existing->fresh();
-                }
-
-                return SystemError::query()->create([
+            $error = DB::transaction(function () use ($fingerprint, $attributes, $now): SystemError {
+                $inserted = DB::table('system_errors')->insertOrIgnore([
                     ...$attributes,
+                    'context' => json_encode($attributes['context'] ?? [], JSON_THROW_ON_ERROR),
                     'reference' => (string) Str::ulid(),
                     'fingerprint' => $fingerprint,
                     'status' => SystemError::STATUS_OPEN,
                     'occurrences' => 1,
                     'first_seen_at' => $now,
                     'last_seen_at' => $now,
+                    'created_at' => $now,
+                    'updated_at' => $now,
                 ]);
+
+                $error = SystemError::query()
+                    ->where('fingerprint', $fingerprint)
+                    ->lockForUpdate()
+                    ->firstOrFail();
+
+                if ($inserted === 0) {
+                    $error->update([
+                        ...$attributes,
+                        'status' => SystemError::STATUS_OPEN,
+                        'occurrences' => DB::raw('occurrences + 1'),
+                        'last_seen_at' => $now,
+                        'resolved_at' => null,
+                        'resolved_by_id' => null,
+                        'resolution_type' => null,
+                        'resolution_note' => null,
+                        'verified_at' => null,
+                    ]);
+                }
+
+                return $error->fresh();
             });
+
+            TopbarNotificationService::invalidateSystemErrors();
+
+            return $error;
         } catch (Throwable) {
             return null;
         } finally {
@@ -87,6 +99,16 @@ class SystemErrorCaptureService
             || $exception instanceof AuthorizationException
             || $exception instanceof TokenMismatchException
             || $exception instanceof ModelNotFoundException
+            || $exception instanceof ConnectionException
+        ) {
+            return true;
+        }
+
+        if (
+            $exception instanceof Error
+            && str_contains($exception->getMessage(), 'Call to undefined function Illuminate\\Filesystem\\exec()')
+            && app()->runningInConsole()
+            && in_array('storage:link', $_SERVER['argv'] ?? [], true)
         ) {
             return true;
         }

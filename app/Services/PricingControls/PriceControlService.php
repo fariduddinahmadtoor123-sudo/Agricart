@@ -4,6 +4,7 @@ namespace App\Services\PricingControls;
 
 use App\Models\PriceChannelTier;
 use App\Models\PriceControl;
+use App\Services\Identifiers\DocumentCounterService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -122,14 +123,10 @@ class PriceControlService
 
     public function nextControlNumber(): string
     {
-        $next = (int) PriceControl::query()->max('id') + 1;
-
-        do {
-            $number = 'PRC-' . str_pad((string) $next, 5, '0', STR_PAD_LEFT);
-            $next++;
-        } while (PriceControl::query()->where('control_number', $number)->exists());
-
-        return $number;
+        return app(DocumentCounterService::class)->next(
+            'price_controls.control_number', 'PRC-', 5,
+            fn (): int => DocumentCounterService::maximumSuffix('price_controls', 'control_number', 'PRC-'),
+        );
     }
 
     private function seedDefaultTiers(PriceControl $profile): void
