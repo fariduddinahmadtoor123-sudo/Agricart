@@ -72,6 +72,8 @@ class PhaseFiveAdminArchitectureTest extends TestCase
         $this->assertStringContainsString('trapFocus($event)', $panel);
         $this->assertStringContainsString('lastFocusedElement', $panel);
         $this->assertStringContainsString('keydown.escape.window', $panel);
+        $this->assertSame(2, substr_count($panel, '[tabindex]:not([tabindex=&quot;-1&quot;])'));
+        $this->assertStringNotContainsString('[tabindex]:not([tabindex="-1"])', $panel);
         $this->assertStringNotContainsString('clock" aria-live=', $topbar);
         $this->assertStringContainsString('wire:keydown.enter=', $errors);
         $this->assertStringContainsString('wire:keydown.space.prevent=', $errors);

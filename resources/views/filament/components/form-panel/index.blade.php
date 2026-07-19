@@ -1318,14 +1318,14 @@
         focusPanel() {
             const panel = this.$el.querySelector('.agricart-form-panel');
             const target = panel?.querySelector(
-                'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])',
+                'input:not([disabled]), select:not([disabled]), textarea:not([disabled]), button:not([disabled]), [href], [tabindex]:not([tabindex=&quot;-1&quot;])',
             );
             (target || panel)?.focus?.();
         },
         trapFocus(event) {
             const panel = event.currentTarget;
             const focusable = [...panel.querySelectorAll(
-                'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+                'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex=&quot;-1&quot;])',
             )].filter((element) => element.offsetParent !== null);
 
             if (focusable.length === 0) {
