@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', $settings->localized('site_name') ?? config('app.name'))</title>
     @livewireStyles
     @vite(['resources/css/app.css', 'resources/css/store/theme.css', 'resources/js/store.js'])
@@ -73,6 +74,7 @@
 
     @livewireScripts
     @include('store.components.store-search-script')
+    @include('store.components.analytics-presence-script')
     @stack('scripts')
 </body>
 </html>

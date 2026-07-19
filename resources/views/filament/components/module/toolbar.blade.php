@@ -9,7 +9,11 @@
 @endphp
 
 @if (filled($toolbar))
-    @if (($toolbar['resourceSlug'] ?? '') === 'attendance' || ($toolbar['resourceSlug'] ?? '') === 'leave-management' || ($toolbar['resourceSlug'] ?? '') === 'payroll')
+    @if (! empty($toolbar['analyticsControls']))
+        @include('filament.components.module.analytics-toolbar', [
+            'toolbar' => $toolbar,
+        ])
+    @elseif (($toolbar['resourceSlug'] ?? '') === 'attendance' || ($toolbar['resourceSlug'] ?? '') === 'leave-management' || ($toolbar['resourceSlug'] ?? '') === 'payroll')
         @include('filament.components.module.attendance-toolbar', [
             'toolbar' => $toolbar,
             'moduleKey' => $moduleKey,

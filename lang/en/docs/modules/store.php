@@ -255,4 +255,42 @@ return [
             ],
         ],
     ],
+
+    'visitor-analytics' => [
+        'title' => 'Visitor Analytics',
+        'summary' => 'Privacy-conscious first-party storefront visitors, page views, locations, devices and traffic sources.',
+        'meta' => [
+            'routes' => ['/admin/store/visitor-analytics', '/analytics/presence'],
+            'permissions' => ['store.analytics.view'],
+        ],
+        'sections' => [
+            [
+                'id' => 'purpose',
+                'type' => 'purpose',
+                'heading' => 'Purpose',
+                'paragraphs' => [
+                    'Review today, yesterday, weekly, monthly and lifetime visitors, live presence, top products/categories, geography, devices and acquisition sources without a third-party analytics dashboard.',
+                ],
+            ],
+            [
+                'id' => 'privacy',
+                'type' => 'rebuild_notes',
+                'heading' => 'Privacy and retention',
+                'list' => [
+                    'Raw IP addresses are never stored. The tracker retains a masked network and keyed HMAC only, and local GeoLite2 lookup supplies approximate country/city.',
+                    'Bots, staff, prefetches, DNT/GPC requests, internal fragments and non-HTML requests are excluded.',
+                    'Raw views and sessions are pruned after 90 days; compact daily/monthly rollups remain available for trends.',
+                ],
+            ],
+            [
+                'id' => 'operations',
+                'type' => 'technical',
+                'heading' => 'Operations',
+                'classes' => [
+                    'livewire' => 'App\\Livewire\\Store\\VisitorAnalyticsDashboard',
+                    'services' => 'App\\Services\\Analytics\\VisitorAnalyticsTracker; App\\Services\\Analytics\\VisitorAnalyticsReportService',
+                ],
+            ],
+        ],
+    ],
 ];

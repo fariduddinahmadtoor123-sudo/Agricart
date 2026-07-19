@@ -102,6 +102,20 @@
         <div class="ag-store-footer__bottom">
             <div class="ag-store__container ag-store-footer__bottom-inner">
                 <p class="ag-store-footer__copyright">{{ $settings->footerCopyrightText() }}</p>
+                @if (config('analytics.enabled'))
+                    <form
+                        method="POST"
+                        action="{{ request()->cookie(config('analytics.opt_out_cookie')) === '1' ? route('store.analytics.opt-in') : route('store.analytics.opt-out') }}"
+                        class="ag-store-footer__analytics-choice"
+                    >
+                        @csrf
+                        <button type="submit">
+                            {{ request()->cookie(config('analytics.opt_out_cookie')) === '1'
+                                ? __('agricart.analytics.opt_in')
+                                : __('agricart.analytics.opt_out') }}
+                        </button>
+                    </form>
+                @endif
                 @if ($settings->footer_show_social)
                     @include('store.components.social-links', [
                         'wrapperClass' => 'ag-store-footer__social',

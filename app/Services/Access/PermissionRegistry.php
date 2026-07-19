@@ -78,6 +78,12 @@ class PermissionRegistry
             ];
         }
 
+        $groups['store']['permissions'][] = [
+            'key' => 'store.analytics.view',
+            'label_en' => 'View visitor analytics',
+            'label_ur' => 'وزیٹر اینالیٹکس دیکھیں',
+        ];
+
         $groups['settings']['permissions'][] = [
             'key' => 'settings.users.manage',
             'label_en' => 'Manage users',

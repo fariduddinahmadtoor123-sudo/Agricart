@@ -254,4 +254,42 @@ return [
             ],
         ],
     ],
+
+    'visitor-analytics' => [
+        'title' => 'وزیٹر اینالیٹکس',
+        'summary' => 'اپنے ڈیٹابیس میں محفوظ رازداری پر مبنی وزیٹرز، پیج ویوز، مقامات، ڈیوائسز اور ٹریفک ذرائع۔',
+        'meta' => [
+            'routes' => ['/admin/store/visitor-analytics', '/analytics/presence'],
+            'permissions' => ['store.analytics.view'],
+        ],
+        'sections' => [
+            [
+                'id' => 'purpose',
+                'type' => 'purpose',
+                'heading' => 'مقصد',
+                'paragraphs' => [
+                    'آج، کل، ہفتہ، مہینہ اور کل وزیٹرز، لائیو موجودگی، مقبول مصنوعات و زمرے، ملک، شہر، ڈیوائس اور ٹریفک ذریعہ ایک ہی ایڈمن صفحے پر دیکھیں۔',
+                ],
+            ],
+            [
+                'id' => 'privacy',
+                'type' => 'rebuild_notes',
+                'heading' => 'رازداری اور مدت',
+                'list' => [
+                    'اصل IP کبھی محفوظ نہیں ہوتا؛ صرف masked network اور keyed HMAC رکھا جاتا ہے، جبکہ مقامی GeoLite2 سے اندازاً ملک اور شہر معلوم ہوتا ہے۔',
+                    'Bots، عملہ، prefetch، DNT/GPC، اندرونی fragments اور غیر HTML درخواستیں شمار نہیں ہوتیں۔',
+                    'خام views اور sessions نوے دن بعد حذف ہوتے ہیں جبکہ مختصر روزانہ اور ماہانہ خلاصے محفوظ رہتے ہیں۔',
+                ],
+            ],
+            [
+                'id' => 'operations',
+                'type' => 'technical',
+                'heading' => 'آپریشنز',
+                'classes' => [
+                    'livewire' => 'App\\Livewire\\Store\\VisitorAnalyticsDashboard',
+                    'services' => 'App\\Services\\Analytics\\VisitorAnalyticsTracker; App\\Services\\Analytics\\VisitorAnalyticsReportService',
+                ],
+            ],
+        ],
+    ],
 ];

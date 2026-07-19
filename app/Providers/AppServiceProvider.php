@@ -2,11 +2,14 @@
 
 namespace App\Providers;
 
-use App\Models\Customer;
-use App\Services\Store\StoreCartService;
 use App\Contracts\Store\SmsSender;
+use App\Models\Customer;
+use App\Services\Analytics\AnalyticsContext;
+use App\Services\SalesChannels\SalesChannelService;
 use App\Services\Store\LogSmsSender;
+use App\Services\Store\StoreCartService;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
@@ -17,6 +20,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->singleton(AnalyticsContext::class);
+
         $this->app->bind(SmsSender::class, function (): SmsSender {
             $driver = (string) config('agricart.sms.driver', 'log');
 
@@ -33,7 +38,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if (parse_url((string) config('app.url'), PHP_URL_SCHEME) === 'https') {
-            \Illuminate\Support\Facades\URL::forceScheme('https');
+            URL::forceScheme('https');
         }
 
         ResetPassword::createUrlUsing(function (object $notifiable, string $token): string {
@@ -64,7 +69,7 @@ class AppServiceProvider extends ServiceProvider
 
             $view->with(
                 'onlineStoreChannel',
-                app(\App\Services\SalesChannels\SalesChannelService::class)->onlineStoreViewState(),
+                app(SalesChannelService::class)->onlineStoreViewState(),
             );
         });
     }

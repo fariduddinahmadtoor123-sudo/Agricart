@@ -25,6 +25,22 @@ return Application::configure(basePath: dirname(__DIR__))
         $schedule->command('system-errors:prune --days=90')
             ->dailyAt('03:30')
             ->timezone(config('app.timezone'));
+
+        $schedule->command('analytics:rollup')
+            ->dailyAt('02:15')
+            ->timezone(config('app.timezone'));
+
+        $schedule->command('analytics:rollup --monthly')
+            ->monthlyOn(1, '02:45')
+            ->timezone(config('app.timezone'));
+
+        $schedule->command('analytics:prune')
+            ->dailyAt('03:45')
+            ->timezone(config('app.timezone'));
+
+        $schedule->command('analytics:geoip-update')
+            ->monthlyOn(2, '04:15')
+            ->timezone(config('app.timezone'));
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: env('TRUSTED_PROXIES', '*'));

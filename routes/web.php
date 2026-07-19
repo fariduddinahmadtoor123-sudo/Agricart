@@ -19,6 +19,8 @@ use App\Http\Controllers\Admin\SaleQuotationPrintController;
 use App\Http\Controllers\Admin\SaleReturnPrintController;
 use App\Http\Controllers\Admin\TopbarNotificationController;
 use App\Http\Controllers\Admin\UserDocumentController;
+use App\Http\Controllers\Admin\VisitorAnalyticsExportController;
+use App\Http\Controllers\Store\AnalyticsPresenceController;
 use App\Http\Controllers\Store\CartController;
 use App\Http\Controllers\Store\CategoryController;
 use App\Http\Controllers\Store\CheckoutController;
@@ -37,9 +39,14 @@ use App\Http\Controllers\Store\StaffRegisterController;
 use App\Http\Controllers\Store\StoreInquiryController;
 use App\Http\Middleware\BlockOnlineStoreMaintenance;
 use App\Http\Middleware\SetAgricartLocale;
+use App\Http\Middleware\TrackStorefrontAnalytics;
 use Illuminate\Support\Facades\Route;
 
-Route::middleware([SetAgricartLocale::class, BlockOnlineStoreMaintenance::class])->group(function (): void {
+Route::middleware([
+    SetAgricartLocale::class,
+    BlockOnlineStoreMaintenance::class,
+    TrackStorefrontAnalytics::class,
+])->group(function (): void {
     Route::get('/', [HomeController::class, 'index'])->name('store.home');
     Route::get('/login', [CustomerAuthController::class, 'show'])
         ->middleware('guest:customer')
@@ -79,6 +86,15 @@ Route::middleware([SetAgricartLocale::class, BlockOnlineStoreMaintenance::class]
     Route::get('/search/fragment', [SearchController::class, 'fragment'])->name('store.search.fragment');
     Route::get('/search/suggest', [SearchController::class, 'suggest'])->name('store.search.suggest');
     Route::get('/search', [SearchController::class, 'index'])->name('store.search');
+    Route::post('/analytics/presence', [AnalyticsPresenceController::class, 'update'])
+        ->middleware('throttle:90,1')
+        ->name('store.analytics.presence');
+    Route::post('/analytics/opt-out', [AnalyticsPresenceController::class, 'optOut'])
+        ->middleware('throttle:10,1')
+        ->name('store.analytics.opt-out');
+    Route::post('/analytics/opt-in', [AnalyticsPresenceController::class, 'optIn'])
+        ->middleware('throttle:10,1')
+        ->name('store.analytics.opt-in');
     Route::post('/contact-message', [StoreInquiryController::class, 'store'])
         ->middleware('throttle:5,1')
         ->name('store.contact-message');
@@ -124,6 +140,8 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
     Route::get('/users/{user}/documents/{side}', UserDocumentController::class)
         ->whereIn('side', ['front', 'back'])
         ->name('admin.users.documents.show');
+    Route::get('/store/visitor-analytics/export', VisitorAnalyticsExportController::class)
+        ->name('admin.store.visitor-analytics.export');
     Route::get('/backups/{backupId}/download', [BackupDownloadController::class, 'download'])
         ->name('admin.backups.download');
     Route::post('/backups/upload', [BackupUploadController::class, 'store'])

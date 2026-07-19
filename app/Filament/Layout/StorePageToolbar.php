@@ -3,7 +3,9 @@
 namespace App\Filament\Layout;
 
 use App\Filament\Clusters\Store\OverviewPage;
+use App\Models\AnalyticsSession;
 use App\Models\User;
+use Illuminate\Support\Facades\Schema;
 
 class StorePageToolbar extends ClusterPageToolbar
 {
@@ -86,6 +88,19 @@ class StorePageToolbar extends ClusterPageToolbar
                     ['label' => __('agricart.store.admin.messages.col_actions'), 'value' => 'actions', 'visible' => true],
                 ],
             ],
+            'visitor-analytics' => [
+                ...$config,
+                'analyticsControls' => true,
+                'dateFrom' => now()->subDays(29)->toDateString(),
+                'dateTo' => now()->toDateString(),
+                'analyticsOptions' => static::analyticsFilterOptions(),
+                'hideSearch' => true,
+                'interactive' => false,
+                'formKey' => null,
+                'addLabel' => null,
+                'filters' => [],
+                'columns' => [],
+            ],
             default => $config,
         };
     }
@@ -103,5 +118,40 @@ class StorePageToolbar extends ClusterPageToolbar
         }
 
         return $user->hasPermission('catalog.create') || $user->hasPermission('store.create');
+    }
+
+    /**
+     * @return array{countries: list<string>, cities: list<string>, devices: list<string>, sources: list<string>}
+     */
+    private static function analyticsFilterOptions(): array
+    {
+        $options = [
+            'countries' => [],
+            'cities' => [],
+            'devices' => [],
+            'sources' => [],
+        ];
+
+        if (! Schema::hasTable('analytics_sessions')) {
+            return $options;
+        }
+
+        foreach ([
+            'countries' => 'country_name',
+            'cities' => 'city',
+            'devices' => 'device_type',
+            'sources' => 'traffic_source',
+        ] as $key => $column) {
+            $options[$key] = AnalyticsSession::query()
+                ->whereNotNull($column)
+                ->where($column, '!=', '')
+                ->distinct()
+                ->orderBy($column)
+                ->limit(200)
+                ->pluck($column)
+                ->all();
+        }
+
+        return $options;
     }
 }

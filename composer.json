@@ -10,8 +10,10 @@
         "barryvdh/laravel-dompdf": "^3.1",
         "chillerlan/php-qrcode": "^5.0",
         "filament/filament": "4.11.8",
+        "geoip2/geoip2": "^3.4",
         "laravel/framework": "^13.8",
         "laravel/tinker": "^3.0",
+        "matomo/device-detector": "^6.5",
         "mpdf/mpdf": "^8.3",
         "picqer/php-barcode-generator": "^3.2"
     },
