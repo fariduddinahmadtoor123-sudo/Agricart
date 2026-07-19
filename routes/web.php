@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\SalePrintController;
 use App\Http\Controllers\Admin\SaleQuotationPrintController;
 use App\Http\Controllers\Admin\SaleReturnPrintController;
 use App\Http\Controllers\Admin\TopbarNotificationController;
+use App\Http\Controllers\Admin\UserDocumentController;
 use App\Http\Controllers\Store\CartController;
 use App\Http\Controllers\Store\CategoryController;
 use App\Http\Controllers\Store\CheckoutController;
@@ -120,6 +121,9 @@ Route::middleware('web')->get('/ai/status', function () {
 Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
     Route::get('/notifications/summary', TopbarNotificationController::class)
         ->name('admin.notifications.summary');
+    Route::get('/users/{user}/documents/{side}', UserDocumentController::class)
+        ->whereIn('side', ['front', 'back'])
+        ->name('admin.users.documents.show');
     Route::get('/backups/{backupId}/download', [BackupDownloadController::class, 'download'])
         ->name('admin.backups.download');
     Route::post('/backups/upload', [BackupUploadController::class, 'store'])

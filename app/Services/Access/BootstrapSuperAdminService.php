@@ -39,7 +39,7 @@ class BootstrapSuperAdminService
             return false;
         }
 
-        if (! in_array($user->status, [User::STATUS_ACTIVE, User::STATUS_PENDING], true)) {
+        if ($user->status !== User::STATUS_ACTIVE) {
             return false;
         }
 

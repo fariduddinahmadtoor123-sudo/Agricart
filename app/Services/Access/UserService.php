@@ -3,6 +3,7 @@
 namespace App\Services\Access;
 
 use App\Models\User;
+use App\Support\PakistaniBanks;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
@@ -181,27 +182,32 @@ class UserService
     {
         $rules = [
             'name' => ['required', 'string', 'max:255'],
-            'name_ur' => ['nullable', 'string', 'max:255'],
+            'name_ur' => ['required', 'string', 'max:255'],
             'email' => [
                 'required',
                 'email',
                 'max:255',
                 Rule::unique('users', 'email')->ignore($exceptId),
             ],
-            'address' => ['nullable', 'string', 'max:2000'],
-            'address_ur' => ['nullable', 'string', 'max:2000'],
-            'phone_numbers' => ['nullable', 'array'],
-            'phone_numbers.*.contact_person' => ['nullable', 'string', 'max:255'],
-            'phone_numbers.*.contact_person_ur' => ['nullable', 'string', 'max:255'],
-            'phone_numbers.*.phone_number' => ['nullable', 'string', 'max:30'],
-            'bank_accounts' => ['nullable', 'array'],
-            'bank_accounts.*.bank_name' => ['nullable', 'string', 'max:255'],
-            'bank_accounts.*.account_title' => ['nullable', 'string', 'max:255'],
-            'bank_accounts.*.account_title_ur' => ['nullable', 'string', 'max:255'],
-            'bank_accounts.*.account_number' => ['nullable', 'string', 'max:64'],
-            'profile_photo_path' => ['nullable', 'string', 'max:500'],
-            'cnic_front_path' => ['nullable', 'string', 'max:500'],
-            'cnic_back_path' => ['nullable', 'string', 'max:500'],
+            'address' => ['required', 'string', 'max:2000'],
+            'address_ur' => ['required', 'string', 'max:2000'],
+            'phone_numbers' => ['required', 'array', 'min:1'],
+            'phone_numbers.*.contact_person' => ['required', 'string', 'max:255'],
+            'phone_numbers.*.contact_person_ur' => ['required', 'string', 'max:255'],
+            'phone_numbers.*.phone_number' => ['required', 'string', 'max:30'],
+            'bank_accounts' => ['required', 'array', 'min:1'],
+            'bank_accounts.*.bank_name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::in(PakistaniBanks::englishNames()),
+            ],
+            'bank_accounts.*.account_title' => ['required', 'string', 'max:255'],
+            'bank_accounts.*.account_title_ur' => ['required', 'string', 'max:255'],
+            'bank_accounts.*.account_number' => ['required', 'string', 'max:64'],
+            'profile_photo_path' => ['required', 'string', 'max:500'],
+            'cnic_front_path' => ['required', 'string', 'max:500'],
+            'cnic_back_path' => ['required', 'string', 'max:500'],
             'password' => ['required', 'string', 'min:8'],
         ];
 
@@ -228,7 +234,10 @@ class UserService
             $oldPath = $user->{$field};
 
             if (filled($newPath) && filled($oldPath) && $newPath !== $oldPath) {
-                Storage::disk('public')->delete($oldPath);
+                $disk = in_array($field, ['cnic_front_path', 'cnic_back_path'], true)
+                    ? 'local'
+                    : 'public';
+                Storage::disk($disk)->delete($oldPath);
             }
         }
     }

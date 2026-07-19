@@ -603,8 +603,8 @@ class Form extends Component
         $this->storedCnicFrontPath = $user->cnic_front_path;
         $this->storedCnicBackPath = $user->cnic_back_path;
         $this->profilePhotoPreviewUrl = $this->storageUrl($user->profile_photo_path);
-        $this->cnicFrontPreviewUrl = $this->storageUrl($user->cnic_front_path);
-        $this->cnicBackPreviewUrl = $this->storageUrl($user->cnic_back_path);
+        $this->cnicFrontPreviewUrl = $this->secureDocumentUrl($user, 'front');
+        $this->cnicBackPreviewUrl = $this->secureDocumentUrl($user, 'back');
 
         return true;
     }
@@ -619,14 +619,14 @@ class Form extends Component
         }
 
         if ($this->cnicFrontUpload !== null) {
-            $this->storedCnicFrontPath = $this->cnicFrontUpload->store('users/cnic', 'public');
-            $this->cnicFrontPreviewUrl = Storage::disk('public')->url($this->storedCnicFrontPath);
+            $this->storedCnicFrontPath = app(\App\Services\Media\OptimizedImageStorage::class)
+                ->store($this->cnicFrontUpload, 'users/cnic', disk: 'local');
             $this->cnicFrontUpload = null;
         }
 
         if ($this->cnicBackUpload !== null) {
-            $this->storedCnicBackPath = $this->cnicBackUpload->store('users/cnic', 'public');
-            $this->cnicBackPreviewUrl = Storage::disk('public')->url($this->storedCnicBackPath);
+            $this->storedCnicBackPath = app(\App\Services\Media\OptimizedImageStorage::class)
+                ->store($this->cnicBackUpload, 'users/cnic', disk: 'local');
             $this->cnicBackUpload = null;
         }
     }
@@ -634,6 +634,15 @@ class Form extends Component
     private function storageUrl(?string $path): ?string
     {
         return filled($path) ? Storage::disk('public')->url($path) : null;
+    }
+
+    private function secureDocumentUrl(User $user, string $side): ?string
+    {
+        $path = $side === 'front' ? $user->cnic_front_path : $user->cnic_back_path;
+
+        return filled($path)
+            ? route('admin.users.documents.show', ['user' => $user, 'side' => $side])
+            : null;
     }
 
     private function resetForm(): void

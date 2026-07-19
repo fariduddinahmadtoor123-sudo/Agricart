@@ -71,7 +71,6 @@
 
     @include('store.components.whatsapp-float')
 
-    @livewireScriptConfig
     @livewireScripts
     @include('store.components.store-search-script')
     @stack('scripts')

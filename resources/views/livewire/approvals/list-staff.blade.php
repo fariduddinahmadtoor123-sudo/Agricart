@@ -169,7 +169,18 @@
                             'cnic_front_path' => __('agricart.users.fields.cnic_front'),
                             'cnic_back_path' => __('agricart.users.fields.cnic_back'),
                         ] as $field => $label)
-                            @php $url = $viewUser->publicFileUrl($viewUser->{$field}); @endphp
+                            @php
+                                $side = match ($field) {
+                                    'cnic_front_path' => 'front',
+                                    'cnic_back_path' => 'back',
+                                    default => null,
+                                };
+                                $url = filled($viewUser->{$field})
+                                    ? ($side
+                                        ? route('admin.users.documents.show', ['user' => $viewUser, 'side' => $side])
+                                        : $viewUser->publicFileUrl($viewUser->{$field}))
+                                    : null;
+                            @endphp
                             <figure class="agricart-staff-approvals__document">
                                 <figcaption>{{ $label }}</figcaption>
                                 @if ($url)

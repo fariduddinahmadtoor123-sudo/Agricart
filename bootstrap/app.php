@@ -28,6 +28,11 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: env('TRUSTED_PROXIES', '*'));
+        $middleware->redirectGuestsTo(
+            fn (Request $request): string => $request->is('admin/*')
+                ? url('/admin/login')
+                : route('store.customer.login'),
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

@@ -47,6 +47,8 @@ class RegisterForm extends Component
     /** @var array<int, string> */
     public array $bankSearches = [''];
 
+    public ?int $openBankPickerIndex = null;
+
     public ?TemporaryUploadedFile $profilePhotoUpload = null;
 
     public ?TemporaryUploadedFile $cnicFrontUpload = null;
@@ -62,6 +64,8 @@ class RegisterForm extends Component
     public bool $saving = false;
 
     public bool $submitted = false;
+
+    public ?string $submittedReference = null;
 
     public bool $isResubmit = false;
 
@@ -120,18 +124,35 @@ class RegisterForm extends Component
         unset($this->bankSearches[$index]);
         $this->bankRows = array_values($this->bankRows);
         $this->bankSearches = array_values($this->bankSearches);
+        $this->openBankPickerIndex = null;
+    }
+
+    public function openBankPicker(int $index): void
+    {
+        if (array_key_exists($index, $this->bankRows)) {
+            $this->openBankPickerIndex = $index;
+        }
     }
 
     public function selectBank(int $index, string $bankName): void
     {
+        if (
+            ! array_key_exists($index, $this->bankRows)
+            || ! in_array($bankName, PakistaniBanks::englishNames(), true)
+        ) {
+            return;
+        }
+
         $this->bankRows[$index]['bank_name'] = $bankName;
         $this->bankSearches[$index] = '';
+        $this->openBankPickerIndex = null;
     }
 
     public function clearBank(int $index): void
     {
         $this->bankRows[$index]['bank_name'] = '';
         $this->bankSearches[$index] = '';
+        $this->openBankPickerIndex = $index;
     }
 
     public function submit(): void
@@ -148,15 +169,21 @@ class RegisterForm extends Component
             }
 
             $this->email = mb_strtolower(trim($this->email));
-            $rateLimitKey = 'staff-registration:'.sha1((string) request()->ip().'|'.$this->email);
+            $ipHash = sha1((string) request()->ip());
+            $rateLimitKey = 'staff-registration:'.sha1($ipHash.'|'.$this->email);
+            $ipRateLimitKey = 'staff-registration-ip:'.$ipHash;
 
-            if (RateLimiter::tooManyAttempts($rateLimitKey, 5)) {
+            if (
+                RateLimiter::tooManyAttempts($rateLimitKey, 10)
+                || RateLimiter::tooManyAttempts($ipRateLimitKey, 30)
+            ) {
                 throw ValidationException::withMessages([
                     'email' => [__('agricart.auth.register_rate_limited')],
                 ]);
             }
 
             RateLimiter::hit($rateLimitKey, 60);
+            RateLimiter::hit($ipRateLimitKey, 3600);
 
             $rejectedUser = User::query()
                 ->where('email', $this->email)
@@ -167,7 +194,7 @@ class RegisterForm extends Component
 
             $this->validate([
                 'name' => ['required', 'string', 'max:255'],
-                'name_ur' => ['nullable', 'string', 'max:255'],
+                'name_ur' => ['required', 'string', 'max:255'],
                 'email' => [
                     'required',
                     'email',
@@ -175,38 +202,32 @@ class RegisterForm extends Component
                     Rule::unique('users', 'email')->ignore($rejectedUser?->id),
                 ],
                 'address' => ['required', 'string', 'max:2000'],
-                'address_ur' => ['nullable', 'string', 'max:2000'],
+                'address_ur' => ['required', 'string', 'max:2000'],
                 'password' => ['required', 'string', 'min:8', 'same:password_confirmation'],
                 'password_confirmation' => ['required', 'string'],
-                'phoneRows.0.phone_number' => ['required', 'string', 'max:30'],
-                'phoneRows.*.phone_number' => ['nullable', 'string', 'max:30'],
-                'phoneRows.*.contact_person' => ['nullable', 'string', 'max:255'],
-                'phoneRows.*.contact_person_ur' => ['nullable', 'string', 'max:255'],
-                'bankRows.*.bank_name' => ['nullable', 'string', 'max:255'],
-                'bankRows.*.account_title' => ['nullable', 'string', 'max:255'],
-                'bankRows.*.account_title_ur' => ['nullable', 'string', 'max:255'],
-                'bankRows.*.account_number' => ['nullable', 'string', 'max:64'],
-                'profilePhotoUpload' => ['nullable', 'image', 'max:5120'],
-                'cnicFrontUpload' => [
-                    Rule::requiredIf(! filled($rejectedUser?->cnic_front_path)),
-                    'nullable',
-                    'image',
-                    'max:5120',
+                'phoneRows.*.phone_number' => ['required', 'string', 'max:30'],
+                'phoneRows.*.contact_person' => ['required', 'string', 'max:255'],
+                'phoneRows.*.contact_person_ur' => ['required', 'string', 'max:255'],
+                'bankRows.*.bank_name' => [
+                    'required',
+                    'string',
+                    'max:255',
+                    Rule::in(PakistaniBanks::englishNames()),
                 ],
-                'cnicBackUpload' => [
-                    Rule::requiredIf(! filled($rejectedUser?->cnic_back_path)),
-                    'nullable',
-                    'image',
-                    'max:5120',
-                ],
+                'bankRows.*.account_title' => ['required', 'string', 'max:255'],
+                'bankRows.*.account_title_ur' => ['required', 'string', 'max:255'],
+                'bankRows.*.account_number' => ['required', 'string', 'max:64'],
+                'profilePhotoUpload' => ['required', 'image', 'max:5120'],
+                'cnicFrontUpload' => ['required', 'image', 'max:5120'],
+                'cnicBackUpload' => ['required', 'image', 'max:5120'],
             ]);
 
             $service = app(UserService::class);
             $storedPaths['profile_photo_path'] = $this->storeUpload($this->profilePhotoUpload, 'users/profile-photos');
-            $storedPaths['cnic_front_path'] = $this->storeUpload($this->cnicFrontUpload, 'users/cnic');
-            $storedPaths['cnic_back_path'] = $this->storeUpload($this->cnicBackUpload, 'users/cnic');
+            $storedPaths['cnic_front_path'] = $this->storeUpload($this->cnicFrontUpload, 'users/cnic', 'local');
+            $storedPaths['cnic_back_path'] = $this->storeUpload($this->cnicBackUpload, 'users/cnic', 'local');
 
-            $service->registerPublic([
+            $user = $service->registerPublic([
                 'name' => $this->name,
                 'name_ur' => $this->name_ur ?: null,
                 'email' => $this->email,
@@ -219,16 +240,21 @@ class RegisterForm extends Component
             ]);
 
             $storedPaths = [];
+            RateLimiter::clear($rateLimitKey);
+            $this->submittedReference = $user->user_number;
             $this->submitted = true;
+            $this->dispatch('staff-registration-result', success: true);
         } catch (ValidationException $exception) {
             $this->deleteStoredPaths($storedPaths);
             $message = collect($exception->errors())->flatten()->first();
             $this->statusMessage = $message ?: __('agricart.auth.register_failed');
             $this->statusType = 'danger';
+            $this->dispatch('staff-registration-result', success: false);
         } catch (\Throwable $exception) {
             $this->deleteStoredPaths($storedPaths);
             $this->statusMessage = FriendlyError::message($exception);
             $this->statusType = 'danger';
+            $this->dispatch('staff-registration-result', success: false);
         } finally {
             $this->saving = false;
         }
@@ -242,38 +268,44 @@ class RegisterForm extends Component
     }
 
     /**
-     * @return array<int, list<string>>
+     * @return array<int, array<string, string>>
      */
     private function filteredBanksByRow(): array
     {
-        $banks = PakistaniBanks::englishNames();
         $results = [];
 
         foreach ($this->bankSearches as $index => $search) {
-            $needle = mb_strtolower(trim($search));
+            $matchingEntries = trim($search) === ''
+                ? array_keys(PakistaniBanks::entries())
+                : array_keys(PakistaniBanks::search($search, 'en'));
+            $options = [];
 
-            if ($needle === '') {
-                $results[$index] = [];
+            foreach ($matchingEntries as $bankKey) {
+                $bankName = PakistaniBanks::english($bankKey);
 
-                continue;
+                if ($bankName !== '') {
+                    $options[$bankName] = PakistaniBanks::bilingualLabel($bankKey);
+                }
             }
 
-            $results[$index] = array_values(array_filter(
-                $banks,
-                fn (string $bank): bool => str_contains(mb_strtolower($bank), $needle),
-            ));
+            asort($options);
+            $results[$index] = $options;
         }
 
         return $results;
     }
 
-    private function storeUpload(?TemporaryUploadedFile $upload, string $directory): ?string
+    private function storeUpload(
+        ?TemporaryUploadedFile $upload,
+        string $directory,
+        string $disk = 'public',
+    ): ?string
     {
         if ($upload === null) {
             return null;
         }
 
-        return app(OptimizedImageStorage::class)->store($upload, $directory);
+        return app(OptimizedImageStorage::class)->store($upload, $directory, disk: $disk);
     }
 
     /**
@@ -281,9 +313,12 @@ class RegisterForm extends Component
      */
     private function deleteStoredPaths(array $paths): void
     {
-        foreach ($paths as $path) {
+        foreach ($paths as $field => $path) {
             if (filled($path)) {
-                Storage::disk('public')->delete($path);
+                $disk = in_array($field, ['cnic_front_path', 'cnic_back_path'], true)
+                    ? 'local'
+                    : 'public';
+                Storage::disk($disk)->delete($path);
             }
         }
     }

@@ -1,24 +1,36 @@
-<div class="ag-store-register">
+<div
+    class="ag-store-register"
+    x-data
+    x-on:staff-registration-result.window="$nextTick(() => $el.scrollIntoView({ behavior: 'smooth', block: 'start' }))"
+>
     @if ($submitted)
-        <div class="ag-store-register__success">
-            <h2>{{ __('agricart.auth.register_success_title') }}</h2>
-            <p>{{ $isResubmit ? __('agricart.auth.register_resubmit_success_text') : __('agricart.auth.register_success_text') }}</p>
-            <a href="{{ url('/admin/login') }}" class="ag-store-register__btn">{{ __('agricart.auth.login_link') }}</a>
+        <div class="ag-store-register__success" role="status" aria-live="polite">
+            <span class="ag-store-register__success-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m5 12 4 4L19 6"/>
+                </svg>
+            </span>
+            <div class="ag-store-register__success-content">
+                <span class="ag-store-register__success-eyebrow">{{ __('agricart.auth.register_success_kicker') }}</span>
+                <h2>{{ __('agricart.auth.register_success_title') }}</h2>
+                <p>{{ $isResubmit ? __('agricart.auth.register_resubmit_success_text') : __('agricart.auth.register_success_text') }}</p>
+                <dl class="ag-store-register__success-meta">
+                    <div>
+                        <dt>{{ __('agricart.auth.register_application_status') }}</dt>
+                        <dd>{{ __('agricart.auth.register_pending_approval') }}</dd>
+                    </div>
+                    @if ($submittedReference)
+                        <div>
+                            <dt>{{ __('agricart.auth.register_application_reference') }}</dt>
+                            <dd>{{ $submittedReference }}</dd>
+                        </div>
+                    @endif
+                </dl>
+                <p class="ag-store-register__success-note">{{ __('agricart.auth.register_success_note') }}</p>
+                <a href="{{ url('/admin/login') }}" class="ag-store-register__btn">{{ __('agricart.auth.login_link') }}</a>
+            </div>
         </div>
     @else
-        <div class="ag-store-register__guidance">
-            <div>
-                <span class="ag-store-register__eyebrow">{{ __('agricart.auth.staff_application') }}</span>
-                <h2>{{ __('agricart.auth.register_guidance_title') }}</h2>
-                <p>{{ __('agricart.auth.register_guidance_text') }}</p>
-            </div>
-            <ol class="ag-store-register__steps">
-                <li><span>1</span>{{ __('agricart.auth.register_step_details') }}</li>
-                <li><span>2</span>{{ __('agricart.auth.register_step_review') }}</li>
-                <li><span>3</span>{{ __('agricart.auth.register_step_access') }}</li>
-            </ol>
-        </div>
-
         <p class="ag-store-register__required-note">
             <span class="ag-store-register__required" aria-hidden="true">*</span>
             {{ __('agricart.auth.register_required_note') }}
@@ -51,33 +63,39 @@
                     </div>
 
                     <div class="ag-store-register__field">
-                        <label for="register-name-ur">{{ __('agricart.users.fields.name_ur') }} <span class="ag-store-register__optional">{{ __('agricart.auth.optional') }}</span></label>
-                        <input id="register-name-ur" type="text" wire:model="name_ur" class="ag-store-register__input" dir="rtl" />
+                        <label for="register-name-ur">
+                            {{ __('agricart.users.fields.name_ur') }}
+                            <span class="ag-store-register__required" aria-hidden="true">*</span>
+                        </label>
+                        <input id="register-name-ur" type="text" wire:model="name_ur" class="ag-store-register__input" dir="rtl" required />
                         @error('name_ur') <span class="ag-store-register__error">{{ $message }}</span> @enderror
                     </div>
 
                     <div class="ag-store-register__field">
+                        <label for="register-address">
+                            {{ __('agricart.users.fields.address') }}
+                            <span class="ag-store-register__required" aria-hidden="true">*</span>
+                        </label>
+                        <textarea id="register-address" wire:model="address" class="ag-store-register__input ag-store-register__textarea" rows="2" autocomplete="street-address" required></textarea>
+                        @error('address') <span class="ag-store-register__error">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="ag-store-register__field">
+                        <label for="register-address-ur">
+                            {{ __('agricart.users.fields.address_ur') }}
+                            <span class="ag-store-register__required" aria-hidden="true">*</span>
+                        </label>
+                        <textarea id="register-address-ur" wire:model="address_ur" class="ag-store-register__input ag-store-register__textarea" rows="2" dir="rtl" required></textarea>
+                        @error('address_ur') <span class="ag-store-register__error">{{ $message }}</span> @enderror
+                    </div>
+
+                    <div class="ag-store-register__field ag-store-register__field--wide">
                         <label for="register-email">
                             {{ __('agricart.users.fields.email') }}
                             <span class="ag-store-register__required" aria-hidden="true">*</span>
                         </label>
                         <input id="register-email" type="email" wire:model="email" class="ag-store-register__input" autocomplete="email" required />
                         @error('email') <span class="ag-store-register__error">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div class="ag-store-register__field ag-store-register__field--wide">
-                        <label for="register-address">
-                            {{ __('agricart.users.fields.address') }}
-                            <span class="ag-store-register__required" aria-hidden="true">*</span>
-                        </label>
-                        <textarea id="register-address" wire:model="address" class="ag-store-register__input ag-store-register__textarea" rows="3" autocomplete="street-address" required></textarea>
-                        @error('address') <span class="ag-store-register__error">{{ $message }}</span> @enderror
-                    </div>
-
-                    <div class="ag-store-register__field ag-store-register__field--wide">
-                        <label for="register-address-ur">{{ __('agricart.users.fields.address_ur') }} <span class="ag-store-register__optional">{{ __('agricart.auth.optional') }}</span></label>
-                        <textarea id="register-address-ur" wire:model="address_ur" class="ag-store-register__input ag-store-register__textarea" rows="3" dir="rtl"></textarea>
-                        @error('address_ur') <span class="ag-store-register__error">{{ $message }}</span> @enderror
                     </div>
                 </div>
             </section>
@@ -94,15 +112,27 @@
                 @foreach ($phoneRows as $index => $row)
                     <div class="ag-store-register__row" wire:key="register-phone-{{ $index }}">
                         <div class="ag-store-register__field">
-                            <label for="register-contact-{{ $index }}">{{ __('agricart.users.hints.contact_person') }} <span class="ag-store-register__optional">{{ __('agricart.auth.optional') }}</span></label>
-                            <input id="register-contact-{{ $index }}" type="text" wire:model="phoneRows.{{ $index }}.contact_person" class="ag-store-register__input" />
+                            <label for="register-contact-{{ $index }}">
+                                {{ __('agricart.users.hints.contact_person') }}
+                                <span class="ag-store-register__required" aria-hidden="true">*</span>
+                            </label>
+                            <input id="register-contact-{{ $index }}" type="text" wire:model="phoneRows.{{ $index }}.contact_person" class="ag-store-register__input" required />
+                            @error("phoneRows.{$index}.contact_person") <span class="ag-store-register__error">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="ag-store-register__field">
+                            <label for="register-contact-ur-{{ $index }}">
+                                {{ __('agricart.users.hints.contact_person_ur') }}
+                                <span class="ag-store-register__required" aria-hidden="true">*</span>
+                            </label>
+                            <input id="register-contact-ur-{{ $index }}" type="text" wire:model="phoneRows.{{ $index }}.contact_person_ur" class="ag-store-register__input" dir="rtl" required />
+                            @error("phoneRows.{$index}.contact_person_ur") <span class="ag-store-register__error">{{ $message }}</span> @enderror
                         </div>
                         <div class="ag-store-register__field">
                             <label for="register-phone-{{ $index }}">
                                 {{ __('agricart.users.hints.phone_number') }}
-                                @if ($index === 0)<span class="ag-store-register__required" aria-hidden="true">*</span>@endif
+                                <span class="ag-store-register__required" aria-hidden="true">*</span>
                             </label>
-                            <input id="register-phone-{{ $index }}" type="tel" inputmode="tel" wire:model="phoneRows.{{ $index }}.phone_number" class="ag-store-register__input" @required($index === 0) />
+                            <input id="register-phone-{{ $index }}" type="tel" inputmode="tel" wire:model="phoneRows.{{ $index }}.phone_number" class="ag-store-register__input" required />
                             @error("phoneRows.{$index}.phone_number") <span class="ag-store-register__error">{{ $message }}</span> @enderror
                         </div>
                         @if ($index === count($phoneRows) - 1)
@@ -119,27 +149,75 @@
                 <header class="ag-store-register__section-head">
                     <div>
                         <span class="ag-store-register__section-number">03</span>
-                        <h3>{{ __('agricart.users.sections.bank_accounts') }} <span class="ag-store-register__optional">{{ __('agricart.auth.optional') }}</span></h3>
+                        <h3>{{ __('agricart.users.sections.bank_accounts') }}</h3>
                     </div>
                     <p>{{ __('agricart.auth.register_bank_help') }}</p>
                 </header>
 
                 @foreach ($bankRows as $index => $row)
                     <div class="ag-store-register__bank" wire:key="register-bank-{{ $index }}">
-                        @if (filled($row['bank_name']))
-                            <span class="ag-store-register__chip">{{ $row['bank_name'] }} <button type="button" wire:click="clearBank({{ $index }})">×</button></span>
-                        @else
-                            <input type="search" wire:model.live.debounce.200ms="bankSearches.{{ $index }}" class="ag-store-register__input" placeholder="{{ __('agricart.users.hints.bank_search') }}" />
-                            @if (filled(trim($bankSearches[$index] ?? '')) && ($filteredBanksByRow[$index] ?? []) !== [])
-                                <div class="ag-store-register__bank-results">
-                                    @foreach ($filteredBanksByRow[$index] as $bankName)
-                                        <button type="button" wire:click="selectBank({{ $index }}, @js($bankName))">{{ $bankName }}</button>
-                                    @endforeach
-                                </div>
+                        <div class="ag-store-register__field">
+                            <label>
+                                {{ __('agricart.users.fields.bank_name') }}
+                                <span class="ag-store-register__required" aria-hidden="true">*</span>
+                            </label>
+                            @if (filled($row['bank_name']))
+                                <span class="ag-store-register__chip">{{ $row['bank_name'] }} <button type="button" wire:click="clearBank({{ $index }})">×</button></span>
+                            @else
+                                <input
+                                    type="search"
+                                    wire:model.live.debounce.200ms="bankSearches.{{ $index }}"
+                                    wire:focus="openBankPicker({{ $index }})"
+                                    wire:click="openBankPicker({{ $index }})"
+                                    class="ag-store-register__input"
+                                    placeholder="{{ __('agricart.users.hints.bank_search') }}"
+                                    autocomplete="off"
+                                    role="combobox"
+                                    aria-expanded="{{ $openBankPickerIndex === $index ? 'true' : 'false' }}"
+                                    required
+                                />
+                                @if ($openBankPickerIndex === $index && ($filteredBanksByRow[$index] ?? []) !== [])
+                                    <div class="ag-store-register__bank-results" role="listbox">
+                                        @foreach ($filteredBanksByRow[$index] as $bankName => $bankLabel)
+                                            <button
+                                                type="button"
+                                                wire:click="selectBank({{ $index }}, @js($bankName))"
+                                                wire:key="public-staff-bank-{{ $index }}-{{ md5($bankName) }}"
+                                                role="option"
+                                            >
+                                                {{ $bankLabel }}
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                @endif
+                                <span class="ag-store-register__field-help">{{ __('agricart.auth.register_bank_select_help') }}</span>
                             @endif
-                        @endif
-                        <input type="text" wire:model="bankRows.{{ $index }}.account_title" class="ag-store-register__input" placeholder="{{ __('agricart.users.fields.account_title') }}" />
-                        <input type="text" wire:model="bankRows.{{ $index }}.account_number" class="ag-store-register__input" placeholder="{{ __('agricart.users.hints.iban_or_account') }}" />
+                            @error("bankRows.{$index}.bank_name") <span class="ag-store-register__error">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="ag-store-register__field">
+                            <label>
+                                {{ __('agricart.users.fields.account_title_en') }}
+                                <span class="ag-store-register__required" aria-hidden="true">*</span>
+                            </label>
+                            <input type="text" wire:model="bankRows.{{ $index }}.account_title" class="ag-store-register__input" required />
+                            @error("bankRows.{$index}.account_title") <span class="ag-store-register__error">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="ag-store-register__field">
+                            <label>
+                                {{ __('agricart.users.fields.account_title_ur') }}
+                                <span class="ag-store-register__required" aria-hidden="true">*</span>
+                            </label>
+                            <input type="text" wire:model="bankRows.{{ $index }}.account_title_ur" class="ag-store-register__input" dir="rtl" required />
+                            @error("bankRows.{$index}.account_title_ur") <span class="ag-store-register__error">{{ $message }}</span> @enderror
+                        </div>
+                        <div class="ag-store-register__field">
+                            <label>
+                                {{ __('agricart.users.fields.account_number') }}
+                                <span class="ag-store-register__required" aria-hidden="true">*</span>
+                            </label>
+                            <input type="text" wire:model="bankRows.{{ $index }}.account_number" class="ag-store-register__input" required />
+                            @error("bankRows.{$index}.account_number") <span class="ag-store-register__error">{{ $message }}</span> @enderror
+                        </div>
                         @if ($index === count($bankRows) - 1)
                             <button type="button" class="ag-store-register__mini-btn" wire:click="addBankRow()" aria-label="{{ __('agricart.users.actions.add_bank') }}">+</button>
                         @endif
@@ -161,9 +239,9 @@
 
                 <div class="ag-store-register__docs">
                     <label class="ag-store-register__upload">
-                        <span>{{ __('agricart.users.fields.profile_photo') }} <span class="ag-store-register__optional">{{ __('agricart.auth.optional') }}</span></span>
+                        <span>{{ __('agricart.users.fields.profile_photo') }} <span class="ag-store-register__required" aria-hidden="true">*</span></span>
                         @if ($profilePhotoPreviewUrl)<img src="{{ $profilePhotoPreviewUrl }}" alt="" class="ag-store-register__preview" />@endif
-                        <input type="file" wire:model="profilePhotoUpload" accept="image/*" />
+                        <input type="file" wire:model="profilePhotoUpload" accept="image/*" required />
                         @error('profilePhotoUpload') <span class="ag-store-register__error">{{ $message }}</span> @enderror
                     </label>
                     <label class="ag-store-register__upload">
