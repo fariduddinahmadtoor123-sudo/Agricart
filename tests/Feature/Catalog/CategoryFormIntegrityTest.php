@@ -113,6 +113,30 @@ class CategoryFormIntegrityTest extends TestCase
         $this->assertSame(['existing'], $category->fresh()->search_terms);
     }
 
+    public function test_category_seo_keywords_accepts_500_characters_but_rejects_more(): void
+    {
+        $category = $this->category('seo-keywords', 'SEO Keywords');
+        $allowedKeywords = str_repeat('k', 500);
+
+        Livewire::test(Form::class)
+            ->call('openForm', $category->id, 'edit')
+            ->set('seo_keywords_en', $allowedKeywords)
+            ->set('seo_keywords_ur', $allowedKeywords)
+            ->call('saveAndClose')
+            ->assertSet('statusType', 'success');
+
+        $this->assertSame($allowedKeywords, $category->fresh()->seo_keywords_en);
+        $this->assertSame($allowedKeywords, $category->fresh()->seo_keywords_ur);
+
+        Livewire::test(Form::class)
+            ->call('openForm', $category->id, 'edit')
+            ->set('seo_keywords_en', str_repeat('x', 501))
+            ->call('saveAndClose')
+            ->assertSet('statusType', 'danger');
+
+        $this->assertSame($allowedKeywords, $category->fresh()->seo_keywords_en);
+    }
+
     public function test_category_cannot_select_its_descendant_as_parent(): void
     {
         $parent = $this->category('parent', 'Parent');

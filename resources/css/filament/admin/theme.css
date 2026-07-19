@@ -1701,6 +1701,35 @@ body.agricart-form-panel-open {
     gap: 0;
 }
 
+.agricart-category-form__details .agricart-form-panel__fields,
+.agricart-category-form__details .agricart-form-panel__field,
+.agricart-category-form__details .fi-input-wrp,
+.agricart-category-form__details .fi-input-wrp-content {
+    width: 100%;
+    min-width: 0;
+}
+
+.agricart-category-form__details .fi-input {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.agricart-category-form__details textarea.agricart-form-panel__textarea {
+    display: block;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    overflow-x: hidden;
+    resize: vertical;
+}
+
 .agricart-category-form__details .agricart-category-form__section:first-child {
     margin-block-start: 0;
     padding-block-start: 0;
