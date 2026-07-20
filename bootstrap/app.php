@@ -1,5 +1,6 @@
 <?php
 
+use App\Services\Backup\BackupScheduleRegistrar;
 use App\Services\SystemErrors\SystemErrorCaptureService;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Console\Scheduling\Event;
@@ -37,29 +38,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ->dailyAt('00:05')
             ->timezone(config('app.timezone')));
 
-        if (config('backup.schedule.enabled', true)) {
-            $backupType = (string) config('backup.schedule.type', 'database');
-            if (! in_array($backupType, ['database', 'full'], true)) {
-                $backupType = 'database';
-            }
-
-            $protect($schedule->command('backup:create --type='.$backupType.' --source=scheduled')
-                ->dailyAt((string) config('backup.schedule.time', '01:30'))
-                ->timezone(config('app.timezone'))
-                ->withoutOverlapping(180)
-                ->appendOutputTo(storage_path('logs/backup-schedule.log')));
-
-            if (config('backup.schedule.weekly_full_enabled', true)) {
-                $weeklyDay = max(0, min(6, (int) config('backup.schedule.weekly_full_day', 0)));
-                $weeklyTime = (string) config('backup.schedule.weekly_full_time', '02:00');
-
-                $protect($schedule->command('backup:create --type=full --source=scheduled')
-                    ->weeklyOn($weeklyDay, $weeklyTime)
-                    ->timezone(config('app.timezone'))
-                    ->withoutOverlapping(360)
-                    ->appendOutputTo(storage_path('logs/backup-schedule.log')));
-            }
-        }
+        app(BackupScheduleRegistrar::class)->register($schedule, $protect);
 
         $protect($schedule->command('media:purge-temp --hours=24')
             ->dailyAt('03:15')

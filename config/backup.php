@@ -12,19 +12,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Daily automatic backups
+    | Automatic backup schedule (defaults — overridable in Settings → Backups)
     |--------------------------------------------------------------------------
     |
     | Requires Hostinger/VPS cron: php artisan schedule:run every minute.
-    | Database-only backups are the default; full archives remain manual/deploy.
+    | Preferred default is a weekly full archive (database + uploads).
     |
     */
     'schedule' => [
         'enabled' => filter_var(env('BACKUP_SCHEDULE_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
-        'time' => env('BACKUP_SCHEDULE_TIME', '01:30'),
-        'type' => env('BACKUP_SCHEDULE_TYPE', 'database'),
+        'primary_type' => env('BACKUP_SCHEDULE_TYPE', 'full'),
+        'frequency' => env('BACKUP_SCHEDULE_FREQUENCY', 'weekly'),
+        'time' => env('BACKUP_SCHEDULE_TIME', '02:00'),
+        'weekday' => (int) env('BACKUP_SCHEDULE_WEEKDAY', env('BACKUP_WEEKLY_FULL_DAY', 0)),
+        'database_daily_enabled' => filter_var(env('BACKUP_DATABASE_DAILY_ENABLED', false), FILTER_VALIDATE_BOOLEAN),
+        'database_daily_time' => env('BACKUP_DATABASE_DAILY_TIME', '01:30'),
+        // Legacy keys kept for older .env files / docs references
+        'type' => env('BACKUP_SCHEDULE_TYPE', 'full'),
         'weekly_full_enabled' => filter_var(env('BACKUP_WEEKLY_FULL_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
-        // 0 = Sunday … 6 = Saturday
         'weekly_full_day' => (int) env('BACKUP_WEEKLY_FULL_DAY', 0),
         'weekly_full_time' => env('BACKUP_WEEKLY_FULL_TIME', '02:00'),
     ],

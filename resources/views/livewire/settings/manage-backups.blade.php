@@ -37,16 +37,93 @@
                 {{ __('agricart.backups.actions.create_database') }}
             </button>
         </div>
+    </section>
 
-        @if ($scheduleStatus['enabled'])
-            <p class="agricart-backups__auto">
-                <span>{{ __('agricart.backups.schedule.enabled_label') }}</span>
-                {{ $scheduleStatus['daily'] }}
-                @if ($scheduleStatus['weekly'])
-                    · {{ $scheduleStatus['weekly'] }}
+    <section class="agricart-backups__panel">
+        <header class="agricart-backups__panel-head">
+            <h2>{{ __('agricart.backups.sections.schedule') }}</h2>
+            <p class="agricart-backups__lede">{{ __('agricart.backups.sections.schedule_hint') }}</p>
+        </header>
+
+        <p class="agricart-backups__auto">
+            <span>{{ __('agricart.backups.schedule.enabled_label') }}</span>
+            {{ $scheduleSummary }}
+        </p>
+
+        <div class="agricart-backups__schedule-grid">
+            <label class="agricart-backups__checkbox">
+                <input type="checkbox" wire:model="scheduleEnabled" @disabled(! $canManage || $busy)>
+                <span>{{ __('agricart.backups.schedule.field_enabled') }}</span>
+            </label>
+
+            <label class="agricart-backups__field">
+                <span>{{ __('agricart.backups.schedule.field_type') }}</span>
+                <select wire:model.live="scheduleType" class="agricart-backups__input" @disabled(! $canManage || $busy)>
+                    <option value="full">{{ __('agricart.backups.types.full') }} — {{ __('agricart.backups.schedule.type_full_recommended') }}</option>
+                    <option value="database">{{ __('agricart.backups.types.database') }}</option>
+                </select>
+            </label>
+
+            <label class="agricart-backups__field">
+                <span>{{ __('agricart.backups.schedule.field_frequency') }}</span>
+                <select wire:model.live="scheduleFrequency" class="agricart-backups__input" @disabled(! $canManage || $busy)>
+                    <option value="daily">{{ __('agricart.backups.schedule.frequency_daily') }}</option>
+                    <option value="every_2_days">{{ __('agricart.backups.schedule.frequency_every_2_days') }}</option>
+                    <option value="every_3_days">{{ __('agricart.backups.schedule.frequency_every_3_days') }}</option>
+                    <option value="weekly">{{ __('agricart.backups.schedule.frequency_weekly') }}</option>
+                </select>
+            </label>
+
+            <label class="agricart-backups__field">
+                <span>{{ __('agricart.backups.schedule.field_time') }}</span>
+                <input type="time" wire:model="scheduleTime" class="agricart-backups__input" @disabled(! $canManage || $busy)>
+            </label>
+
+            @if ($scheduleFrequency === 'weekly')
+                <label class="agricart-backups__field">
+                    <span>{{ __('agricart.backups.schedule.field_weekday') }}</span>
+                    <select wire:model="scheduleWeekday" class="agricart-backups__input" @disabled(! $canManage || $busy)>
+                        <option value="0">{{ __('agricart.backups.schedule.sunday') }}</option>
+                        <option value="1">{{ __('agricart.backups.schedule.monday') }}</option>
+                        <option value="2">{{ __('agricart.backups.schedule.tuesday') }}</option>
+                        <option value="3">{{ __('agricart.backups.schedule.wednesday') }}</option>
+                        <option value="4">{{ __('agricart.backups.schedule.thursday') }}</option>
+                        <option value="5">{{ __('agricart.backups.schedule.friday') }}</option>
+                        <option value="6">{{ __('agricart.backups.schedule.saturday') }}</option>
+                    </select>
+                </label>
+            @endif
+
+            <label class="agricart-backups__checkbox agricart-backups__checkbox--block">
+                <input type="checkbox" wire:model.live="scheduleDatabaseDailyEnabled" @disabled(! $canManage || $busy || $scheduleType === 'database')>
+                <span>{{ __('agricart.backups.schedule.field_database_daily') }}</span>
+            </label>
+
+            @if ($scheduleDatabaseDailyEnabled && $scheduleType !== 'database')
+                <label class="agricart-backups__field">
+                    <span>{{ __('agricart.backups.schedule.field_database_daily_time') }}</span>
+                    <input type="time" wire:model="scheduleDatabaseDailyTime" class="agricart-backups__input" @disabled(! $canManage || $busy)>
+                </label>
+            @endif
+        </div>
+
+        <div class="agricart-backups__actions agricart-backups__actions--flush">
+            <button type="button" class="agricart-backups__btn is-primary" wire:click="saveSchedule" @disabled($busy || ! $canManage)>
+                {{ __('agricart.backups.actions.save_schedule') }}
+            </button>
+        </div>
+
+        <div class="agricart-backups__cron">
+            <p class="agricart-backups__lede">{{ __('agricart.backups.schedule.cron_intro') }}</p>
+            <code class="agricart-backups__path" id="agricart-backup-cron-line">{{ $hostCronCommand }}</code>
+            <p class="agricart-backups__meta">
+                @if ($schedulerConfigured)
+                    {{ __('agricart.backups.schedule.cron_marked_ok') }}
+                @else
+                    {{ __('agricart.backups.schedule.cron_marked_check') }}
                 @endif
             </p>
-        @endif
+        </div>
     </section>
 
     <section class="agricart-backups__panel">
