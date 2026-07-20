@@ -11,6 +11,7 @@ use App\Models\Sale;
 use App\Models\User;
 use App\Services\Finance\BankAccountService;
 use App\Services\Identifiers\DocumentCounterService;
+use App\Services\Logistics\DeliveryMethodService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -22,6 +23,7 @@ class OnlineSaleOrderService
 
     public function __construct(
         private readonly SaleService $saleService,
+        private readonly DeliveryMethodService $deliveryMethods,
     ) {}
 
     public function nextOrderNumber(): string
@@ -43,6 +45,7 @@ class OnlineSaleOrderService
             'customer_id' => ['required', 'integer', 'exists:customers,id'],
             'checkout_token' => ['required', 'string', 'max:64'],
             'locale' => ['nullable', 'string', Rule::in(self::LOCALES)],
+            'delivery_method_id' => ['required', 'integer', 'exists:delivery_methods,id'],
             'customer_payment_method' => ['nullable', 'string', Rule::in(SaleService::PAYMENT_METHODS)],
             'customer_payment_note' => ['nullable', 'string', 'max:2000'],
             'customer_payment_reference' => ['nullable', 'string', 'max:128'],
@@ -66,22 +69,52 @@ class OnlineSaleOrderService
             ]);
         }
 
-        return DB::transaction(function () use ($validated, $rows): OnlineSaleOrder {
+        $deliveryMethod = $this->deliveryMethods->findActive((int) $validated['delivery_method_id']);
+
+        if ($deliveryMethod === null) {
+            throw ValidationException::withMessages([
+                'delivery_method_id' => [__('agricart.storefront.checkout.delivery_inactive')],
+            ]);
+        }
+
+        $paymentMethod = $validated['customer_payment_method'] ?? null;
+
+        if (filled($paymentMethod)) {
+            $this->deliveryMethods->assertCheckoutSelection($deliveryMethod, (string) $paymentMethod);
+        }
+
+        $productIds = collect($rows)
+            ->pluck('product_id')
+            ->map(static fn ($id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+        $this->deliveryMethods->assertAvailableForProducts($deliveryMethod, $productIds);
+
+        $deliverySnapshot = $this->deliveryMethods->orderSnapshot($deliveryMethod);
+
+        return DB::transaction(function () use ($validated, $rows, $paymentMethod, $deliverySnapshot): OnlineSaleOrder {
             Customer::query()->lockForUpdate()->findOrFail((int) $validated['customer_id']);
 
             $existing = OnlineSaleOrder::query()
+                ->with('items')
                 ->where('customer_id', (int) $validated['customer_id'])
                 ->where('checkout_token', $validated['checkout_token'])
                 ->first();
 
             if ($existing !== null) {
+                if (! $this->checkoutRowsMatchOrder($existing, $rows)) {
+                    throw ValidationException::withMessages([
+                        'checkout_token' => [__('agricart.storefront.checkout.session_expired')],
+                    ]);
+                }
+
                 return $existing->load(['items', 'customer']);
             }
 
             $rows = $this->lockAndValidateCheckoutRows($rows);
             $subtotal = $this->subtotalFromRows($rows);
             $total = $subtotal;
-            $paymentMethod = $validated['customer_payment_method'] ?? null;
             $proofStatus = $paymentMethod === 'bank_transfer'
                 ? OnlineSaleOrder::PROOF_AWAITING
                 : OnlineSaleOrder::PROOF_NONE;
@@ -105,6 +138,7 @@ class OnlineSaleOrderService
                 'ship_phone' => $validated['ship_phone'] ?? null,
                 'ship_address' => $validated['ship_address'] ?? null,
                 'ship_city' => $validated['ship_city'] ?? null,
+                ...$deliverySnapshot,
                 'customer_notes' => $validated['customer_notes'] ?? null,
             ]);
 
@@ -460,6 +494,14 @@ class OnlineSaleOrderService
             'ship_phone' => (string) ($order->ship_phone ?? ''),
             'ship_address' => (string) ($order->ship_address ?? ''),
             'ship_city' => (string) ($order->ship_city ?? ''),
+            'delivery_method_name' => (string) ($order->localizedDeliveryMethodName() ?? ''),
+            'shipping_charge_mode' => $order->shipping_charge_mode?->value ?? '',
+            'shipping_charge_mode_label' => $order->shipping_charge_mode?->label() ?? '',
+            'cod_min_advance_percent' => $order->cod_min_advance_percent !== null
+                ? (string) $order->cod_min_advance_percent
+                : '',
+            'full_advance_required' => (bool) $order->full_advance_required,
+            'delivery_customer_notice' => (string) ($order->localizedDeliveryNotice() ?? ''),
             'customer_notes' => (string) ($order->customer_notes ?? ''),
             'admin_notes' => (string) ($order->admin_notes ?? ''),
             'sale_number' => $order->sale?->sale_number ?? '',
@@ -471,6 +513,46 @@ class OnlineSaleOrderService
     public function normalizeLocale(string $locale): string
     {
         return in_array($locale, self::LOCALES, true) ? $locale : 'en';
+    }
+
+    /**
+     * Idempotent replay must reuse the same cart contents; a stale token with a
+     * different cart must fail so the browser can refresh checkout.
+     *
+     * @param  list<array<string, mixed>>  $rows
+     */
+    private function checkoutRowsMatchOrder(OnlineSaleOrder $order, array $rows): bool
+    {
+        $existing = $order->items
+            ->map(fn (OnlineSaleOrderItem $item): array => [
+                'product_id' => (int) $item->product_id,
+                'quantity' => round($this->saleService->numeric((string) $item->quantity), 4),
+            ])
+            ->groupBy('product_id')
+            ->map(static fn ($group): array => [
+                'product_id' => (int) $group->first()['product_id'],
+                'quantity' => round((float) $group->sum('quantity'), 4),
+            ])
+            ->sortBy('product_id')
+            ->values()
+            ->all();
+
+        $incoming = collect($rows)
+            ->map(fn (array $row): array => [
+                'product_id' => (int) ($row['product_id'] ?? 0),
+                'quantity' => round($this->saleService->numeric((string) ($row['quantity'] ?? '0')), 4),
+            ])
+            ->filter(static fn (array $row): bool => $row['product_id'] > 0 && $row['quantity'] > 0)
+            ->groupBy('product_id')
+            ->map(static fn ($group): array => [
+                'product_id' => (int) $group->first()['product_id'],
+                'quantity' => round((float) $group->sum('quantity'), 4),
+            ])
+            ->sortBy('product_id')
+            ->values()
+            ->all();
+
+        return $existing === $incoming;
     }
 
     /**

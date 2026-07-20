@@ -10,8 +10,25 @@
             class="ag-store-menu__disclosure"
             aria-expanded="false"
             aria-controls="store-mobile-menu"
+            aria-label="{{ __('agricart.storefront.accessibility.open_menu') }}"
             data-store-menu-toggle
-        >{{ __('agricart.storefront.accessibility.open_menu') }}</button>
+            data-label-open="{{ __('agricart.storefront.accessibility.open_menu') }}"
+            data-label-close="{{ __('agricart.storefront.accessibility.close_menu') }}"
+        >
+            <span class="ag-store-menu__toggle-icon" aria-hidden="true">
+                <span class="ag-store-menu__burger">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </span>
+                <span class="ag-store-menu__close-x" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="square">
+                        <path d="M6 6l12 12M18 6L6 18"/>
+                    </svg>
+                </span>
+            </span>
+            <span class="ag-store-menu__toggle-label" data-store-menu-label>{{ __('agricart.storefront.menu.toggle') }}</span>
+        </button>
         <ul id="store-mobile-menu" class="ag-store-menu__list" data-store-menu-list>
             @if ($settings->menu_show_home)
                 <li>

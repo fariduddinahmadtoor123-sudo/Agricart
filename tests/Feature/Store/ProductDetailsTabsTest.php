@@ -2,8 +2,12 @@
 
 namespace Tests\Feature\Store;
 
+use App\Enums\ShippingChargeMode;
 use App\Models\Category;
+use App\Models\DeliveryMethod;
 use App\Models\Product;
+use App\Services\Logistics\DeliveryMethodService;
+use App\Services\Sales\SaleService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -45,5 +49,87 @@ class ProductDetailsTabsTest extends TestCase
             ->assertSee('aria-controls="store-pdp-panel-content-0"', false)
             ->assertSee('data-store-pdp-panel="content-1"', false)
             ->assertSee('aria-labelledby="store-pdp-tab-content-1"', false);
+    }
+
+    public function test_product_page_shows_delivery_tab_for_assigned_methods(): void
+    {
+        $category = Category::query()->create([
+            'slug' => 'fertilizer',
+            'code' => 'CAT-FERT',
+            'status' => 'active',
+            'name_en' => 'Fertilizer',
+            'name_ur' => 'کھاد',
+        ]);
+
+        $product = Product::query()->create([
+            'category_id' => $category->id,
+            'status' => 'active',
+            'code' => 'PRD-DEL-1',
+            'sku' => 'UREA-1',
+            'name_en' => 'Urea Bag',
+            'name_ur' => 'یوریا بیگ',
+            'slug' => 'urea-bag',
+            'full_description_en' => 'High quality urea.',
+            'retail_price' => 100,
+            'stock_qty' => 50,
+        ]);
+
+        $method = app(DeliveryMethodService::class)->create([
+            'name_en' => 'Store Courier',
+            'name_ur' => 'اسٹور کورئیر',
+            'description_en' => 'Doorstep delivery in city limits.',
+            'description_ur' => 'شہر کی حد میں ڈیلیوری۔',
+            'sort_order' => 1,
+            'status' => DeliveryMethod::STATUS_ACTIVE,
+            'allowed_payment_methods' => SaleService::PAYMENT_METHODS,
+            'cod_allowed' => true,
+            'cod_min_advance_percent' => 0,
+            'full_advance_required' => false,
+            'customer_notice_en' => 'Pack carefully for fertilizer.',
+            'customer_notice_ur' => 'کھاد احتیاط سے پیک کریں۔',
+            'shipping_charge_mode' => ShippingChargeMode::CalculateLater->value,
+        ]);
+
+        $product->deliveryMethods()->sync([$method->id]);
+
+        $response = $this->get(route('store.product', $product->slug));
+
+        $response
+            ->assertOk()
+            ->assertSee('data-store-pdp-tab="delivery"', false)
+            ->assertSee('aria-controls="store-pdp-panel-delivery"', false)
+            ->assertSee('Delivery', false)
+            ->assertSee('Store Courier', false)
+            ->assertSee('Doorstep delivery in city limits.', false)
+            ->assertSee('Pack carefully for fertilizer.', false)
+            ->assertSee(__('agricart.storefront.checkout.shipping_modes.calculate_later'), false);
+    }
+
+    public function test_product_page_hides_delivery_tab_when_no_methods_assigned(): void
+    {
+        $category = Category::query()->create([
+            'slug' => 'tools',
+            'code' => 'CAT-TOOLS',
+            'status' => 'active',
+            'name_en' => 'Tools',
+            'name_ur' => 'اوزار',
+        ]);
+
+        $product = Product::query()->create([
+            'category_id' => $category->id,
+            'status' => 'active',
+            'code' => 'PRD-NO-DEL',
+            'sku' => 'SPADE-1',
+            'name_en' => 'Spade',
+            'name_ur' => 'بیلچہ',
+            'slug' => 'spade',
+            'full_description_en' => 'Garden spade.',
+        ]);
+
+        $response = $this->get(route('store.product', $product->slug));
+
+        $response
+            ->assertOk()
+            ->assertDontSee('data-store-pdp-tab="delivery"', false);
     }
 }

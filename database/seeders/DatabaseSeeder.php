@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(UnitSeeder::class);
         $this->call(PackingUnitSeeder::class);
+        $this->call(DeliveryMethodSeeder::class);
         $this->call(AttributeSeeder::class);
         $this->call(RolesAndPermissionsSeeder::class);
         $this->call(QuantityControlSeeder::class);

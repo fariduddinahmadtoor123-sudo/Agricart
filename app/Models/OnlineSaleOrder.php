@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\ShippingChargeMode;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -105,6 +106,14 @@ class OnlineSaleOrder extends Model
         'ship_phone',
         'ship_address',
         'ship_city',
+        'delivery_method_id',
+        'delivery_method_name_en',
+        'delivery_method_name_ur',
+        'shipping_charge_mode',
+        'cod_min_advance_percent',
+        'full_advance_required',
+        'delivery_customer_notice_en',
+        'delivery_customer_notice_ur',
         'customer_notes',
         'admin_notes',
         'converted_at',
@@ -123,6 +132,9 @@ class OnlineSaleOrder extends Model
             'subtotal' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'amount_paid' => 'decimal:2',
+            'cod_min_advance_percent' => 'decimal:2',
+            'full_advance_required' => 'boolean',
+            'shipping_charge_mode' => ShippingChargeMode::class,
             'converted_at' => 'datetime',
             'notification_dispatched_at' => 'datetime',
             'payment_proof_reviewed_at' => 'datetime',
@@ -132,6 +144,31 @@ class OnlineSaleOrder extends Model
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);
+    }
+
+    public function deliveryMethod(): BelongsTo
+    {
+        return $this->belongsTo(DeliveryMethod::class);
+    }
+
+    public function localizedDeliveryMethodName(?string $locale = null): ?string
+    {
+        $locale ??= app()->getLocale();
+        $name = $locale === 'ur' && filled($this->delivery_method_name_ur)
+            ? $this->delivery_method_name_ur
+            : $this->delivery_method_name_en;
+
+        return filled($name) ? (string) $name : null;
+    }
+
+    public function localizedDeliveryNotice(?string $locale = null): ?string
+    {
+        $locale ??= app()->getLocale();
+        $notice = $locale === 'ur' && filled($this->delivery_customer_notice_ur)
+            ? $this->delivery_customer_notice_ur
+            : $this->delivery_customer_notice_en;
+
+        return filled($notice) ? (string) $notice : null;
     }
 
     public function sale(): BelongsTo

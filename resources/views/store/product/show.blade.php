@@ -70,7 +70,11 @@
         $hasSpecs = $product->brand !== null || $identityFacts !== [] || $product->attributes->isNotEmpty() || $product->controls->isNotEmpty();
         $hasPricing = $priceTable !== [];
         $hasDescription = $contentSections !== [];
+        $hasDelivery = ($deliveryOptions ?? []) !== [];
         $isActive = $product->status === 'active';
+        $firstTabKey = $hasDescription
+            ? 'content-0'
+            : ($hasDelivery ? 'delivery' : ($hasPricing ? 'pricing' : null));
     @endphp
 
     <article class="ag-store-pdp">
@@ -142,33 +146,47 @@
             </div>
         </div>
 
-        @if ($hasPricing || $hasDescription)
+        @if ($hasPricing || $hasDescription || $hasDelivery)
             <div class="ag-store-pdp__tabs" data-store-pdp-tabs>
                 <div class="ag-store-pdp__tablist" role="tablist" aria-label="{{ __('agricart.storefront.product.sections.details') }}">
                     @foreach ($contentSections as $section)
                         @php($tabKey = 'content-' . $loop->index)
                         <button
                             type="button"
-                            @class(['ag-store-pdp__tab', 'is-active' => $loop->first])
+                            @class(['ag-store-pdp__tab', 'is-active' => $tabKey === $firstTabKey])
                             id="store-pdp-tab-{{ $tabKey }}"
                             role="tab"
-                            aria-selected="{{ $loop->first ? 'true' : 'false' }}"
+                            aria-selected="{{ $tabKey === $firstTabKey ? 'true' : 'false' }}"
                             aria-controls="store-pdp-panel-{{ $tabKey }}"
-                            tabindex="{{ $loop->first ? '0' : '-1' }}"
+                            tabindex="{{ $tabKey === $firstTabKey ? '0' : '-1' }}"
                             data-store-pdp-tab="{{ $tabKey }}"
                         >
                             {{ $section['title'] }}
                         </button>
                     @endforeach
+                    @if ($hasDelivery)
+                        <button
+                            type="button"
+                            @class(['ag-store-pdp__tab', 'is-active' => $firstTabKey === 'delivery'])
+                            id="store-pdp-tab-delivery"
+                            role="tab"
+                            aria-selected="{{ $firstTabKey === 'delivery' ? 'true' : 'false' }}"
+                            aria-controls="store-pdp-panel-delivery"
+                            tabindex="{{ $firstTabKey === 'delivery' ? '0' : '-1' }}"
+                            data-store-pdp-tab="delivery"
+                        >
+                            {{ __('agricart.storefront.product.tabs.delivery') }}
+                        </button>
+                    @endif
                     @if ($hasPricing)
                         <button
                             type="button"
-                            @class(['ag-store-pdp__tab', 'is-active' => ! $hasDescription])
+                            @class(['ag-store-pdp__tab', 'is-active' => $firstTabKey === 'pricing'])
                             id="store-pdp-tab-pricing"
                             role="tab"
-                            aria-selected="{{ $hasDescription ? 'false' : 'true' }}"
+                            aria-selected="{{ $firstTabKey === 'pricing' ? 'true' : 'false' }}"
                             aria-controls="store-pdp-panel-pricing"
-                            tabindex="{{ $hasDescription ? '-1' : '0' }}"
+                            tabindex="{{ $firstTabKey === 'pricing' ? '0' : '-1' }}"
                             data-store-pdp-tab="pricing"
                         >
                             {{ __('agricart.storefront.product.tabs.pricing') }}
@@ -179,27 +197,41 @@
                 @foreach ($contentSections as $section)
                     @php($panelKey = 'content-' . $loop->index)
                     <div
-                        @class(['ag-store-pdp__panel', 'is-active' => $loop->first])
+                        @class(['ag-store-pdp__panel', 'is-active' => $panelKey === $firstTabKey])
                         id="store-pdp-panel-{{ $panelKey }}"
                         role="tabpanel"
                         aria-labelledby="store-pdp-tab-{{ $panelKey }}"
                         tabindex="0"
                         data-store-pdp-panel="{{ $panelKey }}"
-                        @if (! $loop->first) hidden @endif
+                        @if ($panelKey !== $firstTabKey) hidden @endif
                     >
                         <div class="ag-store-pdp__prose">{!! $section['html'] !!}</div>
                     </div>
                 @endforeach
 
+                @if ($hasDelivery)
+                    <div
+                        @class(['ag-store-pdp__panel', 'is-active' => $firstTabKey === 'delivery'])
+                        id="store-pdp-panel-delivery"
+                        role="tabpanel"
+                        aria-labelledby="store-pdp-tab-delivery"
+                        tabindex="0"
+                        data-store-pdp-panel="delivery"
+                        @if ($firstTabKey !== 'delivery') hidden @endif
+                    >
+                        @include('store.components.product-delivery', ['deliveryOptions' => $deliveryOptions])
+                    </div>
+                @endif
+
                 @if ($hasPricing)
                     <div
-                        @class(['ag-store-pdp__panel', 'is-active' => ! $hasDescription])
+                        @class(['ag-store-pdp__panel', 'is-active' => $firstTabKey === 'pricing'])
                         id="store-pdp-panel-pricing"
                         role="tabpanel"
                         aria-labelledby="store-pdp-tab-pricing"
                         tabindex="0"
                         data-store-pdp-panel="pricing"
-                        @if ($hasDescription) hidden @endif
+                        @if ($firstTabKey !== 'pricing') hidden @endif
                     >
                         <div class="ag-store-pdp__table-wrap">
                             <table class="ag-store-pdp__price-table">

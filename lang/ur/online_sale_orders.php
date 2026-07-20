@@ -20,6 +20,7 @@ return [
         'pos_invoice' => 'POS انوائس',
         'customer_payment_method' => 'گاہک نے بتایا',
         'customer_payment_reference' => 'ٹرانزیکشن حوالہ',
+        'delivery_method' => 'ڈیلیوری طریقہ',
         'payment_proof_status' => 'رسید کی حیثیت',
         'customer_bank_receipt' => 'گاہک کی اپلوڈ شدہ رسید',
         'customer_notes' => 'گاہک کے نوٹس',

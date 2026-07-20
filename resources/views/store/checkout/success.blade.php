@@ -12,6 +12,12 @@
         </p>
         <p class="ag-store-checkout-success__hint">{{ __('agricart.storefront.checkout.success_hint') }}</p>
         @isset($order)
+            @if (filled($order->localizedDeliveryMethodName()))
+                <p class="ag-store-checkout-success__hint">
+                    {{ __('agricart.storefront.checkout.delivery_method') }}:
+                    <strong>{{ $order->localizedDeliveryMethodName() }}</strong>
+                </p>
+            @endif
             @if ($order->customer_payment_method === 'bank_transfer' && $order->needsBankReceiptUpload())
                 <p class="ag-store-checkout-success__bank-notice">{{ __('agricart.storefront.checkout.success_upload_receipt') }}</p>
             @endif

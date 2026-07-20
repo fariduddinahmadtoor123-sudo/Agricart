@@ -5,6 +5,7 @@ namespace App\Services\Catalog;
 use App\Models\CatalogAttribute;
 use App\Models\CatalogControl;
 use App\Models\Category;
+use App\Models\DeliveryMethod;
 use App\Models\PackingUnit;
 use App\Models\Product;
 use App\Services\Media\MediaLibraryService;
@@ -26,16 +27,19 @@ class ProductService
      * @param  list<int>  $displayCategoryIds
      * @param  list<array{attribute_id: int, value: string}>  $attributes
      * @param  list<int>  $controlIds
+     * @param  list<int>  $deliveryMethodIds
      */
     public function create(
         array $data,
         array $displayCategoryIds = [],
         array $attributes = [],
         array $controlIds = [],
+        array $deliveryMethodIds = [],
     ): Product {
         $validated = $this->validate($data);
+        $this->assertRequiredCatalogLinks($attributes, $controlIds, $deliveryMethodIds);
 
-        return DB::transaction(function () use ($validated, $displayCategoryIds, $attributes, $controlIds): Product {
+        return DB::transaction(function () use ($validated, $displayCategoryIds, $attributes, $controlIds, $deliveryMethodIds): Product {
             if (! filled($validated['code'] ?? null)) {
                 $validated['code'] = $this->nextCode();
             }
@@ -60,6 +64,7 @@ class ProductService
             $this->syncDisplayCategories($product, $displayCategoryIds);
             $this->syncAttributes($product, $attributes);
             $this->syncControls($product, $controlIds);
+            $this->syncDeliveryMethods($product, $deliveryMethodIds);
             $this->labelService->generateForProduct($product->fresh([
                 'category',
                 'brand',
@@ -67,6 +72,7 @@ class ProductService
                 'packUnit',
                 'attributes',
                 'controls',
+                'deliveryMethods',
             ]));
 
             CatalogCache::forgetOverviewStats();
@@ -78,6 +84,7 @@ class ProductService
                 'packUnit',
                 'attributes',
                 'controls',
+                'deliveryMethods',
                 'displayCategories',
             ]);
         });
@@ -88,6 +95,7 @@ class ProductService
      * @param  list<int>  $displayCategoryIds
      * @param  list<array{attribute_id: int, value: string}>  $attributes
      * @param  list<int>  $controlIds
+     * @param  list<int>  $deliveryMethodIds
      */
     public function update(
         Product $product,
@@ -95,14 +103,16 @@ class ProductService
         array $displayCategoryIds = [],
         array $attributes = [],
         array $controlIds = [],
+        array $deliveryMethodIds = [],
     ): Product {
         $validated = $this->validate($data, $product->id);
+        $this->assertRequiredCatalogLinks($attributes, $controlIds, $deliveryMethodIds);
 
         if (empty($validated['image_path']) && filled($product->image_path)) {
             $validated['image_path'] = $product->image_path;
         }
 
-        return DB::transaction(function () use ($product, $validated, $displayCategoryIds, $attributes, $controlIds): Product {
+        return DB::transaction(function () use ($product, $validated, $displayCategoryIds, $attributes, $controlIds, $deliveryMethodIds): Product {
             $categoryId = $validated['category_id'] ?? $product->category_id;
             $categoryChanged = (int) $categoryId !== (int) $product->category_id;
 
@@ -122,6 +132,7 @@ class ProductService
             $this->syncDisplayCategories($product, $displayCategoryIds);
             $this->syncAttributes($product, $attributes);
             $this->syncControls($product, $controlIds);
+            $this->syncDeliveryMethods($product, $deliveryMethodIds);
             $this->labelService->generateForProduct($product->fresh([
                 'category',
                 'brand',
@@ -129,6 +140,7 @@ class ProductService
                 'packUnit',
                 'attributes',
                 'controls',
+                'deliveryMethods',
             ]));
 
             CatalogCache::forgetOverviewStats();
@@ -140,6 +152,7 @@ class ProductService
                 'packUnit',
                 'attributes',
                 'controls',
+                'deliveryMethods',
                 'displayCategories',
             ]);
         });
@@ -203,6 +216,51 @@ class ProductService
             ->all();
 
         $product->displayCategories()->sync($ids);
+    }
+
+    /**
+     * @param  list<array{attribute_id: int, value: string}>  $attributes
+     * @param  list<int>  $controlIds
+     * @param  list<int>  $deliveryMethodIds
+     */
+    private function assertRequiredCatalogLinks(array $attributes, array $controlIds, array $deliveryMethodIds): void
+    {
+        $attributeCount = collect($attributes)
+            ->filter(function (array $row): bool {
+                return (int) ($row['attribute_id'] ?? 0) > 0
+                    && filled(trim((string) ($row['value'] ?? '')));
+            })
+            ->count();
+
+        if ($attributeCount < 1) {
+            throw ValidationException::withMessages([
+                'attributes' => [__('agricart.products.messages.attribute_required')],
+            ]);
+        }
+
+        $controlCount = collect($controlIds)
+            ->map(fn ($id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->count();
+
+        if ($controlCount < 1) {
+            throw ValidationException::withMessages([
+                'controls' => [__('agricart.products.messages.control_required')],
+            ]);
+        }
+
+        $deliveryCount = collect($deliveryMethodIds)
+            ->map(fn ($id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->count();
+
+        if ($deliveryCount < 1) {
+            throw ValidationException::withMessages([
+                'delivery_methods' => [__('agricart.products.messages.delivery_required')],
+            ]);
+        }
     }
 
     /**
@@ -280,6 +338,38 @@ class ProductService
     }
 
     /**
+     * @param  list<int>  $deliveryMethodIds
+     */
+    public function syncDeliveryMethods(Product $product, array $deliveryMethodIds): void
+    {
+        $existingIds = $product->deliveryMethods()->pluck('delivery_methods.id')->map(fn ($id): int => (int) $id)->all();
+        $ids = collect($deliveryMethodIds)
+            ->map(fn ($id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        foreach ($ids as $methodId) {
+            $method = DeliveryMethod::query()->find($methodId);
+
+            if ($method === null) {
+                throw ValidationException::withMessages([
+                    'delivery_methods' => [__('agricart.products.messages.delivery_missing')],
+                ]);
+            }
+
+            if ($method->status !== DeliveryMethod::STATUS_ACTIVE && ! in_array($methodId, $existingIds, true)) {
+                throw ValidationException::withMessages([
+                    'delivery_methods' => [__('agricart.products.messages.delivery_inactive')],
+                ]);
+            }
+        }
+
+        $product->deliveryMethods()->sync($ids);
+    }
+
+    /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
@@ -297,14 +387,14 @@ class ProductService
             'name_en' => ['required', 'string', 'max:255'],
             'name_ur' => ['required', 'string', 'max:255'],
             'category_id' => ['required', 'integer', 'exists:categories,id'],
-            'brand_id' => ['nullable', 'integer', 'exists:brands,id'],
+            'brand_id' => ['required', 'integer', 'exists:brands,id'],
             'image_path' => ['nullable', 'string', 'max:500'],
             'gallery_images' => ['nullable', 'array'],
             'gallery_images.*' => ['string', 'max:500'],
             'sku' => ['nullable', 'string', 'max:128'],
-            'unit_id' => ['nullable', 'integer', 'exists:units,id'],
-            'unit_qty' => ['nullable', 'string', 'max:64'],
-            'pack_unit_id' => ['nullable', 'integer', 'exists:packing_units,id'],
+            'unit_id' => ['required', 'integer', 'exists:units,id'],
+            'unit_qty' => ['required', 'string', 'max:64'],
+            'pack_unit_id' => ['required', 'integer', 'exists:packing_units,id'],
             'pack_qty' => ['nullable', 'string', 'max:64'],
             'required_qty' => ['nullable', 'string', 'max:64'],
             'alert_qty' => ['nullable', 'string', 'max:64'],

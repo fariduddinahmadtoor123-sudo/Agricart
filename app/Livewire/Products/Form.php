@@ -8,6 +8,7 @@ use App\Models\Brand;
 use App\Models\CatalogAttribute;
 use App\Models\CatalogControl;
 use App\Models\Category;
+use App\Models\DeliveryMethod;
 use App\Models\PackingUnit;
 use App\Models\Product;
 use App\Models\Unit;
@@ -116,6 +117,11 @@ class Form extends Component
 
     /** @var list<array{id: int, name_en: string, name_ur: string, value_en: string, value_ur: string}> */
     public array $selectedControls = [];
+
+    public string $delivery_search = '';
+
+    /** @var list<array{id: int, name_en: string, name_ur: string}> */
+    public array $selectedDeliveryMethods = [];
 
     public string $short_description_en = '';
 
@@ -562,6 +568,51 @@ class Form extends Component
         ));
     }
 
+    public function addDeliveryMethod(int $id): void
+    {
+        if ($this->isReadonly()) {
+            return;
+        }
+
+        $id = (int) $id;
+
+        foreach ($this->selectedDeliveryMethods as $method) {
+            if ($method['id'] === $id) {
+                $this->delivery_search = '';
+
+                return;
+            }
+        }
+
+        $method = DeliveryMethod::query()
+            ->whereKey($id)
+            ->where('status', DeliveryMethod::STATUS_ACTIVE)
+            ->first();
+
+        if ($method === null) {
+            return;
+        }
+
+        $this->selectedDeliveryMethods[] = [
+            'id' => $method->id,
+            'name_en' => $method->name_en,
+            'name_ur' => $method->name_ur,
+        ];
+        $this->delivery_search = '';
+    }
+
+    public function removeDeliveryMethod(int $id): void
+    {
+        if ($this->isReadonly()) {
+            return;
+        }
+
+        $this->selectedDeliveryMethods = array_values(array_filter(
+            $this->selectedDeliveryMethods,
+            fn (array $method): bool => $method['id'] !== $id,
+        ));
+    }
+
     public function enrichWithAi(): void
     {
         $this->authorizeAction($this->mutationAction());
@@ -658,6 +709,7 @@ class Form extends Component
             'selectedUnitLabel' => $this->labelForUnit($this->unit_id),
             'selectedPackUnitLabel' => $this->labelForPackUnit($this->pack_unit_id),
             'filteredControlOptions' => $this->searchControls($this->control_search),
+            'filteredDeliveryOptions' => $this->searchDeliveryMethods($this->delivery_search),
             'statusOptions' => [
                 'active' => __('agricart.form_panel.statuses.active'),
                 'inactive' => __('agricart.form_panel.statuses.inactive'),
@@ -732,6 +784,34 @@ class Form extends Component
             $missing[] = __('agricart.products.fields.parent_category');
         }
 
+        if ($this->brand_id === null) {
+            $missing[] = __('agricart.products.fields.brand');
+        }
+
+        if ($this->unit_id === null) {
+            $missing[] = __('agricart.products.fields.unit');
+        }
+
+        if (! filled(trim($this->unit_qty))) {
+            $missing[] = __('agricart.products.fields.qty');
+        }
+
+        if ($this->pack_unit_id === null) {
+            $missing[] = __('agricart.products.fields.pack_unit');
+        }
+
+        if ($this->normalizedAttributeRows() === []) {
+            $missing[] = __('agricart.products.fields.attributes');
+        }
+
+        if ($this->selectedControls === []) {
+            $missing[] = __('agricart.products.fields.controls');
+        }
+
+        if ($this->selectedDeliveryMethods === []) {
+            $missing[] = __('agricart.products.fields.delivery_options');
+        }
+
         if ($missing !== []) {
             $this->setStatus(
                 __('agricart.products.messages.required_fields', ['fields' => implode(', ', $missing)]),
@@ -773,12 +853,13 @@ class Form extends Component
             $displayIds = array_map('intval', $this->display_category_ids);
             $attributes = $this->normalizedAttributeRows();
             $controlIds = collect($this->selectedControls)->pluck('id')->map(fn ($id) => (int) $id)->all();
+            $deliveryMethodIds = collect($this->selectedDeliveryMethods)->pluck('id')->map(fn ($id) => (int) $id)->all();
 
             if ($this->productId) {
                 $product = Product::query()->findOrFail($this->productId);
-                $product = $service->update($product, $payload, $displayIds, $attributes, $controlIds);
+                $product = $service->update($product, $payload, $displayIds, $attributes, $controlIds, $deliveryMethodIds);
             } else {
-                $product = $service->create($payload, $displayIds, $attributes, $controlIds);
+                $product = $service->create($payload, $displayIds, $attributes, $controlIds, $deliveryMethodIds);
                 $this->productId = $product->id;
                 $this->mode = 'edit';
             }
@@ -1071,7 +1152,7 @@ class Form extends Component
     private function loadProduct(int $productId): void
     {
         $product = Product::query()
-            ->with(['attributes', 'controls', 'displayCategories', 'brand', 'category'])
+            ->with(['attributes', 'controls', 'deliveryMethods', 'displayCategories', 'brand', 'category'])
             ->findOrFail($productId);
 
         $this->applyProductToForm($product);
@@ -1173,6 +1254,12 @@ class Form extends Component
             'name_ur' => $control->name_ur,
             'value_en' => $control->value_en,
             'value_ur' => $control->value_ur,
+        ])->all();
+
+        $this->selectedDeliveryMethods = $product->deliveryMethods->map(fn (DeliveryMethod $method): array => [
+            'id' => $method->id,
+            'name_en' => $method->name_en,
+            'name_ur' => $method->name_ur,
         ])->all();
     }
 
@@ -1504,6 +1591,37 @@ class Form extends Component
             ->all();
     }
 
+    /**
+     * @return array<int, string>
+     */
+    private function searchDeliveryMethods(string $search): array
+    {
+        $term = trim($search);
+
+        if (mb_strlen($term) < 2) {
+            return [];
+        }
+
+        $needle = '%'.$term.'%';
+        $exclude = collect($this->selectedDeliveryMethods)->pluck('id')->all();
+
+        return DeliveryMethod::query()
+            ->when($exclude !== [], fn ($query) => $query->whereNotIn('id', $exclude))
+            ->where('status', DeliveryMethod::STATUS_ACTIVE)
+            ->where(function ($query) use ($needle): void {
+                $query->where('name_en', 'like', $needle)
+                    ->orWhere('name_ur', 'like', $needle);
+            })
+            ->orderBy('sort_order')
+            ->orderBy('name_en')
+            ->limit(20)
+            ->get()
+            ->mapWithKeys(fn (DeliveryMethod $method): array => [
+                $method->id => $method->name_en,
+            ])
+            ->all();
+    }
+
     private function resetForm(): void
     {
         $this->productId = null;
@@ -1539,6 +1657,8 @@ class Form extends Component
         $this->price_tier_quantities = [];
         $this->control_search = '';
         $this->selectedControls = [];
+        $this->delivery_search = '';
+        $this->selectedDeliveryMethods = [];
         $this->short_description_en = '';
         $this->short_description_ur = '';
         $this->description_en = '';

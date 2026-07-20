@@ -4,18 +4,25 @@ namespace Tests\Feature\Catalog;
 
 use App\Livewire\Products\Form;
 use App\Livewire\Products\ListProducts;
+use App\Models\Brand;
+use App\Models\CatalogAttribute;
 use App\Models\CatalogControl;
 use App\Models\Category;
+use App\Models\DeliveryMethod;
+use App\Models\PackingUnit;
 use App\Models\Permission;
 use App\Models\Product;
 use App\Models\Role;
+use App\Models\Unit;
 use App\Models\User;
+use App\Enums\ShippingChargeMode;
 use App\Services\Catalog\ProductEnrichmentService;
 use App\Services\Catalog\ProductService;
 use Database\Seeders\QuantityControlSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -198,8 +205,13 @@ class ProductFormInteractionTest extends TestCase
             'name_en' => 'Seeds',
             'name_ur' => 'بیج',
         ]);
+        $catalog = $this->requiredCatalog();
         $product = Product::query()->create([
             'category_id' => $category->id,
+            'brand_id' => $catalog['brand']->id,
+            'unit_id' => $catalog['unit']->id,
+            'unit_qty' => '1',
+            'pack_unit_id' => $catalog['packUnit']->id,
             'slug' => 'seed-pack',
             'code' => 'PRD-SEED',
             'status' => 'active',
@@ -207,6 +219,9 @@ class ProductFormInteractionTest extends TestCase
             'name_ur' => 'بیج پیک',
             'search_terms' => ['seed', 'farm'],
         ]);
+        $product->attributes()->sync([$catalog['attribute']->id => ['value' => 'Standard']]);
+        $product->controls()->sync([$catalog['control']->id]);
+        $product->deliveryMethods()->sync([$catalog['delivery']->id]);
 
         Livewire::test(Form::class)
             ->call('openForm', $product->id, 'edit')
@@ -236,8 +251,13 @@ class ProductFormInteractionTest extends TestCase
             'products/gallery/5.jpg',
             'products/gallery/6.jpg',
         ];
+        $catalog = $this->requiredCatalog();
         $product = Product::query()->create([
             'category_id' => $category->id,
+            'brand_id' => $catalog['brand']->id,
+            'unit_id' => $catalog['unit']->id,
+            'unit_qty' => '1',
+            'pack_unit_id' => $catalog['packUnit']->id,
             'slug' => 'tool-kit',
             'code' => 'PRD-TOOLS',
             'status' => 'active',
@@ -245,6 +265,9 @@ class ProductFormInteractionTest extends TestCase
             'name_ur' => 'اوزار کٹ',
             'gallery_images' => $gallery,
         ]);
+        $product->attributes()->sync([$catalog['attribute']->id => ['value' => 'Standard']]);
+        $product->controls()->sync([$catalog['control']->id]);
+        $product->deliveryMethods()->sync([$catalog['delivery']->id]);
 
         Livewire::test(Form::class)
             ->call('openForm', $product->id, 'edit')
@@ -267,6 +290,7 @@ class ProductFormInteractionTest extends TestCase
             'name_en' => 'Sprayers',
             'name_ur' => 'سپرے مشینیں',
         ]);
+        $catalog = $this->requiredCatalog();
 
         $component = Livewire::test(Form::class)
             ->call('openForm')
@@ -274,9 +298,8 @@ class ProductFormInteractionTest extends TestCase
 
         $this->assertSame([], Storage::disk('public')->allFiles());
 
-        $component
+        $this->fillRequiredProductFields($component, $category->id, $catalog)
             ->set('name_ur', 'بیٹری سپریئر')
-            ->call('selectParent', $category->id)
             ->call('saveAndClose')
             ->assertHasNoErrors();
 
@@ -284,6 +307,27 @@ class ProductFormInteractionTest extends TestCase
 
         $this->assertNotNull($product->image_path);
         Storage::disk('public')->assertExists($product->image_path);
+    }
+
+    public function test_cannot_save_product_without_brand_unit_pack_attribute_or_control(): void
+    {
+        $category = Category::query()->create([
+            'slug' => 'glass',
+            'code' => 'CAT-GLASS',
+            'status' => 'active',
+            'name_en' => 'Glass',
+            'name_ur' => 'گلاس',
+        ]);
+
+        Livewire::test(Form::class)
+            ->call('openForm')
+            ->set('name_en', 'Glass')
+            ->set('name_ur', 'گلاس')
+            ->call('selectParent', $category->id)
+            ->call('saveAndClose')
+            ->assertSet('statusType', 'danger');
+
+        $this->assertSame(0, Product::query()->count());
     }
 
     public function test_deleting_a_product_removes_its_main_and_gallery_media(): void
@@ -319,9 +363,14 @@ class ProductFormInteractionTest extends TestCase
             'name_en' => 'Fertilizer',
             'name_ur' => 'کھاد',
         ]);
+        $catalog = $this->requiredCatalog();
 
         $product = Product::query()->create([
             'category_id' => $category->id,
+            'brand_id' => $catalog['brand']->id,
+            'unit_id' => $catalog['unit']->id,
+            'unit_qty' => '1',
+            'pack_unit_id' => $catalog['packUnit']->id,
             'slug' => 'legacy-product',
             'code' => 'PRD-LEGACY',
             'status' => 'active',
@@ -335,6 +384,9 @@ class ProductFormInteractionTest extends TestCase
             'super_wholesale_price' => '80',
             'distributor_price' => '70',
         ]);
+        $product->attributes()->sync([$catalog['attribute']->id => ['value' => 'Standard']]);
+        $product->controls()->sync([$catalog['control']->id]);
+        $product->deliveryMethods()->sync([$catalog['delivery']->id]);
 
         Livewire::test(Form::class)
             ->call('openForm', $product->id, 'edit')
@@ -358,5 +410,100 @@ class ProductFormInteractionTest extends TestCase
         $this->assertSame('90', $product->wholesale_price);
         $this->assertSame('80', $product->super_wholesale_price);
         $this->assertSame('70', $product->distributor_price);
+    }
+
+    /**
+     * @return array{
+     *     brand: Brand,
+     *     unit: Unit,
+     *     packUnit: PackingUnit,
+     *     attribute: CatalogAttribute,
+     *     control: CatalogControl,
+     *     delivery: DeliveryMethod
+     * }
+     */
+    private function requiredCatalog(): array
+    {
+        return [
+            'brand' => Brand::query()->create([
+                'slug' => 'brand-'.uniqid(),
+                'code' => 'BRD-'.uniqid(),
+                'status' => 'active',
+                'name_en' => 'Test Brand',
+                'name_ur' => 'ٹیسٹ برانڈ',
+                'image_path' => 'brands/test-brand.jpg',
+            ]),
+            'unit' => Unit::query()->create([
+                'slug' => 'unit-'.uniqid(),
+                'code' => 'UNT-'.uniqid(),
+                'status' => 'active',
+                'name_en' => 'Piece',
+                'abbreviation_en' => 'pc',
+                'name_ur' => 'عدد',
+                'abbreviation_ur' => 'عدد',
+            ]),
+            'packUnit' => PackingUnit::query()->create([
+                'slug' => 'pack-'.uniqid(),
+                'code' => 'PU-'.uniqid(),
+                'status' => 'active',
+                'name_en' => 'Box',
+                'name_ur' => 'باکس',
+            ]),
+            'attribute' => CatalogAttribute::query()->create([
+                'slug' => 'attr-'.uniqid(),
+                'code' => 'ATR-'.uniqid(),
+                'status' => 'active',
+                'name_en' => 'Color',
+                'name_ur' => 'رنگ',
+            ]),
+            'control' => CatalogControl::query()->create([
+                'slug' => 'ctrl-'.uniqid(),
+                'code' => 'CTL-'.uniqid(),
+                'status' => 'active',
+                'name_en' => 'Warranty',
+                'name_ur' => 'وارنٹی',
+                'value_en' => '1 year',
+                'value_ur' => '1 سال',
+            ]),
+            'delivery' => DeliveryMethod::query()->create([
+                'slug' => 'delivery-'.uniqid(),
+                'name_en' => 'Courier',
+                'name_ur' => 'کورئیر',
+                'status' => DeliveryMethod::STATUS_ACTIVE,
+                'sort_order' => 1,
+            ]),
+        ];
+    }
+
+    /**
+     * @param  array{
+     *     brand: Brand,
+     *     unit: Unit,
+     *     packUnit: PackingUnit,
+     *     attribute: CatalogAttribute,
+     *     control: CatalogControl,
+     *     delivery: DeliveryMethod
+     * }  $catalog
+     */
+    private function fillRequiredProductFields(Testable $component, int $categoryId, array $catalog): Testable
+    {
+        $catalog['delivery']->rule()->create([
+            'allowed_payment_methods' => ['cash', 'bank_transfer'],
+            'cod_allowed' => true,
+            'cod_min_advance_percent' => 0,
+            'full_advance_required' => false,
+            'shipping_charge_mode' => ShippingChargeMode::CalculateLater->value,
+        ]);
+
+        return $component
+            ->call('selectParent', $categoryId)
+            ->call('selectBrand', $catalog['brand']->id)
+            ->call('selectUnit', $catalog['unit']->id)
+            ->set('unit_qty', '1')
+            ->call('selectPackUnit', $catalog['packUnit']->id)
+            ->call('selectAttribute', 0, $catalog['attribute']->id)
+            ->set('attributeRows.0.value', 'Standard')
+            ->call('addControl', $catalog['control']->id)
+            ->call('addDeliveryMethod', $catalog['delivery']->id);
     }
 }

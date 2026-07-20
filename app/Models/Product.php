@@ -157,4 +157,10 @@ class Product extends Model
         return $this->belongsToMany(CatalogControl::class, 'product_control', 'product_id', 'control_id')
             ->withTimestamps();
     }
+
+    public function deliveryMethods(): BelongsToMany
+    {
+        return $this->belongsToMany(DeliveryMethod::class, 'product_delivery_method')
+            ->withTimestamps();
+    }
 }

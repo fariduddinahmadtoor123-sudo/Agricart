@@ -281,11 +281,12 @@
         </div>
     </div>
 
-    {{-- Row 2: Controls, brand, attributes --}}
+    {{-- Row 2: Controls, delivery, brand, attributes --}}
     <div class="agricart-product-form__identity">
         <div class="agricart-product-form__controls-field">
             <label class="agricart-form-panel__label" for="agricart-product-control-search">
                 {{ __('agricart.products.fields.controls') }}
+                <span class="agricart-form-panel__required" aria-hidden="true">*</span>
             </label>
             <div class="agricart-category-form__picker">
                 @if ($selectedControls !== [])
@@ -333,8 +334,59 @@
             </div>
         </div>
 
+        <div class="agricart-product-form__delivery-field">
+            <label class="agricart-form-panel__label" for="agricart-product-delivery-search">
+                {{ __('agricart.products.fields.delivery_options') }}
+                <span class="agricart-form-panel__required" aria-hidden="true">*</span>
+            </label>
+            <div class="agricart-category-form__picker">
+                @if ($selectedDeliveryMethods !== [])
+                    <div class="agricart-product-form__control-chips">
+                        @foreach ($selectedDeliveryMethods as $method)
+                            <span class="agricart-product-form__control-chip" wire:key="product-delivery-{{ $method['id'] }}">
+                                <span class="agricart-product-form__control-chip-name">{{ $method['name_en'] }}</span>
+                                @unless ($readonly)
+                                    <button type="button" class="agricart-category-form__picker-chip-remove" wire:click="removeDeliveryMethod({{ $method['id'] }})" title="{{ __('agricart.products.actions.remove') }}">×</button>
+                                @endunless
+                            </span>
+                        @endforeach
+                    </div>
+                @endif
+                <x-filament::input.wrapper :prefix-icon="Heroicon::OutlinedMagnifyingGlass" inline-prefix>
+                    <input
+                        id="agricart-product-delivery-search"
+                        type="search"
+                        wire:model.live.debounce.300ms="delivery_search"
+                        class="fi-input fi-input-has-inline-prefix"
+                        placeholder="{{ __('agricart.products.hints.delivery_search') }}"
+                        @disabled($readonly)
+                    />
+                </x-filament::input.wrapper>
+                @if (mb_strlen(trim($delivery_search)) >= 2)
+                    <div class="agricart-category-form__picker-results" role="listbox">
+                        @forelse ($filteredDeliveryOptions as $id => $label)
+                            <button
+                                type="button"
+                                class="agricart-category-form__picker-result"
+                                wire:click="addDeliveryMethod({{ $id }})"
+                                wire:key="product-delivery-result-{{ $id }}"
+                                role="option"
+                                @disabled($readonly)
+                            >
+                                {{ $label }}
+                            </button>
+                        @empty
+                            <p class="agricart-form-panel__hint agricart-category-form__picker-empty">
+                                {{ __('agricart.products.hints.delivery_empty') }}
+                            </p>
+                        @endforelse
+                    </div>
+                @endif
+            </div>
+        </div>
+
         <div class="agricart-form-panel__field agricart-product-form__brand-field">
-            <label class="agricart-form-panel__label">{{ __('agricart.products.fields.brand') }}</label>
+            <label class="agricart-form-panel__label">{{ __('agricart.products.fields.brand') }} <span class="agricart-form-panel__required" aria-hidden="true">*</span></label>
             <div class="agricart-product-form__brand-input-row">
                 <div class="agricart-category-form__picker agricart-product-form__brand-picker">
                     @if ($selectedBrand['label'])
@@ -388,8 +440,8 @@
 
         <div class="agricart-product-form__attributes">
             <div class="agricart-product-form__attributes-header">
-                <span class="agricart-form-panel__label">{{ __('agricart.products.fields.attributes') }}</span>
-                <span class="agricart-form-panel__label">{{ __('agricart.products.fields.attribute_value') }}</span>
+                <span class="agricart-form-panel__label">{{ __('agricart.products.fields.attributes') }} <span class="agricart-form-panel__required" aria-hidden="true">*</span></span>
+                <span class="agricart-form-panel__label">{{ __('agricart.products.fields.attribute_value') }} <span class="agricart-form-panel__required" aria-hidden="true">*</span></span>
                 <span class="agricart-product-form__attributes-header-spacer" aria-hidden="true"></span>
             </div>
             @foreach ($attributeRows as $index => $row)
@@ -483,7 +535,7 @@
     {{-- Row 3: Units & quantities --}}
     <div class="agricart-product-form__quantities">
         <div class="agricart-form-panel__field agricart-product-form__qty-field agricart-product-form__qty-field--wide">
-            <label class="agricart-form-panel__label">{{ __('agricart.products.fields.unit') }}</label>
+            <label class="agricart-form-panel__label">{{ __('agricart.products.fields.unit') }} <span class="agricart-form-panel__required" aria-hidden="true">*</span></label>
             <div class="agricart-category-form__picker agricart-product-form__inline-picker agricart-product-form__picker-slot">
                 @if ($selectedUnitLabel)
                     <span class="agricart-product-form__inline-chip">{{ $selectedUnitLabel }}
@@ -507,14 +559,14 @@
         </div>
 
         <div class="agricart-form-panel__field agricart-product-form__qty-field agricart-product-form__qty-field--narrow">
-            <label class="agricart-form-panel__label">{{ __('agricart.products.fields.qty') }}</label>
+            <label class="agricart-form-panel__label">{{ __('agricart.products.fields.qty') }} <span class="agricart-form-panel__required" aria-hidden="true">*</span></label>
             <x-filament::input.wrapper>
                 <input type="text" wire:model="unit_qty" class="fi-input" @disabled($readonly) />
             </x-filament::input.wrapper>
         </div>
 
         <div class="agricart-form-panel__field agricart-product-form__qty-field agricart-product-form__qty-field--wide">
-            <label class="agricart-form-panel__label">{{ __('agricart.products.fields.pack_unit') }}</label>
+            <label class="agricart-form-panel__label">{{ __('agricart.products.fields.pack_unit') }} <span class="agricart-form-panel__required" aria-hidden="true">*</span></label>
             <div class="agricart-category-form__picker agricart-product-form__inline-picker agricart-product-form__picker-slot">
                 @if ($selectedPackUnitLabel)
                     <span class="agricart-product-form__inline-chip">{{ $selectedPackUnitLabel }}

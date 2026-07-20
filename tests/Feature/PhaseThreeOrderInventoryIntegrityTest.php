@@ -11,7 +11,9 @@ use App\Models\ReorderQueueItem;
 use App\Models\Sale;
 use App\Models\StaffAttendanceRecord;
 use App\Models\User;
+use App\Enums\ShippingChargeMode;
 use App\Services\Identifiers\DocumentCounterService;
+use App\Services\Logistics\DeliveryMethodService;
 use App\Services\Purchasing\ReorderService;
 use App\Services\Sales\OnlineSaleOrderService;
 use App\Services\Staff\StaffAttendanceService;
@@ -62,6 +64,21 @@ class PhaseThreeOrderInventoryIntegrityTest extends TestCase
         $this->assertSame(1, OnlineSaleOrder::query()->count());
         $this->assertSame(10.0, (float) $product->fresh()->stock_qty);
         Queue::assertPushed(SendOnlineOrderPlacedNotification::class, 1);
+    }
+
+    public function test_stale_checkout_token_with_changed_cart_is_rejected(): void
+    {
+        Queue::fake();
+        $customer = $this->customer();
+        $productA = $this->product('TOKEN-A', stock: 10);
+        $productB = $this->product('TOKEN-B', stock: 10);
+        $service = app(OnlineSaleOrderService::class);
+        $token = 'stale-cart-token';
+
+        $service->createFromCheckout($this->checkoutPayload($customer, $productA, $token));
+
+        $this->expectException(ValidationException::class);
+        $service->createFromCheckout($this->checkoutPayload($customer, $productB, $token));
     }
 
     public function test_duplicate_conversion_creates_one_sale_and_deducts_stock_once(): void
@@ -156,10 +173,25 @@ class PhaseThreeOrderInventoryIntegrityTest extends TestCase
      */
     private function checkoutPayload(Customer $customer, Product $product, string $token): array
     {
+        $method = app(DeliveryMethodService::class)->create([
+            'name_en' => 'Phase Courier '.$token,
+            'name_ur' => 'Phase Courier '.$token,
+            'sort_order' => 1,
+            'status' => 'active',
+            'allowed_payment_methods' => ['cash', 'bank_transfer'],
+            'cod_allowed' => true,
+            'cod_min_advance_percent' => 0,
+            'full_advance_required' => false,
+            'shipping_charge_mode' => ShippingChargeMode::CalculateLater->value,
+        ]);
+
+        $product->deliveryMethods()->sync([$method->id]);
+
         return [
             'customer_id' => $customer->id,
             'checkout_token' => $token,
             'locale' => 'en',
+            'delivery_method_id' => $method->id,
             'customer_payment_method' => 'cash',
             'rows' => [[
                 'product_id' => $product->id,

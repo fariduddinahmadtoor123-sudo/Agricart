@@ -53,6 +53,7 @@ final class FormPanelRegistry
             'quantity-controls' => ['component' => 'quantity-controls.form', 'permission' => 'marketplace.view'],
             'secret-coding' => ['component' => 'secret-codings.form', 'permission' => 'marketplace.view'],
             'sales-channel' => ['component' => 'sales-channels.form', 'permission' => 'marketplace.view'],
+            'delivery-methods' => ['component' => 'delivery-methods.form', 'permission' => 'logistics.view'],
         ];
     }
 
@@ -68,7 +69,7 @@ final class FormPanelRegistry
         $module = is_string($permission) ? str($permission)->before('.')->toString() : '';
 
         if (
-            in_array($module, ['catalog', 'contacts', 'staff', 'finance', 'purchasing', 'sales', 'marketplace'], true)
+            in_array($module, ['catalog', 'contacts', 'staff', 'finance', 'purchasing', 'sales', 'marketplace', 'logistics'], true)
             && str_ends_with((string) $permission, '.view')
         ) {
             $permission = $module.'.'.match ($mode) {

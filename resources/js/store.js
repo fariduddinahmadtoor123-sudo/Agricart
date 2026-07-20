@@ -87,9 +87,13 @@ document.addEventListener('DOMContentLoaded', () => {
         button.classList.add('is-enhanced');
         menu.classList.add('is-collapsible');
 
+        const labelOpen = button.dataset.labelOpen || 'Open menu';
+        const labelClose = button.dataset.labelClose || 'Close menu';
+
         button.addEventListener('click', () => {
             const open = button.getAttribute('aria-expanded') !== 'true';
             button.setAttribute('aria-expanded', open ? 'true' : 'false');
+            button.setAttribute('aria-label', open ? labelClose : labelOpen);
             menu.classList.toggle('is-open', open);
         });
     });

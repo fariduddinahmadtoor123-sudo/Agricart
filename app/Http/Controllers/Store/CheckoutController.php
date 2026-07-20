@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BankAccount;
 use App\Models\Customer;
 use App\Models\OnlineSaleOrder;
+use App\Services\Logistics\DeliveryMethodService;
 use App\Services\Sales\OnlineSaleOrderService;
 use App\Services\Sales\SaleService;
 use App\Services\SalesChannels\SalesChannelService;
@@ -24,7 +25,7 @@ use Illuminate\Validation\ValidationException;
 
 class CheckoutController extends Controller
 {
-    public function show(StoreLayoutService $layout, StoreCartService $cart, SalesChannelService $channels, StoreProductService $productService): View|RedirectResponse
+    public function show(StoreLayoutService $layout, StoreCartService $cart, SalesChannelService $channels, StoreProductService $productService, DeliveryMethodService $deliveryMethods): View|RedirectResponse
     {
         if (! $channels->onlineStoreAllowsPurchasing()) {
             return redirect()
@@ -45,16 +46,62 @@ class CheckoutController extends Controller
 
         /** @var Customer $customer */
         $customer = Auth::guard('customer')->user();
+        $lines = $cart->lines();
+
+        if ($lines === []) {
+            $cart->clear();
+
+            return redirect()->route('store.cart')->with('store_status', __('agricart.storefront.checkout.cart_empty'));
+        }
+
+        $productIds = collect($lines)
+            ->map(static fn (array $line): int => (int) $line['product']->id)
+            ->unique()
+            ->values()
+            ->all();
+        $activeMethods = $deliveryMethods->activeForCheckout($productIds);
+        $catalogMethods = $deliveryMethods->activeForCheckout();
+
+        $deliveryOptions = $activeMethods->map(function ($method) use ($deliveryMethods): array {
+            $rule = $method->rule;
+
+            return [
+                'id' => $method->id,
+                'name' => $method->localizedName(),
+                'description' => $method->localizedDescription(),
+                'notice' => $rule?->localizedNotice(),
+                'payments' => $deliveryMethods->paymentMethodsFor($method),
+                'shipping_mode' => $rule?->shipping_charge_mode?->value,
+                'cod_min_advance_percent' => (float) ($rule?->cod_min_advance_percent ?? 0),
+                'full_advance_required' => (bool) ($rule?->full_advance_required ?? false),
+            ];
+        })->filter(static fn (array $option): bool => $option['payments'] !== [])
+            ->values()
+            ->all();
+
+        $deliveryOptionsEmptyReason = null;
+
+        if ($deliveryOptions === []) {
+            if ($catalogMethods->isEmpty()) {
+                $deliveryOptionsEmptyReason = __('agricart.storefront.checkout.no_delivery_methods');
+            } elseif ($deliveryMethods->productsMissingDeliveryLinks($productIds)) {
+                $deliveryOptionsEmptyReason = __('agricart.storefront.checkout.no_product_delivery_methods');
+            } else {
+                $deliveryOptionsEmptyReason = __('agricart.storefront.checkout.no_shared_delivery_methods');
+            }
+        }
 
         return view('store.checkout.show', [
             ...$layout->layoutData(),
-            'lines' => $cart->lines(),
+            'lines' => $lines,
             'subtotal' => $cart->formattedSubtotal(),
             'customer' => $customer,
             'productService' => $productService,
             'paymentMethods' => collect(SaleService::PAYMENT_METHODS)
                 ->mapWithKeys(fn (string $method): array => [$method => __('pos.payment_methods.' . $method)])
                 ->all(),
+            'deliveryOptions' => $deliveryOptions,
+            'deliveryOptionsEmptyReason' => $deliveryOptionsEmptyReason,
             'bankTransferAccounts' => BankAccount::query()
                 ->where('status', BankAccount::STATUS_ACTIVE)
                 ->orderBy('account_code')
@@ -67,7 +114,7 @@ class CheckoutController extends Controller
         ]);
     }
 
-    public function place(Request $request, StoreLayoutService $layout, StoreCartService $cart, OnlineSaleOrderService $orders, SalesChannelService $channels, CustomerService $customers): RedirectResponse
+    public function place(Request $request, StoreLayoutService $layout, StoreCartService $cart, OnlineSaleOrderService $orders, SalesChannelService $channels, CustomerService $customers, DeliveryMethodService $deliveryMethods): RedirectResponse
     {
         if (! $channels->onlineStoreAllowsPurchasing()) {
             return redirect()
@@ -77,7 +124,7 @@ class CheckoutController extends Controller
         }
 
         if ($cart->isEmpty()) {
-            return redirect()->route('store.cart');
+            return redirect()->route('store.cart')->with('store_status', __('agricart.storefront.checkout.cart_empty'));
         }
 
         if (! Auth::guard('customer')->check()) {
@@ -87,8 +134,15 @@ class CheckoutController extends Controller
         /** @var Customer $customer */
         $customer = Auth::guard('customer')->user();
 
+        if ($cart->lines() === []) {
+            $cart->clear();
+
+            return redirect()->route('store.cart')->with('store_status', __('agricart.storefront.checkout.cart_empty'));
+        }
+
         $validated = $request->validate([
             'checkout_token' => ['required', 'string', 'max:64'],
+            'delivery_method_id' => ['required', 'integer', 'exists:delivery_methods,id'],
             'customer_payment_method' => ['required', 'string', Rule::in(SaleService::PAYMENT_METHODS)],
             'customer_payment_note' => ['nullable', 'string', 'max:2000'],
             'customer_payment_reference' => ['nullable', 'string', 'max:128'],
@@ -103,6 +157,23 @@ class CheckoutController extends Controller
         }
 
         try {
+            $method = $deliveryMethods->findActive((int) $validated['delivery_method_id']);
+
+            if ($method === null) {
+                throw ValidationException::withMessages([
+                    'delivery_method_id' => [__('agricart.storefront.checkout.delivery_inactive')],
+                ]);
+            }
+
+            $deliveryMethods->assertCheckoutSelection($method, $validated['customer_payment_method']);
+
+            $productIds = collect($cart->lines())
+                ->map(static fn (array $line): int => (int) $line['product']->id)
+                ->unique()
+                ->values()
+                ->all();
+            $deliveryMethods->assertAvailableForProducts($method, $productIds);
+
             $saleService = app(SaleService::class);
 
             if (! $saleService->allowsOverselling()) {
@@ -123,6 +194,7 @@ class CheckoutController extends Controller
                 'customer_id' => $customer->id,
                 'checkout_token' => $validated['checkout_token'],
                 'locale' => app()->getLocale(),
+                'delivery_method_id' => $method->id,
                 'customer_payment_method' => $validated['customer_payment_method'],
                 'customer_payment_note' => $validated['customer_payment_note'] ?? null,
                 'customer_payment_reference' => $validated['customer_payment_reference'] ?? null,
@@ -151,6 +223,13 @@ class CheckoutController extends Controller
                 ->route('store.checkout.success', ['order' => $order->order_number])
                 ->with('placed_order_number', $order->order_number);
         } catch (ValidationException $exception) {
+            if (isset($exception->errors()['checkout_token'])) {
+                return redirect()
+                    ->route('store.checkout')
+                    ->with('store_status', $exception->errors()['checkout_token'][0] ?? __('agricart.storefront.checkout.session_expired'))
+                    ->with('store_status_type', 'warning');
+            }
+
             return back()
                 ->withInput()
                 ->withErrors($exception->errors());

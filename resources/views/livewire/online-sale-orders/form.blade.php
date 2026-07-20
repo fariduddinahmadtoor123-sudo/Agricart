@@ -68,9 +68,31 @@
         @endif
     </header>
 
-    @if (filled($ship_contact_name) || filled($ship_address) || filled($ship_city))
+    @if (filled($ship_contact_name) || filled($ship_address) || filled($ship_city) || filled($delivery_method_name))
         <div class="agricart-online-order__ship-block">
             <h3 class="agricart-online-order__section-title">{{ __('online_sale_orders.sections.shipping') }}</h3>
+            @if (filled($delivery_method_name))
+                <p class="agricart-online-order__ship-line">
+                    <strong>{{ __('online_sale_orders.fields.delivery_method') }}:</strong>
+                    <span>{{ $delivery_method_name }}</span>
+                    @if (filled($shipping_charge_mode_label))
+                        <span class="agricart-purchase-form__party-sep" aria-hidden="true">·</span>
+                        <span>{{ $shipping_charge_mode_label }}</span>
+                    @endif
+                </p>
+                @if ($full_advance_required || (filled($cod_min_advance_percent) && (float) $cod_min_advance_percent > 0))
+                    <p class="agricart-online-order__ship-line">
+                        @if ($full_advance_required)
+                            {{ __('agricart.storefront.checkout.full_advance_hint') }}
+                        @else
+                            {{ __('agricart.storefront.checkout.cod_advance_hint', ['percent' => $cod_min_advance_percent]) }}
+                        @endif
+                    </p>
+                @endif
+                @if (filled($delivery_customer_notice))
+                    <p class="agricart-online-order__ship-line">{{ $delivery_customer_notice }}</p>
+                @endif
+            @endif
             <p class="agricart-online-order__ship-line">
                 @if (filled($ship_contact_name))
                     <strong>{{ $ship_contact_name }}</strong>

@@ -71,7 +71,6 @@ class ModuleChrome
                 'subNavigation' => LogisticsSubNavigation::class,
                 'toolbar' => LogisticsPageToolbar::class,
                 'navLabel' => 'Logistics',
-                'comingSoon' => true,
             ],
             [
                 'key' => 'service',

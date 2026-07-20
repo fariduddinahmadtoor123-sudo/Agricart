@@ -20,6 +20,7 @@ return [
         'pos_invoice' => 'POS Invoice',
         'customer_payment_method' => 'Customer selected',
         'customer_payment_reference' => 'Transaction reference',
+        'delivery_method' => 'Delivery method',
         'payment_proof_status' => 'Receipt status',
         'customer_bank_receipt' => 'Customer receipt upload',
         'customer_notes' => 'Customer notes',

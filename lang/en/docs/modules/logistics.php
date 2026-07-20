@@ -3,11 +3,11 @@
 return [
     'overview' => [
         'title' => 'Logistics — Overview',
-        'summary' => 'Coming soon — shipments module not live.',
+        'summary' => 'Customer-facing delivery methods and shipping policy rules for checkout.',
         'meta' => [
             'routes' => ['/admin/logistics/overview'],
             'permissions' => ['logistics.view'],
-            'related' => ['sales', 'order-dispatch'],
+            'related' => ['sales', 'order-dispatch', 'store'],
         ],
         'sections' => [
             [
@@ -15,7 +15,7 @@ return [
                 'type' => 'purpose',
                 'heading' => 'Purpose',
                 'paragraphs' => [
-                    'Planned home for outbound shipments and carrier tracking. Cluster is listed in config agricart.modules_coming_soon; OverviewPage is BasePlaceholderPage with coming-soon UI.',
+                    'Logistics owns admin-configurable Delivery Methods shown on store checkout. Each method has bilingual labels and payment/shipping rules. Sales → Order Dispatch remains the post-sale carrier/tracking workflow.',
                 ],
             ],
             [
@@ -23,8 +23,9 @@ return [
                 'type' => 'rebuild_notes',
                 'heading' => 'Rebuild notes',
                 'list' => [
-                    'Operational dispatch for online orders lives under Sales → Order Dispatch today — not Logistics.',
-                    'Do not invent carrier APIs until Shipments is implemented.',
+                    'Do not hardcode delivery method lists in checkout — load active methods via DeliveryMethodService.',
+                    'Orders snapshot method labels and rule flags at place-order time so later admin edits do not rewrite history.',
+                    'Shipments page stays a placeholder until a true shipment entity exists; operational tracking stays under Sales Order Dispatch.',
                 ],
             ],
             [
@@ -33,6 +34,47 @@ return [
                 'heading' => 'Technical',
                 'classes' => [
                     'page' => 'App\\Filament\\Clusters\\Logistics\\OverviewPage',
+                    'service' => 'App\\Services\\Logistics\\LogisticsOverviewService',
+                ],
+            ],
+        ],
+    ],
+
+    'delivery-methods' => [
+        'title' => 'Delivery Methods',
+        'summary' => 'CRUD for checkout delivery options and 1:1 payment/shipping rules.',
+        'meta' => [
+            'routes' => ['/admin/logistics/delivery-methods'],
+            'permissions' => ['logistics.view', 'logistics.create', 'logistics.edit'],
+        ],
+        'sections' => [
+            [
+                'id' => 'purpose',
+                'type' => 'purpose',
+                'heading' => 'Purpose',
+                'paragraphs' => [
+                    'Define Courier, Cargo, Transport Booking, Freight, or any custom method. Rules select allowed payment keys (cash, bank_transfer), COD/advance policy, shipping charge mode, and bilingual checkout notices.',
+                ],
+            ],
+            [
+                'id' => 'rebuild_notes',
+                'type' => 'rebuild_notes',
+                'heading' => 'Rebuild notes',
+                'list' => [
+                    'Tables: delivery_methods + delivery_method_rules (1:1).',
+                    'Shipping charge mode is policy only in v1 — not a rate calculator.',
+                    'COD allowed maps to whether cash may appear with advance rules.',
+                ],
+            ],
+            [
+                'id' => 'technical',
+                'type' => 'technical',
+                'heading' => 'Technical',
+                'classes' => [
+                    'page' => 'App\\Filament\\Clusters\\Logistics\\DeliveryMethodsPage',
+                    'service' => 'App\\Services\\Logistics\\DeliveryMethodService',
+                    'list' => 'App\\Livewire\\DeliveryMethods\\ListMethods',
+                    'form' => 'App\\Livewire\\DeliveryMethods\\Form',
                 ],
             ],
         ],
@@ -40,7 +82,7 @@ return [
 
     'shipments' => [
         'title' => 'Shipments',
-        'summary' => 'Placeholder; redirects to overview while logistics is coming soon.',
+        'summary' => 'Placeholder until a dedicated shipment entity exists.',
         'meta' => [
             'routes' => ['/admin/logistics/shipments'],
             'permissions' => ['logistics.view'],
@@ -51,7 +93,7 @@ return [
                 'type' => 'purpose',
                 'heading' => 'Purpose',
                 'paragraphs' => [
-                    'ShipmentsPage extends BasePlaceholderPage. When the cluster is coming soon, mount() redirects to overview and the page is hidden from sub-nav.',
+                    'Reserved for future shipment records. Use Sales → Order Dispatch for carrier name, tracking, and supplier shipping proof today.',
                 ],
             ],
             [
@@ -60,6 +102,7 @@ return [
                 'heading' => 'Rebuild notes',
                 'list' => [
                     'Wire after Sales dispatch and inventory allocation requirements are clear.',
+                    'Do not invent courier APIs until Shipments is implemented.',
                 ],
             ],
         ],

@@ -73,6 +73,16 @@ class Form extends Component
 
     public string $ship_city = '';
 
+    public string $delivery_method_name = '';
+
+    public string $shipping_charge_mode_label = '';
+
+    public string $cod_min_advance_percent = '';
+
+    public bool $full_advance_required = false;
+
+    public string $delivery_customer_notice = '';
+
     public string $customer_notes = '';
 
     public string $admin_notes = '';
@@ -644,6 +654,11 @@ class Form extends Component
         $this->ship_phone = (string) $state['ship_phone'];
         $this->ship_address = (string) $state['ship_address'];
         $this->ship_city = (string) $state['ship_city'];
+        $this->delivery_method_name = (string) ($state['delivery_method_name'] ?? '');
+        $this->shipping_charge_mode_label = (string) ($state['shipping_charge_mode_label'] ?? '');
+        $this->cod_min_advance_percent = (string) ($state['cod_min_advance_percent'] ?? '');
+        $this->full_advance_required = (bool) ($state['full_advance_required'] ?? false);
+        $this->delivery_customer_notice = (string) ($state['delivery_customer_notice'] ?? '');
         $this->customer_notes = (string) $state['customer_notes'];
         $this->admin_notes = (string) $state['admin_notes'];
         $this->linked_sale_number = (string) $state['sale_number'];

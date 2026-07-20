@@ -202,6 +202,11 @@ class StoreProductService
                 'packUnit',
                 'attributes',
                 'controls' => fn ($query) => $query->where('status', 'active'),
+                'deliveryMethods' => fn ($query) => $query
+                    ->where('delivery_methods.status', 'active')
+                    ->orderBy('delivery_methods.sort_order')
+                    ->orderBy('delivery_methods.name_en')
+                    ->with('rule'),
             ])
             ->first();
     }

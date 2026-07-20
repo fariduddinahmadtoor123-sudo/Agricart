@@ -63,10 +63,22 @@
                             <dd>{{ $order->ship_city }}</dd>
                         </div>
                     @endif
+                    @if (filled($order->localizedDeliveryMethodName()))
+                        <div>
+                            <dt>{{ __('agricart.storefront.checkout.delivery_method') }}</dt>
+                            <dd>{{ $order->localizedDeliveryMethodName() }}</dd>
+                        </div>
+                    @endif
                     @if (filled($order->ship_address))
                         <div class="ag-store-orders__meta-span">
                             <dt>{{ __('agricart.customer.fields.address_line1') }}</dt>
                             <dd>{{ $order->ship_address }}</dd>
+                        </div>
+                    @endif
+                    @if (filled($order->localizedDeliveryNotice()))
+                        <div class="ag-store-orders__meta-span">
+                            <dt>{{ __('agricart.storefront.checkout.delivery_notice') }}</dt>
+                            <dd>{{ $order->localizedDeliveryNotice() }}</dd>
                         </div>
                     @endif
                 </dl>
