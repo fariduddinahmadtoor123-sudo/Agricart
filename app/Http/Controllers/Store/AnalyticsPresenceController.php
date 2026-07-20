@@ -16,7 +16,6 @@ class AnalyticsPresenceController extends Controller
             ! config('analytics.enabled')
             || $request->headers->get('Sec-GPC') === '1'
             || $request->headers->get('DNT') === '1'
-            || $request->cookie((string) config('analytics.opt_out_cookie')) === '1'
         ) {
             return response()->noContent();
         }
@@ -34,32 +33,5 @@ class AnalyticsPresenceController extends Controller
             ->update(['last_seen_at' => now()]);
 
         return response()->noContent();
-    }
-
-    public function optOut(): Response
-    {
-        $response = redirect()->back(303);
-        $response->headers->setCookie(cookie()->forever(
-            (string) config('analytics.opt_out_cookie'),
-            '1',
-            '/',
-            null,
-            request()->isSecure(),
-            true,
-            false,
-            'lax',
-        ));
-        $response->headers->clearCookie((string) config('analytics.visitor_cookie'));
-        $response->headers->clearCookie((string) config('analytics.session_cookie'));
-
-        return $response;
-    }
-
-    public function optIn(): Response
-    {
-        $response = redirect()->back(303);
-        $response->headers->clearCookie((string) config('analytics.opt_out_cookie'));
-
-        return $response;
     }
 }

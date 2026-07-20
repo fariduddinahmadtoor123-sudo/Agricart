@@ -185,6 +185,7 @@ class ManageBackups extends Component
         return view('livewire.settings.manage-backups', [
             'backups' => $service->list(),
             'canManage' => $this->canManage(),
+            'scheduleStatus' => $this->scheduleStatus(),
             'totalSize' => BackupEntry::formatBytes($service->totalSizeBytes()),
             'retentionCount' => (int) config('backup.retention_count', 10),
             'maxFileSize' => BackupEntry::formatBytes((int) config('backup.max_file_bytes')),
@@ -209,7 +210,7 @@ class ManageBackups extends Component
         $this->flashMessage = null;
 
         try {
-            $entry = app(BackupService::class)->create($type);
+            $entry = app(BackupService::class)->create($type, ['source' => 'manual']);
             $this->flash(__('agricart.backups.messages.created', [
                 'type' => __('agricart.backups.types.' . $entry->type),
                 'size' => $entry->formattedSize(),
@@ -221,6 +222,43 @@ class ManageBackups extends Component
         } finally {
             $this->busy = false;
         }
+    }
+
+    /**
+     * @return array{enabled: bool, daily: string|null, weekly: string|null}
+     */
+    private function scheduleStatus(): array
+    {
+        $enabled = (bool) config('backup.schedule.enabled', true);
+        $dailyTime = (string) config('backup.schedule.time', '01:30');
+        $dailyType = (string) config('backup.schedule.type', 'database');
+        $weeklyEnabled = $enabled && (bool) config('backup.schedule.weekly_full_enabled', true);
+        $weekdays = [
+            0 => __('agricart.backups.schedule.sunday'),
+            1 => __('agricart.backups.schedule.monday'),
+            2 => __('agricart.backups.schedule.tuesday'),
+            3 => __('agricart.backups.schedule.wednesday'),
+            4 => __('agricart.backups.schedule.thursday'),
+            5 => __('agricart.backups.schedule.friday'),
+            6 => __('agricart.backups.schedule.saturday'),
+        ];
+        $weeklyDay = max(0, min(6, (int) config('backup.schedule.weekly_full_day', 0)));
+
+        return [
+            'enabled' => $enabled,
+            'daily' => $enabled
+                ? __('agricart.backups.schedule.daily_line', [
+                    'time' => $dailyTime,
+                    'type' => __('agricart.backups.types.'.$dailyType),
+                ])
+                : null,
+            'weekly' => $weeklyEnabled
+                ? __('agricart.backups.schedule.weekly_line', [
+                    'day' => $weekdays[$weeklyDay],
+                    'time' => (string) config('backup.schedule.weekly_full_time', '02:00'),
+                ])
+                : null,
+        ];
     }
 
     private function canManage(): bool

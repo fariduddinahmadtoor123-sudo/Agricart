@@ -202,8 +202,8 @@ return [
         'Create, import, list, restore, export, and delete database/full backup archives.',
         '/admin/settings/backups',
         ['settings.view', 'settings.backups.manage'],
-        ['The manager creates full or database backups, imports incoming archives, exports products/categories, and restores only after typing RESTORE. ZIP entries are enumerated before extraction and approved files are streamed into a random private work directory. Production local-login preservation is authoritative by default and writes a private audit report.'],
-        ['Keep settings.backups.manage, re-authentication, CSRF, safety backups, encrypted off-site copies, and restore audits.', 'Configured limits cover compressed upload size, entry count, per-entry/total uncompressed size, compression ratio, retention, and database-driver compatibility.', 'Never expose archives, restore work directories, or audit reports from the public web root.'],
+        ['The manager creates full or database backups, imports incoming archives, exports products/categories, and restores only after typing RESTORE. ZIP entries are enumerated before extraction and approved files are streamed into a random private work directory. Production local-login preservation is authoritative by default and writes a private audit report. Automatic backups: daily database at 01:30 and weekly full (default Sunday 02:00) when Hostinger cron runs php artisan schedule:run every minute. Deploy also creates a database safety backup before migrate.'],
+        ['Keep settings.backups.manage, re-authentication, CSRF, safety backups, encrypted off-site copies, and restore audits.', 'Configured limits cover compressed upload size, entry count, per-entry/total uncompressed size, compression ratio, retention (default 14 archives), and database-driver compatibility.', 'Never expose archives, restore work directories, or audit reports from the public web root.'],
         ['page' => 'App\\Filament\\Clusters\\Settings\\BackupsPage', 'livewire' => 'App\\Livewire\\Settings\\ManageBackups', 'services' => ['App\\Services\\Backup\\BackupService', 'App\\Services\\Backup\\RestoreService']]
     ),
 ];

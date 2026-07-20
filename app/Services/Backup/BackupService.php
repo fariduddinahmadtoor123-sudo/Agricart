@@ -18,12 +18,17 @@ class BackupService
         private readonly BackupArchive $archive,
     ) {}
 
-    public function create(string $type): BackupEntry
+    public function create(string $type, array $options = []): BackupEntry
     {
         if (! in_array($type, [self::TYPE_FULL, self::TYPE_DATABASE], true)) {
             throw ValidationException::withMessages([
                 'backup' => __('agricart.backups.messages.invalid_type'),
             ]);
+        }
+
+        $source = (string) ($options['source'] ?? 'manual');
+        if (! in_array($source, ['manual', 'scheduled', 'deploy', 'safety'], true)) {
+            $source = 'manual';
         }
 
         set_time_limit(0);
@@ -59,8 +64,10 @@ class BackupService
             $manifest = [
                 'id' => $id,
                 'type' => $type,
+                'source' => $source,
                 'created_at' => now()->toIso8601String(),
                 'app_name' => config('app.name'),
+                'app_env' => config('app.env'),
                 'laravel_version' => app()->version(),
                 'database_driver' => config('database.connections.' . config('database.default') . '.driver'),
                 'files_count' => $filesCount,

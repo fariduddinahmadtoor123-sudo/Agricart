@@ -84,7 +84,6 @@ class TrackStorefrontAnalytics
             auth()->check()
             || $request->headers->get('Sec-GPC') === '1'
             || $request->headers->get('DNT') === '1'
-            || $request->cookie((string) config('analytics.opt_out_cookie')) === '1'
         ) {
             return false;
         }

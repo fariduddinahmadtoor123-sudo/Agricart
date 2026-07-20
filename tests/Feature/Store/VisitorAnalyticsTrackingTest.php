@@ -106,7 +106,7 @@ class VisitorAnalyticsTrackingTest extends TestCase
         $this->assertDatabaseCount('analytics_visitors', 0);
     }
 
-    public function test_authenticated_staff_browsing_and_opted_out_visitors_are_excluded(): void
+    public function test_authenticated_staff_browsing_is_excluded(): void
     {
         $role = Role::query()->create([
             'name' => 'Administrator',
@@ -122,14 +122,20 @@ class VisitorAnalyticsTrackingTest extends TestCase
             ->get(route('store.home'))
             ->assertOk();
 
-        auth()->logout();
-
-        $this->withCookie((string) config('analytics.opt_out_cookie'), '1')
-            ->withHeader('User-Agent', 'Mozilla/5.0')
-            ->get(route('store.home'))
-            ->assertOk();
-
         $this->assertDatabaseCount('analytics_page_views', 0);
+    }
+
+    public function test_footer_does_not_expose_visitor_analytics_opt_out(): void
+    {
+        $this->withHeader('User-Agent', 'Mozilla/5.0')
+            ->get(route('store.home'))
+            ->assertOk()
+            ->assertDontSee('ag-store-footer__analytics-choice', false)
+            ->assertDontSee('Disable visitor analytics')
+            ->assertDontSee('وزیٹر اینالیٹکس بند کریں');
+
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('store.analytics.opt-out'));
+        $this->assertFalse(\Illuminate\Support\Facades\Route::has('store.analytics.opt-in'));
     }
 
     public function test_repeat_views_with_first_party_tokens_share_one_visitor_and_session(): void

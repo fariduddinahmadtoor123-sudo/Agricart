@@ -189,6 +189,7 @@ No codebase fork required.
 - Use **Git** or **SSH** to pull into `agricart/`, not into `public_html`.
 - Run **PHP 8.3+** and point CLI to the same version as the site.
 - Cron (if available): `* * * * * cd /home/USERNAME/agricart && php artisan schedule:run >> /dev/null 2>&1`
+- That cron is required for the daily `01:30` database backup, the weekly full backup, and other scheduled jobs.
 - Install that scheduler line exactly once and set `SCHEDULER_CONFIGURED=true`.
 - If persistent workers are unavailable, add a one-per-minute
   `queue:work --stop-when-empty --tries=3` cron and set

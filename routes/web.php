@@ -95,12 +95,6 @@ Route::middleware([
     Route::post('/analytics/presence', [AnalyticsPresenceController::class, 'update'])
         ->middleware('throttle:90,1')
         ->name('store.analytics.presence');
-    Route::post('/analytics/opt-out', [AnalyticsPresenceController::class, 'optOut'])
-        ->middleware('throttle:10,1')
-        ->name('store.analytics.opt-out');
-    Route::post('/analytics/opt-in', [AnalyticsPresenceController::class, 'optIn'])
-        ->middleware('throttle:10,1')
-        ->name('store.analytics.opt-in');
     Route::post('/contact-message', [StoreInquiryController::class, 'store'])
         ->middleware('throttle:5,1')
         ->name('store.contact-message');

@@ -17,13 +17,19 @@
         </div>
     @endif
 
+    @if ($databaseDriver === 'sqlite')
+        <div class="agricart-backups__alert is-warning">
+            {{ __('agricart.backups.compatibility.sqlite_warning') }}
+        </div>
+    @endif
+
     <section class="agricart-backups__panel">
         <header class="agricart-backups__panel-head">
             <h2>{{ __('agricart.backups.sections.create') }}</h2>
-            <p>{{ __('agricart.backups.sections.create_hint') }}</p>
+            <p class="agricart-backups__lede">{{ __('agricart.backups.sections.create_hint') }}</p>
         </header>
 
-        <div class="agricart-backups__actions">
+        <div class="agricart-backups__actions agricart-backups__actions--flush">
             <button type="button" class="agricart-backups__btn is-primary" wire:click="createFull" @disabled($busy || ! $canManage)>
                 {{ __('agricart.backups.actions.create_full') }}
             </button>
@@ -32,53 +38,24 @@
             </button>
         </div>
 
-        <ul class="agricart-backups__limits">
-            <li>{{ __('agricart.backups.limits.retention', ['count' => $retentionCount]) }}</li>
-            <li>{{ __('agricart.backups.limits.max_file', ['size' => $maxFileSize]) }}</li>
-            <li>{{ __('agricart.backups.limits.total_used', ['size' => $totalSize]) }}</li>
-        </ul>
-    </section>
-
-    <section class="agricart-backups__panel">
-        <header class="agricart-backups__panel-head">
-            <h2>{{ __('agricart.backups.sections.compatibility') }}</h2>
-            <p>{{ __('agricart.backups.sections.compatibility_hint') }}</p>
-        </header>
-        <ul class="agricart-backups__limits">
-            <li>{{ __('agricart.backups.compatibility.driver', ['driver' => $databaseDriver]) }}</li>
-            @if ($databaseDriver === 'sqlite')
-                <li class="agricart-backups__upload-hint is-warning">{{ __('agricart.backups.compatibility.sqlite_warning') }}</li>
-            @else
-                <li>{{ __('agricart.backups.compatibility.mysql_ok') }}</li>
-            @endif
-            <li>{{ __('agricart.backups.compatibility.flow') }}</li>
-            <li>{{ __('agricart.backups.compatibility.ai_keys_note') }}</li>
-        </ul>
+        @if ($scheduleStatus['enabled'])
+            <p class="agricart-backups__auto">
+                <span>{{ __('agricart.backups.schedule.enabled_label') }}</span>
+                {{ $scheduleStatus['daily'] }}
+                @if ($scheduleStatus['weekly'])
+                    · {{ $scheduleStatus['weekly'] }}
+                @endif
+            </p>
+        @endif
     </section>
 
     <section class="agricart-backups__panel">
         <header class="agricart-backups__panel-head">
             <h2>{{ __('agricart.backups.sections.upload') }}</h2>
-            <p>{{ __('agricart.backups.sections.upload_hint', ['size' => $maxFileSize]) }}</p>
+            <p class="agricart-backups__lede">{{ __('agricart.backups.sections.upload_hint') }}</p>
         </header>
 
         <div class="agricart-backups__upload" id="agricart-backup-upload" data-upload-url="{{ $uploadUrl }}">
-            @if ($uploadLimitBelowBackupMax)
-                <p class="agricart-backups__upload-hint is-warning">
-                    {{ __('agricart.backups.upload.php_limit_hint', [
-                        'php_limit' => $phpUploadLimit,
-                        'app_limit' => $maxFileSize,
-                    ]) }}
-                </p>
-            @endif
-
-            <p class="agricart-backups__upload-hint">
-                {{ __('agricart.backups.upload.direct_hint') }}
-            </p>
-            <p class="agricart-backups__upload-hint">
-                {{ __('agricart.backups.upload.server_limit', ['size' => $effectiveUploadLimit]) }}
-            </p>
-
             @if ($canManage)
                 <form
                     id="agricart-backup-upload-form"
@@ -88,19 +65,21 @@
                     enctype="multipart/form-data"
                 >
                     @csrf
-                    <label class="agricart-backups__upload-field">
-                        <span class="agricart-form-panel__label">{{ __('agricart.backups.upload.field_label') }}</span>
+                    <label class="agricart-backups__dropzone" for="agricart-backup-zip-input">
+                        <span class="agricart-backups__dropzone-title">{{ __('agricart.backups.upload.dropzone_title') }}</span>
+                        <span class="agricart-backups__dropzone-hint" id="agricart-backup-zip-name">{{ __('agricart.backups.upload.dropzone_empty') }}</span>
                         <input
                             type="file"
                             name="backup_zip"
                             id="agricart-backup-zip-input"
+                            class="agricart-backups__file-input"
                             accept=".zip,application/zip"
                             required
                             @disabled($busy)
                         />
                     </label>
 
-                    <div class="agricart-backups__actions">
+                    <div class="agricart-backups__actions agricart-backups__actions--flush">
                         <button type="submit" class="agricart-backups__btn is-primary" id="agricart-backup-upload-btn" @disabled($busy)>
                             {{ __('agricart.backups.actions.upload') }}
                         </button>
@@ -133,7 +112,10 @@
                     const errorEl = document.getElementById('agricart-backup-upload-error');
                     const submitBtn = document.getElementById('agricart-backup-upload-btn');
                     const fileInput = document.getElementById('agricart-backup-zip-input');
+                    const fileNameEl = document.getElementById('agricart-backup-zip-name');
                     const csrf = form.querySelector('input[name="_token"]')?.value;
+                    const emptyLabel = @js(__('agricart.backups.upload.dropzone_empty'));
+                    const selectedLabel = @js(__('agricart.backups.upload.dropzone_selected'));
 
                     const labels = {
                         uploading: @js(__('agricart.backups.upload.progress_uploading')),
@@ -155,6 +137,14 @@
                         if (progressWrap) progressWrap.hidden = true;
                         if (submitBtn) submitBtn.disabled = false;
                     }
+
+                    fileInput?.addEventListener('change', function () {
+                        if (!fileNameEl) return;
+                        const file = fileInput.files?.[0];
+                        fileNameEl.textContent = file
+                            ? selectedLabel.replace(':name', file.name)
+                            : emptyLabel;
+                    });
 
                     form.addEventListener('submit', function (event) {
                         event.preventDefault();
@@ -218,31 +208,12 @@
         </div>
     </section>
 
-    <section class="agricart-backups__panel">
-        <header class="agricart-backups__panel-head">
-            <h2>{{ __('agricart.backups.sections.incoming') }}</h2>
-            <p>{{ __('agricart.backups.sections.incoming_hint', ['path' => $incomingPath]) }}</p>
-        </header>
-        <p class="agricart-backups__upload-hint">
-            {{ __('agricart.backups.incoming.large_files', ['size' => $maxFileSize]) }}
-        </p>
-        <code class="agricart-backups__path">{{ $incomingPath }}</code>
-        @if ($canManage)
-            <div class="agricart-backups__actions">
-                <button type="button" class="agricart-backups__btn is-primary" wire:click="importIncoming" @disabled($busy)>
-                    {{ __('agricart.backups.actions.scan_incoming') }}
-                </button>
-            </div>
-        @endif
-    </section>
-
-    <section class="agricart-backups__panel">
-        <header class="agricart-backups__panel-head">
+    <section class="agricart-backups__panel agricart-backups__panel--compact">
+        <header class="agricart-backups__panel-head agricart-backups__panel-head--inline">
             <h2>{{ __('agricart.backups.sections.export') }}</h2>
-            <p>{{ __('agricart.backups.sections.export_hint') }}</p>
         </header>
 
-        <div class="agricart-backups__actions">
+        <div class="agricart-backups__actions agricart-backups__actions--flush">
             <a href="{{ $productsExportUrl }}" class="agricart-backups__btn" @class(['is-disabled' => ! $canManage]) @if(! $canManage) aria-disabled="true" @endif>
                 {{ __('agricart.backups.actions.export_products') }}
             </a>
@@ -253,9 +224,8 @@
     </section>
 
     <section class="agricart-backups__panel">
-        <header class="agricart-backups__panel-head">
+        <header class="agricart-backups__panel-head agricart-backups__panel-head--inline">
             <h2>{{ __('agricart.backups.sections.list') }}</h2>
-            <p>{{ __('agricart.backups.sections.list_hint') }}</p>
         </header>
 
         @if ($backups === [])
@@ -269,6 +239,7 @@
                         <tr>
                             <th>{{ __('agricart.backups.list.col_created') }}</th>
                             <th>{{ __('agricart.backups.list.col_type') }}</th>
+                            <th>{{ __('agricart.backups.list.col_source') }}</th>
                             <th>{{ __('agricart.backups.list.col_size') }}</th>
                             <th>{{ __('agricart.backups.list.col_files') }}</th>
                             <th>{{ __('agricart.backups.list.col_actions') }}</th>
@@ -279,6 +250,7 @@
                             <tr wire:key="backup-{{ $backup->id }}">
                                 <td>{{ \Illuminate\Support\Carbon::parse($backup->createdAt)->format('Y-m-d H:i') }}</td>
                                 <td>{{ __('agricart.backups.types.' . $backup->type) }}</td>
+                                <td>{{ __('agricart.backups.sources.' . ($backup->meta['source'] ?? 'manual')) }}</td>
                                 <td>{{ $backup->formattedSize() }}</td>
                                 <td>{{ $backup->type === 'full' ? number_format($backup->filesCount) : '—' }}</td>
                                 <td>
@@ -326,7 +298,6 @@
                     <input type="checkbox" wire:model="preserveLocalLogins" />
                     <span>{{ __('agricart.backups.restore.preserve_logins') }}</span>
                 </label>
-                <p class="agricart-backups__upload-hint">{{ __('agricart.backups.restore.preserve_logins_hint') }}</p>
 
                 <label class="agricart-form-panel__label" for="backup-restore-confirm">{{ __('agricart.backups.restore.confirm_label') }}</label>
                 <input id="backup-restore-confirm" type="text" wire:model="restoreConfirm" class="agricart-backups__input" placeholder="RESTORE" />

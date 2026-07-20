@@ -155,10 +155,10 @@ return [
     ],
 
     'backups' => $stub('Backups', 'Database/full archives create، import، list، restore، export اور delete۔', '/admin/settings/backups', ['settings.view', 'settings.backups.manage'], [
-        'Manager full/database backup، incoming import، products/categories export اور RESTORE confirmation کے بعد restore دیتا ہے۔ ZIP entries extraction سے پہلے مکمل validate ہوتی ہیں اور approved files random private work directory میں stream ہوتی ہیں۔ Production میں local logins default authoritative ہیں اور private audit report بنتی ہے۔',
+        'Manager full/database backup، incoming import، products/categories export اور RESTORE confirmation کے بعد restore دیتا ہے۔ ZIP entries extraction سے پہلے مکمل validate ہوتی ہیں اور approved files random private work directory میں stream ہوتی ہیں۔ Production میں local logins default authoritative ہیں اور private audit report بنتی ہے۔ Hostinger cron پر schedule:run چلنے پر روزانہ 01:30 database backup اور ہفتہ وار full backup (default اتوار 02:00) بنتے ہیں۔ Deploy سے پہلے بھی database safety backup بنتا ہے۔',
     ], [
         'settings.backups.manage، re-auth، CSRF، safety backup، encrypted off-site copy اور restore audit لازم رکھیں۔',
-        'Limits compressed upload، entry count، per-entry/total uncompressed size، compression ratio، retention اور DB compatibility پر لاگو ہیں۔',
+        'Limits compressed upload، entry count، per-entry/total uncompressed size، compression ratio، retention (default 14 daily archives) اور DB compatibility پر لاگو ہیں۔',
         'Backup archives، restore work directories اور audit reports public web root میں نہ ہوں۔',
     ], ['page' => 'App\\Filament\\Clusters\\Settings\\BackupsPage', 'livewire' => 'App\\Livewire\\Settings\\ManageBackups', 'services' => ['App\\Services\\Backup\\BackupService', 'App\\Services\\Backup\\RestoreService']]),
 ];

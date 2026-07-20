@@ -28,7 +28,7 @@ composer install --no-dev --optimize-autoloader
 # npm ci && npm run build
 
 php artisan deploy:preflight --environment-only
-php artisan backup:create --type=database
+php artisan backup:create --type=database --source=deploy
 php artisan down --retry=60
 MAINTENANCE=1
 

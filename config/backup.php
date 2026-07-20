@@ -12,10 +12,29 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Daily automatic backups
+    |--------------------------------------------------------------------------
+    |
+    | Requires Hostinger/VPS cron: php artisan schedule:run every minute.
+    | Database-only backups are the default; full archives remain manual/deploy.
+    |
+    */
+    'schedule' => [
+        'enabled' => filter_var(env('BACKUP_SCHEDULE_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+        'time' => env('BACKUP_SCHEDULE_TIME', '01:30'),
+        'type' => env('BACKUP_SCHEDULE_TYPE', 'database'),
+        'weekly_full_enabled' => filter_var(env('BACKUP_WEEKLY_FULL_ENABLED', true), FILTER_VALIDATE_BOOLEAN),
+        // 0 = Sunday … 6 = Saturday
+        'weekly_full_day' => (int) env('BACKUP_WEEKLY_FULL_DAY', 0),
+        'weekly_full_time' => env('BACKUP_WEEKLY_FULL_TIME', '02:00'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Retention & size limits
     |--------------------------------------------------------------------------
     */
-    'retention_count' => (int) env('BACKUP_RETENTION_COUNT', 10),
+    'retention_count' => (int) env('BACKUP_RETENTION_COUNT', 14),
     'max_total_bytes' => (int) env('BACKUP_MAX_TOTAL_BYTES', 100 * 1024 * 1024 * 1024),
     'max_file_bytes' => (int) env('BACKUP_MAX_FILE_BYTES', 6 * 1024 * 1024 * 1024),
     'archive' => [

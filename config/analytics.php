@@ -7,7 +7,6 @@ return [
 
     'visitor_cookie' => 'agricart_visitor',
     'session_cookie' => 'agricart_visit',
-    'opt_out_cookie' => 'agricart_analytics_opt_out',
     'visitor_cookie_minutes' => 60 * 24 * 395,
     'session_cookie_minutes' => 30,
     'live_window_minutes' => 5,

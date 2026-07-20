@@ -296,6 +296,15 @@ these are active. Jobs use `withoutOverlapping`. Leave
 when every scheduler node uses the same database/Redis cache and then
 `onOneServer` locks are safe.
 
+Daily database backups run automatically at `BACKUP_SCHEDULE_TIME` (default `01:30`)
+via `backup:create --type=database --source=scheduled` when `BACKUP_SCHEDULE_ENABLED=true`.
+A weekly **full** backup (database + public uploads) runs when
+`BACKUP_WEEKLY_FULL_ENABLED=true` (default Sunday `02:00`; override with
+`BACKUP_WEEKLY_FULL_DAY` / `BACKUP_WEEKLY_FULL_TIME`). Archives are stored
+privately under `storage/app/private/agricart-backups/` and pruned by
+`BACKUP_RETENTION_COUNT` (default 14). Without the one-per-minute `schedule:run`
+cron, automatic backups will not run.
+
 ---
 
 ## Apache compatibility

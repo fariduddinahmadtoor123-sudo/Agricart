@@ -8095,6 +8095,71 @@ span.agricart-sales-channels__switch.is-readonly {
     color: var(--agricart-muted);
 }
 
+.agricart-backups__panel-head--inline h2 {
+    margin: 0;
+}
+
+.agricart-backups__panel--compact {
+    padding-block: 0.85rem;
+}
+
+.agricart-backups__lede {
+    margin: 0 0 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--agricart-muted);
+    line-height: 1.45;
+    max-width: 42rem;
+}
+
+.agricart-backups__auto {
+    margin: 0.75rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--agricart-muted);
+    line-height: 1.45;
+}
+
+.agricart-backups__auto span {
+    color: var(--agricart-text, #0f172a);
+    font-weight: 600;
+}
+
+.agricart-backups__meta {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--agricart-muted);
+}
+
+.agricart-backups__actions--flush {
+    margin-bottom: 0;
+}
+
+.agricart-backups__details {
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--agricart-border);
+    font-size: 0.8125rem;
+}
+
+.agricart-backups__details summary {
+    cursor: pointer;
+    color: var(--agricart-text);
+    font-weight: 600;
+    list-style: none;
+}
+
+.agricart-backups__details summary::-webkit-details-marker {
+    display: none;
+}
+
+.agricart-backups__details .agricart-backups__lede {
+    margin-top: 0.65rem;
+}
+
+.agricart-backups__details .agricart-backups__path {
+    display: block;
+    margin: 0.5rem 0 0.75rem;
+}
+
 .agricart-backups__actions {
     display: flex;
     flex-wrap: wrap;
@@ -8105,6 +8170,45 @@ span.agricart-sales-channels__switch.is-readonly {
 .agricart-backups__upload {
     display: grid;
     gap: 0.75rem;
+}
+
+.agricart-backups__dropzone {
+    position: relative;
+    display: grid;
+    gap: 0.35rem;
+    padding: 1rem 1.1rem;
+    border: 1px dashed var(--agricart-border);
+    background: color-mix(in oklab, var(--agricart-border) 18%, var(--agricart-surface));
+    cursor: pointer;
+}
+
+.agricart-backups__dropzone:hover,
+.agricart-backups__dropzone:focus-within {
+    border-color: var(--agricart-primary, #83B735);
+    background: color-mix(in oklab, var(--agricart-primary, #83B735) 8%, var(--agricart-surface));
+}
+
+.agricart-backups__dropzone-title {
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--agricart-text);
+}
+
+.agricart-backups__dropzone-hint {
+    font-size: 0.8125rem;
+    color: var(--agricart-muted);
+}
+
+.agricart-backups__file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 .agricart-backups__upload-field input[type="file"] {

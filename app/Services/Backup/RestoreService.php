@@ -46,7 +46,7 @@ class RestoreService
             }
 
             if ($createSafetyBackup) {
-                app(BackupService::class)->create(BackupService::TYPE_DATABASE);
+                app(BackupService::class)->create(BackupService::TYPE_DATABASE, ['source' => 'safety']);
             }
 
             Artisan::call('down', ['--retry' => 60]);

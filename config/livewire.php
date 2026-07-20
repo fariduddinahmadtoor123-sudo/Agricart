@@ -41,7 +41,7 @@ return [
         'preview_mimes' => [
             'png', 'gif', 'bmp', 'svg', 'wav', 'mp4',
             'mov', 'avi', 'wmv', 'mp3', 'm4a',
-            'jpg', 'jpeg', 'mpga', 'webp', 'wma',
+            'jpg', 'jpeg', 'jfif', 'pjpeg', 'mpga', 'webp', 'wma', 'avif',
         ],
         'max_upload_time' => 30,
         'cleanup' => true,
