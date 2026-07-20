@@ -224,5 +224,33 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         activateTab(root.querySelector('[data-store-pdp-tab].is-active') ?? tabs[0]);
+
+        root.addEventListener('invalid', (event) => {
+            const field = event.target;
+
+            if (! (field instanceof HTMLElement)) {
+                return;
+            }
+
+            const panel = field.closest('[data-store-pdp-panel]');
+
+            if (! (panel instanceof HTMLElement) || ! panel.hidden) {
+                return;
+            }
+
+            const key = panel.dataset.storePdpPanel;
+            const tab = root.querySelector(`[data-store-pdp-tab="${key}"]`);
+
+            if (! (tab instanceof HTMLElement)) {
+                return;
+            }
+
+            activateTab(tab, true);
+            window.requestAnimationFrame(() => {
+                if (typeof field.focus === 'function') {
+                    field.focus({ preventScroll: false });
+                }
+            });
+        }, true);
     });
 });

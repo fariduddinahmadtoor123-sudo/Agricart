@@ -19,6 +19,10 @@
             ])
 
             <div class="ag-store-header__actions">
+                @include('store.components.locale-switcher', [
+                    'wrapperClass' => 'ag-store-header__locale',
+                ])
+
                 @if ($settings->show_social)
                     @include('store.components.social-links', [
                         'wrapperClass' => 'ag-store-header__social',

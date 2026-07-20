@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Store;
 
 use App\Http\Controllers\Controller;
+use App\Models\BankAccount;
 use App\Models\Customer;
 use App\Models\OnlineSaleOrder;
 use App\Services\Sales\SaleService;
@@ -46,6 +47,13 @@ class CustomerOrderController extends Controller
             ...$layout->layoutData(),
             'order' => $model,
             'sales' => $sales,
+            'bankTransferAccounts' => BankAccount::query()
+                ->where('status', BankAccount::STATUS_ACTIVE)
+                ->orderBy('account_code')
+                ->get([
+                    'id', 'name_en', 'name_ur', 'bank_name_en', 'bank_name_ur',
+                    'account_title', 'account_number', 'iban', 'currency',
+                ]),
         ]);
     }
 }

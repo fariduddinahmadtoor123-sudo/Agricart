@@ -128,9 +128,18 @@
             @endif
 
             @if ($order->requiresCustomerPaymentProof())
+                @php
+                    $whatsappMessage = __('agricart.storefront.checkout.success_whatsapp_message', ['order' => $order->order_number]);
+                    $whatsappUrl = $settings->whatsapp_enabled ? $settings->whatsappChatUrl($whatsappMessage) : null;
+                @endphp
                 <section class="ag-store-orders__detail-card ag-store-orders__payment-proof">
                     <h2 class="ag-store-orders__section-title">{{ __('agricart.customer.orders.upload_receipt_heading') }}</h2>
                     <p class="ag-store-customer-auth__lead">{{ __('agricart.customer.orders.upload_receipt_lead') }}</p>
+
+                    @include('store.components.bank-transfer-accounts', [
+                        'accounts' => $bankTransferAccounts ?? collect(),
+                        'lead' => __('agricart.storefront.checkout.bank_payment_accounts_lead'),
+                    ])
 
                     @if ($order->customerPaymentProofUrl())
                         <p class="ag-store-orders__note">
@@ -140,25 +149,48 @@
                         </p>
                     @endif
 
-                    <form method="post" action="{{ route('store.customer.orders.payment-proof', $order->order_number) }}" enctype="multipart/form-data" class="ag-store-checkout__form">
-                        @csrf
-                        <label class="ag-store-checkout__field">
-                            <span class="ag-store-checkout__label">{{ __('agricart.storefront.checkout.payment_reference') }}</span>
-                            <input
-                                type="text"
-                                name="customer_payment_reference"
-                                class="ag-store-checkout__input"
-                                value="{{ old('customer_payment_reference', $order->customer_payment_reference) }}"
-                                autocomplete="off"
-                            />
-                        </label>
-                        <label class="ag-store-checkout__field">
-                            <span class="ag-store-checkout__label">{{ __('agricart.customer.orders.bank_receipt_file') }}</span>
-                            <input type="file" name="bank_receipt" class="ag-store-checkout__input" accept="image/jpeg,image/png,image/webp,application/pdf" />
-                            <span class="ag-store-orders__file-hint">{{ __('agricart.customer.orders.bank_receipt_hint') }}</span>
-                        </label>
-                        <button type="submit" class="ag-store-btn ag-store-btn--primary">{{ __('agricart.customer.orders.submit_payment_proof') }}</button>
-                    </form>
+                    <div class="ag-store-orders__proof-options">
+                        <div class="ag-store-orders__proof-option">
+                            <h3 class="ag-store-orders__proof-option-title">{{ __('agricart.customer.orders.proof_upload_title') }}</h3>
+                            <p class="ag-store-orders__proof-option-text">{{ __('agricart.customer.orders.proof_upload_text') }}</p>
+
+                            <form method="post" action="{{ route('store.customer.orders.payment-proof', $order->order_number) }}" enctype="multipart/form-data" class="ag-store-checkout__form">
+                                @csrf
+                                <label class="ag-store-checkout__field">
+                                    <span class="ag-store-checkout__label">{{ __('agricart.storefront.checkout.payment_reference') }}</span>
+                                    <input
+                                        type="text"
+                                        name="customer_payment_reference"
+                                        class="ag-store-checkout__input"
+                                        value="{{ old('customer_payment_reference', $order->customer_payment_reference) }}"
+                                        autocomplete="off"
+                                    />
+                                </label>
+                                <label class="ag-store-checkout__field">
+                                    <span class="ag-store-checkout__label">{{ __('agricart.customer.orders.bank_receipt_file') }}</span>
+                                    <input type="file" name="bank_receipt" class="ag-store-checkout__input" accept="image/jpeg,image/png,image/webp,application/pdf" />
+                                    <span class="ag-store-orders__file-hint">{{ __('agricart.customer.orders.bank_receipt_hint') }}</span>
+                                </label>
+                                <button type="submit" class="ag-store-btn ag-store-btn--primary ag-store-btn--block">{{ __('agricart.customer.orders.submit_payment_proof') }}</button>
+                            </form>
+                        </div>
+
+                        @if (filled($whatsappUrl))
+                            <a
+                                href="{{ $whatsappUrl }}"
+                                class="ag-store-orders__proof-option ag-store-orders__proof-option--whatsapp"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <span class="ag-store-orders__proof-whatsapp-icon" aria-hidden="true">
+                                    @include('store.components.icons.whatsapp')
+                                </span>
+                                <h3 class="ag-store-orders__proof-option-title">{{ __('agricart.customer.orders.proof_whatsapp_title') }}</h3>
+                                <p class="ag-store-orders__proof-option-text">{{ __('agricart.customer.orders.proof_whatsapp_text') }}</p>
+                                <span class="ag-store-btn ag-store-btn--whatsapp ag-store-btn--block">{{ __('agricart.customer.orders.proof_whatsapp_cta') }}</span>
+                            </a>
+                        @endif
+                    </div>
                 </section>
             @endif
         </div>

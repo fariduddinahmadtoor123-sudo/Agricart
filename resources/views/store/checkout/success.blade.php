@@ -3,30 +3,120 @@
 @section('title', __('agricart.storefront.checkout.success_title') . ' — ' . ($settings->localized('site_name') ?? config('app.name')))
 
 @section('content')
+    @php
+        $whatsappMessage = __('agricart.storefront.checkout.success_whatsapp_message', ['order' => $orderNumber]);
+        $whatsappUrl = $settings->whatsapp_enabled ? $settings->whatsappChatUrl($whatsappMessage) : null;
+        $needsProof = isset($order)
+            && $order->customer_payment_method === 'bank_transfer'
+            && $order->needsBankReceiptUpload();
+        $orderTotal = isset($order, $sales)
+            ? __('agricart.storefront.products.price', ['amount' => $sales->formatMoney((float) $order->total_amount)])
+            : null;
+    @endphp
+
     <div class="ag-store-checkout-success">
-        <h1 class="ag-store-page-title">{{ __('agricart.storefront.checkout.success_title') }}</h1>
-        <p class="ag-store-checkout-success__lead">{{ __('agricart.storefront.checkout.success_lead') }}</p>
-        <p class="ag-store-checkout-success__order">
-            {{ __('agricart.storefront.checkout.order_number') }}
-            <strong><code>{{ $orderNumber }}</code></strong>
-        </p>
-        <p class="ag-store-checkout-success__hint">{{ __('agricart.storefront.checkout.success_hint') }}</p>
-        @isset($order)
-            @if (filled($order->localizedDeliveryMethodName()))
-                <p class="ag-store-checkout-success__hint">
-                    {{ __('agricart.storefront.checkout.delivery_method') }}:
-                    <strong>{{ $order->localizedDeliveryMethodName() }}</strong>
-                </p>
+        <div class="ag-store-checkout-success__card">
+            <div class="ag-store-checkout-success__badge" aria-hidden="true">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="square" stroke-linejoin="miter">
+                    <path d="M5 13l4 4L19 7" />
+                </svg>
+            </div>
+
+            <h1 class="ag-store-checkout-success__title">{{ __('agricart.storefront.checkout.success_title') }}</h1>
+            <p class="ag-store-checkout-success__lead">{{ __('agricart.storefront.checkout.success_lead') }}</p>
+
+            <div class="ag-store-checkout-success__order-box">
+                <span class="ag-store-checkout-success__order-label">{{ __('agricart.storefront.checkout.order_number') }}</span>
+                <div class="ag-store-checkout-success__order-row">
+                    <strong class="ag-store-checkout-success__order-code">{{ $orderNumber }}</strong>
+                    <button
+                        type="button"
+                        class="ag-store-bank-accounts__copy"
+                        data-copy-value="{{ $orderNumber }}"
+                        data-copy-success="{{ __('agricart.storefront.accessibility.copied') }}"
+                    >{{ __('agricart.storefront.accessibility.copy') }}</button>
+                </div>
+                @if ($orderTotal)
+                    <span class="ag-store-checkout-success__amount-label">{{ __('agricart.storefront.checkout.success_amount_due') }}</span>
+                    <strong class="ag-store-checkout-success__amount">{{ $orderTotal }}</strong>
+                @endif
+            </div>
+
+            <p class="ag-store-checkout-success__hint">{{ __('agricart.storefront.checkout.success_hint') }}</p>
+
+            @isset($order)
+                @if (filled($order->localizedDeliveryMethodName()))
+                    <p class="ag-store-checkout-success__meta">
+                        <span>{{ __('agricart.storefront.checkout.delivery_method') }}</span>
+                        <strong>{{ $order->localizedDeliveryMethodName() }}</strong>
+                    </p>
+                @endif
+            @endisset
+
+            @if ($needsProof)
+                <div class="ag-store-checkout-success__pay-next">
+                    <h2 class="ag-store-checkout-success__proof-title">{{ __('agricart.storefront.checkout.success_pay_next_heading') }}</h2>
+                    <ol class="ag-store-checkout-success__steps">
+                        <li>{{ __('agricart.storefront.checkout.success_pay_step_transfer') }}</li>
+                        <li>{{ __('agricart.storefront.checkout.success_pay_step_proof') }}</li>
+                    </ol>
+
+                    @include('store.components.bank-transfer-accounts', [
+                        'accounts' => $bankTransferAccounts ?? collect(),
+                    ])
+                </div>
+
+                <div class="ag-store-checkout-success__proof">
+                    <h2 class="ag-store-checkout-success__proof-title">{{ __('agricart.storefront.checkout.success_proof_heading') }}</h2>
+                    <p class="ag-store-checkout-success__proof-lead">{{ __('agricart.storefront.checkout.success_proof_lead') }}</p>
+
+                    <div class="ag-store-checkout-success__options">
+                        @auth('customer')
+                            <a href="{{ route('store.customer.orders.show', $orderNumber) }}" class="ag-store-checkout-success__option">
+                                <span class="ag-store-checkout-success__option-title">{{ __('agricart.storefront.checkout.success_proof_upload_title') }}</span>
+                                <span class="ag-store-checkout-success__option-text">{{ __('agricart.storefront.checkout.success_proof_upload_text') }}</span>
+                            </a>
+                        @endauth
+
+                        @if (filled($whatsappUrl))
+                            <a
+                                href="{{ $whatsappUrl }}"
+                                class="ag-store-checkout-success__option ag-store-checkout-success__option--whatsapp"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                <span class="ag-store-checkout-success__option-icon" aria-hidden="true">
+                                    @include('store.components.icons.whatsapp')
+                                </span>
+                                <span class="ag-store-checkout-success__option-title">{{ __('agricart.storefront.checkout.success_proof_whatsapp_title') }}</span>
+                                <span class="ag-store-checkout-success__option-text">{{ __('agricart.storefront.checkout.success_proof_whatsapp_text') }}</span>
+                            </a>
+                        @endif
+                    </div>
+                </div>
+            @elseif (filled($whatsappUrl))
+                <div class="ag-store-checkout-success__proof ag-store-checkout-success__proof--soft">
+                    <a
+                        href="{{ $whatsappUrl }}"
+                        class="ag-store-btn ag-store-btn--whatsapp ag-store-checkout-success__whatsapp-btn"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        <span class="ag-store-checkout-success__whatsapp-icon" aria-hidden="true">
+                            @include('store.components.icons.whatsapp')
+                        </span>
+                        {{ __('agricart.storefront.checkout.success_whatsapp_cta') }}
+                    </a>
+                    <p class="ag-store-checkout-success__proof-note">{{ __('agricart.storefront.checkout.success_proof_whatsapp_text') }}</p>
+                </div>
             @endif
-            @if ($order->customer_payment_method === 'bank_transfer' && $order->needsBankReceiptUpload())
-                <p class="ag-store-checkout-success__bank-notice">{{ __('agricart.storefront.checkout.success_upload_receipt') }}</p>
-            @endif
-        @endisset
-        <div class="ag-store-checkout-success__actions">
-            @auth('customer')
-                <a href="{{ route('store.customer.orders.show', $orderNumber) }}" class="ag-store-btn ag-store-btn--primary">{{ __('agricart.customer.orders.view_this_order') }}</a>
-            @endauth
-            <a href="{{ route('store.home') }}" class="ag-store-btn ag-store-btn--secondary">{{ __('agricart.storefront.cart.continue_shopping') }}</a>
+
+            <div class="ag-store-checkout-success__actions">
+                @auth('customer')
+                    <a href="{{ route('store.customer.orders.show', $orderNumber) }}" class="ag-store-btn ag-store-btn--primary">{{ __('agricart.customer.orders.view_this_order') }}</a>
+                @endauth
+                <a href="{{ route('store.home') }}" class="ag-store-btn ag-store-btn--secondary">{{ __('agricart.storefront.cart.continue_shopping') }}</a>
+            </div>
         </div>
     </div>
 @endsection

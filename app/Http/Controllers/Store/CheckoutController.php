@@ -75,7 +75,10 @@ class CheckoutController extends Controller
                 'cod_min_advance_percent' => (float) ($rule?->cod_min_advance_percent ?? 0),
                 'full_advance_required' => (bool) ($rule?->full_advance_required ?? false),
             ];
-        })->filter(static fn (array $option): bool => $option['payments'] !== [])
+        })->filter(static function (array $option): bool {
+            // Storefront checkout is bank-transfer first for now; hide cash-only methods.
+            return in_array('bank_transfer', $option['payments'], true);
+        })
             ->values()
             ->all();
 
@@ -236,7 +239,7 @@ class CheckoutController extends Controller
         }
     }
 
-    public function success(Request $request, string $order, StoreLayoutService $layout, StoreCustomerOrderAccess $orderAccess): View
+    public function success(Request $request, string $order, StoreLayoutService $layout, StoreCustomerOrderAccess $orderAccess, SaleService $sales): View
     {
         $model = $orderAccess->resolveCheckoutSuccessOrNotFound($request, $order);
 
@@ -244,6 +247,14 @@ class CheckoutController extends Controller
             ...$layout->layoutData(),
             'orderNumber' => $model->order_number,
             'order' => $model,
+            'sales' => $sales,
+            'bankTransferAccounts' => BankAccount::query()
+                ->where('status', BankAccount::STATUS_ACTIVE)
+                ->orderBy('account_code')
+                ->get([
+                    'id', 'name_en', 'name_ur', 'bank_name_en', 'bank_name_ur',
+                    'account_title', 'account_number', 'iban', 'currency',
+                ]),
         ]);
     }
 }

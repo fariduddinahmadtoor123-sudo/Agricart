@@ -119,28 +119,50 @@
                     @endif
 
                     @if ($isActive && ($onlineStoreChannel['allow_purchase'] ?? true))
-                        <form method="post" action="{{ route('store.cart.add') }}" class="ag-store-pdp__cart-form ag-store-pdp__cart-form--side">
-                            @csrf
-                            <input type="hidden" name="product_id" value="{{ $product->id }}" />
-                            <div class="ag-store-pdp__qty-row">
-                                <label class="ag-store-pdp__qty-label" for="product-qty">{{ __('agricart.storefront.product.quantity') }}</label>
-                                <div class="ag-store-pdp__qty-controls">
-                                    <input
-                                        id="product-qty"
-                                        type="number"
-                                        name="quantity"
-                                        class="ag-store-pdp__qty-input"
-                                        value="1"
-                                        min="1"
-                                        step="1"
-                                        required
-                                    />
-                                    <button type="submit" class="ag-store-btn ag-store-btn--primary ag-store-pdp__add-btn">
-                                        {{ __('agricart.storefront.product.add_to_cart') }}
-                                    </button>
+                        @php
+                            $allowsOverselling = app(\App\Services\Sales\SaleService::class)->allowsOverselling();
+                            $stockQty = $product->stock_qty;
+                            $inStock = $allowsOverselling || $stockQty === null || (float) $stockQty > 0;
+                        @endphp
+
+                        @if ($inStock)
+                            <form method="post" action="{{ route('store.cart.add') }}" class="ag-store-pdp__cart-form ag-store-pdp__cart-form--side">
+                                @csrf
+                                <input type="hidden" name="product_id" value="{{ $product->id }}" />
+                                <div class="ag-store-pdp__qty-row">
+                                    <label class="ag-store-pdp__qty-label" for="product-qty">{{ __('agricart.storefront.product.quantity') }}</label>
+                                    <div class="ag-store-pdp__qty-controls">
+                                        <input
+                                            id="product-qty"
+                                            type="number"
+                                            name="quantity"
+                                            class="ag-store-pdp__qty-input"
+                                            value="1"
+                                            min="1"
+                                            step="1"
+                                            @if (! $allowsOverselling && $stockQty !== null) max="{{ (int) max(1, (float) $stockQty) }}" @endif
+                                            required
+                                        />
+                                        <button type="submit" class="ag-store-btn ag-store-btn--primary ag-store-pdp__add-btn">
+                                            {{ __('agricart.storefront.product.add_to_cart') }}
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        </form>
+                                @if (! $allowsOverselling && $stockQty !== null)
+                                    <p class="ag-store-pdp__stock-note">{{ __('agricart.storefront.product.in_stock', ['qty' => app(\App\Services\Sales\SaleService::class)->formatQty((float) $stockQty)]) }}</p>
+                                @endif
+                            </form>
+                        @else
+                            <p class="ag-store-pdp__stock-note ag-store-pdp__stock-note--out">{{ __('agricart.storefront.product.out_of_stock') }}</p>
+                            @if ($settings->whatsapp_enabled && filled($settings->whatsappChatUrl()))
+                                <a
+                                    href="{{ $settings->whatsappChatUrl(__('agricart.storefront.product.out_of_stock_whatsapp', ['product' => $productName])) }}"
+                                    class="ag-store-btn ag-store-btn--whatsapp ag-store-btn--block"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >{{ __('agricart.storefront.product.ask_on_whatsapp') }}</a>
+                            @endif
+                        @endif
                     @endif
                 </section>
             </div>

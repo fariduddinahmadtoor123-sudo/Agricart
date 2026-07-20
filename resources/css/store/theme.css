@@ -119,69 +119,72 @@
     height: 0.75rem;
 }
 
-.ag-store-topbar__locale {
+.ag-store-header__locale {
     position: relative;
     display: inline-flex;
     align-items: center;
+    flex-shrink: 0;
 }
 
-.ag-store-locale-details > summary {
+.ag-store-locale > summary {
     list-style: none;
 }
 
-.ag-store-locale-details > summary::-webkit-details-marker {
+.ag-store-locale > summary::-webkit-details-marker {
     display: none;
 }
 
-.ag-store-topbar__locale-trigger {
+.ag-store-locale__trigger {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    padding: 0.25rem 0.5rem;
-    border: 1px solid rgba(255, 255, 255, 0.75);
-    background: transparent;
-    color: #fff;
+    gap: 0.3rem;
+    min-height: 2rem;
+    padding: 0.3rem 0.5rem;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-surface);
+    color: var(--agricart-text);
     font-family: inherit;
     font-size: 0.75rem;
+    font-weight: 700;
     line-height: 1;
     cursor: pointer;
     white-space: nowrap;
 }
 
-.ag-store-topbar__locale-trigger:hover,
-.ag-store-topbar__locale-trigger:focus-visible,
-.ag-store-locale-details[open] > .ag-store-topbar__locale-trigger {
-    background: rgba(255, 255, 255, 0.14);
-    border-color: #fff;
+.ag-store-locale__trigger:hover,
+.ag-store-locale__trigger:focus-visible,
+.ag-store-locale[open] > .ag-store-locale__trigger {
+    border-color: var(--agricart-primary);
     outline: none;
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--agricart-primary) 35%, transparent);
 }
 
-.ag-store-topbar__locale-chevron {
+.ag-store-locale__current {
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.ag-store-locale__chevron {
     display: inline-flex;
     flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    margin-inline-start: 0.15rem;
-    opacity: 0.95;
+    color: var(--agricart-muted);
     transition: transform 0.15s ease;
 }
 
-.ag-store-topbar__locale-current {
-    font-weight: 700;
-}
-
-.ag-store-locale-details[open] .ag-store-topbar__locale-chevron {
+.ag-store-locale[open] .ag-store-locale__chevron {
     transform: rotate(180deg);
 }
 
-.ag-store-topbar__locale-menu {
+.ag-store-locale__menu {
     position: absolute;
-    top: calc(100% + 0.35rem);
+    top: calc(100% + 0.25rem);
     inset-inline-end: 0;
     z-index: 250;
-    min-width: 9rem;
+    min-width: 8.75rem;
     margin: 0;
-    padding: 0;
+    padding: 0.25rem 0;
     list-style: none;
     background: #fff;
     border: 1px solid var(--agricart-border);
@@ -189,20 +192,19 @@
     color: var(--agricart-text);
 }
 
-.ag-store-locale-details:not([open]) .ag-store-topbar__locale-menu {
+.ag-store-locale:not([open]) .ag-store-locale__menu {
     display: none;
 }
 
-.ag-store-locale-details[open] .ag-store-topbar__locale-menu {
+.ag-store-locale[open] .ag-store-locale__menu {
     display: block;
 }
 
-.ag-store-topbar__locale-menu li + li {
-    border-top: 1px solid var(--agricart-border);
-}
-
-.ag-store-topbar__locale-menu .ag-store-topbar__locale-option {
-    display: block;
+.ag-store-locale__option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
     padding: 0.5rem 0.75rem;
     font-size: 0.8125rem;
     font-weight: 600;
@@ -210,16 +212,27 @@
     background: #fff;
 }
 
-.ag-store-topbar__locale-menu .ag-store-topbar__locale-option:hover,
-.ag-store-topbar__locale-menu .ag-store-topbar__locale-option:focus-visible {
+.ag-store-locale__option:hover,
+.ag-store-locale__option:focus-visible {
     background: color-mix(in oklab, var(--agricart-primary) 14%, white);
     color: var(--agricart-primary);
     outline: none;
 }
 
-.ag-store-topbar__locale-menu .ag-store-topbar__locale-option.is-active {
+.ag-store-locale__option.is-active {
     color: #fff;
     background: var(--agricart-primary);
+}
+
+.ag-store-locale__option-short {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.ag-store-locale__option-label {
+    font-weight: 600;
 }
 
 @media (max-width: 48rem) {
@@ -830,6 +843,25 @@
 
     .ag-store-header__social {
         display: none;
+    }
+
+    .ag-store-header__locale .ag-store-locale__trigger {
+        min-height: 1.85rem;
+        padding: 0.25rem 0.4rem;
+        font-size: 0.6875rem;
+    }
+
+    .ag-store-header__user-name {
+        display: none;
+    }
+
+    .ag-store-header__user-trigger {
+        max-width: none;
+        padding: 0.25rem 0.35rem;
+    }
+
+    .ag-store-locale__menu {
+        min-width: 7.75rem;
     }
 }
 
@@ -2284,8 +2316,7 @@
     gap: 1rem;
     grid-template-areas:
         "main"
-        "aside"
-        "completion";
+        "aside";
 }
 
 .ag-store-checkout__main {
@@ -2304,11 +2335,14 @@
     min-width: 0;
 }
 
-.ag-store-checkout__completion {
-    grid-area: completion;
+.ag-store-checkout__aside-actions {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+}
+
+.ag-store-checkout__completion {
+    display: none;
 }
 
 .ag-store-checkout__panel {
@@ -2381,10 +2415,9 @@
 
 @media (min-width: 52rem) {
     .ag-store-checkout__layout {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1.35fr) minmax(16rem, 0.85fr);
         grid-template-areas:
-            "aside main"
-            "aside completion";
+            "main aside";
         align-items: start;
         gap: 1.5rem 1.75rem;
     }
@@ -2396,25 +2429,95 @@
         overflow-y: auto;
         overscroll-behavior: contain;
     }
+}
 
-    .ag-store-checkout__step--payment {
-        border: 2px solid color-mix(in oklab, var(--agricart-primary) 28%, var(--agricart-border));
-        box-shadow: 0 4px 16px color-mix(in oklab, var(--agricart-primary) 8%, transparent);
-    }
+.ag-store-checkout__account-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 0.65rem;
+    margin: 0 0 0.15rem;
+    font-size: 0.88rem;
+    color: var(--agricart-muted);
+}
 
-    .ag-store-checkout__step--payment .ag-store-checkout__step-head {
-        background: color-mix(in oklab, var(--agricart-primary) 10%, var(--agricart-bg));
-    }
+.ag-store-checkout__account-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--agricart-muted);
+}
 
-    .ag-store-checkout__panel--notes {
-        border-style: dashed;
-        border-color: color-mix(in oklab, var(--agricart-border) 90%, transparent);
-        background: color-mix(in oklab, var(--agricart-bg) 60%, var(--agricart-surface));
-    }
+.ag-store-checkout__account-line strong {
+    color: var(--agricart-text);
+    font-weight: 700;
+}
 
-    .ag-store-checkout__completion {
-        padding-top: 0.15rem;
-    }
+.ag-store-checkout__account-meta {
+    color: var(--agricart-muted);
+}
+
+.ag-store-checkout__tabs {
+    margin: 0;
+}
+
+.ag-store-checkout__tabs .ag-store-pdp__tablist {
+    margin-bottom: 0.65rem;
+}
+
+.ag-store-checkout__tabs .ag-store-pdp__panel {
+    padding: 0;
+}
+
+.ag-store-checkout__tabs .ag-store-pdp__panel.is-active {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.ag-store-checkout__step--compact .ag-store-checkout__step-body--compact {
+    padding: 0.65rem 0.75rem 0.75rem;
+}
+
+.ag-store-checkout__step--compact .ag-store-checkout__field {
+    margin-bottom: 0;
+}
+
+.ag-store-checkout__step--compact .ag-store-checkout__label {
+    margin-bottom: 0.2rem;
+    font-size: 0.6875rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--agricart-muted);
+    font-weight: 600;
+}
+
+.ag-store-checkout__step--compact .ag-store-checkout__input,
+.ag-store-checkout__step--compact .ag-store-checkout__textarea,
+.ag-store-checkout__step--compact .ag-store-checkout__address-grid .ag-store-checkout__input {
+    padding: 0.4rem 0.55rem;
+    font-size: 0.8125rem;
+    line-height: 1.35;
+    border-radius: 0;
+    min-height: 2rem;
+}
+
+.ag-store-checkout__step--compact .ag-store-checkout__textarea--compact {
+    min-height: 3.5rem;
+}
+
+.ag-store-checkout__step--compact .ag-store-checkout__field-row {
+    gap: 0.5rem;
+}
+
+.ag-store-checkout__step--compact .ag-store-checkout__address-grid {
+    gap: 0.5rem 0.55rem;
+}
+
+.ag-store-checkout__step--compact .ag-store-checkout__checkbox {
+    margin-top: 0.35rem;
+    font-size: 0.8125rem;
 }
 
 .ag-store-checkout__customer-card--top {
@@ -2617,24 +2720,22 @@
 }
 
 .ag-store-checkout__bank-panel {
-    display: none;
-    margin-top: 0.85rem;
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 0;
     padding: 0.85rem;
     border: 1px solid color-mix(in oklab, var(--agricart-primary) 25%, var(--agricart-border));
     background: color-mix(in oklab, var(--agricart-primary) 5%, var(--agricart-bg, #fff));
 }
 
-.ag-store-checkout__delivery-payment .ag-store-checkout__bank-panel[style*="display: none"],
-.ag-store-checkout__delivery-payment .ag-store-checkout__cash-note[style*="display: none"] {
+.ag-store-checkout__bank-panel--always {
+    margin-top: 0;
+}
+
+.ag-store-checkout__main .ag-store-checkout__bank-panel[style*="display: none"],
+.ag-store-checkout__main .ag-store-checkout__cash-note[style*="display: none"],
+.ag-store-checkout__main .ag-store-checkout__step--bank[style*="display: none"] {
     display: none !important;
-}
-
-.ag-store-checkout__form:has(input[name="customer_payment_method"][value="bank_transfer"]:checked) .ag-store-checkout__bank-panel {
-    display: block;
-}
-
-.ag-store-checkout__layout:has(input[name="customer_payment_method"][value="bank_transfer"]:checked) .ag-store-checkout__bank-panel {
-    display: block;
 }
 
 .ag-store-checkout__cash-note {
@@ -2646,14 +2747,6 @@
     color: var(--agricart-muted);
     border: 1px solid var(--agricart-border);
     background: var(--agricart-bg);
-}
-
-.ag-store-checkout__form:has(input[name="customer_payment_method"][value="cash"]:checked) .ag-store-checkout__cash-note {
-    display: block;
-}
-
-.ag-store-checkout__layout:has(input[name="customer_payment_method"][value="cash"]:checked) .ag-store-checkout__cash-note {
-    display: block;
 }
 
 .ag-store-checkout__bank-panel-lead {
@@ -2768,6 +2861,10 @@
 }
 
 .ag-store-checkout__delivery-desc {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
     font-size: 0.75rem;
     line-height: 1.4;
     color: var(--agricart-muted);
@@ -2785,9 +2882,22 @@
 }
 
 .ag-store-checkout__delivery-meta {
-    margin-top: 0.75rem;
+    margin-top: 0.55rem;
     display: grid;
-    gap: 0.4rem;
+    gap: 0.25rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--agricart-border);
+    background: color-mix(in oklab, var(--agricart-border) 8%, var(--agricart-surface, #fff));
+}
+
+.ag-store-checkout__delivery-meta--submit {
+    margin-top: 0;
+    border-color: color-mix(in oklab, var(--agricart-primary) 30%, var(--agricart-border));
+    background: color-mix(in oklab, var(--agricart-primary) 7%, var(--agricart-surface, #fff));
+}
+
+.ag-store-checkout__aside-actions .ag-store-checkout__delivery-meta[style*="display: none"] {
+    display: none !important;
 }
 
 .ag-store-checkout__delivery-mode,
@@ -2795,15 +2905,19 @@
 .ag-store-checkout__delivery-hint,
 .ag-store-checkout__delivery-empty {
     margin: 0;
-    font-size: 0.8125rem;
-    line-height: 1.45;
+    font-size: 0.8rem;
+    line-height: 1.4;
     color: var(--agricart-muted);
 }
 
 .ag-store-checkout__delivery-notice {
-    padding: 0.55rem 0.65rem;
-    border: 1px solid var(--agricart-border);
-    background: var(--agricart-bg);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    padding: 0;
+    border: 0;
+    background: transparent;
     color: var(--agricart-text);
 }
 
@@ -2954,34 +3068,411 @@
 }
 
 .ag-store-checkout-success {
-    max-width: 32rem;
-    padding: 1.5rem 0;
+    max-width: 36rem;
+    margin-inline: auto;
+    padding: 1.25rem 0 2rem;
+}
+
+.ag-store-checkout-success__card {
+    padding: 1.5rem 1.35rem 1.4rem;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0;
+    background: var(--agricart-surface, #fff);
+}
+
+.ag-store-checkout-success__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-bottom: 0.85rem;
+    color: #fff;
+    background: var(--agricart-primary, #83B735);
+    border-radius: 0;
+}
+
+.ag-store-checkout-success__badge svg {
+    width: 1.35rem;
+    height: 1.35rem;
+}
+
+.ag-store-checkout-success__title {
+    margin: 0 0 0.4rem;
+    font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--agricart-text);
 }
 
 .ag-store-checkout-success__lead {
-    font-size: 1rem;
-    margin-bottom: 0.75rem;
+    margin: 0 0 1rem;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: var(--agricart-muted);
 }
 
-.ag-store-checkout-success__order {
-    margin-bottom: 0.75rem;
+.ag-store-checkout-success__order-box {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin: 0 0 0.9rem;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid color-mix(in oklab, var(--agricart-primary) 28%, var(--agricart-border));
+    background: color-mix(in oklab, var(--agricart-primary) 7%, var(--agricart-surface, #fff));
+}
+
+.ag-store-checkout-success__order-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--agricart-muted);
+}
+
+.ag-store-checkout-success__order-code {
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--agricart-text);
+    font-variant-numeric: tabular-nums;
+}
+
+.ag-store-checkout-success__order-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.65rem;
+}
+
+.ag-store-checkout-success__amount-label {
+    display: block;
+    margin-top: 0.65rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--agricart-muted);
+}
+
+.ag-store-checkout-success__amount {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--agricart-text);
+}
+
+.ag-store-checkout-success__pay-next {
+    margin: 0 0 1rem;
+    padding: 0.9rem 0.85rem;
+    border: 1px solid color-mix(in oklab, var(--agricart-primary) 28%, var(--agricart-border));
+    background: color-mix(in oklab, var(--agricart-primary) 6%, var(--agricart-surface, #fff));
+}
+
+.ag-store-checkout-success__steps {
+    margin: 0.45rem 0 0.85rem;
+    padding-inline-start: 1.15rem;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--agricart-text);
+}
+
+.ag-store-checkout-success__steps li + li {
+    margin-top: 0.25rem;
+}
+
+.ag-store-bank-accounts {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.ag-store-bank-accounts__heading {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--agricart-text);
+}
+
+.ag-store-bank-accounts__lead {
+    margin: 0;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--agricart-muted);
+}
+
+.ag-store-bank-accounts__list {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.ag-store-bank-accounts__card {
+    display: grid;
+    gap: 0.2rem;
+    padding: 0.7rem 0.75rem;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-surface, #fff);
+}
+
+.ag-store-bank-accounts__bank {
+    font-size: 0.875rem;
+    color: var(--agricart-text);
+}
+
+.ag-store-bank-accounts__title {
+    font-size: 0.78rem;
+    color: var(--agricart-muted);
+}
+
+.ag-store-bank-accounts__copy-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.25rem;
+}
+
+.ag-store-bank-accounts__code {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--agricart-text);
+}
+
+.ag-store-bank-accounts__copy {
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-bg, #F4F5F7);
+    color: var(--agricart-text);
+    padding: 0.2rem 0.45rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 0;
+}
+
+.ag-store-bank-accounts__copy:hover,
+.ag-store-bank-accounts__copy:focus-visible {
+    border-color: var(--agricart-primary);
+    outline: none;
+}
+
+.ag-store-checkout__pay-mode {
+    display: grid;
+    gap: 0.15rem;
+    margin: 0.75rem 0 0;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-bg, #F4F5F7);
+}
+
+.ag-store-checkout__pay-mode-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--agricart-muted);
+}
+
+.ag-store-checkout__pay-mode strong {
+    font-size: 0.9375rem;
+    color: var(--agricart-text);
+}
+
+.ag-store-checkout__pay-mode-hint {
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--agricart-muted);
+}
+
+.ag-store-howto {
+    margin: 0 0 1.5rem;
+    padding: 1rem 1.05rem;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-surface, #fff);
+}
+
+.ag-store-howto__title {
+    margin: 0 0 0.65rem;
     font-size: 1.05rem;
+    font-weight: 700;
+}
+
+.ag-store-howto__steps {
+    margin: 0;
+    padding-inline-start: 1.2rem;
+    display: grid;
+    gap: 0.35rem;
+    font-size: 0.9rem;
+    line-height: 1.45;
+    color: var(--agricart-text);
+}
+
+.ag-store-pdp__stock-note {
+    margin: 0.55rem 0 0;
+    font-size: 0.8125rem;
+    color: var(--agricart-muted);
+}
+
+.ag-store-pdp__stock-note--out {
+    margin-bottom: 0.65rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-bg, #F4F5F7);
+    color: var(--agricart-text);
+    font-weight: 600;
+}
+
+.ag-store-orders__payment-proof .ag-store-bank-accounts {
+    margin: 0.75rem 0 1rem;
 }
 
 .ag-store-checkout-success__hint {
-    margin-bottom: 1.25rem;
+    margin: 0 0 0.75rem;
     color: var(--agricart-muted);
     font-size: 0.875rem;
     line-height: 1.55;
 }
 
-.ag-store-checkout-success__bank-notice {
+.ag-store-checkout-success__meta {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.35rem 0.55rem;
     margin: 0 0 1rem;
-    padding: 0.75rem 1rem;
-    border: 1px solid color-mix(in oklab, var(--agricart-primary) 35%, var(--agricart-border));
-    background: color-mix(in oklab, var(--agricart-primary) 8%, var(--agricart-surface));
     font-size: 0.875rem;
+    color: var(--agricart-muted);
+}
+
+.ag-store-checkout-success__meta strong {
+    color: var(--agricart-text);
+}
+
+.ag-store-checkout-success__proof {
+    margin: 0 0 1.15rem;
+    padding: 0.9rem 0.85rem;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-bg, #F4F5F7);
+}
+
+.ag-store-checkout-success__proof--soft {
+    background: transparent;
+    border-style: dashed;
+}
+
+.ag-store-checkout-success__proof-title {
+    margin: 0 0 0.35rem;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--agricart-text);
+}
+
+.ag-store-checkout-success__proof-lead,
+.ag-store-checkout-success__proof-note {
+    margin: 0 0 0.85rem;
+    font-size: 0.8125rem;
     line-height: 1.5;
+    color: var(--agricart-muted);
+}
+
+.ag-store-checkout-success__proof-note {
+    margin: 0.65rem 0 0;
+}
+
+.ag-store-checkout-success__options {
+    display: grid;
+    gap: 0.65rem;
+}
+
+@media (min-width: 36rem) {
+    .ag-store-checkout-success__options {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.ag-store-checkout-success__option {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-height: 100%;
+    padding: 0.8rem 0.75rem;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0;
+    background: var(--agricart-surface, #fff);
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.ag-store-checkout-success__option:hover,
+.ag-store-checkout-success__option:focus-visible {
+    border-color: color-mix(in oklab, var(--agricart-primary) 45%, var(--agricart-border));
+    background: color-mix(in oklab, var(--agricart-primary) 6%, #fff);
+    outline: none;
+}
+
+.ag-store-checkout-success__option--whatsapp:hover,
+.ag-store-checkout-success__option--whatsapp:focus-visible {
+    border-color: #25d366;
+    background: color-mix(in oklab, #25d366 8%, #fff);
+}
+
+.ag-store-checkout-success__option-icon {
+    display: inline-flex;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-bottom: 0.15rem;
+    color: #25d366;
+}
+
+.ag-store-checkout-success__option-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.ag-store-checkout-success__option-title {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--agricart-text);
+}
+
+.ag-store-checkout-success__option-text {
+    font-size: 0.75rem;
+    line-height: 1.45;
+    color: var(--agricart-muted);
+}
+
+.ag-store-checkout-success__whatsapp-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    width: 100%;
+}
+
+.ag-store-checkout-success__whatsapp-icon {
+    display: inline-flex;
+    width: 1.1rem;
+    height: 1.1rem;
+}
+
+.ag-store-checkout-success__whatsapp-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.ag-store-btn--whatsapp {
+    border: 1px solid #1ebe57;
+    background: #25d366;
+    color: #fff;
+    border-radius: 0;
+}
+
+.ag-store-btn--whatsapp:hover,
+.ag-store-btn--whatsapp:focus-visible {
+    background: #1ebe57;
+    border-color: #1aa34a;
+    color: #fff;
+    outline: none;
 }
 
 .ag-store-checkout-success__actions {
@@ -2990,10 +3481,14 @@
     gap: 0.65rem;
 }
 
+.ag-store-checkout-success__bank-notice {
+    display: none;
+}
+
 .ag-store-checkout__address-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.65rem 0.75rem;
+    gap: 0.5rem 0.55rem;
     margin: 0;
 }
 
@@ -4685,6 +5180,83 @@ html[dir='rtl'] .ag-store-footer__col--map {
     color: var(--agricart-muted);
 }
 
+.ag-store-orders__proof-options {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: 0.85rem;
+}
+
+@media (min-width: 40rem) {
+    .ag-store-orders__proof-options {
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.9fr);
+        align-items: stretch;
+    }
+}
+
+.ag-store-orders__proof-option {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 0.85rem 0.8rem;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0;
+    background: var(--agricart-bg, #F4F5F7);
+    text-decoration: none;
+    color: inherit;
+}
+
+.ag-store-orders__proof-option--whatsapp {
+    justify-content: flex-start;
+    background: color-mix(in oklab, #25d366 6%, #fff);
+    border-color: color-mix(in oklab, #25d366 35%, var(--agricart-border));
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.ag-store-orders__proof-option--whatsapp:hover,
+.ag-store-orders__proof-option--whatsapp:focus-visible {
+    border-color: #25d366;
+    background: color-mix(in oklab, #25d366 10%, #fff);
+    outline: none;
+}
+
+.ag-store-orders__proof-option--whatsapp .ag-store-btn--whatsapp {
+    margin-top: auto;
+}
+
+.ag-store-orders__proof-whatsapp-icon {
+    display: inline-flex;
+    width: 1.35rem;
+    height: 1.35rem;
+    color: #25d366;
+}
+
+.ag-store-orders__proof-whatsapp-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.ag-store-orders__proof-option-title {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--agricart-text);
+}
+
+.ag-store-orders__proof-option-text {
+    margin: 0 0 0.35rem;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--agricart-muted);
+}
+
+.ag-store-orders__payment-proof .ag-store-checkout__field {
+    margin-bottom: 0.75rem;
+}
+
+.ag-store-orders__payment-proof .ag-store-checkout__label {
+    font-size: 0.75rem;
+}
+
 .ag-store-orders__proof-status {
     margin-top: 0.5rem;
     font-size: 0.875rem;
@@ -5414,14 +5986,36 @@ html[dir='rtl'] .ag-store-footer__col--map {
         border: 0;
     }
 
+    .ag-store-cart__table td[data-label] {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+        padding-block: 0.45rem;
+        border-top: 1px solid color-mix(in oklab, var(--agricart-border) 70%, transparent);
+    }
+
+    .ag-store-cart__table td[data-label]::before {
+        content: attr(data-label);
+        flex: 0 0 auto;
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        color: var(--agricart-muted);
+    }
+
     .ag-store-cart__thumb {
         float: inline-start;
         width: 4.25rem !important;
         margin-inline-end: 0.75rem;
+        border-top: 0 !important;
     }
 
     .ag-store-cart__product {
         min-height: 4rem;
+        border-top: 0 !important;
+        display: block !important;
     }
 
     .ag-store-cart__actions {

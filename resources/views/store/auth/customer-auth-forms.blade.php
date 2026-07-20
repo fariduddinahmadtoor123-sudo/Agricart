@@ -9,7 +9,6 @@
     $registerUrl = route('store.customer.login', array_merge(['tab' => 'register'], $redirectQuery));
     $statusMessage = session('customer_auth_status') ?? session('store_status');
     $statusType = session('customer_auth_status_type', session('store_status') ? 'warning' : 'danger');
-    $provinces = config('pakistani_provinces', []);
 @endphp
 
 <div class="ag-store-customer-auth">
@@ -68,9 +67,19 @@
                     @endif
 
                     <div class="ag-store-customer-auth__field">
-                        <label for="customer-login-email">{{ __('agricart.customer.fields.email') }}</label>
-                        <input id="customer-login-email" type="email" name="login_email" value="{{ old('login_email') }}" class="ag-store-customer-auth__input" autocomplete="email" required />
-                        @error('login_email') <span class="ag-store-customer-auth__error">{{ $message }}</span> @enderror
+                        <label for="customer-login">{{ __('agricart.customer.fields.login') }}</label>
+                        <input
+                            id="customer-login"
+                            type="text"
+                            name="login"
+                            value="{{ old('login') }}"
+                            class="ag-store-customer-auth__input"
+                            autocomplete="username"
+                            inputmode="tel"
+                            required
+                            placeholder="{{ __('agricart.customer.hints.login_phone_or_email') }}"
+                        />
+                        @error('login') <span class="ag-store-customer-auth__error">{{ $message }}</span> @enderror
                     </div>
 
                     <div class="ag-store-customer-auth__field">
@@ -114,6 +123,7 @@
 
                     <div class="ag-store-customer-auth__section">
                         <h2 class="ag-store-customer-auth__section-title">{{ __('agricart.customer.auth.section_account') }}</h2>
+                        <p class="ag-store-customer-auth__section-note">{{ __('agricart.customer.auth.register_address_later_note') }}</p>
                         <div class="ag-store-customer-auth__grid ag-store-customer-auth__grid--2">
                             <div class="ag-store-customer-auth__field">
                                 <label for="customer-first-name">{{ __('agricart.customer.fields.first_name') }} *</label>
@@ -126,14 +136,14 @@
                                 @error('last_name') <span class="ag-store-customer-auth__error">{{ $message }}</span> @enderror
                             </div>
                             <div class="ag-store-customer-auth__field">
-                                <label for="customer-email">{{ __('agricart.customer.fields.email') }} *</label>
-                                <input id="customer-email" type="email" name="email" value="{{ old('email') }}" class="ag-store-customer-auth__input" autocomplete="email" required />
-                                @error('email') <span class="ag-store-customer-auth__error">{{ $message }}</span> @enderror
-                            </div>
-                            <div class="ag-store-customer-auth__field">
                                 <label for="customer-phone">{{ __('agricart.customer.fields.phone') }} *</label>
                                 <input id="customer-phone" type="tel" name="phone" value="{{ old('phone') }}" class="ag-store-customer-auth__input" autocomplete="tel" required />
                                 @error('phone') <span class="ag-store-customer-auth__error">{{ $message }}</span> @enderror
+                            </div>
+                            <div class="ag-store-customer-auth__field">
+                                <label for="customer-email">{{ __('agricart.customer.fields.email') }} *</label>
+                                <input id="customer-email" type="email" name="email" value="{{ old('email') }}" class="ag-store-customer-auth__input" autocomplete="email" required />
+                                @error('email') <span class="ag-store-customer-auth__error">{{ $message }}</span> @enderror
                             </div>
                             <div class="ag-store-customer-auth__field">
                                 <x-agricart.password-field
@@ -156,47 +166,6 @@
                                     required
                                 />
                                 @error('password_confirmation') <span class="ag-store-customer-auth__error">{{ $message }}</span> @enderror
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="ag-store-customer-auth__section">
-                        <h2 class="ag-store-customer-auth__section-title">{{ __('agricart.customer.auth.section_address') }}</h2>
-                        <div class="ag-store-customer-auth__grid">
-                            <div class="ag-store-customer-auth__field ag-store-customer-auth__field--full">
-                                <label for="customer-address1">{{ __('agricart.customer.fields.address_line1') }} *</label>
-                                <input id="customer-address1" type="text" name="address_line1" value="{{ old('address_line1') }}" class="ag-store-customer-auth__input" autocomplete="address-line1" required />
-                                @error('address_line1') <span class="ag-store-customer-auth__error">{{ $message }}</span> @enderror
-                            </div>
-                            <div class="ag-store-customer-auth__field ag-store-customer-auth__field--full">
-                                <label for="customer-address2">{{ __('agricart.customer.fields.address_line2') }}</label>
-                                <input id="customer-address2" type="text" name="address_line2" value="{{ old('address_line2') }}" class="ag-store-customer-auth__input" autocomplete="address-line2" />
-                                @error('address_line2') <span class="ag-store-customer-auth__error">{{ $message }}</span> @enderror
-                            </div>
-                            <div class="ag-store-customer-auth__field">
-                                <label for="customer-city">{{ __('agricart.customer.fields.city') }} *</label>
-                                <input id="customer-city" type="text" name="city" value="{{ old('city') }}" class="ag-store-customer-auth__input" autocomplete="address-level2" required />
-                                @error('city') <span class="ag-store-customer-auth__error">{{ $message }}</span> @enderror
-                            </div>
-                            <div class="ag-store-customer-auth__field">
-                                <label for="customer-state">{{ __('agricart.customer.fields.state') }} *</label>
-                                <select id="customer-state" name="state" class="ag-store-customer-auth__input" required>
-                                    <option value="">{{ __('agricart.customer.hints.select_province') }}</option>
-                                    @foreach ($provinces as $province)
-                                        <option value="{{ $province }}" @selected(old('state') === $province)>{{ $province }}</option>
-                                    @endforeach
-                                </select>
-                                @error('state') <span class="ag-store-customer-auth__error">{{ $message }}</span> @enderror
-                            </div>
-                            <div class="ag-store-customer-auth__field">
-                                <label for="customer-postal">{{ __('agricart.customer.fields.postal_code') }}</label>
-                                <input id="customer-postal" type="text" name="postal_code" value="{{ old('postal_code') }}" class="ag-store-customer-auth__input" autocomplete="postal-code" />
-                                @error('postal_code') <span class="ag-store-customer-auth__error">{{ $message }}</span> @enderror
-                            </div>
-                            <div class="ag-store-customer-auth__field">
-                                <label for="customer-country">{{ __('agricart.customer.fields.country') }}</label>
-                                <input id="customer-country" type="text" name="country" value="{{ old('country', 'Pakistan') }}" class="ag-store-customer-auth__input" autocomplete="country-name" />
-                                @error('country') <span class="ag-store-customer-auth__error">{{ $message }}</span> @enderror
                             </div>
                         </div>
                     </div>

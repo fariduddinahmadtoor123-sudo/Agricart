@@ -36,7 +36,7 @@ class CustomerStoreCartPersistenceTest extends TestCase
         $this->assertSame(42, (int) $row->items[0]['product_id']);
 
         $this->post(route('store.customer.login.submit'), [
-            'login_email' => $customer->email,
+            'login' => $customer->email,
             'login_password' => $password,
         ])->assertRedirect();
 

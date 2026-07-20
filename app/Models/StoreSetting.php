@@ -140,7 +140,7 @@ class StoreSetting extends Model
         return false;
     }
 
-    public function whatsappChatUrl(): ?string
+    public function whatsappChatUrl(?string $message = null): ?string
     {
         $number = CompanyProfile::query()->value('whatsapp_number') ?: $this->whatsapp_number;
 
@@ -160,13 +160,13 @@ class StoreSetting extends Model
             $digits = '92'.$digits;
         }
 
-        $message = $this->localized('whatsapp_message');
+        $text = filled($message) ? $message : $this->localized('whatsapp_message');
 
-        if (! filled($message)) {
+        if (! filled($text)) {
             return 'https://wa.me/' . $digits;
         }
 
-        return 'https://wa.me/' . $digits . '?text=' . rawurlencode($message);
+        return 'https://wa.me/' . $digits . '?text=' . rawurlencode($text);
     }
 
     public function footerCopyrightText(): string

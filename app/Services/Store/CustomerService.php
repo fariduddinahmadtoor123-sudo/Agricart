@@ -20,13 +20,17 @@ class CustomerService
     {
         $validated = $this->validateRegistration($data);
         $validated['customer_number'] = $this->nextCustomerNumber();
-        $validated['country'] = $validated['country'] ?? 'Pakistan';
+        $validated['country'] = filled($validated['country'] ?? null) ? $validated['country'] : 'Pakistan';
+        $validated['address_line1'] = (string) ($validated['address_line1'] ?? '');
+        $validated['address_line2'] = $validated['address_line2'] ?? null;
+        $validated['city'] = (string) ($validated['city'] ?? '');
+        $validated['state'] = (string) ($validated['state'] ?? '');
         $validated['is_active'] = true;
         $validated['customer_channel'] = Customer::CHANNEL_ONLINE;
         $validated['display_name'] = trim($validated['first_name'] . ' ' . $validated['last_name']);
         $validated['name_en'] = $validated['display_name'];
         $validated['contacts'] = [['mobile_number' => $validated['phone']]];
-        $validated['city_en'] = $validated['city'];
+        $validated['city_en'] = $validated['city'] !== '' ? $validated['city'] : null;
 
         return DB::transaction(function () use ($validated): Customer {
             $customer = Customer::query()->create($validated);
@@ -59,10 +63,10 @@ class CustomerService
             'phone' => ['required', 'string', 'max:30'],
             'password' => ['required', 'string', 'min:8', 'same:password_confirmation'],
             'password_confirmation' => ['required', 'string'],
-            'address_line1' => ['required', 'string', 'max:255'],
+            'address_line1' => ['nullable', 'string', 'max:255'],
             'address_line2' => ['nullable', 'string', 'max:255'],
-            'city' => ['required', 'string', 'max:120'],
-            'state' => ['required', 'string', 'max:120'],
+            'city' => ['nullable', 'string', 'max:120'],
+            'state' => ['nullable', 'string', 'max:120'],
             'postal_code' => ['nullable', 'string', 'max:20'],
             'country' => ['nullable', 'string', 'max:120'],
             'accepts_marketing' => ['nullable', 'boolean'],
