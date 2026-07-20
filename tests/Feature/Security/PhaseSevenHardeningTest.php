@@ -142,7 +142,7 @@ class PhaseSevenHardeningTest extends TestCase
     {
         $schedule = File::get(base_path('bootstrap/app.php'));
 
-        foreach (['analytics:prune', 'store-inquiries:prune', 'ai-logs:prune', 'system-errors:prune', 'media:prune-trash'] as $needle) {
+        foreach (['analytics:prune', 'store-inquiries:prune', 'ai-logs:prune', 'activity-logs:prune', 'system-errors:prune', 'media:prune-trash'] as $needle) {
             $this->assertStringContainsString("\$protect(\$schedule->command('{$needle}')", $schedule);
         }
 

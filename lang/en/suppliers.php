@@ -86,6 +86,8 @@ return [
         'contact_required' => 'Add at least one contact with a mobile number.',
         'mobile_required' => 'Primary contact mobile number is required.',
         'contact_name_required' => 'Enter the primary contact name in English or Urdu.',
+        'business_name_required' => 'Enter the business name in English or Urdu.',
+        'address_required' => 'Enter the address in English or Urdu.',
     ],
 
     'ai' => [

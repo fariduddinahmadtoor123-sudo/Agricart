@@ -503,7 +503,7 @@ class Form extends Component
         try {
             $this->syncCityFields();
             $this->syncCountryUr();
-            $this->validate($this->formRules());
+            $this->validate($this->formRules(), $this->formValidationMessages());
             $this->persistUploadedFiles();
 
             $service = app(SupplierService::class);
@@ -734,6 +734,22 @@ class Form extends Component
         }
 
         return $rules;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function formValidationMessages(): array
+    {
+        return [
+            'business_name_en.required_without' => __('suppliers.validation.business_name_required'),
+            'business_name_ur.required_without' => __('suppliers.validation.business_name_required'),
+            'contactRows.0.contact_name_en.required_without' => __('suppliers.validation.contact_name_required'),
+            'contactRows.0.contact_name_ur.required_without' => __('suppliers.validation.contact_name_required'),
+            'contactRows.0.mobile_number.required' => __('suppliers.validation.mobile_required'),
+            'address_en.required_without' => __('suppliers.validation.address_required'),
+            'address_ur.required_without' => __('suppliers.validation.address_required'),
+        ];
     }
 
     private function persistUploadedFiles(): void

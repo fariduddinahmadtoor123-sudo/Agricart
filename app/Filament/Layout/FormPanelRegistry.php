@@ -14,6 +14,7 @@ final class FormPanelRegistry
         return [
             'ai-settings' => ['component' => 'ai-settings.form', 'permission' => 'settings.ai.manage'],
             'ai-log-detail' => ['component' => 'ai-logs.detail', 'permission' => 'settings.ai.logs.view'],
+            'activity-log-detail' => ['component' => 'activity-logs.detail', 'permission' => 'settings.activity.view'],
             'system-error-detail' => ['component' => 'system-errors.detail', 'permission' => 'settings.system-errors.view'],
             'media-library' => ['component' => 'media.form', 'permission' => 'settings.media.view'],
             'categories' => ['component' => 'categories.form', 'permission' => 'catalog.view'],

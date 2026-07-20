@@ -27,8 +27,8 @@ class StorefrontSearchService
 
         return [
             'products' => $this->products->paginatedSearch($term, $productsPerPage),
-            'categories' => $this->categories($term, 12),
-            'pages' => $this->pages($term, 8),
+            'categories' => $this->categories($term, 100),
+            'pages' => $this->pages($term, 20),
         ];
     }
 
@@ -44,7 +44,7 @@ class StorefrontSearchService
             return collect();
         }
 
-        $categoryResults = $this->categories($term, min(8, $limit));
+        $categoryResults = $this->categories($term, min(12, $limit));
         $pageResults = $this->pages($term, min(5, $limit));
         $remaining = max(0, $limit - $categoryResults->count() - $pageResults->count());
         $productResults = $this->products->searchPreview($term, max(1, $remaining))
@@ -101,7 +101,7 @@ class StorefrontSearchService
             ->where('status', 'active')
             ->with('parent')
             ->where(fn (Builder $query) => $this->applyTokenSearch($query, $term, $fields))
-            ->limit(50)
+            ->limit(max(200, $limit))
             ->get()
             ->sortBy(fn (Category $category): int => $this->relevance(
                 $term,

@@ -33,9 +33,10 @@
     }
     .ag-store-search-suggestions__option {
         display: flex;
-        flex-direction: column;
-        gap: 0.15rem;
-        padding: 0.65rem 0.75rem;
+        flex-direction: row;
+        align-items: center;
+        gap: 0.65rem;
+        padding: 0.55rem 0.75rem;
         border-block-end: 1px solid var(--agricart-border, #d1d5db);
         color: var(--agricart-text, #0f172a);
         text-decoration: none;
@@ -46,8 +47,38 @@
         background: color-mix(in srgb, var(--agricart-primary, #83b735) 12%, white);
         outline: none;
     }
+    .ag-store-search-suggestions__thumb {
+        flex: 0 0 auto;
+        width: 2.5rem;
+        height: 2.5rem;
+        border: 1px solid var(--agricart-border, #d1d5db);
+        background: var(--agricart-bg, #f4f5f7);
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .ag-store-search-suggestions__thumb-img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+    .ag-store-search-suggestions__thumb-letter {
+        font-size: 0.875rem;
+        font-weight: 700;
+        color: var(--agricart-muted, #64748b);
+        line-height: 1;
+    }
+    .ag-store-search-suggestions__text {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+    }
     .ag-store-search-suggestions__name {
         font-weight: 700;
+        line-height: 1.3;
     }
     .ag-store-search-suggestions__meta {
         color: var(--agricart-muted, #64748b);
@@ -56,6 +87,10 @@
     .ag-store-search-suggestions__all {
         color: var(--agricart-primary, #83b735);
         font-weight: 700;
+        justify-content: center;
+    }
+    .ag-store-search-suggestions__all .ag-store-search-suggestions__thumb {
+        display: none;
     }
 
     /* Search results — same grid as category/product cards (works without Vite rebuild) */

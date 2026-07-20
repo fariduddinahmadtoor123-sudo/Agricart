@@ -4,6 +4,8 @@ namespace Tests\Feature\Security;
 
 use App\Enums\AiLogStatus;
 use App\Enums\AiLogType;
+use App\Livewire\ActivityLogs\Detail as ActivityLogDetail;
+use App\Livewire\ActivityLogs\ListLogs as ActivityLogList;
 use App\Livewire\AiLogs\Detail as AiLogDetail;
 use App\Livewire\AiLogs\ListLogs as AiLogList;
 use App\Livewire\AiSettings\Form as AiSettingsForm;
@@ -53,6 +55,8 @@ class PhaseOneAuditRemediationTest extends TestCase
         Livewire::test(AiSettingsManager::class)->assertOk()->call('pauseAi')->assertForbidden();
         Livewire::test(AiLogDetail::class)->assertOk()->call('loadLog', 1)->assertForbidden();
         Livewire::test(AiLogList::class)->assertOk()->call('updateSearch', 'secret')->assertForbidden();
+        Livewire::test(ActivityLogDetail::class)->assertOk()->call('loadLog', 1)->assertForbidden();
+        Livewire::test(ActivityLogList::class)->assertOk()->call('updateSearch', 'secret')->assertForbidden();
         Livewire::test(UserForm::class)->assertOk()->call('openForm')->assertForbidden();
         Livewire::test(CompanyProfileForm::class)->assertOk()->call('openForm')->assertForbidden();
         Livewire::test(SecretCodingForm::class)->assertOk()->call('openForm')->assertForbidden();

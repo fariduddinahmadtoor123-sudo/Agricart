@@ -67,10 +67,18 @@
 
                 list.innerHTML = results.map(function (result, index) {
                     var meta = [result.type_label, result.code, result.brand].filter(Boolean).join(' · ');
+                    var letter = String(result.name || '?').trim().charAt(0).toUpperCase() || '?';
+                    var thumb = result.image
+                        ? '<img class="ag-store-search-suggestions__thumb-img" src="' + escapeHtml(result.image) + '" alt="" width="40" height="40" loading="lazy" decoding="async" />'
+                        : '<span class="ag-store-search-suggestions__thumb-letter" aria-hidden="true">' + escapeHtml(letter) + '</span>';
+
                     return '<a id="' + list.id + '-option-' + index + '" role="option" aria-selected="false" class="ag-store-search-suggestions__option" href="' +
-                        escapeHtml(result.url) + '" data-store-search-option><span class="ag-store-search-suggestions__name">' +
-                        escapeHtml(result.name) + '</span>' + (meta ? '<span class="ag-store-search-suggestions__meta">' +
-                        escapeHtml(meta) + '</span>' : '') + '</a>';
+                        escapeHtml(result.url) + '" data-store-search-option>' +
+                        '<span class="ag-store-search-suggestions__thumb">' + thumb + '</span>' +
+                        '<span class="ag-store-search-suggestions__text">' +
+                        '<span class="ag-store-search-suggestions__name">' + escapeHtml(result.name) + '</span>' +
+                        (meta ? '<span class="ag-store-search-suggestions__meta">' + escapeHtml(meta) + '</span>' : '') +
+                        '</span></a>';
                 }).join('') + '<a role="option" aria-selected="false" class="ag-store-search-suggestions__option ag-store-search-suggestions__all" href="' +
                     escapeHtml(searchUrl) + '" data-store-search-option>{{ e(__('agricart.storefront.search.view_all')) }}</a>';
                 list.hidden = false;

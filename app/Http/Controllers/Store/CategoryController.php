@@ -24,6 +24,12 @@ class CategoryController extends Controller
         $childCategories = $categories->childCategories($category);
         $categoryProducts = $products->paginatedProductsForCategory($category);
 
+        // Count for this page title + child cards — never mutate $childCategories.
+        $countTargets = $childCategories->isNotEmpty()
+            ? collect([$category])->concat($childCategories)->unique('id')->values()
+            : collect([$category]);
+        $productCounts = $categories->storefrontProductCounts($countTargets);
+
         return view('store.category.show', [
             ...$layout->layoutData(),
             'category' => $category,
@@ -34,6 +40,8 @@ class CategoryController extends Controller
             'hasStorefrontContent' => $categories->hasStorefrontContent($category),
             'categoryService' => $categories,
             'productService' => $products,
+            'categoryProductCount' => (int) ($productCounts[$category->id] ?? 0),
+            'productCounts' => $productCounts,
         ]);
     }
 }

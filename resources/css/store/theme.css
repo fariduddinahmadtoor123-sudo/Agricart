@@ -998,14 +998,32 @@
 }
 
 .ag-store-category-card__name {
-    padding: 0.75rem;
+    display: block;
+    padding: 0.75rem 0.75rem 0.25rem;
     font-size: 0.8125rem;
     font-weight: 700;
     text-align: center;
     line-height: 1.35;
+    color: var(--agricart-store-ticker-text);
+}
+
+.ag-store-category-card__body {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
     background: var(--agricart-store-ticker-bg);
     border-top: 1px solid var(--agricart-store-ticker-border);
     color: var(--agricart-store-ticker-text);
+}
+
+.ag-store-category-card__meta {
+    display: block;
+    padding: 0 0.75rem 0.75rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1.35;
+    text-align: center;
+    color: color-mix(in oklab, var(--agricart-store-ticker-text) 78%, transparent);
 }
 
 /* Product grid */
@@ -2856,6 +2874,19 @@
     margin: 0 0 0.5rem;
     font-size: 1.5rem;
     font-weight: 700;
+}
+
+.ag-store-page-title__meta {
+    display: inline-block;
+    margin-inline-start: 0.5rem;
+    padding: 0.15rem 0.45rem;
+    vertical-align: middle;
+    background: var(--agricart-bg);
+    border: 1px solid var(--agricart-border);
+    color: var(--agricart-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.2;
 }
 
 .ag-store-page-lead {

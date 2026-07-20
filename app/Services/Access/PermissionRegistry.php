@@ -115,6 +115,11 @@ class PermissionRegistry
             'label_ur' => 'اے آئی سرگرمی لاگز دیکھیں',
         ];
         $groups['settings']['permissions'][] = [
+            'key' => 'settings.activity.view',
+            'label_en' => 'View user activity logs',
+            'label_ur' => 'یوزر ایکٹیویٹی لاگز دیکھیں',
+        ];
+        $groups['settings']['permissions'][] = [
             'key' => 'settings.system-errors.view',
             'label_en' => 'View sanitized system errors',
             'label_ur' => 'محفوظ سسٹم ایررز دیکھیں',

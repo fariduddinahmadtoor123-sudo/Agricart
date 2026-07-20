@@ -27,10 +27,12 @@
     <style>
         .agricart-product-form__quantities {
             grid-template-columns:
-                minmax(7.5rem, 1.2fr)
-                minmax(3.5rem, 0.45fr)
-                minmax(7.5rem, 1.2fr)
-                repeat(4, minmax(8.5rem, 1fr)) !important;
+                minmax(7rem, 1.1fr)
+                minmax(3.25rem, 0.4fr)
+                minmax(7rem, 1.1fr)
+                minmax(4.25rem, 0.55fr)
+                minmax(4.25rem, 0.55fr)
+                repeat(4, minmax(7.5rem, 1fr)) !important;
         }
 
         .agricart-product-form__quantities .agricart-form-panel__label {
@@ -533,6 +535,20 @@
                     @endif
                 @endif
             </div>
+        </div>
+
+        <div class="agricart-form-panel__field agricart-product-form__qty-field agricart-product-form__qty-field--narrow">
+            <label class="agricart-form-panel__label">{{ __('agricart.products.fields.required_qty') }}</label>
+            <x-filament::input.wrapper>
+                <input type="text" wire:model="required_qty" class="fi-input" @disabled($readonly) />
+            </x-filament::input.wrapper>
+        </div>
+
+        <div class="agricart-form-panel__field agricart-product-form__qty-field agricart-product-form__qty-field--narrow">
+            <label class="agricart-form-panel__label">{{ __('agricart.products.fields.alert_qty') }}</label>
+            <x-filament::input.wrapper>
+                <input type="text" wire:model="alert_qty" class="fi-input" @disabled($readonly) />
+            </x-filament::input.wrapper>
         </div>
 
         @foreach ($pricingTiers as $tier)

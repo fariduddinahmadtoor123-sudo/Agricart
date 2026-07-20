@@ -56,6 +56,10 @@ return Application::configure(basePath: dirname(__DIR__))
             ->dailyAt('03:35')
             ->timezone(config('app.timezone')));
 
+        $protect($schedule->command('activity-logs:prune')
+            ->dailyAt('03:40')
+            ->timezone(config('app.timezone')));
+
         $protect($schedule->command('system-errors:reconcile')
             ->everyFifteenMinutes()
             ->timezone(config('app.timezone')));

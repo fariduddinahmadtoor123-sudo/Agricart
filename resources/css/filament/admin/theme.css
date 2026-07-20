@@ -4338,6 +4338,155 @@ body.agricart-form-panel-open {
     border: 1px solid color-mix(in oklab, var(--agricart-danger) 28%, var(--agricart-border));
 }
 
+.agricart-activity-logs {
+    font-family: Arial, sans-serif !important;
+}
+
+.agricart-activity-logs__table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--agricart-border);
+    background-color: var(--agricart-surface);
+}
+
+.agricart-activity-logs__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.875rem;
+}
+
+.agricart-activity-logs__table th,
+.agricart-activity-logs__table td {
+    padding: 0.625rem 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid var(--agricart-border);
+    vertical-align: top;
+}
+
+.agricart-activity-logs__table th {
+    font-weight: 600;
+    color: var(--agricart-muted);
+    background-color: var(--agricart-background);
+    white-space: nowrap;
+}
+
+.agricart-activity-logs__row {
+    cursor: pointer;
+}
+
+.agricart-activity-logs__row:hover,
+.agricart-activity-logs__row:focus-visible {
+    background-color: color-mix(in oklab, var(--agricart-primary) 6%, white);
+    outline: none;
+}
+
+.agricart-activity-logs__event {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid var(--agricart-border);
+    background-color: var(--agricart-background);
+    color: var(--agricart-text);
+}
+
+.agricart-activity-logs__event.is-auth {
+    color: var(--agricart-primary);
+    background-color: color-mix(in oklab, var(--agricart-primary) 8%, white);
+    border-color: color-mix(in oklab, var(--agricart-primary) 28%, var(--agricart-border));
+}
+
+.agricart-activity-logs__event.is-failed {
+    color: var(--agricart-danger);
+    background-color: color-mix(in oklab, var(--agricart-danger) 8%, white);
+    border-color: color-mix(in oklab, var(--agricart-danger) 28%, var(--agricart-border));
+}
+
+.agricart-activity-logs__empty {
+    padding: 2rem 1rem;
+    text-align: center;
+    background-color: var(--agricart-surface);
+    border: 1px solid var(--agricart-border);
+    color: var(--agricart-muted);
+    font-family: Arial, sans-serif !important;
+    font-size: 0.875rem;
+}
+
+.agricart-activity-logs__pagination {
+    font-family: Arial, sans-serif !important;
+}
+
+.agricart-activity-log-detail {
+    display: grid;
+    gap: 0.875rem;
+}
+
+.agricart-activity-log-detail__meta {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.agricart-activity-log-detail__metric {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.agricart-activity-log-detail__label {
+    font-family: Arial, sans-serif !important;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--agricart-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.agricart-activity-log-detail__section {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.agricart-activity-log-detail__section-title {
+    margin: 0;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--agricart-text);
+}
+
+.agricart-activity-log-detail__text {
+    margin: 0;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.875rem;
+    color: var(--agricart-text);
+}
+
+.agricart-activity-log-detail__block {
+    margin: 0;
+    padding: 0.75rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 0.75rem;
+    line-height: 1.45;
+    background-color: var(--agricart-background);
+    border: 1px solid var(--agricart-border);
+    color: var(--agricart-text);
+}
+
+.agricart-activity-log-detail__empty {
+    margin: 0;
+    color: var(--agricart-muted);
+    font-family: Arial, sans-serif !important;
+}
+
+@media (max-width: 960px) {
+    .agricart-activity-log-detail__meta {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 .agricart-ai-logs__empty {
     padding: 2rem 1rem;
     text-align: center;
@@ -6308,10 +6457,12 @@ span.agricart-sales-channels__switch.is-readonly {
 .agricart-product-form__quantities {
     display: grid;
     grid-template-columns:
-        minmax(7.5rem, 1.25fr)
-        minmax(3.5rem, 0.45fr)
-        minmax(7.5rem, 1.25fr)
-        repeat(4, minmax(7.25rem, 1fr));
+        minmax(7rem, 1.1fr)
+        minmax(3.25rem, 0.4fr)
+        minmax(7rem, 1.1fr)
+        minmax(4.25rem, 0.55fr)
+        minmax(4.25rem, 0.55fr)
+        repeat(4, minmax(7rem, 1fr));
     gap: 0.5rem 0.5rem;
     align-items: start;
     padding-bottom: 0.875rem;

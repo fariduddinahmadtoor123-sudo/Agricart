@@ -3,7 +3,9 @@
 namespace App\Services\Store;
 
 use App\Models\Category;
+use App\Models\Product;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class StoreCategoryService
@@ -177,5 +179,105 @@ class StoreCategoryService
         return $this->storefrontContentBlocks($category) !== []
             || $this->localizedFaqs($category) !== []
             || filled($category->hs_code);
+    }
+
+    /**
+     * Active storefront product counts for each category (self + descendants + display placements).
+     *
+     * @param  Collection<int, Category>  $categories
+     * @return array<int, int>
+     */
+    public function storefrontProductCounts(Collection $categories): array
+    {
+        if ($categories->isEmpty()) {
+            return [];
+        }
+
+        $allActive = Category::query()
+            ->where('status', 'active')
+            ->get(['id', 'parent_id']);
+
+        $childrenByParent = [];
+        foreach ($allActive as $row) {
+            $parentKey = $row->parent_id === null ? 0 : (int) $row->parent_id;
+            $childrenByParent[$parentKey][] = (int) $row->id;
+        }
+
+        $subtreeIdsByCategory = [];
+        $allRelevantIds = [];
+
+        foreach ($categories as $category) {
+            $ids = $this->collectDescendantIds((int) $category->id, $childrenByParent);
+            $subtreeIdsByCategory[(int) $category->id] = $ids;
+            foreach ($ids as $id) {
+                $allRelevantIds[$id] = true;
+            }
+        }
+
+        $relevantIds = array_keys($allRelevantIds);
+
+        if ($relevantIds === []) {
+            return array_fill_keys($categories->pluck('id')->map(fn ($id) => (int) $id)->all(), 0);
+        }
+
+        $directProductIdsByCategory = Product::query()
+            ->where('status', 'active')
+            ->whereIn('category_id', $relevantIds)
+            ->get(['id', 'category_id'])
+            ->groupBy('category_id')
+            ->map(fn ($group) => $group->pluck('id')->map(fn ($id) => (int) $id)->all())
+            ->all();
+
+        $displayRows = DB::table('product_display_category')
+            ->join('products', 'products.id', '=', 'product_display_category.product_id')
+            ->where('products.status', 'active')
+            ->whereIn('product_display_category.category_id', $relevantIds)
+            ->select('product_display_category.category_id', 'product_display_category.product_id')
+            ->get();
+
+        $displayProductIdsByCategory = [];
+        foreach ($displayRows as $row) {
+            $displayProductIdsByCategory[(int) $row->category_id][(int) $row->product_id] = true;
+        }
+
+        $counts = [];
+
+        foreach ($subtreeIdsByCategory as $categoryId => $subtreeIds) {
+            $unique = [];
+
+            foreach ($subtreeIds as $subtreeId) {
+                foreach ($directProductIdsByCategory[$subtreeId] ?? [] as $productId) {
+                    $unique[$productId] = true;
+                }
+
+                foreach (array_keys($displayProductIdsByCategory[$subtreeId] ?? []) as $productId) {
+                    $unique[$productId] = true;
+                }
+            }
+
+            $counts[$categoryId] = count($unique);
+        }
+
+        return $counts;
+    }
+
+    /**
+     * @param  array<int, list<int>>  $childrenByParent
+     * @return list<int>
+     */
+    private function collectDescendantIds(int $categoryId, array $childrenByParent): array
+    {
+        $ids = [$categoryId];
+        $queue = [$categoryId];
+
+        while ($queue !== []) {
+            $current = array_shift($queue);
+            foreach ($childrenByParent[$current] ?? [] as $childId) {
+                $ids[] = $childId;
+                $queue[] = $childId;
+            }
+        }
+
+        return $ids;
     }
 }

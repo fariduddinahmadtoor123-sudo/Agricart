@@ -37,12 +37,19 @@
 @endpush
 
 @section('content')
-    <h1 class="ag-store-page-title">{{ $categoryName }}</h1>
+    <h1 class="ag-store-page-title">
+        {{ $categoryName }}
+        <span class="ag-store-page-title__meta">
+            {{ trans_choice('agricart.storefront.categories.product_count', $categoryProductCount, ['count' => number_format($categoryProductCount)]) }}
+        </span>
+    </h1>
+
     @if ($childCategories->isNotEmpty())
         @include('store.components.category-grid', [
             'categories' => $childCategories,
             'sectionTitle' => __('agricart.storefront.category.subcategories'),
             'emptyMessage' => __('agricart.storefront.category.no_children'),
+            'productCounts' => $productCounts,
         ])
     @endif
 

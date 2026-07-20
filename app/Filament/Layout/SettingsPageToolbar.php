@@ -99,6 +99,18 @@ class SettingsPageToolbar extends ClusterPageToolbar
                 'columns' => static::systemErrorColumns(),
                 'interactive' => true,
             ],
+            'activity' => [
+                ...$config,
+                'addLabel' => null,
+                'formKey' => null,
+                'searchPlaceholder' => __('agricart.activity.search'),
+                'livewirePrefix' => 'activity-logs',
+                'columnDataAttr' => 'data-activity-log-column',
+                'filters' => [],
+                'filterGroups' => static::activityLogsFilterGroups(),
+                'columns' => static::activityLogsColumns(),
+                'interactive' => true,
+            ],
             'media-library' => [
                 ...$config,
                 'addLabel' => static::userCanManageMedia() ? __('agricart.media.actions.upload') : null,
@@ -243,6 +255,49 @@ class SettingsPageToolbar extends ClusterPageToolbar
             ['label' => __('agricart.system_errors.columns.occurrences'), 'value' => 'occurrences', 'visible' => true],
             ['label' => __('agricart.system_errors.columns.last_seen'), 'value' => 'last_seen_at', 'visible' => true],
             ['label' => __('agricart.system_errors.columns.status'), 'value' => 'status', 'visible' => true],
+        ];
+    }
+
+    /**
+     * @return list<array{label: string, filters: list<array{label: string, value: string}>}>
+     */
+    protected static function activityLogsFilterGroups(): array
+    {
+        return [
+            [
+                'label' => __('agricart.activity.filter_period'),
+                'filters' => [
+                    ['label' => __('agricart.activity.periods.today'), 'value' => 'period:today'],
+                    ['label' => __('agricart.activity.periods.24h'), 'value' => 'period:24h'],
+                    ['label' => __('agricart.activity.periods.7d'), 'value' => 'period:7d'],
+                    ['label' => __('agricart.activity.periods.30d'), 'value' => 'period:30d'],
+                ],
+            ],
+            [
+                'label' => __('agricart.activity.filter_event'),
+                'filters' => [
+                    ['label' => __('agricart.activity.events.login'), 'value' => 'event:login'],
+                    ['label' => __('agricart.activity.events.logout'), 'value' => 'event:logout'],
+                    ['label' => __('agricart.activity.events.failed_login'), 'value' => 'event:failed_login'],
+                    ['label' => __('agricart.activity.events.created'), 'value' => 'event:created'],
+                    ['label' => __('agricart.activity.events.updated'), 'value' => 'event:updated'],
+                    ['label' => __('agricart.activity.events.deleted'), 'value' => 'event:deleted'],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @return list<array{label: string, value: string, visible: bool}>
+     */
+    protected static function activityLogsColumns(): array
+    {
+        return [
+            ['label' => __('agricart.activity.col_created'), 'value' => 'created_at', 'visible' => true],
+            ['label' => __('agricart.activity.col_event'), 'value' => 'event', 'visible' => true],
+            ['label' => __('agricart.activity.col_actor'), 'value' => 'actor', 'visible' => true],
+            ['label' => __('agricart.activity.col_description'), 'value' => 'description', 'visible' => true],
+            ['label' => __('agricart.activity.col_ip'), 'value' => 'ip_address', 'visible' => true],
         ];
     }
 

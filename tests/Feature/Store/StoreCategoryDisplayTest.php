@@ -3,6 +3,7 @@
 namespace Tests\Feature\Store;
 
 use App\Models\Category;
+use App\Models\Product;
 use App\Services\Store\StoreCategoryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -141,5 +142,61 @@ class StoreCategoryDisplayTest extends TestCase
             ->assertSee('data-store-pdp-tab="category-content-0"', false)
             ->assertSee('aria-controls="store-category-panel-category-content-0"', false)
             ->assertSee('data-store-pdp-panel="category-hs-code"', false);
+    }
+
+    public function test_storefront_product_counts_include_descendant_products(): void
+    {
+        $root = Category::query()->create([
+            'slug' => 'farm',
+            'code' => 'CAT-FARM',
+            'status' => 'active',
+            'name_en' => 'Farm',
+            'name_ur' => 'فارم',
+        ]);
+
+        $child = Category::query()->create([
+            'parent_id' => $root->id,
+            'slug' => 'tools-child',
+            'code' => 'CAT-TOOLS-CHILD',
+            'status' => 'active',
+            'name_en' => 'Tools Child',
+            'name_ur' => 'اوزار',
+        ]);
+
+        Product::query()->create([
+            'category_id' => $child->id,
+            'slug' => 'spade',
+            'code' => 'PRD-SPADE',
+            'status' => 'active',
+            'name_en' => 'Spade',
+            'name_ur' => 'بیلچہ',
+        ]);
+
+        Product::query()->create([
+            'category_id' => $root->id,
+            'slug' => 'seed-bag',
+            'code' => 'PRD-SEED',
+            'status' => 'active',
+            'name_en' => 'Seed Bag',
+            'name_ur' => 'بیج',
+        ]);
+
+        $counts = app(StoreCategoryService::class)->storefrontProductCounts(collect([$root, $child]));
+
+        $this->assertSame(2, $counts[$root->id]);
+        $this->assertSame(1, $counts[$child->id]);
+
+        $this->get(route('store.home'))
+            ->assertOk()
+            ->assertSee('2 products', false)
+            ->assertDontSee('Seed Bag', false)
+            ->assertDontSee('Spade', false);
+
+        $this->get(route('store.category', $root->slug))
+            ->assertOk()
+            ->assertSee('Tools Child', false)
+            ->assertSee('1 product', false)
+            ->assertSee(__('agricart.storefront.category.subcategories'), false)
+            ->assertDontSee('>Farm</a>', false);
     }
 }

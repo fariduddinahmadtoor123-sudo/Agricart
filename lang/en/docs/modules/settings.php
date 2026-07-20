@@ -134,6 +134,24 @@ return [
         ['page' => 'App\\Filament\\Clusters\\Settings\\SystemErrorsPage', 'livewire' => ['App\\Livewire\\SystemErrors\\ListErrors', 'App\\Livewire\\SystemErrors\\Detail'], 'services' => ['App\\Services\\SystemErrors\\SystemErrorCaptureService', 'App\\Services\\SystemErrors\\SystemErrorSanitizer', 'App\\Services\\SystemErrors\\SystemLogFileReader'], 'model' => 'App\\Models\\SystemError']
     ),
 
+    'activity' => $stub(
+        'Activity',
+        'Admin user activity trail: sign-in events and allowlisted create/update/delete actions.',
+        '/admin/settings/activity',
+        ['settings.activity.view'],
+        [
+            'Records web-guard login, logout, and failed login attempts with IP and user agent.',
+            'Records create/update/delete on allowlisted models (users, roles, catalog, contacts, business profile, print profiles) when an admin is authenticated.',
+            'Passwords, tokens, and secrets are redacted from stored property payloads.',
+            'Filters support today / 24 hours / 7 days / 30 days and event type; detail opens in the form panel.',
+        ],
+        [
+            'Default retention is 90 days via activity-logs:prune.',
+            'Do not log storefront customer auth or high-volume noise models without an explicit product decision.',
+        ],
+        ['page' => 'App\\Filament\\Clusters\\Settings\\ActivityPage', 'livewire' => ['App\\Livewire\\ActivityLogs\\ListLogs', 'App\\Livewire\\ActivityLogs\\Detail'], 'services' => ['App\\Services\\Activity\\ActivityLogger'], 'model' => 'App\\Models\\ActivityLog']
+    ),
+
     'printing' => $stub(
         'Printing',
         'Document, receipt, product-label, and price-label print profiles.',

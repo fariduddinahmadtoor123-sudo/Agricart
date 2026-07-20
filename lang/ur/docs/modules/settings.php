@@ -95,6 +95,16 @@ return [
         'Page اور ہر Livewire query/action پر dedicated view/manage permissions لازم ہوں۔',
     ], ['page' => 'App\\Filament\\Clusters\\Settings\\SystemErrorsPage', 'livewire' => ['App\\Livewire\\SystemErrors\\ListErrors', 'App\\Livewire\\SystemErrors\\Detail'], 'services' => ['App\\Services\\SystemErrors\\SystemErrorCaptureService', 'App\\Services\\SystemErrors\\SystemErrorSanitizer', 'App\\Services\\SystemErrors\\SystemLogFileReader'], 'model' => 'App\\Models\\SystemError']),
 
+    'activity' => $stub('Activity', 'Admin user activity trail: sign-in events اور allowlisted create/update/delete actions۔', '/admin/settings/activity', ['settings.activity.view'], [
+        'Web-guard login، logout اور failed login IP/user agent کے ساتھ ریکارڈ ہوتے ہیں۔',
+        'Admin authenticated ہونے پر allowlisted models (users, roles, catalog, contacts, business profile, print profiles) کے CUD ریکارڈ ہوتے ہیں۔',
+        'Passwords، tokens اور secrets property payloads سے redact ہوتے ہیں۔',
+        'Filters: today / 24 hours / 7 days / 30 days اور event type؛ detail form panel میں کھلتا ہے۔',
+    ], [
+        'Default retention 90 دن؛ activity-logs:prune۔',
+        'Storefront customer auth یا high-volume noise models بغیر واضح فیصلے کے نہ لگائیں۔',
+    ], ['page' => 'App\\Filament\\Clusters\\Settings\\ActivityPage', 'livewire' => ['App\\Livewire\\ActivityLogs\\ListLogs', 'App\\Livewire\\ActivityLogs\\Detail'], 'services' => ['App\\Services\\Activity\\ActivityLogger'], 'model' => 'App\\Models\\ActivityLog']),
+
     'printing' => $stub('Printing', 'Documents، receipts، product labels اور price labels کے print profiles۔', '/admin/settings/printing', ['settings.view', 'settings.printing.manage'], [
         'Bilingual profile name، category، label kind، mm dimensions، margin، orientation، printer hint اور default profile۔ Current UI create/edit/default/search/delete دیتی ہے۔',
     ], [

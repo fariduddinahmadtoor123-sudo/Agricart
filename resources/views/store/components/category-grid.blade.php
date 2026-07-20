@@ -2,6 +2,8 @@
     $columns = min(6, max(3, (int) $settings->category_grid_columns));
     $categories = $categories ?? collect();
     $sectionTitle = $sectionTitle ?? null;
+    $productCounts = $productCounts
+        ?? ($categories->isNotEmpty() ? $categoryService->storefrontProductCounts($categories) : []);
 @endphp
 
 <section class="ag-store-category-section">
@@ -19,6 +21,7 @@
                     $categoryName = $categoryService->localizedName($item);
                     $letter = mb_strtoupper(mb_substr($categoryName, 0, 1));
                     $priority = $loop->first;
+                    $productCount = (int) ($productCounts[$item->id] ?? 0);
                 @endphp
                 <a href="{{ route('store.category', $item->slug) }}" class="ag-store-category-card">
                     <div class="ag-store-category-card__image-wrap">
@@ -36,7 +39,12 @@
                             />
                         @endif
                     </div>
-                    <span class="ag-store-category-card__name">{{ $categoryName }}</span>
+                    <div class="ag-store-category-card__body">
+                        <span class="ag-store-category-card__name">{{ $categoryName }}</span>
+                        <span class="ag-store-category-card__meta">
+                            {{ trans_choice('agricart.storefront.categories.product_count', $productCount, ['count' => number_format($productCount)]) }}
+                        </span>
+                    </div>
                 </a>
             @endforeach
         </div>

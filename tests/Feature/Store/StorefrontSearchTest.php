@@ -95,7 +95,9 @@ class StorefrontSearchTest extends TestCase
 
     public function test_fragment_and_suggestions_share_unified_results(): void
     {
-        $category = $this->category('seeds', 'Seeds');
+        $category = $this->category('seeds', 'Seeds', [
+            'image_path' => 'categories/seeds.png',
+        ]);
         $product = $this->product('hybrid-seed', 'Hybrid Seed', $category);
         $page = StorePage::query()->create([
             'title_en' => 'Seed Buying Help',
@@ -119,6 +121,30 @@ class StorefrontSearchTest extends TestCase
         $this->assertContains('category', array_column($results, 'type'));
         $this->assertContains('product', array_column($results, 'type'));
         $this->assertContains('page', array_column($results, 'type'));
+        $this->assertArrayHasKey('image', $results[0]);
+
+        $categoryResult = collect($results)->firstWhere('type', 'category');
+        $this->assertNotNull($categoryResult);
+        $this->assertNotEmpty($categoryResult['image']);
+    }
+
+    public function test_all_results_page_returns_more_than_twelve_matching_categories(): void
+    {
+        $parent = $this->category('boom-parent', 'Boom Parent');
+
+        for ($i = 1; $i <= 15; $i++) {
+            $this->category('boom-part-'.$i, 'Boom Part '.$i, [
+                'parent_id' => $parent->id,
+            ]);
+        }
+
+        $response = $this->get(route('store.search', ['q' => 'Boom']));
+
+        $response->assertOk();
+
+        for ($i = 1; $i <= 15; $i++) {
+            $response->assertSee('Boom Part '.$i, false);
+        }
     }
 
     public function test_search_requires_two_characters_and_escapes_like_wildcards(): void

@@ -14,7 +14,7 @@ class UsersPage extends BaseModulePage
 
     protected static ?string $navigationLabel = 'Users';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 11;
 
     protected static ?string $slug = 'users';
 

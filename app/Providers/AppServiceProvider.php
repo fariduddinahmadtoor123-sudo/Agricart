@@ -24,6 +24,8 @@ use App\Models\StorePage;
 use App\Models\StoreTickerMessage;
 use App\Models\Supplier;
 use App\Models\User;
+use App\Listeners\RecordAuthActivity;
+use App\Observers\AuditableModelObserver;
 use App\Observers\MediaUsageObserver;
 use App\Services\Analytics\AnalyticsContext;
 use App\Services\SalesChannels\SalesChannelService;
@@ -31,9 +33,14 @@ use App\Services\PricingControls\QuantityPricingEngine;
 use App\Services\Store\LogSmsSender;
 use App\Services\Store\StoreCartService;
 use App\Services\Store\StoreLayoutService;
+use Illuminate\Auth\Events\Failed;
+use Illuminate\Auth\Events\Login;
+use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
@@ -101,6 +108,16 @@ class AppServiceProvider extends ServiceProvider
         ] as $mediaOwner) {
             $mediaOwner::observe(MediaUsageObserver::class);
         }
+
+        foreach (config('activity.models', []) as $auditable) {
+            if (is_string($auditable) && is_subclass_of($auditable, Model::class)) {
+                $auditable::observe(AuditableModelObserver::class);
+            }
+        }
+
+        Event::listen(Login::class, [RecordAuthActivity::class, 'onLogin']);
+        Event::listen(Logout::class, [RecordAuthActivity::class, 'onLogout']);
+        Event::listen(Failed::class, [RecordAuthActivity::class, 'onFailed']);
 
         foreach ([
             StoreSetting::class,
