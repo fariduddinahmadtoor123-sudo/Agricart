@@ -8391,6 +8391,30 @@ span.agricart-sales-channels__switch.is-readonly {
     color: var(--agricart-danger);
 }
 
+.agricart-backups__restore-card.is-restoring {
+    pointer-events: none;
+}
+
+.agricart-backups__restore-working {
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.35rem 0;
+}
+
+.agricart-backups__restore-working-title {
+    margin: 0 0 0.25rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--agricart-text, #0f172a);
+}
+
+.agricart-backups__restore-working-text {
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--agricart-muted, #64748b);
+}
+
 .agricart-backups__checkbox {
     display: flex;
     align-items: flex-start;

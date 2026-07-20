@@ -2093,6 +2093,8 @@ return [
             'safety_backup' => 'restore سے پہلے فوری database safety backup بنائیں',
             'preserve_logins' => 'اس انسٹالیشن کے موجودہ staff اور customer لاگ اِن محفوظ رکھیں',
             'confirm_label' => 'تصدیق کے لیے RESTORE لکھیں',
+            'working_title' => 'بیک اپ restore ہو رہا ہے…',
+            'working_text' => 'انتظار کریں۔ restore کے دوران سائٹ maintenance mode میں ہے۔ یہ صفحہ بند نہ کریں۔',
         ],
         'messages' => [
             'created' => ':type بیک اپ بن گیا (:size)۔',

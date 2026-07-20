@@ -360,30 +360,58 @@
     </section>
 
     @if ($restoreBackupId)
-        <div class="agricart-staff-approvals__modal" wire:keydown.escape.window="cancelRestore">
-            <div class="agricart-staff-approvals__modal-backdrop" wire:click="cancelRestore"></div>
-            <div class="agricart-staff-approvals__modal-card agricart-staff-approvals__modal-card--wide agricart-backups__restore-card" role="dialog" aria-modal="true">
-                <h3 class="agricart-staff-approvals__modal-title">{{ __('agricart.backups.restore.title') }}</h3>
-                <p class="agricart-backups__restore-warning">{{ __('agricart.backups.restore.warning') }}</p>
+        <div
+            class="agricart-staff-approvals__modal"
+            @unless ($busy)
+                wire:keydown.escape.window="cancelRestore"
+            @endunless
+        >
+            <div
+                class="agricart-staff-approvals__modal-backdrop"
+                @unless ($busy)
+                    wire:click="cancelRestore"
+                @endunless
+            ></div>
+            <div
+                class="agricart-staff-approvals__modal-card agricart-staff-approvals__modal-card--wide agricart-backups__restore-card"
+                role="dialog"
+                aria-modal="true"
+                wire:loading.class="is-restoring"
+                wire:target="confirmRestore"
+            >
+                <div wire:loading.remove wire:target="confirmRestore">
+                    <h3 class="agricart-staff-approvals__modal-title">{{ __('agricart.backups.restore.title') }}</h3>
+                    <p class="agricart-backups__restore-warning">{{ __('agricart.backups.restore.warning') }}</p>
 
-                <label class="agricart-backups__checkbox">
-                    <input type="checkbox" wire:model="restoreSafetyBackup" />
-                    <span>{{ __('agricart.backups.restore.safety_backup') }}</span>
-                </label>
+                    <label class="agricart-backups__checkbox">
+                        <input type="checkbox" wire:model="restoreSafetyBackup" @disabled($busy) />
+                        <span>{{ __('agricart.backups.restore.safety_backup') }}</span>
+                    </label>
 
-                <label class="agricart-backups__checkbox">
-                    <input type="checkbox" wire:model="preserveLocalLogins" />
-                    <span>{{ __('agricart.backups.restore.preserve_logins') }}</span>
-                </label>
+                    <label class="agricart-backups__checkbox">
+                        <input type="checkbox" wire:model="preserveLocalLogins" @disabled($busy) />
+                        <span>{{ __('agricart.backups.restore.preserve_logins') }}</span>
+                    </label>
 
-                <label class="agricart-form-panel__label" for="backup-restore-confirm">{{ __('agricart.backups.restore.confirm_label') }}</label>
-                <input id="backup-restore-confirm" type="text" wire:model="restoreConfirm" class="agricart-backups__input" placeholder="RESTORE" />
+                    <label class="agricart-form-panel__label" for="backup-restore-confirm">{{ __('agricart.backups.restore.confirm_label') }}</label>
+                    <input id="backup-restore-confirm" type="text" wire:model="restoreConfirm" class="agricart-backups__input" placeholder="RESTORE" @disabled($busy) />
 
-                <div class="agricart-staff-approvals__modal-actions">
-                    <button type="button" class="agricart-categories__action" wire:click="cancelRestore">{{ __('agricart.backups.actions.cancel') }}</button>
-                    <button type="button" class="agricart-categories__action is-danger" wire:click="confirmRestore" @disabled($busy)>
-                        {{ __('agricart.backups.actions.confirm_restore') }}
-                    </button>
+                    <div class="agricart-staff-approvals__modal-actions">
+                        <button type="button" class="agricart-categories__action" wire:click="cancelRestore" @disabled($busy) wire:loading.attr="disabled" wire:target="confirmRestore">
+                            {{ __('agricart.backups.actions.cancel') }}
+                        </button>
+                        <button type="button" class="agricart-categories__action is-danger" wire:click="confirmRestore" @disabled($busy) wire:loading.attr="disabled" wire:target="confirmRestore">
+                            {{ __('agricart.backups.actions.confirm_restore') }}
+                        </button>
+                    </div>
+                </div>
+
+                <div class="agricart-backups__restore-working" wire:loading.flex wire:target="confirmRestore" role="status" aria-live="polite">
+                    <span class="agricart-backups__spinner" aria-hidden="true"></span>
+                    <div>
+                        <p class="agricart-backups__restore-working-title">{{ __('agricart.backups.restore.working_title') }}</p>
+                        <p class="agricart-backups__restore-working-text">{{ __('agricart.backups.restore.working_text') }}</p>
+                    </div>
                 </div>
             </div>
         </div>

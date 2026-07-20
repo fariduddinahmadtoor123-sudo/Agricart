@@ -2093,6 +2093,8 @@ return [
             'safety_backup' => 'Create a quick database safety backup before restore',
             'preserve_logins' => 'Keep existing staff & customer logins from this installation',
             'confirm_label' => 'Type RESTORE to confirm',
+            'working_title' => 'Restoring backup…',
+            'working_text' => 'Please wait. The site is in maintenance mode while the database and files are restored. Do not close this page.',
         ],
         'messages' => [
             'created' => ':type backup created successfully (:size).',
