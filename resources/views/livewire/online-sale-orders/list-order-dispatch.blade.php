@@ -46,6 +46,12 @@
                         @if (in_array('total_amount', $visibleColumns, true))
                             <th>{{ __('online_sale_orders.list.col_total') }}</th>
                         @endif
+                        @if (in_array('queue_document', $visibleColumns, true))
+                            <th>{{ __('online_sale_orders.list.col_queue_document') }}</th>
+                        @endif
+                        @if (in_array('packing_progress', $visibleColumns, true))
+                            <th>{{ __('order_dispatch.list.col_packing_progress') }}</th>
+                        @endif
                         @if (in_array('fulfillment_status', $visibleColumns, true))
                             <th>{{ __('order_dispatch.list.col_fulfillment') }}</th>
                         @endif
@@ -75,6 +81,25 @@
                             @endif
                             @if (in_array('total_amount', $visibleColumns, true))
                                 <td>{{ number_format((float) $order->total_amount, 2) }}</td>
+                            @endif
+                            @if (in_array('queue_document', $visibleColumns, true))
+                                <td>{{ $order->queueDocumentLabel() }}</td>
+                            @endif
+                            @if (in_array('packing_progress', $visibleColumns, true))
+                                @php $progress = $orderProgress[$order->id] ?? ['sent' => 0, 'total' => 0, 'remaining' => 0, 'complete' => false]; @endphp
+                                <td>
+                                    <span @class([
+                                        'agricart-online-order__receipt-badge',
+                                        'is-waiting' => ! ($progress['complete'] ?? false) && ($progress['sent'] ?? 0) === 0,
+                                        'is-verified' => $progress['complete'] ?? false,
+                                        'is-notified' => ! ($progress['complete'] ?? false) && ($progress['sent'] ?? 0) > 0,
+                                    ])>
+                                        {{ __('order_dispatch.list.packing_progress', [
+                                            'sent' => $progress['sent'] ?? 0,
+                                            'total' => $progress['total'] ?? 0,
+                                        ]) }}
+                                    </span>
+                                </td>
                             @endif
                             @if (in_array('fulfillment_status', $visibleColumns, true))
                                 <td>{{ __('order_dispatch.fulfillment_statuses.' . ($order->fulfillment_status ?: 'awaiting_assignment')) }}</td>
@@ -164,89 +189,136 @@
                         </label>
                     </fieldset>
 
-                    <section class="agricart-order-forward__section">
-                        <h3>{{ __('online_sale_orders.forward.suppliers_heading') }}</h3>
-                        @if ($forwardSuppliers === [])
-                            <p class="agricart-order-forward__empty">{{ __('online_sale_orders.forward.suppliers_empty') }}</p>
-                        @else
-                            <ul class="agricart-order-forward__list">
-                                @foreach ($forwardSuppliers as $supplier)
-                                    <li wire:key="forward-supplier-{{ $supplier['id'] }}" class="agricart-order-forward__row">
-                                        <div class="agricart-order-forward__identity">
-                                            <strong>{{ $supplier['name'] }}</strong>
-                                            <span>{{ $supplier['phone'] ?? __('online_sale_orders.forward.no_phone') }}</span>
-                                            @if ($supplier['email'])
-                                                <span>{{ $supplier['email'] }}</span>
-                                            @endif
-                                        </div>
-                                        <div class="agricart-order-forward__channels">
-                                            <button
-                                                type="button"
-                                                class="agricart-categories__action"
-                                                wire:click="forwardWhatsApp('supplier', {{ $supplier['id'] }})"
-                                                @disabled(! $supplier['can_whatsapp'])
-                                                title="{{ $supplier['can_whatsapp'] ? '' : __('online_sale_orders.forward.no_phone') }}"
-                                            >{{ __('order_dispatch.actions.whatsapp') }}</button>
-                                            <button
-                                                type="button"
-                                                class="agricart-categories__action"
-                                                wire:click="forwardEmail('supplier', {{ $supplier['id'] }})"
-                                                @disabled(! $supplier['can_email'])
-                                                title="{{ $supplier['can_email'] ? '' : __('online_sale_orders.forward.no_email') }}"
-                                            >{{ __('order_dispatch.actions.email') }}</button>
-                                            <button
-                                                type="button"
-                                                class="agricart-categories__action"
-                                                wire:click="forwardOpen('supplier', {{ $supplier['id'] }})"
-                                            >{{ __('online_sale_orders.forward.open') }}</button>
-                                        </div>
-                                    </li>
-                                @endforeach
-                            </ul>
-                        @endif
-                    </section>
+                    @if ($forwardStatusMessage)
+                        <p class="agricart-order-forward__status" role="status">{{ $forwardStatusMessage }}</p>
+                    @endif
 
-                    <section class="agricart-order-forward__section">
-                        <h3>{{ __('online_sale_orders.forward.staff_heading') }}</h3>
-                        @if ($forwardStaff === [])
-                            <p class="agricart-order-forward__empty">{{ __('online_sale_orders.forward.staff_empty') }}</p>
-                        @else
-                            <ul class="agricart-order-forward__list">
-                                @foreach ($forwardStaff as $staff)
-                                    <li wire:key="forward-staff-{{ $staff['id'] }}" class="agricart-order-forward__row">
-                                        <div class="agricart-order-forward__identity">
-                                            <strong>{{ $staff['name'] }}</strong>
-                                            <span>{{ $staff['phone'] ?? __('online_sale_orders.forward.no_phone') }}</span>
-                                            @if ($staff['email'])
-                                                <span>{{ $staff['email'] }}</span>
-                                            @endif
-                                        </div>
-                                        <div class="agricart-order-forward__channels">
-                                            <button
-                                                type="button"
-                                                class="agricart-categories__action"
-                                                wire:click="forwardWhatsApp('staff', {{ $staff['id'] }})"
-                                                @disabled(! $staff['can_whatsapp'])
-                                                title="{{ $staff['can_whatsapp'] ? '' : __('online_sale_orders.forward.no_phone') }}"
-                                            >{{ __('order_dispatch.actions.whatsapp') }}</button>
-                                            <button
-                                                type="button"
-                                                class="agricart-categories__action"
-                                                wire:click="forwardEmail('staff', {{ $staff['id'] }})"
-                                                @disabled(! $staff['can_email'])
-                                                title="{{ $staff['can_email'] ? '' : __('online_sale_orders.forward.no_email') }}"
-                                            >{{ __('order_dispatch.actions.email') }}</button>
-                                            <button
-                                                type="button"
-                                                class="agricart-categories__action"
-                                                wire:click="forwardOpen('staff', {{ $staff['id'] }})"
-                                            >{{ __('online_sale_orders.forward.open') }}</button>
-                                        </div>
+                    @if ($forwardDocument === 'packing')
+                        @if ($forwardProgress)
+                            <p class="agricart-order-forward__progress">
+                                {{ __('order_dispatch.messages.packing_partial', [
+                                    'sent' => $forwardProgress['sent'],
+                                    'total' => $forwardProgress['total'],
+                                    'remaining' => $forwardProgress['remaining'],
+                                ]) }}
+                            </p>
+                        @endif
+
+                        <section class="agricart-order-forward__section">
+                            <h3>{{ __('online_sale_orders.forward.items_heading') }}</h3>
+                            <p class="agricart-order-forward__hint">{{ __('online_sale_orders.forward.items_hint') }}</p>
+                            <ul class="agricart-order-forward__items">
+                                @foreach ($forwardLineStates as $line)
+                                    <li wire:key="forward-item-{{ $line['item_id'] }}" class="agricart-order-forward__item">
+                                        @if ($line['sent'])
+                                            <label class="agricart-order-forward__item-label is-sent">
+                                                <input type="checkbox" disabled checked />
+                                                <span>
+                                                    <strong>{{ $line['label'] }}</strong>
+                                                    <span>× {{ $line['quantity'] }}</span>
+                                                    <em>{{ __('online_sale_orders.forward.item_sent_to', ['supplier' => $line['supplier_name'] ?: '—']) }}</em>
+                                                </span>
+                                            </label>
+                                        @else
+                                            <label class="agricart-order-forward__item-label">
+                                                <input
+                                                    type="checkbox"
+                                                    value="{{ $line['item_id'] }}"
+                                                    wire:model.live="forwardSelectedItemIds"
+                                                />
+                                                <span>
+                                                    <strong>{{ $line['label'] }}</strong>
+                                                    <span>× {{ $line['quantity'] }}</span>
+                                                    <em>{{ __('online_sale_orders.forward.item_remaining') }}</em>
+                                                </span>
+                                            </label>
+                                        @endif
                                     </li>
                                 @endforeach
                             </ul>
+                        </section>
+
+                        <section class="agricart-order-forward__section">
+                            <h3>{{ __('online_sale_orders.forward.matched_suppliers_heading') }}</h3>
+                            <div class="agricart-order-forward__search">
+                                <label class="agricart-purchase-form__label" for="forward-supplier-search">{{ __('online_sale_orders.forward.supplier_search') }}</label>
+                                <input
+                                    id="forward-supplier-search"
+                                    type="search"
+                                    class="agricart-purchase-form__input agricart-purchase-form__input--compact"
+                                    wire:model.live.debounce.300ms="forwardSupplierSearch"
+                                    placeholder="{{ __('online_sale_orders.forward.supplier_search_placeholder') }}"
+                                />
+                            </div>
+                            @if ($forwardMatchedSuppliers === [])
+                                <p class="agricart-order-forward__empty">{{ __('online_sale_orders.forward.suppliers_empty') }}</p>
+                            @else
+                                <ul class="agricart-order-forward__list">
+                                    @foreach ($forwardMatchedSuppliers as $supplier)
+                                        @include('livewire.online-sale-orders.partials.forward-supplier-row', ['supplier' => $supplier])
+                                    @endforeach
+                                </ul>
+                            @endif
+                        </section>
+
+                        @if ($forwardOtherSuppliers !== [] || filled($forwardSupplierSearch))
+                            <section class="agricart-order-forward__section">
+                                <h3>{{ __('online_sale_orders.forward.other_suppliers_heading') }}</h3>
+                                @if ($forwardOtherSuppliers === [])
+                                    <p class="agricart-order-forward__empty">{{ __('online_sale_orders.forward.supplier_search_empty') }}</p>
+                                @else
+                                    <ul class="agricart-order-forward__list">
+                                        @foreach ($forwardOtherSuppliers as $supplier)
+                                            @include('livewire.online-sale-orders.partials.forward-supplier-row', ['supplier' => $supplier])
+                                        @endforeach
+                                    </ul>
+                                @endif
+                            </section>
                         @endif
-                    </section>
+                    @else
+                        <section class="agricart-order-forward__section">
+                            <h3>{{ __('online_sale_orders.forward.staff_heading') }}</h3>
+                            <p class="agricart-order-forward__hint">{{ __('online_sale_orders.forward.staff_hint') }}</p>
+                            @if ($forwardStaff === [])
+                                <p class="agricart-order-forward__empty">{{ __('online_sale_orders.forward.staff_empty') }}</p>
+                            @else
+                                <ul class="agricart-order-forward__list">
+                                    @foreach ($forwardStaff as $staff)
+                                        <li wire:key="forward-staff-{{ $staff['id'] }}" class="agricart-order-forward__row">
+                                            <div class="agricart-order-forward__identity">
+                                                <strong>{{ $staff['name'] }}</strong>
+                                                <span>{{ $staff['phone'] ?? __('online_sale_orders.forward.no_phone') }}</span>
+                                                @if ($staff['email'])
+                                                    <span>{{ $staff['email'] }}</span>
+                                                @endif
+                                            </div>
+                                            <div class="agricart-order-forward__channels">
+                                                <button
+                                                    type="button"
+                                                    class="agricart-categories__action"
+                                                    wire:click="forwardWhatsApp('staff', {{ $staff['id'] }})"
+                                                    @disabled(! $staff['can_whatsapp'])
+                                                    title="{{ $staff['can_whatsapp'] ? '' : __('online_sale_orders.forward.no_phone') }}"
+                                                >{{ __('order_dispatch.actions.whatsapp') }}</button>
+                                                <button
+                                                    type="button"
+                                                    class="agricart-categories__action"
+                                                    wire:click="forwardEmail('staff', {{ $staff['id'] }})"
+                                                    @disabled(! $staff['can_email'])
+                                                    title="{{ $staff['can_email'] ? '' : __('online_sale_orders.forward.no_email') }}"
+                                                >{{ __('order_dispatch.actions.email') }}</button>
+                                                <button
+                                                    type="button"
+                                                    class="agricart-categories__action"
+                                                    wire:click="forwardOpen('staff', {{ $staff['id'] }})"
+                                                >{{ __('online_sale_orders.forward.open') }}</button>
+                                            </div>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @endif
+                        </section>
+                    @endif
                 </div>
             </section>
         </div>

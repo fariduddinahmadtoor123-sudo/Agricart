@@ -12,17 +12,17 @@ return [
     ],
 
     'sections' => [
-        'fulfillment' => 'فلfillment اور تفویض',
+        'fulfillment' => 'تکمیل اور تفویض',
         'suppliers' => 'سپلائر (پروڈکٹ کیٹگری کے مطابق)',
     ],
 
     'fields' => [
         'assigned_staff' => 'ذمہ دار اسٹاف',
-        'fulfillment_status' => 'فلfillment سٹیٹس',
+        'fulfillment_status' => 'تکمیل کی صورتحال',
         'supplier_status' => 'سپلائر سٹیٹس',
-        'carrier_name' => 'کورئیر / carrier',
+        'carrier_name' => 'کورئیر / کیریئر',
         'tracking_number' => 'ٹریکنگ نمبر',
-        'shipping_reference' => 'بلٹی / رسید ref',
+        'shipping_reference' => 'بلٹی / رسید نمبر',
         'shipping_proof' => 'بلٹی یا رسید (تصویر/PDF)',
         'supplier_notes' => 'سپلائر کے نوٹس',
         'acknowledged_at' => 'تسلیم',
@@ -32,7 +32,7 @@ return [
     'filters' => [
         'staff' => 'اسٹاف ممبر',
         'supplier' => 'سپلائر',
-        'fulfillment' => 'فلfillment',
+        'fulfillment' => 'تکمیل',
         'active_staff' => 'اسٹاف: :name',
         'active_supplier' => 'سپلائر: :name',
         'active_fulfillment' => 'سٹیٹس: :status',
@@ -43,7 +43,7 @@ return [
         'all_suppliers' => 'تمام سپلائر',
         'all_fulfillment' => 'تمام سٹیٹس',
         'supplier_manual' => 'محفوظ پر تفویض کے لیے سپلائر ٹک کریں۔ اسٹاف/سپلائر کو صرف پیکنگ لسٹ دیں (کسٹمر نام یا ریٹ نہیں)۔',
-        'supplier_flow' => 'اسٹاف/سپلائر assign کریں، وئیرہاؤس کے لیے پیکنگ لسٹ پرنٹ کریں، پھر یہاں ٹریکنگ اور بلٹی/رسید درج کریں (کسٹمر ٹریکنگ بعد میں)۔',
+        'supplier_flow' => 'اسٹاف/سپلائر تفویض کریں، گودام کے لیے پیکنگ لسٹ پرنٹ کریں، پھر یہاں ٹریکنگ اور بلٹی/رسید درج کریں۔',
         'carrier_name' => 'مثلاً Leopards، TCS',
         'shipping_reference' => 'بلٹی / رسید نمبر',
         'supplier_notes' => 'سپلائر نے جو بتایا (اختیاری)',
@@ -51,17 +51,24 @@ return [
     ],
 
     'validation' => [
-        'shipped_proof_required' => 'Shipped کے لیے ٹریکنگ، بلٹی/رسید ref، یا فائل اپ لوڈ ضروری ہے۔',
+        'shipped_proof_required' => 'روانگی کے لیے ٹریکنگ، بلٹی/رسید نمبر، یا فائل اپ لوڈ ضروری ہے۔',
+        'select_items_to_forward' => 'فارورڈ کے لیے کم از کم ایک پروڈکٹ لائن منتخب کریں۔',
+        'invalid_forward_items' => 'منتخب لائنز اس آرڈر سے تعلق نہیں رکھتیں۔',
+        'items_already_forwarded' => 'منتخب لائنز پہلے ہی کسی سپلائر کو بھیجی جا چکی ہیں۔',
+        'supplier_required' => 'فعال سپلائر منتخب کریں۔',
+        'packing_for_suppliers' => 'سپلائرز کو بھیجنے کے لیے پیکنگ لسٹ منتخب کریں۔',
     ],
 
     'list' => [
-        'queue_note' => 'Online Sale Orders سے بھیجی گئی انوائسز۔ یہاں سپلائر/اسٹاف کو Forward کریں، پھر فلфилمنٹ اور لوجسٹکس چلائیں۔',
+        'queue_note' => 'تیار برائے کیو سے آنے والی انوائسز / پیکنگ۔ پیکنگ لائنز سپلائرز کو (کیٹگری کے مطابق)، انوائس اسٹاف کو۔ جزوی پیکنگ پر آرڈر کیو میں رہتا ہے۔',
         'empty' => 'آن لائن آرڈرز کیو میں کوئی انوائس نہیں۔',
-        'empty_hint' => 'Online Sale Orders سے Convert into Invoice کے بعد Send to Queue کریں۔',
+        'empty_hint' => 'تیار برائے کیو سے انوائس میں تبدیل کرنے کے بعد انوائس یا پیکنگ لسٹ کیو میں بھیجیں۔',
         'no_results' => 'تلاش یا فلٹر کے مطابق کوئی آرڈر نہیں۔',
-        'col_fulfillment' => 'فلfillment',
+        'col_fulfillment' => 'تکمیل',
         'col_staff' => 'اسٹاف',
         'col_suppliers' => 'سپلائر',
+        'col_packing_progress' => 'پیکنگ',
+        'packing_progress' => ':sent / :total لائنز',
     ],
 
     'fulfillment_statuses' => [
@@ -89,6 +96,8 @@ return [
     ],
 
     'messages' => [
+        'packing_partial' => 'پیکنگ پیشرفت: :sent از :total لائنز بھیجیں · :remaining بقایا — آرڈر کیو میں رہے گا۔',
+        'packing_complete' => 'تمام پروڈکٹ لائنز پیکنگ کے لیے بھیج دی گئیں۔ تکمیل کے لیے آرڈر کیو میں رہتا ہے۔',
         'supplier_intro' => 'السلام علیکم :supplier، براہ کرم آرڈر :number پورا کریں:',
         'invoice_intro' => 'السلام علیکم :name، آرڈر :number کی انوائس:',
         'invoice_total' => 'کل: :amount',
@@ -99,7 +108,7 @@ return [
 
     'packing_slip' => [
         'title' => 'پیکنگ لسٹ',
-        'heading' => 'پیکنگ لسٹ — وئیرہاؤس / سپلائر',
+        'heading' => 'پیکنگ لسٹ — گودام / سپلائر',
         'to' => 'برائے: :name',
         'notice' => 'اوپر والے آرڈر نمبر کے لیے یہ اشیاء پیک کریں۔ کسٹمر کو یہ سلپ نہ دیں۔ کسٹمر کا نام، ریٹ اور ڈیلیوری پتہ نہیں دکھایا گیا۔',
         'footer' => 'پیک شدہ مال Agricart اسٹاف کو واپس دیں۔ ٹریکنگ اور بلٹی صرف آفس اسٹاف درج کرے گا۔',

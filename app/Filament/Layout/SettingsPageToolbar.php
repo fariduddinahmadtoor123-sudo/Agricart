@@ -282,6 +282,7 @@ class SettingsPageToolbar extends ClusterPageToolbar
                     ['label' => __('agricart.activity.events.created'), 'value' => 'event:created'],
                     ['label' => __('agricart.activity.events.updated'), 'value' => 'event:updated'],
                     ['label' => __('agricart.activity.events.deleted'), 'value' => 'event:deleted'],
+                    ['label' => __('agricart.activity.events.converted'), 'value' => 'event:converted'],
                 ],
             ],
         ];

@@ -97,12 +97,19 @@ return [
     ],
 
     'filters' => [
+        'channel' => 'چینل',
         'invoice' => 'انوائس کی حیثیت',
         'payment' => 'ادائیگی',
         'method' => 'ادائیگی کا طریقہ',
+        'active_channel' => 'چینل: :channel',
         'active_invoice' => 'انوائس: :status',
         'active_payment' => 'ادائیگی: :status',
         'active_method' => 'طریقہ: :method',
+    ],
+
+    'channels' => [
+        'online' => 'آن لائن سٹور',
+        'offline' => 'آف لائن / POS',
     ],
 
     'list' => [
@@ -110,6 +117,7 @@ return [
         'no_results' => 'تلاش یا فلٹر سے کوئی انوائس نہیں ملی۔',
         'clear_filters' => 'فلٹر صاف',
         'col_number' => 'انوائس #',
+        'col_channel' => 'چینل',
         'col_customer' => 'گاہک',
         'col_cashier' => 'کیشیئر',
         'col_total' => 'کل',

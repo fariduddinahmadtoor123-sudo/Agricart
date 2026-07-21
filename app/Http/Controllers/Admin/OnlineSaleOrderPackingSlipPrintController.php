@@ -21,6 +21,15 @@ class OnlineSaleOrderPackingSlipPrintController extends Controller
             'assignedUser',
         ]);
 
+        $itemIds = $this->parseItemIds(request()->query('item_ids'));
+
+        if ($itemIds !== []) {
+            $order->setRelation(
+                'items',
+                $order->items->whereIn('id', $itemIds)->values(),
+            );
+        }
+
         $localeQuery = request()->query('locale');
         $locale = is_string($localeQuery) && in_array($localeQuery, OnlineSaleOrderService::LOCALES, true)
             ? $localeQuery
@@ -64,6 +73,25 @@ class OnlineSaleOrderPackingSlipPrintController extends Controller
         }
 
         return null;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function parseItemIds(mixed $raw): array
+    {
+        if (is_array($raw)) {
+            return array_values(array_unique(array_filter(array_map('intval', $raw))));
+        }
+
+        if (! is_string($raw) || trim($raw) === '') {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(array_map(
+            'intval',
+            preg_split('/[,\s]+/', $raw) ?: [],
+        ))));
     }
 
     private function authorizeSalesAccess(): void

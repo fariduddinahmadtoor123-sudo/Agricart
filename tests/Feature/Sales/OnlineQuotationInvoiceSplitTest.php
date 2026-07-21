@@ -2,15 +2,19 @@
 
 namespace Tests\Feature\Sales;
 
+use App\Enums\ActivityEvent;
 use App\Livewire\OnlineSaleOrders\Form;
 use App\Livewire\OnlineSaleOrders\ListOnlineSaleOrders;
 use App\Livewire\OnlineSaleOrders\ListOnlineSaleQuotations;
+use App\Livewire\Sales\ListSales;
+use App\Models\ActivityLog;
 use App\Models\Category;
 use App\Models\Customer;
 use App\Models\OnlineSaleOrder;
 use App\Models\OnlineSaleOrderItem;
 use App\Models\Product;
 use App\Models\Role;
+use App\Models\Sale;
 use App\Models\User;
 use App\Services\Notifications\TopbarNotificationService;
 use App\Services\Sales\OnlineSaleOrderService;
@@ -59,6 +63,24 @@ class OnlineQuotationInvoiceSplitTest extends TestCase
         $this->assertNull($order->queued_at);
         $this->assertNotNull($order->sale_id);
 
+        $sale = Sale::query()->find($order->sale_id);
+        $this->assertNotNull($sale);
+
+        $this->assertDatabaseHas('activity_logs', [
+            'event' => ActivityEvent::Converted->value,
+            'user_id' => $admin->id,
+            'subject_type' => OnlineSaleOrder::class,
+            'subject_id' => $order->id,
+            'subject_label' => $order->order_number,
+        ]);
+
+        $activity = ActivityLog::query()
+            ->where('event', ActivityEvent::Converted->value)
+            ->where('subject_id', $order->id)
+            ->first();
+        $this->assertNotNull($activity);
+        $this->assertStringContainsString($order->order_number, (string) $activity->description);
+
         Livewire::actingAs($admin)
             ->test(ListOnlineSaleQuotations::class)
             ->assertDontSee($order->order_number, false);
@@ -66,8 +88,15 @@ class OnlineQuotationInvoiceSplitTest extends TestCase
         Livewire::actingAs($admin)
             ->test(ListOnlineSaleOrders::class)
             ->assertSee($order->order_number, false)
-            ->assertSee(__('online_sale_orders.queue_statuses.pending'), false)
-            ->assertSee(__('pos.payment_statuses.paid'), false);
+            ->assertSee($sale->sale_number, false)
+            ->assertSee(__('online_sale_orders.actions.send_invoice_to_queue'), false)
+            ->assertSee(__('online_sale_orders.actions.send_packing_list_to_queue'), false);
+
+        Livewire::actingAs($admin)
+            ->test(ListSales::class)
+            ->assertSee($sale->sale_number, false)
+            ->assertSee($order->order_number, false)
+            ->assertSee(__('pos.channels.online'), false);
     }
 
     public function test_quotation_and_unqueued_invoice_forms_hide_fulfillment(): void
@@ -78,18 +107,17 @@ class OnlineQuotationInvoiceSplitTest extends TestCase
 
         Livewire::actingAs($admin)
             ->test(Form::class)
-            ->call('openForm', $quotation->id, 'edit')
+            ->call('openForm', $quotation->id, 'view')
             ->assertSet('order_status', OnlineSaleOrder::STATUS_PENDING)
             ->assertDontSee('Assigned staff', false)
-            ->assertSee(__('online_sale_orders.actions.convert_to_invoice'), false);
+            ->assertSee(__('online_sale_orders.sections.customer_payment'), false);
 
         Livewire::actingAs($admin)
             ->test(Form::class)
             ->call('openForm', $invoice->id, 'view')
             ->assertSet('order_status', OnlineSaleOrder::STATUS_CONVERTED)
             ->assertDontSee('Assigned staff', false)
-            ->assertDontSee('Suppliers (by product category)', false)
-            ->assertDontSee(__('online_sale_orders.actions.convert_to_invoice'), false);
+            ->assertDontSee('Suppliers (by product category)', false);
     }
 
     public function test_queued_invoice_form_shows_fulfillment(): void
@@ -103,7 +131,7 @@ class OnlineQuotationInvoiceSplitTest extends TestCase
             ->call('openForm', $invoice->id, 'edit')
             ->assertSet('order_status', OnlineSaleOrder::STATUS_CONVERTED)
             ->assertSee('Assigned staff', false)
-            ->assertDontSee(__('online_sale_orders.actions.convert_to_invoice'), false);
+            ->assertDontSee(__('online_sale_orders.sections.customer_payment'), false);
     }
 
     public function test_quotations_list_highlights_payment_notified_and_sorts_them_first(): void

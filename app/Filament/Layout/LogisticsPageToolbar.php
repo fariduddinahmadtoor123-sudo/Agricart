@@ -3,6 +3,7 @@
 namespace App\Filament\Layout;
 
 use App\Filament\Clusters\Logistics\OverviewPage;
+use App\Models\OnlineSaleOrder;
 use App\Models\User;
 
 class LogisticsPageToolbar extends ClusterPageToolbar
@@ -69,8 +70,55 @@ class LogisticsPageToolbar extends ClusterPageToolbar
                     ['label' => __('agricart.delivery_methods.list.col_cod'), 'value' => 'cod_allowed', 'visible' => true],
                 ],
             ],
+            'shipments' => [
+                ...$config,
+                'addLabel' => null,
+                'formKey' => 'online-orders',
+                'livewirePrefix' => 'pending-shipments',
+                'columnDataAttr' => 'data-pending-shipment-column',
+                'interactive' => true,
+                'searchPlaceholder' => __('pending_shipments.list.search'),
+                'filterGroups' => static::pendingShipmentFilterGroups(),
+                'filters' => [],
+                'columns' => [
+                    ['label' => __('online_sale_orders.list.col_number'), 'value' => 'order_number', 'visible' => true],
+                    ['label' => __('online_sale_orders.list.col_customer'), 'value' => 'customer', 'visible' => true],
+                    ['label' => __('online_sale_orders.list.col_total'), 'value' => 'total_amount', 'visible' => true],
+                    ['label' => __('online_sale_orders.list.col_queue_document'), 'value' => 'queue_document', 'visible' => true],
+                    ['label' => __('order_dispatch.list.col_packing_progress'), 'value' => 'packing_progress', 'visible' => true],
+                    ['label' => __('order_dispatch.list.col_fulfillment'), 'value' => 'fulfillment_status', 'visible' => true],
+                    ['label' => __('pending_shipments.list.col_shipping'), 'value' => 'shipping', 'visible' => true],
+                    ['label' => __('pending_shipments.list.col_queued'), 'value' => 'queued_at', 'visible' => true],
+                ],
+            ],
             default => $config,
         };
+    }
+
+    /**
+     * @return list<array{label: string, filters: list<array{label: string, value: string}>}>
+     */
+    protected static function pendingShipmentFilterGroups(): array
+    {
+        $fulfillmentFilters = [];
+
+        foreach (OnlineSaleOrder::FULFILLMENT_STATUSES as $status) {
+            if ($status === OnlineSaleOrder::FULFILLMENT_DELIVERED) {
+                continue;
+            }
+
+            $fulfillmentFilters[] = [
+                'label' => __('order_dispatch.fulfillment_statuses.' . $status),
+                'value' => 'fulfillment:' . $status,
+            ];
+        }
+
+        return [
+            [
+                'label' => __('order_dispatch.filters.fulfillment'),
+                'filters' => $fulfillmentFilters,
+            ],
+        ];
     }
 
     protected static function userCanManage(): bool

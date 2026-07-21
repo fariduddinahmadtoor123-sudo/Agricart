@@ -123,6 +123,7 @@ abstract class ClusterPageToolbar
             'online-quotations' => 'online-orders',
             'online-orders' => 'online-orders',
             'order-dispatch' => 'online-orders',
+            'shipments' => 'online-orders',
             're-order-center' => 're-order-center',
             'price-control' => 'price-controls',
             'quantity-control' => 'quantity-controls',

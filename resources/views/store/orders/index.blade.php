@@ -24,6 +24,9 @@
                         @php
                             $statusKey = $order->order_status;
                             $statusLabel = __('online_sale_orders.order_statuses.' . $statusKey);
+                            if ($order->queued_at !== null || filled($order->fulfillment_status)) {
+                                $statusLabel = __('order_dispatch.fulfillment_statuses.' . ($order->fulfillment_status ?: 'awaiting_assignment'));
+                            }
                         @endphp
                         <article class="ag-store-orders__card">
                             <div class="ag-store-orders__card-top">

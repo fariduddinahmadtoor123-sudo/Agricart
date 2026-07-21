@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OnlineSaleOrderSupplierAssignment extends Model
 {
@@ -84,5 +85,10 @@ class OnlineSaleOrderSupplierAssignment extends Model
     public function assignedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_by_id');
+    }
+
+    public function lines(): HasMany
+    {
+        return $this->hasMany(OnlineSaleOrderSupplierAssignmentItem::class, 'online_sale_order_supplier_assignment_id');
     }
 }

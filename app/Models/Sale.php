@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Sale extends Model
 {
@@ -84,5 +85,19 @@ class Sale extends Model
     public function items(): HasMany
     {
         return $this->hasMany(SaleItem::class)->orderBy('sort_order');
+    }
+
+    public function onlineSaleOrder(): HasOne
+    {
+        return $this->hasOne(OnlineSaleOrder::class, 'sale_id');
+    }
+
+    public function isOnlineInvoice(): bool
+    {
+        if ($this->relationLoaded('onlineSaleOrder')) {
+            return $this->onlineSaleOrder !== null;
+        }
+
+        return $this->onlineSaleOrder()->exists();
     }
 }

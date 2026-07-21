@@ -149,36 +149,15 @@ class ListOnlineSaleQuotations extends Component
             return;
         }
 
-        $canUpdate = $this->userCan('edit') && ! $order->isLocked();
-        $titleKey = $canUpdate ? 'edit_short' : 'view_short';
-
+        // Quotations are view-opened only; payment verification still works via canConfirmPayment().
         $this->dispatch(
             'open-form-panel',
-            title: __('online_sale_orders.actions.' . $titleKey) . ': ' . $order->order_number,
+            title: __('online_sale_orders.actions.view_short') . ': ' . $order->order_number,
             resource: __('agricart.pages.sales.online-quotations'),
             formKey: 'online-orders',
             orderId: $orderId,
-            mode: $canUpdate ? 'edit' : 'view',
-        );
-    }
-
-    public function openEdit(int $orderId): void
-    {
-        $order = OnlineSaleOrder::query()
-            ->where('order_status', '!=', OnlineSaleOrder::STATUS_CONVERTED)
-            ->find($orderId);
-
-        if ($order === null || $order->isLocked()) {
-            return;
-        }
-
-        $this->dispatch(
-            'open-form-panel',
-            title: __('online_sale_orders.actions.edit_short') . ': ' . $order->order_number,
-            resource: __('agricart.pages.sales.online-quotations'),
-            formKey: 'online-orders',
-            orderId: $orderId,
-            mode: 'edit',
+            mode: 'view',
+            onlineOrderContext: 'quotation',
         );
     }
 
@@ -209,7 +188,6 @@ class ListOnlineSaleQuotations extends Component
             'orders' => $orders,
             'activeFilters' => $this->activeFilters(),
             'hasListConstraints' => $this->hasListConstraints(),
-            'canEdit' => $this->userCan('edit'),
         ]);
     }
 

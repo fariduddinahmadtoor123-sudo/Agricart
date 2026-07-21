@@ -4,11 +4,14 @@ namespace App\Services\Sales;
 
 use App\Models\Category;
 use App\Models\OnlineSaleOrder;
+use App\Models\OnlineSaleOrderItem;
 use App\Models\OnlineSaleOrderSupplierAssignment;
+use App\Models\OnlineSaleOrderSupplierAssignmentItem;
 use App\Models\Product;
 use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 
 class OnlineOrderDispatchService
 {
@@ -41,7 +44,45 @@ class OnlineOrderDispatchService
      */
     public function suggestSuppliersForOrder(OnlineSaleOrder $order): Collection
     {
-        $categoryIds = $this->categoryIdsForOrder($order);
+        return $this->suggestSuppliersForItemIds($order, $order->items->pluck('id')->map(fn ($id): int => (int) $id)->all());
+    }
+
+    /**
+     * @param  list<int>  $itemIds
+     * @return list<int>
+     */
+    public function categoryIdsForItemIds(OnlineSaleOrder $order, array $itemIds): array
+    {
+        $order->loadMissing(['items.product.category.parent']);
+        $wanted = array_fill_keys(array_map('intval', $itemIds), true);
+        $ids = [];
+
+        foreach ($order->items as $item) {
+            if (! isset($wanted[(int) $item->id])) {
+                continue;
+            }
+
+            $product = $item->product;
+
+            if ($product === null) {
+                continue;
+            }
+
+            foreach ($this->categoryIdsWithAncestors($product->category) as $categoryId) {
+                $ids[] = $categoryId;
+            }
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * @param  list<int>  $itemIds
+     * @return Collection<int, Supplier>
+     */
+    public function suggestSuppliersForItemIds(OnlineSaleOrder $order, array $itemIds): Collection
+    {
+        $categoryIds = $this->categoryIdsForItemIds($order, $itemIds);
 
         if ($categoryIds === []) {
             return collect();
@@ -54,6 +95,171 @@ class OnlineOrderDispatchService
             })
             ->orderBy('business_name_en')
             ->get();
+    }
+
+    /**
+     * @return Collection<int, Supplier>
+     */
+    public function allActiveSuppliers(): Collection
+    {
+        return Supplier::query()
+            ->where('status', 'active')
+            ->orderBy('business_name_en')
+            ->get();
+    }
+
+    /**
+     * Item IDs already linked to a supplier packing assignment (any status except declined).
+     *
+     * @return list<int>
+     */
+    public function assignedItemIds(OnlineSaleOrder $order): array
+    {
+        return OnlineSaleOrderSupplierAssignmentItem::query()
+            ->whereHas('assignment', function ($query) use ($order): void {
+                $query->where('online_sale_order_id', $order->id)
+                    ->where('status', '!=', OnlineSaleOrderSupplierAssignment::STATUS_DECLINED);
+            })
+            ->pluck('online_sale_order_item_id')
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return array{total: int, sent: int, remaining: int, complete: bool}
+     */
+    public function packingProgress(OnlineSaleOrder $order): array
+    {
+        $order->loadMissing('items');
+        $total = $order->items->count();
+        $sent = count($this->assignedItemIds($order));
+        $remaining = max(0, $total - $sent);
+
+        return [
+            'total' => $total,
+            'sent' => min($sent, $total),
+            'remaining' => $remaining,
+            'complete' => $total > 0 && $remaining === 0,
+        ];
+    }
+
+    /**
+     * @return list<array{item_id: int, label: string, quantity: string, sent: bool, supplier_name: string|null}>
+     */
+    public function packingLineStates(OnlineSaleOrder $order): array
+    {
+        $order->loadMissing([
+            'items.product',
+            'supplierAssignments.supplier',
+            'supplierAssignments.lines',
+        ]);
+
+        $itemSupplier = [];
+
+        foreach ($order->supplierAssignments as $assignment) {
+            if ($assignment->status === OnlineSaleOrderSupplierAssignment::STATUS_DECLINED) {
+                continue;
+            }
+
+            $name = $assignment->supplier?->displayBusinessName();
+
+            foreach ($assignment->lines as $line) {
+                $itemSupplier[(int) $line->online_sale_order_item_id] = filled($name) ? (string) $name : null;
+            }
+        }
+
+        $rows = [];
+
+        foreach ($order->items->sortBy('sort_order') as $item) {
+            $itemId = (int) $item->id;
+            $sent = array_key_exists($itemId, $itemSupplier);
+
+            $rows[] = [
+                'item_id' => $itemId,
+                'label' => $item->displayName($order->locale),
+                'quantity' => (string) ($item->quantity ?? '1'),
+                'sent' => $sent,
+                'supplier_name' => $sent ? ($itemSupplier[$itemId] ?? null) : null,
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Attach selected order lines to a supplier and mark the assignment sent.
+     * Order remains in the dispatch queue; partial sends leave remaining lines open.
+     *
+     * @param  list<int>  $itemIds
+     */
+    public function assignItemsToSupplierAndMarkSent(
+        OnlineSaleOrder $order,
+        int $supplierId,
+        array $itemIds,
+        ?User $actor = null,
+    ): OnlineSaleOrderSupplierAssignment {
+        $itemIds = array_values(array_unique(array_filter(array_map('intval', $itemIds))));
+
+        if ($itemIds === []) {
+            throw ValidationException::withMessages([
+                'items' => [__('order_dispatch.validation.select_items_to_forward')],
+            ]);
+        }
+
+        $order->loadMissing('items');
+        $validIds = $order->items->pluck('id')->map(fn ($id): int => (int) $id)->all();
+
+        foreach ($itemIds as $itemId) {
+            if (! in_array($itemId, $validIds, true)) {
+                throw ValidationException::withMessages([
+                    'items' => [__('order_dispatch.validation.invalid_forward_items')],
+                ]);
+            }
+        }
+
+        $alreadyAssigned = array_intersect($itemIds, $this->assignedItemIds($order));
+
+        if ($alreadyAssigned !== []) {
+            throw ValidationException::withMessages([
+                'items' => [__('order_dispatch.validation.items_already_forwarded')],
+            ]);
+        }
+
+        $supplier = Supplier::query()->whereKey($supplierId)->where('status', 'active')->first();
+
+        if ($supplier === null) {
+            throw ValidationException::withMessages([
+                'supplier' => [__('order_dispatch.validation.supplier_required')],
+            ]);
+        }
+
+        $assignment = $order->supplierAssignments()->where('supplier_id', $supplierId)->first();
+
+        if ($assignment === null) {
+            $assignment = OnlineSaleOrderSupplierAssignment::query()->create([
+                'online_sale_order_id' => $order->id,
+                'supplier_id' => $supplierId,
+                'status' => OnlineSaleOrderSupplierAssignment::STATUS_PENDING,
+                'assigned_by_id' => $actor?->id,
+            ]);
+        }
+
+        foreach ($itemIds as $itemId) {
+            OnlineSaleOrderSupplierAssignmentItem::query()->firstOrCreate([
+                'online_sale_order_supplier_assignment_id' => $assignment->id,
+                'online_sale_order_item_id' => $itemId,
+            ]);
+        }
+
+        if (in_array($order->fulfillment_status, [OnlineSaleOrder::FULFILLMENT_AWAITING, ''], true)
+            || $order->fulfillment_status === null) {
+            $order->fulfillment_status = OnlineSaleOrder::FULFILLMENT_SOURCING;
+            $order->save();
+        }
+
+        return $this->markAssignmentSent($assignment->fresh(['lines', 'supplier']));
     }
 
     /**
@@ -155,6 +361,8 @@ class OnlineOrderDispatchService
 
             if ($status === OnlineSaleOrderSupplierAssignment::STATUS_DECLINED) {
                 $assignment->shipped_at = null;
+                // Free line unique so another supplier can take the items.
+                $assignment->lines()->delete();
             }
 
             $assignment->save();
@@ -211,31 +419,46 @@ class OnlineOrderDispatchService
     }
 
     /**
-     * Ensure a supplier assignment exists and mark it sent (does not remove other assignments).
+     * Ensure a supplier assignment exists, attach packing lines, and mark sent.
+     *
+     * @param  list<int>  $itemIds  Empty = all remaining unassigned lines
      */
-    public function ensureAndMarkSupplierSent(OnlineSaleOrder $order, int $supplierId, ?User $actor = null): ?OnlineSaleOrderSupplierAssignment
-    {
-        $assignment = $order->supplierAssignments()->where('supplier_id', $supplierId)->first();
+    public function ensureAndMarkSupplierSent(
+        OnlineSaleOrder $order,
+        int $supplierId,
+        ?User $actor = null,
+        array $itemIds = [],
+    ): ?OnlineSaleOrderSupplierAssignment {
+        $order->loadMissing('items');
 
-        if ($assignment === null) {
-            $assignment = OnlineSaleOrderSupplierAssignment::query()->create([
-                'online_sale_order_id' => $order->id,
-                'supplier_id' => $supplierId,
-                'status' => OnlineSaleOrderSupplierAssignment::STATUS_PENDING,
-                'assigned_by_id' => $actor?->id,
-            ]);
-
-            if ($order->fulfillment_status === OnlineSaleOrder::FULFILLMENT_AWAITING) {
-                $order->fulfillment_status = OnlineSaleOrder::FULFILLMENT_SOURCING;
-                $order->save();
-            }
+        if ($itemIds === []) {
+            $assigned = $this->assignedItemIds($order);
+            $itemIds = $order->items
+                ->pluck('id')
+                ->map(fn ($id): int => (int) $id)
+                ->reject(fn (int $id): bool => in_array($id, $assigned, true))
+                ->values()
+                ->all();
         }
 
-        return $this->markAssignmentSent($assignment);
+        if ($itemIds === []) {
+            throw ValidationException::withMessages([
+                'items' => [__('order_dispatch.validation.select_items_to_forward')],
+            ]);
+        }
+
+        return $this->assignItemsToSupplierAndMarkSent($order, $supplierId, $itemIds, $actor);
     }
 
-    public function whatsAppUrlForSupplier(OnlineSaleOrder $order, Supplier $supplier, string $document = 'packing'): ?string
-    {
+    /**
+     * @param  list<int>  $itemIds
+     */
+    public function whatsAppUrlForSupplier(
+        OnlineSaleOrder $order,
+        Supplier $supplier,
+        string $document = 'packing',
+        array $itemIds = [],
+    ): ?string {
         $digits = $this->normalizePhoneDigits($supplier->primaryMobile());
 
         if ($digits === null) {
@@ -248,13 +471,21 @@ class OnlineOrderDispatchService
             $supplier->displayBusinessName(),
             $supplier->id,
             null,
+            $itemIds,
         );
 
-        return 'https://wa.me/' . $digits . '?text=' . rawurlencode($text);
+        return 'https://api.whatsapp.com/send?phone=' . $digits . '&text=' . rawurlencode($text);
     }
 
-    public function mailToUrlForSupplier(OnlineSaleOrder $order, Supplier $supplier, string $document = 'packing'): ?string
-    {
+    /**
+     * @param  list<int>  $itemIds
+     */
+    public function mailToUrlForSupplier(
+        OnlineSaleOrder $order,
+        Supplier $supplier,
+        string $document = 'packing',
+        array $itemIds = [],
+    ): ?string {
         if (! filled($supplier->email)) {
             return null;
         }
@@ -266,6 +497,7 @@ class OnlineOrderDispatchService
             $supplier->displayBusinessName(),
             $supplier->id,
             null,
+            $itemIds,
         );
 
         return 'mailto:' . rawurlencode((string) $supplier->email)
@@ -283,7 +515,7 @@ class OnlineOrderDispatchService
 
         $text = $this->forwardMessageText($order, $document, (string) $staff->name, null, $staff->id);
 
-        return 'https://wa.me/' . $digits . '?text=' . rawurlencode($text);
+        return 'https://api.whatsapp.com/send?phone=' . $digits . '&text=' . rawurlencode($text);
     }
 
     public function mailToUrlForStaff(OnlineSaleOrder $order, User $staff, string $document = 'packing'): ?string
@@ -331,6 +563,11 @@ class OnlineOrderDispatchService
             return null;
         }
 
+        // 0092… → 92…
+        if (str_starts_with($digits, '00')) {
+            $digits = substr($digits, 2);
+        }
+
         if (str_starts_with($digits, '0')) {
             $digits = '92' . substr($digits, 1);
         }
@@ -339,17 +576,30 @@ class OnlineOrderDispatchService
             $digits = '92' . $digits;
         }
 
-        return $digits;
+        // Pakistan mobile: 92 + 10 digits (e.g. 923001112233)
+        if (str_starts_with($digits, '92') && strlen($digits) >= 12 && strlen($digits) <= 15) {
+            return $digits;
+        }
+
+        // Other international numbers already with country code
+        if (! str_starts_with($digits, '0') && strlen($digits) >= 10 && strlen($digits) <= 15) {
+            return $digits;
+        }
+
+        return null;
     }
 
     /**
      * Print URL for invoice or packing list, optionally addressed to a recipient.
+     *
+     * @param  list<int>  $itemIds
      */
     public function documentUrl(
         OnlineSaleOrder $order,
         string $document = 'packing',
         ?int $supplierId = null,
         ?int $staffId = null,
+        array $itemIds = [],
     ): string {
         $params = ['order' => $order, 'autoprint' => 0];
 
@@ -359,6 +609,12 @@ class OnlineOrderDispatchService
 
         if ($staffId !== null) {
             $params['staff_id'] = $staffId;
+        }
+
+        $itemIds = array_values(array_unique(array_filter(array_map('intval', $itemIds))));
+
+        if ($itemIds !== []) {
+            $params['item_ids'] = implode(',', $itemIds);
         }
 
         if ($document === 'invoice') {
@@ -379,31 +635,44 @@ class OnlineOrderDispatchService
         );
     }
 
+    /**
+     * @param  list<int>  $itemIds
+     */
     public function forwardMessageText(
         OnlineSaleOrder $order,
         string $document,
         string $recipientName,
         ?int $supplierId = null,
         ?int $staffId = null,
+        array $itemIds = [],
     ): string {
-        $url = $this->documentUrl($order, $document, $supplierId, $staffId);
+        $url = $this->documentUrl($order, $document, $supplierId, $staffId, $itemIds);
 
         if ($document === 'invoice') {
             return $this->invoicePlainText($order, $recipientName, $url);
         }
 
-        return $this->packingSlipPlainText($order, $recipientName, $url);
+        return $this->packingSlipPlainText($order, $recipientName, $url, $itemIds);
     }
 
     /**
      * Warehouse / supplier message: products and quantities only (no customer, rates, or address).
+     *
+     * @param  list<int>  $itemIds
      */
     public function packingSlipPlainText(
         OnlineSaleOrder $order,
         ?string $recipientName = null,
         ?string $documentUrl = null,
+        array $itemIds = [],
     ): string {
         $order->loadMissing(['items']);
+        $items = $order->items;
+        $wanted = array_fill_keys(array_map('intval', $itemIds), true);
+
+        if ($wanted !== []) {
+            $items = $items->filter(fn (OnlineSaleOrderItem $item): bool => isset($wanted[(int) $item->id]));
+        }
 
         $lines = [];
 
@@ -418,7 +687,7 @@ class OnlineOrderDispatchService
 
         $lines[] = '';
 
-        foreach ($order->items as $item) {
+        foreach ($items as $item) {
             $lines[] = sprintf(
                 '• %s × %s',
                 $item->displayName($order->locale),
@@ -439,19 +708,34 @@ class OnlineOrderDispatchService
 
     public function invoicePlainText(OnlineSaleOrder $order, string $recipientName, string $documentUrl): string
     {
-        return implode("\n", [
+        $order->loadMissing(['items']);
+
+        $lines = [
             __('order_dispatch.messages.invoice_intro', [
                 'name' => $recipientName,
                 'number' => $order->order_number,
             ]),
             '',
-            __('order_dispatch.messages.invoice_total', [
-                'amount' => number_format((float) $order->total_amount, 2),
-            ]),
-            '',
-            __('order_dispatch.messages.invoice_link'),
-            $documentUrl,
+        ];
+
+        foreach ($order->items as $item) {
+            $lines[] = sprintf(
+                '• %s × %s = %s',
+                $item->displayName($order->locale),
+                $item->quantity ?? '1',
+                number_format((float) $item->line_total, 2),
+            );
+        }
+
+        $lines[] = '';
+        $lines[] = __('order_dispatch.messages.invoice_total', [
+            'amount' => number_format((float) $order->total_amount, 2),
         ]);
+        $lines[] = '';
+        $lines[] = __('order_dispatch.messages.invoice_link');
+        $lines[] = $documentUrl;
+
+        return implode("\n", $lines);
     }
 
     public function enterDispatchQueueIfPaid(OnlineSaleOrder $order): void

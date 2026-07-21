@@ -55,6 +55,20 @@
     </div>
 
     <div class="agricart-form-panel__actions">
+        <x-filament::button
+            color="primary"
+            tag="button"
+            type="button"
+            class="agricart-form-panel__action-btn"
+            x-show="formKey === 'online-orders' && onlineOrderContext === 'quotation'"
+            x-cloak
+            x-bind:class="{ 'is-loading': onlineOrderSaving }"
+            x-bind:disabled="onlineOrderSaving"
+            x-on:click="handleAction('convert_invoice')"
+        >
+            {{ __('online_sale_orders.actions.convert_to_invoice') }}
+        </x-filament::button>
+
         @foreach ($footerActions as $action)
             @php
                 $icon = filled($action['icon']) ? ($iconMap[$action['icon']] ?? null) : null;
@@ -117,7 +131,7 @@
                     tag="button"
                     type="button"
                     class="agricart-form-panel__action-btn"
-                    x-show="formMode !== 'view' && formKey !== 'labels' && formKey !== 'staff-payroll' && !(formKey === 'finance-bank' && formMode === 'history')"
+                    x-show="formMode !== 'view' && formKey !== 'labels' && formKey !== 'staff-payroll' && !(formKey === 'finance-bank' && formMode === 'history') && onlineOrderContext !== 'quotation' && onlineOrderContext !== 'invoice'"
                     x-bind:class="{ 'is-loading': (formKey === 'categories' && categorySaving) || (formKey === 'brands' && brandSaving) || (formKey === 'units' && unitSaving) || (formKey === 'packing-units' && packingUnitSaving) || (formKey === 'attributes' && attributeSaving) || (formKey === 'controls' && controlSaving) || (formKey === 'products' && productSaving) || (formKey === 'purchase-planning' && purchasePlanningSaving) || (formKey === 'purchase-payment-summary' && purchasePaymentSummarySaving) || (formKey === 'purchase-quotations' && purchaseQuotationSaving) || (formKey === 'purchases' && purchaseSaving) || (formKey === 'sales' && saleSaving) || (formKey === 'sale-quotations' && saleQuotationSaving) || (formKey === 'sale-returns' && saleReturnSaving) || (formKey === 'online-orders' && onlineOrderSaving) || (formKey === 'price-controls' && priceControlSaving) || (formKey === 'quantity-controls' && quantityControlSaving) || (formKey === 'secret-coding' && secretCodingSaving) || (formKey === 'sales-channel' && salesChannelSaving) || (formKey === 'staff-advance' && staffAdvanceSaving) || (formKey === 'finance-bank' && financeBankSaving) || (formKey === 'finance-fund-transfer' && financeFundTransferSaving) || (formKey === 'finance-expense-category' && financeExpenseCategorySaving) || (formKey === 'finance-expense' && financeExpenseSaving) || (formKey === 'finance-expense-payment' && financeExpensePaymentSaving) }"
                     x-bind:disabled="(formKey === 'categories' && categorySaving) || (formKey === 'brands' && brandSaving) || (formKey === 'units' && unitSaving) || (formKey === 'packing-units' && packingUnitSaving) || (formKey === 'attributes' && attributeSaving) || (formKey === 'controls' && controlSaving) || (formKey === 'products' && productSaving) || (formKey === 'purchase-planning' && purchasePlanningSaving) || (formKey === 'purchase-payment-summary' && purchasePaymentSummarySaving) || (formKey === 'purchase-quotations' && purchaseQuotationSaving) || (formKey === 'purchases' && purchaseSaving) || (formKey === 'sales' && saleSaving) || (formKey === 'sale-quotations' && saleQuotationSaving) || (formKey === 'sale-returns' && saleReturnSaving) || (formKey === 'online-orders' && onlineOrderSaving) || (formKey === 'price-controls' && priceControlSaving) || (formKey === 'quantity-controls' && quantityControlSaving) || (formKey === 'secret-coding' && secretCodingSaving) || (formKey === 'sales-channel' && salesChannelSaving) || (formKey === 'staff-advance' && staffAdvanceSaving) || (formKey === 'finance-bank' && financeBankSaving) || (formKey === 'finance-fund-transfer' && financeFundTransferSaving) || (formKey === 'finance-expense-category' && financeExpenseCategorySaving) || (formKey === 'finance-expense' && financeExpenseSaving) || (formKey === 'finance-expense-payment' && financeExpensePaymentSaving)"
                     x-on:click="handleAction('{{ $actionKey }}')"
@@ -175,7 +189,7 @@
             tag="button"
             type="button"
             class="agricart-form-panel__action-btn"
-            x-show="formKey === 'purchase-planning' || formKey === 'purchase-payment-summary' || formKey === 'purchase-quotations' || formKey === 'purchases' || formKey === 'sales' || formKey === 'sale-quotations' || formKey === 'sale-returns' || formKey === 'online-orders' || formKey === 'staff-payroll'"
+            x-show="(formKey === 'purchase-planning' || formKey === 'purchase-payment-summary' || formKey === 'purchase-quotations' || formKey === 'purchases' || formKey === 'sales' || formKey === 'sale-quotations' || formKey === 'sale-returns' || formKey === 'staff-payroll' || (formKey === 'online-orders' && (onlineOrderContext === 'invoice' || onlineOrderContext === 'queue')))"
             x-cloak
             x-bind:class="{ 'is-loading': (formKey === 'purchase-planning' && purchasePlanningSaving) || (formKey === 'purchase-payment-summary' && purchasePaymentSummarySaving) || (formKey === 'purchase-quotations' && purchaseQuotationSaving) || (formKey === 'purchases' && purchaseSaving) || (formKey === 'sales' && saleSaving) || (formKey === 'sale-quotations' && saleQuotationSaving) || (formKey === 'sale-returns' && saleReturnSaving) || (formKey === 'online-orders' && onlineOrderSaving) }"
             x-bind:disabled="(formKey === 'purchase-planning' && purchasePlanningSaving) || (formKey === 'purchase-payment-summary' && purchasePaymentSummarySaving) || (formKey === 'purchase-quotations' && purchaseQuotationSaving) || (formKey === 'purchases' && purchaseSaving) || (formKey === 'sales' && saleSaving) || (formKey === 'sale-quotations' && saleQuotationSaving) || (formKey === 'sale-returns' && saleReturnSaving) || (formKey === 'online-orders' && onlineOrderSaving)"
@@ -188,7 +202,8 @@
             <span x-show="formKey === 'sales'">{{ __('pos.actions.print') }}</span>
             <span x-show="formKey === 'sale-quotations'">{{ __('sale_quotations.actions.print') }}</span>
             <span x-show="formKey === 'sale-returns'">{{ __('sale_returns.actions.print') }}</span>
-            <span x-show="formKey === 'online-orders'">{{ __('online_sale_orders.actions.print') }}</span>
+            <span x-show="formKey === 'online-orders' && onlineOrderContext === 'invoice'">{{ __('online_sale_orders.actions.print_invoice') }}</span>
+            <span x-show="formKey === 'online-orders' && onlineOrderContext === 'queue'">{{ __('online_sale_orders.actions.print_invoice') }}</span>
             <span x-show="formKey === 'staff-payroll'">{{ __('agricart.staff.payroll.actions.print') }}</span>
         </x-filament::button>
 
@@ -241,7 +256,7 @@
             tag="button"
             type="button"
             class="agricart-form-panel__action-btn"
-            x-show="formKey === 'online-orders'"
+            x-show="formKey === 'online-orders' && onlineOrderContext === 'queue'"
             x-cloak
             x-on:click="handleAction('packing_print')"
         >

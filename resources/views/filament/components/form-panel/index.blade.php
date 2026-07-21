@@ -91,6 +91,7 @@
         financeExpensePaymentSaving: false,
         controlOpenSignature: null,
         formMode: 'create',
+        onlineOrderContext: null,
         roleSaving: false,
         selectCategoryVisualIcon(index) {
             this.categoryVisualMapping.selected = index;
@@ -112,6 +113,10 @@
             return Math.round((this.currentStep / this.totalSteps) * 100);
         },
         open(detail = {}) {
+            if (Array.isArray(detail)) {
+                detail = detail[0] ?? {};
+            }
+
             const incomingFormKey = detail.formKey ?? null;
             const incomingMode = ['create', 'edit', 'view'].includes(detail.mode) ? detail.mode : 'create';
             if (! this.isOpen && ! detail.__formMounted) {
@@ -129,6 +134,7 @@
             this.resourceLabel = detail.resource ?? this.defaults.record;
             this.formKey = incomingFormKey;
             this.formMode = incomingMode;
+            this.onlineOrderContext = detail.onlineOrderContext ?? null;
             this.controlOpenSignature = controlSignature;
             this.currentStep = 1;
 
@@ -451,6 +457,7 @@
                     detail: {
                         orderId: detail.orderId ?? null,
                         mode: detail.mode ?? 'view',
+                        onlineOrderContext: detail.onlineOrderContext ?? null,
                     },
                     bubbles: true,
                 }));
@@ -1427,7 +1434,7 @@
             window.agricartEnhanceFormPanelAlerts?.(this.$el?.querySelector?.('.agricart-form-panel__body'));
         },
     }"
-    x-on:open-form-panel.window="open($event.detail); $nextTick(() => enhanceStatusAlerts())"
+    x-on:open-form-panel.window="open(Array.isArray($event.detail) ? ($event.detail[0] || {}) : ($event.detail || {})); $nextTick(() => enhanceStatusAlerts())"
     x-on:form-panel-mounted.window="if (pendingOpenDetail) { open({ ...pendingOpenDetail, __formMounted: true }); $nextTick(() => { enhanceStatusAlerts(); focusPanel(); }); }"
     x-on:close-form-panel.window="close(false)"
     x-on:category-form-busy.window="categoryAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); categorySaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"

@@ -61,6 +61,7 @@ class SalesPageToolbar extends ClusterPageToolbar
                 'filters' => [],
                 'columns' => [
                     ['label' => __('pos.list.col_number'), 'value' => 'sale_number', 'visible' => true],
+                    ['label' => __('pos.list.col_channel'), 'value' => 'channel', 'visible' => true],
                     ['label' => __('pos.list.col_customer'), 'value' => 'customer', 'visible' => true],
                     ['label' => __('pos.list.col_cashier'), 'value' => 'cashier', 'visible' => true],
                     ['label' => __('pos.list.col_total'), 'value' => 'total_amount', 'visible' => true],
@@ -141,14 +142,14 @@ class SalesPageToolbar extends ClusterPageToolbar
                 'formKey' => 'online-orders',
                 'addLabel' => null,
                 'compactAddButton' => false,
-                'filterGroups' => static::onlineInvoiceFilterGroups(),
+                'filterGroups' => [],
                 'filters' => [],
                 'columns' => [
                     ['label' => __('online_sale_orders.list.col_number'), 'value' => 'order_number', 'visible' => true],
+                    ['label' => __('online_sale_orders.list.col_sale_number'), 'value' => 'sale_number', 'visible' => true],
                     ['label' => __('online_sale_orders.list.col_customer'), 'value' => 'customer', 'visible' => true],
                     ['label' => __('online_sale_orders.list.col_total'), 'value' => 'total_amount', 'visible' => true],
                     ['label' => __('online_sale_orders.list.col_payment_status'), 'value' => 'payment_status', 'visible' => true],
-                    ['label' => __('online_sale_orders.list.col_queue_status'), 'value' => 'queue_status', 'visible' => true],
                     ['label' => __('online_sale_orders.list.col_order_date'), 'value' => 'order_date', 'visible' => true],
                     ['label' => __('online_sale_orders.list.col_created'), 'value' => 'created_at', 'visible' => true],
                 ],
@@ -167,6 +168,8 @@ class SalesPageToolbar extends ClusterPageToolbar
                     ['label' => __('online_sale_orders.list.col_number'), 'value' => 'order_number', 'visible' => true],
                     ['label' => __('online_sale_orders.list.col_customer'), 'value' => 'customer', 'visible' => true],
                     ['label' => __('online_sale_orders.list.col_total'), 'value' => 'total_amount', 'visible' => true],
+                    ['label' => __('online_sale_orders.list.col_queue_document'), 'value' => 'queue_document', 'visible' => true],
+                    ['label' => __('order_dispatch.list.col_packing_progress'), 'value' => 'packing_progress', 'visible' => true],
                     ['label' => __('order_dispatch.list.col_fulfillment'), 'value' => 'fulfillment_status', 'visible' => true],
                     ['label' => __('order_dispatch.list.col_staff'), 'value' => 'assigned_user', 'visible' => true],
                     ['label' => __('order_dispatch.list.col_suppliers'), 'value' => 'suppliers', 'visible' => true],
@@ -208,6 +211,19 @@ class SalesPageToolbar extends ClusterPageToolbar
         }
 
         return [
+            [
+                'label' => __('pos.filters.channel'),
+                'filters' => [
+                    [
+                        'label' => __('pos.channels.online'),
+                        'value' => 'channel:online',
+                    ],
+                    [
+                        'label' => __('pos.channels.offline'),
+                        'value' => 'channel:offline',
+                    ],
+                ],
+            ],
             [
                 'label' => __('pos.filters.invoice'),
                 'filters' => $invoiceFilters,
@@ -306,28 +322,6 @@ class SalesPageToolbar extends ClusterPageToolbar
             [
                 'label' => __('pos.filters.payment'),
                 'filters' => $paymentFilters,
-            ],
-        ];
-    }
-
-    /**
-     * @return list<array{label: string, filters: list<array{label: string, value: string}>}>
-     */
-    protected static function onlineInvoiceFilterGroups(): array
-    {
-        return [
-            [
-                'label' => __('online_sale_orders.filters.queue'),
-                'filters' => [
-                    [
-                        'label' => __('online_sale_orders.queue_statuses.pending'),
-                        'value' => 'queue:pending',
-                    ],
-                    [
-                        'label' => __('online_sale_orders.queue_statuses.queued'),
-                        'value' => 'queue:queued',
-                    ],
-                ],
             ],
         ];
     }

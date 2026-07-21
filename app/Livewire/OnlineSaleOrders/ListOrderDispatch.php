@@ -28,11 +28,20 @@ class ListOrderDispatch extends Component
     /** @var 'packing'|'invoice' */
     public string $forwardDocument = 'packing';
 
+    /** @var list<int> */
+    public array $forwardSelectedItemIds = [];
+
+    public string $forwardSupplierSearch = '';
+
+    public string $forwardStatusMessage = '';
+
     /** @var list<string> */
     public array $visibleColumns = [
         'order_number',
         'customer',
         'total_amount',
+        'queue_document',
+        'packing_progress',
         'fulfillment_status',
         'assigned_user',
         'suppliers',
@@ -179,6 +188,7 @@ class ListOrderDispatch extends Component
             formKey: 'online-orders',
             orderId: $orderId,
             mode: $canUpdate ? 'edit' : 'view',
+            onlineOrderContext: 'queue',
         );
     }
 
@@ -206,18 +216,36 @@ class ListOrderDispatch extends Component
 
     public function openForward(int $orderId): void
     {
-        if ($this->queuedOrder($orderId) === null) {
+        $order = $this->queuedOrder($orderId);
+
+        if ($order === null) {
             return;
         }
 
+        $dispatch = app(OnlineOrderDispatchService::class);
         $this->forwardOrderId = $orderId;
-        $this->forwardDocument = 'packing';
+        $progress = $dispatch->packingProgress($order);
+        // Prefer packing when lines still need suppliers — otherwise invoice/staff mode.
+        $this->forwardDocument = ($progress['remaining'] ?? 0) > 0
+            ? 'packing'
+            : (($order->queue_document === OnlineSaleOrder::QUEUE_DOCUMENT_INVOICE) ? 'invoice' : 'packing');
+        $this->forwardStatusMessage = '';
+        $this->forwardSupplierSearch = '';
+        $this->forwardSelectedItemIds = collect($dispatch->packingLineStates($order))
+            ->reject(fn (array $row): bool => $row['sent'])
+            ->pluck('item_id')
+            ->map(fn ($id): int => (int) $id)
+            ->values()
+            ->all();
     }
 
     public function closeForward(): void
     {
         $this->forwardOrderId = null;
         $this->forwardDocument = 'packing';
+        $this->forwardSelectedItemIds = [];
+        $this->forwardSupplierSearch = '';
+        $this->forwardStatusMessage = '';
     }
 
     public function updatedForwardDocument(string $value): void
@@ -225,6 +253,14 @@ class ListOrderDispatch extends Component
         if (! in_array($value, ['packing', 'invoice'], true)) {
             $this->forwardDocument = 'packing';
         }
+
+        $this->forwardStatusMessage = '';
+    }
+
+    public function updatedForwardSelectedItemIds(): void
+    {
+        $this->forwardSelectedItemIds = array_values(array_unique(array_map('intval', $this->forwardSelectedItemIds)));
+        $this->forwardStatusMessage = '';
     }
 
     public function forwardWhatsApp(string $recipientType, int $recipientId): void
@@ -238,26 +274,67 @@ class ListOrderDispatch extends Component
         $dispatch = app(OnlineOrderDispatchService::class);
         $document = $this->forwardDocument;
         $url = null;
+        $actor = auth()->user() instanceof User ? auth()->user() : null;
 
-        if ($recipientType === 'supplier') {
-            $supplier = $this->resolveForwardSupplier($order, $recipientId, $dispatch);
+        try {
+            if ($recipientType === 'supplier') {
+                if ($document !== 'packing') {
+                    $this->forwardStatusMessage = __('order_dispatch.validation.packing_for_suppliers');
 
-            if ($supplier === null) {
-                return;
+                    return;
+                }
+
+                $supplier = $this->resolveForwardSupplier($recipientId);
+
+                if ($supplier === null) {
+                    $this->forwardStatusMessage = __('order_dispatch.validation.supplier_required');
+
+                    return;
+                }
+
+                if ($dispatch->normalizePhoneDigits($supplier->primaryMobile()) === null) {
+                    $this->forwardStatusMessage = __('online_sale_orders.forward.whatsapp_no_phone');
+
+                    return;
+                }
+
+                $itemIds = array_values(array_unique(array_map('intval', $this->forwardSelectedItemIds)));
+                $dispatch->ensureAndMarkSupplierSent($order, $supplier->id, $actor, $itemIds);
+                $url = $dispatch->whatsAppUrlForSupplier($order->fresh(['items']), $supplier, $document, $itemIds);
+                $this->afterPackingForward($order, $dispatch);
+
+                if ($url === null) {
+                    $this->forwardStatusMessage = __('online_sale_orders.forward.whatsapp_unavailable');
+
+                    return;
+                }
             }
 
-            $dispatch->ensureAndMarkSupplierSent($order, $supplier->id, auth()->user() instanceof User ? auth()->user() : null);
-            $url = $dispatch->whatsAppUrlForSupplier($order, $supplier, $document);
-        }
+            if ($recipientType === 'staff') {
+                $staff = User::query()->whereKey($recipientId)->where('status', User::STATUS_ACTIVE)->first();
 
-        if ($recipientType === 'staff') {
-            $staff = User::query()->whereKey($recipientId)->where('status', User::STATUS_ACTIVE)->first();
+                if ($staff === null) {
+                    return;
+                }
 
-            if ($staff === null) {
-                return;
+                if ($dispatch->normalizePhoneDigits($dispatch->primaryPhoneForUser($staff)) === null) {
+                    $this->forwardStatusMessage = __('online_sale_orders.forward.whatsapp_no_phone');
+
+                    return;
+                }
+
+                $url = $dispatch->whatsAppUrlForStaff($order, $staff, $document);
+
+                if ($url === null) {
+                    $this->forwardStatusMessage = __('online_sale_orders.forward.whatsapp_unavailable');
+
+                    return;
+                }
             }
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->forwardStatusMessage = (string) (collect($exception->errors())->flatten()->first() ?? '');
 
-            $url = $dispatch->whatsAppUrlForStaff($order, $staff, $document);
+            return;
         }
 
         if ($url !== null) {
@@ -276,26 +353,68 @@ class ListOrderDispatch extends Component
         $dispatch = app(OnlineOrderDispatchService::class);
         $document = $this->forwardDocument;
         $url = null;
+        $actor = auth()->user() instanceof User ? auth()->user() : null;
 
-        if ($recipientType === 'supplier') {
-            $supplier = $this->resolveForwardSupplier($order, $recipientId, $dispatch);
+        try {
+            if ($recipientType === 'supplier') {
+                if ($document !== 'packing') {
+                    $this->forwardStatusMessage = __('order_dispatch.validation.packing_for_suppliers');
 
-            if ($supplier === null) {
-                return;
+                    return;
+                }
+
+                $supplier = $this->resolveForwardSupplier($recipientId);
+
+                if ($supplier === null) {
+                    $this->forwardStatusMessage = __('order_dispatch.validation.supplier_required');
+
+                    return;
+                }
+
+                if (! filled($supplier->email)) {
+                    $this->forwardStatusMessage = __('online_sale_orders.forward.email_missing');
+
+                    return;
+                }
+
+                $itemIds = array_values(array_unique(array_map('intval', $this->forwardSelectedItemIds)));
+                $url = $dispatch->mailToUrlForSupplier($order, $supplier, $document, $itemIds);
+
+                if ($url === null) {
+                    $this->forwardStatusMessage = __('online_sale_orders.forward.email_missing');
+
+                    return;
+                }
+
+                $dispatch->ensureAndMarkSupplierSent($order, $supplier->id, $actor, $itemIds);
+                $this->afterPackingForward($order, $dispatch);
             }
 
-            $dispatch->ensureAndMarkSupplierSent($order, $supplier->id, auth()->user() instanceof User ? auth()->user() : null);
-            $url = $dispatch->mailToUrlForSupplier($order, $supplier, $document);
-        }
+            if ($recipientType === 'staff') {
+                $staff = User::query()->whereKey($recipientId)->where('status', User::STATUS_ACTIVE)->first();
 
-        if ($recipientType === 'staff') {
-            $staff = User::query()->whereKey($recipientId)->where('status', User::STATUS_ACTIVE)->first();
+                if ($staff === null) {
+                    return;
+                }
 
-            if ($staff === null) {
-                return;
+                if (! filled($staff->email)) {
+                    $this->forwardStatusMessage = __('online_sale_orders.forward.email_missing');
+
+                    return;
+                }
+
+                $url = $dispatch->mailToUrlForStaff($order, $staff, $document);
+
+                if ($url === null) {
+                    $this->forwardStatusMessage = __('online_sale_orders.forward.email_missing');
+
+                    return;
+                }
             }
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->forwardStatusMessage = (string) (collect($exception->errors())->flatten()->first() ?? '');
 
-            $url = $dispatch->mailToUrlForStaff($order, $staff, $document);
+            return;
         }
 
         if ($url !== null) {
@@ -314,36 +433,56 @@ class ListOrderDispatch extends Component
         $dispatch = app(OnlineOrderDispatchService::class);
         $supplierId = null;
         $staffId = null;
+        $itemIds = [];
+        $actor = auth()->user() instanceof User ? auth()->user() : null;
 
-        if ($recipientType === 'supplier') {
-            $supplier = $this->resolveForwardSupplier($order, $recipientId, $dispatch);
+        try {
+            if ($recipientType === 'supplier') {
+                if ($this->forwardDocument !== 'packing') {
+                    $this->forwardStatusMessage = __('order_dispatch.validation.packing_for_suppliers');
 
-            if ($supplier === null) {
-                return;
+                    return;
+                }
+
+                $supplier = $this->resolveForwardSupplier($recipientId);
+
+                if ($supplier === null) {
+                    $this->forwardStatusMessage = __('order_dispatch.validation.supplier_required');
+
+                    return;
+                }
+
+                $supplierId = $supplier->id;
+                $itemIds = array_values(array_unique(array_map('intval', $this->forwardSelectedItemIds)));
+                $dispatch->ensureAndMarkSupplierSent($order, $supplier->id, $actor, $itemIds);
+                $this->afterPackingForward($order, $dispatch);
             }
 
-            $supplierId = $supplier->id;
-            $dispatch->ensureAndMarkSupplierSent($order, $supplier->id, auth()->user() instanceof User ? auth()->user() : null);
-        }
+            if ($recipientType === 'staff') {
+                $staff = User::query()->whereKey($recipientId)->where('status', User::STATUS_ACTIVE)->first();
 
-        if ($recipientType === 'staff') {
-            $staff = User::query()->whereKey($recipientId)->where('status', User::STATUS_ACTIVE)->first();
+                if ($staff === null) {
+                    return;
+                }
 
-            if ($staff === null) {
-                return;
+                $staffId = $staff->id;
             }
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            $this->forwardStatusMessage = (string) (collect($exception->errors())->flatten()->first() ?? '');
 
-            $staffId = $staff->id;
+            return;
         }
 
-        $url = $dispatch->documentUrl($order, $this->forwardDocument, $supplierId, $staffId);
+        $url = $dispatch->documentUrl($order, $this->forwardDocument, $supplierId, $staffId, $itemIds);
         $this->dispatch('online-sale-orders-open-print', url: $url);
     }
 
     public function render(): View
     {
+        $dispatch = app(OnlineOrderDispatchService::class);
+
         $orders = OnlineSaleOrder::query()
-            ->with(['customer', 'assignedUser', 'supplierAssignments.supplier'])
+            ->with(['customer', 'assignedUser', 'supplierAssignments.supplier', 'supplierAssignments.lines', 'items'])
             ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
             ->whereNotNull('queued_at')
             ->when(filled($this->search), function ($query): void {
@@ -368,21 +507,49 @@ class ListOrderDispatch extends Component
             ->paginate(20);
 
         $forwardOrder = $this->forwardOrder();
-        $dispatch = app(OnlineOrderDispatchService::class);
-
-        $forwardSuppliers = [];
+        $forwardLineStates = [];
+        $forwardProgress = null;
+        $forwardMatchedSuppliers = [];
+        $forwardOtherSuppliers = [];
         $forwardStaff = [];
 
         if ($forwardOrder !== null) {
-            $forwardSuppliers = $dispatch->suggestSuppliersForOrder($forwardOrder)
-                ->map(fn (Supplier $supplier): array => [
-                    'id' => $supplier->id,
-                    'name' => $supplier->displayBusinessName(),
-                    'phone' => $supplier->primaryMobile(),
-                    'email' => filled($supplier->email) ? (string) $supplier->email : null,
-                    'can_whatsapp' => $dispatch->normalizePhoneDigits($supplier->primaryMobile()) !== null,
-                    'can_email' => filled($supplier->email),
-                ])
+            $forwardLineStates = $dispatch->packingLineStates($forwardOrder);
+            $forwardProgress = $dispatch->packingProgress($forwardOrder);
+
+            $selection = $this->forwardSelectedItemIds !== []
+                ? $this->forwardSelectedItemIds
+                : collect($forwardLineStates)->reject(fn (array $row): bool => $row['sent'])->pluck('item_id')->all();
+
+            $matched = $dispatch->suggestSuppliersForItemIds($forwardOrder, array_map('intval', $selection));
+            $matchedIds = $matched->pluck('id')->all();
+            $needle = mb_strtolower(trim($this->forwardSupplierSearch));
+
+            $matchesSearch = static function (Supplier $supplier) use ($needle): bool {
+                if ($needle === '') {
+                    return true;
+                }
+
+                $haystack = mb_strtolower(implode(' ', array_filter([
+                    $supplier->displayBusinessName(),
+                    $supplier->primaryMobile(),
+                    (string) ($supplier->email ?? ''),
+                    (string) ($supplier->supplier_code ?? ''),
+                ])));
+
+                return str_contains($haystack, $needle);
+            };
+
+            $forwardMatchedSuppliers = $matched
+                ->filter($matchesSearch)
+                ->map(fn (Supplier $supplier): array => $this->mapForwardSupplier($supplier, $dispatch))
+                ->values()
+                ->all();
+
+            $forwardOtherSuppliers = $dispatch->allActiveSuppliers()
+                ->reject(fn (Supplier $supplier): bool => in_array($supplier->id, $matchedIds, true))
+                ->filter($matchesSearch)
+                ->map(fn (Supplier $supplier): array => $this->mapForwardSupplier($supplier, $dispatch))
                 ->values()
                 ->all();
 
@@ -405,14 +572,65 @@ class ListOrderDispatch extends Component
                 ->all();
         }
 
+        $orderProgress = [];
+
+        foreach ($orders as $order) {
+            $orderProgress[$order->id] = $dispatch->packingProgress($order);
+        }
+
         return view('livewire.online-sale-orders.list-order-dispatch', [
             'orders' => $orders,
+            'orderProgress' => $orderProgress,
             'activeFilters' => $this->activeFilters(),
             'hasListConstraints' => $this->hasListConstraints(),
             'forwardOrder' => $forwardOrder,
-            'forwardSuppliers' => $forwardSuppliers,
+            'forwardLineStates' => $forwardLineStates,
+            'forwardProgress' => $forwardProgress,
+            'forwardMatchedSuppliers' => $forwardMatchedSuppliers,
+            'forwardOtherSuppliers' => $forwardOtherSuppliers,
             'forwardStaff' => $forwardStaff,
         ]);
+    }
+
+    private function afterPackingForward(OnlineSaleOrder $order, OnlineOrderDispatchService $dispatch): void
+    {
+        $this->dispatch('order-dispatch-saved');
+        $fresh = $order->fresh(['items', 'supplierAssignments.supplier', 'supplierAssignments.lines']);
+
+        if ($fresh === null) {
+            return;
+        }
+
+        $progress = $dispatch->packingProgress($fresh);
+        $this->forwardSelectedItemIds = collect($dispatch->packingLineStates($fresh))
+            ->reject(fn (array $row): bool => $row['sent'])
+            ->pluck('item_id')
+            ->map(fn ($id): int => (int) $id)
+            ->values()
+            ->all();
+
+        $this->forwardStatusMessage = $progress['complete']
+            ? __('order_dispatch.messages.packing_complete')
+            : __('order_dispatch.messages.packing_partial', [
+                'sent' => $progress['sent'],
+                'total' => $progress['total'],
+                'remaining' => $progress['remaining'],
+            ]);
+    }
+
+    /**
+     * @return array{id: int, name: string, phone: string|null, email: string|null, can_whatsapp: bool, can_email: bool}
+     */
+    private function mapForwardSupplier(Supplier $supplier, OnlineOrderDispatchService $dispatch): array
+    {
+        return [
+            'id' => $supplier->id,
+            'name' => $supplier->displayBusinessName(),
+            'phone' => $supplier->primaryMobile(),
+            'email' => filled($supplier->email) ? (string) $supplier->email : null,
+            'can_whatsapp' => $dispatch->normalizePhoneDigits($supplier->primaryMobile()) !== null,
+            'can_email' => filled($supplier->email),
+        ];
     }
 
     private function queuedOrder(int $orderId): ?OnlineSaleOrder
@@ -430,18 +648,20 @@ class ListOrderDispatch extends Component
         }
 
         return OnlineSaleOrder::query()
-            ->with(['items.product.category.parent', 'customer'])
+            ->with([
+                'items.product.category.parent',
+                'customer',
+                'supplierAssignments.supplier',
+                'supplierAssignments.lines',
+            ])
             ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
             ->whereNotNull('queued_at')
             ->find($this->forwardOrderId);
     }
 
-    private function resolveForwardSupplier(
-        OnlineSaleOrder $order,
-        int $supplierId,
-        OnlineOrderDispatchService $dispatch,
-    ): ?Supplier {
-        return $dispatch->suggestSuppliersForOrder($order)->firstWhere('id', $supplierId);
+    private function resolveForwardSupplier(int $supplierId): ?Supplier
+    {
+        return Supplier::query()->whereKey($supplierId)->where('status', 'active')->first();
     }
 
     private function userCan(string $action): bool

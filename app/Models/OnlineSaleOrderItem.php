@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\Storage;
 
 class OnlineSaleOrderItem extends Model
@@ -33,6 +34,11 @@ class OnlineSaleOrderItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function assignmentLine(): HasOne
+    {
+        return $this->hasOne(OnlineSaleOrderSupplierAssignmentItem::class, 'online_sale_order_item_id');
     }
 
     public function displayName(?string $locale = null): string

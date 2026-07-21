@@ -15,7 +15,18 @@ class ListSales extends Component
     use WithPagination;
 
     /** @var list<string> */
-    public array $visibleColumns = ['sale_number', 'customer', 'cashier', 'total_amount', 'invoice_status', 'payment_status', 'payment_method', 'sale_date', 'created_at'];
+    public array $visibleColumns = [
+        'sale_number',
+        'channel',
+        'customer',
+        'cashier',
+        'total_amount',
+        'invoice_status',
+        'payment_status',
+        'payment_method',
+        'sale_date',
+        'created_at',
+    ];
 
     public string $search = '';
 
@@ -24,6 +35,8 @@ class ListSales extends Component
     public string $paymentFilter = '';
 
     public string $methodFilter = '';
+
+    public string $channelFilter = '';
 
     #[On('sales-saved')]
     public function refreshList(): void
@@ -51,6 +64,7 @@ class ListSales extends Component
             'invoice' => $this->invoiceFilter = $value,
             'payment' => $this->paymentFilter = $value,
             'method' => $this->methodFilter = $value,
+            'channel' => $this->channelFilter = $value,
             default => null,
         };
 
@@ -63,6 +77,7 @@ class ListSales extends Component
         $this->invoiceFilter = '';
         $this->paymentFilter = '';
         $this->methodFilter = '';
+        $this->channelFilter = '';
         $this->resetPage();
     }
 
@@ -72,6 +87,7 @@ class ListSales extends Component
             'invoice' => $this->invoiceFilter = '',
             'payment' => $this->paymentFilter = '',
             'method' => $this->methodFilter = '',
+            'channel' => $this->channelFilter = '',
             default => null,
         };
 
@@ -112,6 +128,15 @@ class ListSales extends Component
             ];
         }
 
+        if (filled($this->channelFilter)) {
+            $filters[] = [
+                'field' => 'channel',
+                'label' => __('pos.filters.active_channel', [
+                    'channel' => __('pos.channels.' . $this->channelFilter),
+                ]),
+            ];
+        }
+
         return $filters;
     }
 
@@ -120,7 +145,8 @@ class ListSales extends Component
         return filled($this->search)
             || filled($this->invoiceFilter)
             || filled($this->paymentFilter)
-            || filled($this->methodFilter);
+            || filled($this->methodFilter)
+            || filled($this->channelFilter);
     }
 
     #[On('pos-sales-column-toggle')]
@@ -216,7 +242,7 @@ class ListSales extends Component
     public function render(): View
     {
         $sales = Sale::query()
-            ->with(['customer', 'cashier'])
+            ->with(['customer', 'cashier', 'onlineSaleOrder'])
             ->when(filled($this->search), function ($query): void {
                 $needle = '%' . $this->search . '%';
                 $query->where(function ($inner) use ($needle): void {
@@ -227,12 +253,17 @@ class ListSales extends Component
                         })
                         ->orWhereHas('cashier', function ($cashier) use ($needle): void {
                             $cashier->where('name', 'like', $needle);
+                        })
+                        ->orWhereHas('onlineSaleOrder', function ($online) use ($needle): void {
+                            $online->where('order_number', 'like', $needle);
                         });
                 });
             })
             ->when(filled($this->invoiceFilter), fn ($query) => $query->where('status', $this->invoiceFilter))
             ->when(filled($this->paymentFilter), fn ($query) => $query->where('payment_status', $this->paymentFilter))
             ->when(filled($this->methodFilter), fn ($query) => $query->where('payment_method', $this->methodFilter))
+            ->when($this->channelFilter === 'online', fn ($query) => $query->whereHas('onlineSaleOrder'))
+            ->when($this->channelFilter === 'offline', fn ($query) => $query->whereDoesntHave('onlineSaleOrder'))
             ->orderByDesc('created_at')
             ->paginate(20);
 

@@ -1,14 +1,22 @@
 @php
     $headerCustomerName = $selectedCustomer?->displayLabel() ?: ($ship_contact_name ?: null);
     $headerCustomerPhone = filled($ship_phone) ? $ship_phone : ($selectedCustomer?->primaryPhone() ?: null);
+    $isQuotation = ! $this->isInvoice();
     $headerAddressParts = collect([
         $headerCustomerName,
         $headerCustomerPhone,
         filled($ship_address) ? $ship_address : null,
         filled($ship_city) ? $ship_city : null,
-        filled($delivery_method_name) ? $delivery_method_name : null,
-        filled($shipping_charge_mode_label) ? $shipping_charge_mode_label : null,
+        (! $isQuotation && filled($delivery_method_name)) ? $delivery_method_name : null,
+        (! $isQuotation && filled($shipping_charge_mode_label)) ? $shipping_charge_mode_label : null,
     ])->filter()->values();
+    $hasReceipt = filled($customer_bank_receipt_url);
+    $receiptNotified = in_array($customer_payment_proof_status, ['submitted', 'verified'], true);
+    $hasCourierInfo = $full_advance_required
+        || (filled($cod_min_advance_percent) && (float) $cod_min_advance_percent > 0)
+        || filled($delivery_customer_notice)
+        || filled($delivery_method_name)
+        || filled($shipping_charge_mode_label);
 @endphp
 <div
     class="agricart-purchase-form"
@@ -26,13 +34,12 @@
         </div>
     @endif
 
-    @if ($this->isLocked())
+    @if ($this->isLocked() && $isQuotation)
         <div class="agricart-purchase-form__status is-warning">
             {{ __('online_sale_orders.hints.converted_locked') }}
         </div>
     @endif
 
-    {{-- Invoice header (POS-style): meta + customer/address on one line --}}
     <header class="agricart-purchase-form__banner agricart-sale-form__banner">
         <p class="agricart-sale-form__top-line">
             <span class="agricart-sale-form__top-item">
@@ -47,15 +54,7 @@
             <span class="agricart-purchase-form__party-sep" aria-hidden="true">·</span>
             <span class="agricart-sale-form__top-item">
                 <span class="agricart-sale-form__top-label">{{ __('online_sale_orders.fields.order_status') }}</span>
-                @if ($this->canConfirmPayment())
-                    <select class="agricart-purchase-form__input agricart-purchase-form__input--compact" wire:model.live="order_status">
-                        @foreach ($orderStatusOptions as $value => $label)
-                            <option value="{{ $value }}">{{ $label }}</option>
-                        @endforeach
-                    </select>
-                @else
-                    <strong>{{ $order_status ? __('online_sale_orders.order_statuses.' . $order_status) : '—' }}</strong>
-                @endif
+                <strong>{{ $order_status ? __('online_sale_orders.order_statuses.' . $order_status) : '—' }}</strong>
             </span>
             @if (filled($linked_sale_number))
                 <span class="agricart-purchase-form__party-sep" aria-hidden="true">·</span>
@@ -84,24 +83,6 @@
         </div>
     </header>
 
-    @if ($full_advance_required || (filled($cod_min_advance_percent) && (float) $cod_min_advance_percent > 0) || filled($delivery_customer_notice))
-        <div class="agricart-online-order__ship-hints">
-            @if ($full_advance_required || (filled($cod_min_advance_percent) && (float) $cod_min_advance_percent > 0))
-                <p class="agricart-online-order__ship-line">
-                    @if ($full_advance_required)
-                        {{ __('agricart.storefront.checkout.full_advance_hint') }}
-                    @else
-                        {{ __('agricart.storefront.checkout.cod_advance_hint', ['percent' => $cod_min_advance_percent]) }}
-                    @endif
-                </p>
-            @endif
-            @if (filled($delivery_customer_notice))
-                <p class="agricart-online-order__ship-line">{{ $delivery_customer_notice }}</p>
-            @endif
-        </div>
-    @endif
-
-    {{-- Invoice body: line items --}}
     <div class="agricart-purchase-form__grid-wrap">
         <table class="agricart-purchase-form__grid">
             <thead>
@@ -143,50 +124,93 @@
         </table>
     </div>
 
-    {{-- Payment method (admin / verified) — same position as POS --}}
-    <h3 class="agricart-online-order__section-title">{{ __('online_sale_orders.sections.admin_payment') }}</h3>
-    <div class="agricart-sale-form__status-row agricart-sale-form__status-row--four-fields">
-        <div class="agricart-purchase-form__field">
-            <label class="agricart-purchase-form__label" for="online-order-payment-method">{{ __('pos.fields.payment_method') }}</label>
-            <select id="online-order-payment-method" class="agricart-purchase-form__input agricart-purchase-form__input--compact agricart-purchase-form__input--status" wire:model.live="payment_method" @disabled(! $this->canConfirmPayment())>
-                <option value="">{{ __('pos.hints.select_method') }}</option>
-                @foreach ($paymentMethodOptions as $value => $label)
-                    <option value="{{ $value }}">{{ $label }}</option>
-                @endforeach
-            </select>
-        </div>
-
-        <div class="agricart-purchase-form__field">
-            <label class="agricart-purchase-form__label" for="online-order-bank-account">{{ __('pos.fields.bank_account') }}</label>
-            @if ($bankAccountOptions === [])
-                <select id="online-order-bank-account" class="agricart-purchase-form__input agricart-purchase-form__input--compact agricart-purchase-form__input--status" disabled>
-                    <option value="">{{ $payment_method === 'bank_transfer' ? __('pos.hints.no_banks') : __('pos.hints.select_bank') }}</option>
-                </select>
-            @else
-                <select id="online-order-bank-account" class="agricart-purchase-form__input agricart-purchase-form__input--compact agricart-purchase-form__input--status" wire:model.live="bank_account_id" @disabled(! $this->canConfirmPayment() || $payment_method !== 'bank_transfer')>
-                    <option value="">{{ __('pos.hints.select_bank') }}</option>
-                    @foreach ($bankAccountOptions as $bank)
-                        <option value="{{ $bank['id'] }}">{{ $bank['label'] }}</option>
+    @if ($isQuotation)
+        <h3 class="agricart-online-order__section-title">{{ __('online_sale_orders.sections.admin_payment') }}</h3>
+        <div class="agricart-sale-form__status-row agricart-sale-form__status-row--four-fields">
+            <div class="agricart-purchase-form__field">
+                <label class="agricart-purchase-form__label" for="online-order-payment-method">{{ __('pos.fields.payment_method') }}</label>
+                <select id="online-order-payment-method" class="agricart-purchase-form__input agricart-purchase-form__input--compact agricart-purchase-form__input--status" wire:model.live="payment_method" @disabled(! $this->canConfirmPayment())>
+                    <option value="">{{ __('pos.hints.select_method') }}</option>
+                    @foreach ($paymentMethodOptions as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
                     @endforeach
                 </select>
+            </div>
+
+            <div class="agricart-purchase-form__field">
+                <label class="agricart-purchase-form__label" for="online-order-bank-account">{{ __('pos.fields.bank_account') }}</label>
+                @if ($bankAccountOptions === [])
+                    <select id="online-order-bank-account" class="agricart-purchase-form__input agricart-purchase-form__input--compact agricart-purchase-form__input--status" disabled>
+                        <option value="">{{ $payment_method === 'bank_transfer' ? __('pos.hints.no_banks') : __('pos.hints.select_bank') }}</option>
+                    </select>
+                @else
+                    <select id="online-order-bank-account" class="agricart-purchase-form__input agricart-purchase-form__input--compact agricart-purchase-form__input--status" wire:model.live="bank_account_id" @disabled(! $this->canConfirmPayment() || $payment_method !== 'bank_transfer')>
+                        <option value="">{{ __('pos.hints.select_bank') }}</option>
+                        @foreach ($bankAccountOptions as $bank)
+                            <option value="{{ $bank['id'] }}">{{ $bank['label'] }}</option>
+                        @endforeach
+                    </select>
+                @endif
+            </div>
+
+            <div class="agricart-purchase-form__field">
+                <label class="agricart-purchase-form__label" for="online-order-payment-status">{{ __('pos.fields.payment_status') }}</label>
+                <select id="online-order-payment-status" class="agricart-purchase-form__input agricart-purchase-form__input--compact agricart-purchase-form__input--status" wire:model.live="payment_status" @disabled(! $this->canConfirmPayment())>
+                    <option value="">{{ __('pos.hints.select_status') }}</option>
+                    @foreach ($paymentOptions as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="agricart-purchase-form__field">
+                <label class="agricart-purchase-form__label" for="online-order-amount-paid">{{ __('pos.fields.amount_paid') }}</label>
+                <input
+                    id="online-order-amount-paid"
+                    type="text"
+                    class="agricart-purchase-form__input agricart-purchase-form__input--compact"
+                    wire:model.live.debounce.400ms="amount_paid"
+                    @readonly(! $this->isAmountPaidEditable())
+                    @disabled(! $this->canConfirmPayment() && ! $this->isAmountPaidEditable())
+                />
+            </div>
+        </div>
+    @else
+        <div class="agricart-online-order__invoice-meta">
+            <p class="agricart-online-order__meta-line">
+                <strong>{{ __('pos.fields.payment_status') }}:</strong>
+                {{ $payment_status ? __('pos.payment_statuses.' . $payment_status) : '—' }}
+                @if (filled($amount_paid))
+                    <span class="agricart-purchase-form__party-sep" aria-hidden="true">·</span>
+                    {{ __('pos.fields.amount_paid') }}: {{ $this->displayPrice($amount_paid) }}
+                @endif
+            </p>
+            @if (filled($converted_by_name) || filled($converted_at))
+                <p class="agricart-online-order__meta-line">
+                    <strong>{{ __('online_sale_orders.fields.converted_by') }}:</strong>
+                    {{ $converted_by_name ?: '—' }}
+                    @if (filled($converted_at))
+                        <span class="agricart-purchase-form__party-sep" aria-hidden="true">·</span>
+                        {{ $converted_at }}
+                    @endif
+                </p>
             @endif
+            <p class="agricart-online-order__meta-line">
+                <strong>{{ __('online_sale_orders.fields.queue_status') }}:</strong>
+                {{ filled($queued_at_display)
+                    ? __('online_sale_orders.queue_statuses.queued')
+                    : __('online_sale_orders.queue_statuses.pending') }}
+                @if (filled($queued_at_display))
+                    <span class="agricart-purchase-form__party-sep" aria-hidden="true">·</span>
+                    {{ $queued_at_display }}
+                    <span class="agricart-purchase-form__party-sep" aria-hidden="true">·</span>
+                    {{ filled($queue_document)
+                        ? __('online_sale_orders.queue_documents.' . $queue_document)
+                        : __('online_sale_orders.queue_documents.invoice') }}
+                @endif
+            </p>
         </div>
-
-        <div class="agricart-purchase-form__field">
-            <label class="agricart-purchase-form__label" for="online-order-payment-status">{{ __('pos.fields.payment_status') }}</label>
-            <select id="online-order-payment-status" class="agricart-purchase-form__input agricart-purchase-form__input--compact agricart-purchase-form__input--status" wire:model.live="payment_status" @disabled(! $this->canConfirmPayment())>
-                <option value="">{{ __('pos.hints.select_status') }}</option>
-                @foreach ($paymentOptions as $value => $label)
-                    <option value="{{ $value }}">{{ $label }}</option>
-                @endforeach
-            </select>
-        </div>
-
-        <div class="agricart-purchase-form__field">
-            <label class="agricart-purchase-form__label" for="online-order-amount-paid">{{ __('pos.fields.amount_paid') }}</label>
-            <input id="online-order-amount-paid" type="text" class="agricart-purchase-form__input agricart-purchase-form__input--compact" wire:model.live.debounce.400ms="amount_paid" @disabled(! $this->isAmountPaidEditable()) />
-        </div>
-    </div>
+    @endif
 
     @if (filled($customer_notes))
         <div class="agricart-sale-form__notes-block">
@@ -195,17 +219,24 @@
         </div>
     @endif
 
-    <div class="agricart-sale-form__notes-block">
-        <label class="agricart-purchase-form__label" for="online-order-admin-notes">{{ __('online_sale_orders.fields.admin_notes') }}</label>
-        <textarea
-            id="online-order-admin-notes"
-            class="agricart-sale-form__notes-input"
-            wire:model.live.debounce.300ms="admin_notes"
-            rows="3"
-            placeholder="{{ __('online_sale_orders.hints.admin_notes') }}"
-            @disabled(! $this->canConfirmPayment() && ! $this->canManageFulfillment())
-        ></textarea>
-    </div>
+    @if ($isQuotation)
+        <div class="agricart-sale-form__notes-block">
+            <label class="agricart-purchase-form__label" for="online-order-admin-notes">{{ __('online_sale_orders.fields.admin_notes') }}</label>
+            <textarea
+                id="online-order-admin-notes"
+                class="agricart-sale-form__notes-input"
+                wire:model.live.debounce.300ms="admin_notes"
+                rows="2"
+                placeholder="{{ __('online_sale_orders.hints.admin_notes') }}"
+                @disabled(! $this->canConfirmPayment() && ! $this->canManageFulfillment())
+            ></textarea>
+        </div>
+    @elseif (filled($admin_notes))
+        <div class="agricart-sale-form__notes-block">
+            <label class="agricart-purchase-form__label">{{ __('online_sale_orders.fields.admin_notes') }}</label>
+            <p class="agricart-online-order__note-readonly">{{ $admin_notes }}</p>
+        </div>
+    @endif
 
     <div class="agricart-purchase-form__totals">
         <div><span>{{ __('online_sale_orders.fields.subtotal') }}</span><strong>{{ $this->displayPrice($subtotal) }}</strong></div>
@@ -213,14 +244,8 @@
         <div><span>{{ __('online_sale_orders.fields.balance_due') }}</span><strong>{{ $this->displayPrice($balance_due) }}</strong></div>
     </div>
 
-    @php
-        $hasReceipt = filled($customer_bank_receipt_url);
-        $receiptNotified = in_array($customer_payment_proof_status, ['submitted', 'verified'], true);
-    @endphp
-
-    {{-- Below invoice: payment proof (quotations) + fulfillment (invoices only) --}}
-    <div class="agricart-online-order__below-invoice">
-        @unless ($this->isInvoice())
+    @if ($isQuotation)
+        <div class="agricart-online-order__top-stack">
             <div class="agricart-online-order__declared-payment">
                 <h3 class="agricart-online-order__section-title">{{ __('online_sale_orders.sections.customer_payment') }}</h3>
 
@@ -265,26 +290,51 @@
                         </div>
                     </div>
                 @endif
-
-                @if ($this->canConfirmPayment() && $orderId)
-                    <div class="agricart-online-order__print-actions">
-                        <button type="button" class="agricart-categories__action is-primary" wire:click="convertToSale" wire:loading.attr="disabled">
-                            {{ __('online_sale_orders.actions.convert_to_invoice') }}
-                        </button>
-                    </div>
-                @endif
             </div>
-        @endunless
 
-        @if ($this->showFulfillmentSection())
-            <h3 class="agricart-online-order__section-title">{{ __('order_dispatch.sections.fulfillment') }}</h3>
-            @if ($orderId)
-                <div class="agricart-online-order__print-actions">
-                    <button type="button" class="agricart-categories__action" wire:click="printPackingSlip">
-                        {{ __('online_sale_orders.actions.packing_slip') }}
-                    </button>
+            @if ($hasCourierInfo)
+                <div class="agricart-online-order__ship-hints">
+                    @if (filled($delivery_method_name) || filled($shipping_charge_mode_label))
+                        <p class="agricart-online-order__ship-line">
+                            <strong>{{ __('online_sale_orders.fields.delivery_method') }}:</strong>
+                            {{ collect([$delivery_method_name, $shipping_charge_mode_label])->filter()->implode(' · ') }}
+                        </p>
+                    @endif
+                    @if ($full_advance_required || (filled($cod_min_advance_percent) && (float) $cod_min_advance_percent > 0))
+                        <p class="agricart-online-order__ship-line">
+                            @if ($full_advance_required)
+                                {{ __('agricart.storefront.checkout.full_advance_hint') }}
+                            @else
+                                {{ __('agricart.storefront.checkout.cod_advance_hint', ['percent' => $cod_min_advance_percent]) }}
+                            @endif
+                        </p>
+                    @endif
+                    @if (filled($delivery_customer_notice))
+                        <p class="agricart-online-order__ship-line">{{ $delivery_customer_notice }}</p>
+                    @endif
                 </div>
             @endif
+        </div>
+    @elseif ($full_advance_required || (filled($cod_min_advance_percent) && (float) $cod_min_advance_percent > 0) || filled($delivery_customer_notice))
+        <div class="agricart-online-order__ship-hints">
+            @if ($full_advance_required || (filled($cod_min_advance_percent) && (float) $cod_min_advance_percent > 0))
+                <p class="agricart-online-order__ship-line">
+                    @if ($full_advance_required)
+                        {{ __('agricart.storefront.checkout.full_advance_hint') }}
+                    @else
+                        {{ __('agricart.storefront.checkout.cod_advance_hint', ['percent' => $cod_min_advance_percent]) }}
+                    @endif
+                </p>
+            @endif
+            @if (filled($delivery_customer_notice))
+                <p class="agricart-online-order__ship-line">{{ $delivery_customer_notice }}</p>
+            @endif
+        </div>
+    @endif
+
+    @if ($this->showFulfillmentSection())
+        <div class="agricart-online-order__below-invoice">
+            <h3 class="agricart-online-order__section-title">{{ __('order_dispatch.sections.fulfillment') }}</h3>
             <div class="agricart-sale-form__status-row agricart-sale-form__status-row--four-fields">
                 <div class="agricart-purchase-form__field">
                     <label class="agricart-purchase-form__label" for="online-order-assigned-user">{{ __('order_dispatch.fields.assigned_staff') }}</label>
@@ -389,6 +439,6 @@
             @elseif ($this->canManageFulfillment() && $orderId)
                 <p class="agricart-online-order__meta-line">{{ __('order_dispatch.hints.no_suppliers') }}</p>
             @endif
-        @endif
-    </div>
+        </div>
+    @endif
 </div>

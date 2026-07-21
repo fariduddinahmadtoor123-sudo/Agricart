@@ -20,7 +20,7 @@ class OnlineInvoiceQueueTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_send_to_queue_moves_invoice_to_dispatch_list(): void
+    public function test_send_invoice_to_queue_moves_invoice_to_dispatch_list(): void
     {
         $admin = $this->superAdmin();
         $invoice = $this->makeInvoice('ONL-Q-SEND');
@@ -28,21 +28,58 @@ class OnlineInvoiceQueueTest extends TestCase
         Livewire::actingAs($admin)
             ->test(ListOnlineSaleOrders::class)
             ->assertSee('ONL-Q-SEND', false)
-            ->assertSee(__('online_sale_orders.actions.send_to_queue'), false)
-            ->call('sendToQueue', $invoice->id);
+            ->assertSee(__('online_sale_orders.actions.send_invoice_to_queue'), false)
+            ->assertSee(__('online_sale_orders.actions.send_packing_list_to_queue'), false)
+            ->call('sendInvoiceToQueue', $invoice->id);
 
         $invoice->refresh();
         $this->assertNotNull($invoice->queued_at);
+        $this->assertSame(OnlineSaleOrder::QUEUE_DOCUMENT_INVOICE, $invoice->queue_document);
 
         Livewire::actingAs($admin)
             ->test(ListOnlineSaleOrders::class)
-            ->assertSee(__('online_sale_orders.queue_statuses.queued'), false)
-            ->assertDontSeeHtml('wire:click="sendToQueue(');
+            ->assertDontSee('ONL-Q-SEND', false);
 
         Livewire::actingAs($admin)
             ->test(ListOrderDispatch::class)
             ->assertSee('ONL-Q-SEND', false)
+            ->assertSee(__('online_sale_orders.queue_documents.invoice'), false)
             ->assertSee(__('online_sale_orders.actions.forward_short'), false);
+    }
+
+    public function test_send_packing_list_to_queue(): void
+    {
+        $admin = $this->superAdmin();
+        $invoice = $this->makeInvoice('ONL-Q-PACK');
+
+        Livewire::actingAs($admin)
+            ->test(ListOnlineSaleOrders::class)
+            ->call('sendPackingListToQueue', $invoice->id);
+
+        $invoice->refresh();
+        $this->assertNotNull($invoice->queued_at);
+        $this->assertSame(OnlineSaleOrder::QUEUE_DOCUMENT_PACKING_LIST, $invoice->queue_document);
+
+        Livewire::actingAs($admin)
+            ->test(ListOrderDispatch::class)
+            ->assertSee('ONL-Q-PACK', false)
+            ->assertSee(__('online_sale_orders.queue_documents.packing_list'), false);
+    }
+
+    public function test_ready_for_queue_excludes_queued_invoices(): void
+    {
+        $admin = $this->superAdmin();
+        $waiting = $this->makeInvoice('ONL-Q-WAIT');
+        $queued = $this->makeInvoice('ONL-Q-GONE');
+        $queued->update([
+            'queued_at' => now(),
+            'queue_document' => OnlineSaleOrder::QUEUE_DOCUMENT_INVOICE,
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(ListOnlineSaleOrders::class)
+            ->assertSee('ONL-Q-WAIT', false)
+            ->assertDontSee('ONL-Q-GONE', false);
     }
 
     public function test_dispatch_list_excludes_unqueued_invoices(): void
@@ -101,6 +138,7 @@ class OnlineInvoiceQueueTest extends TestCase
             'ship_phone' => '03001234567',
             'converted_at' => now(),
             'queued_at' => null,
+            'queue_document' => null,
         ]);
 
         OnlineSaleOrderItem::query()->create([

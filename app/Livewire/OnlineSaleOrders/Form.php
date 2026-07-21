@@ -89,6 +89,14 @@ class Form extends Component
 
     public string $linked_sale_number = '';
 
+    public string $converted_by_name = '';
+
+    public string $converted_at = '';
+
+    public string $queued_at_display = '';
+
+    public string $queue_document = '';
+
     /** @var list<int> */
     public array $selectedSupplierIds = [];
 
@@ -135,6 +143,7 @@ class Form extends Component
             'save_close' => $this->saveAndClose(),
             'print' => $this->saveAndPrint(),
             'packing_print' => $this->printPackingSlip(),
+            'convert_invoice' => $this->convertToSale(),
             default => null,
         };
     }
@@ -156,8 +165,14 @@ class Form extends Component
         $service = app(SaleService::class);
 
         if ($this->payment_status === 'paid') {
-            $this->amount_paid = $this->total_amount !== '0' ? $this->total_amount : $service->formatMoney(0);
-        } elseif ($this->payment_status === 'unpaid') {
+            $total = $service->numeric($this->total_amount);
+            $this->amount_paid = $service->formatMoney($total > 0 ? $total : 0);
+        } elseif ($this->payment_status === 'partial') {
+            // Staff enters how much was received.
+            if ($service->numeric($this->amount_paid) <= 0 || $service->numeric($this->amount_paid) >= $service->numeric($this->total_amount)) {
+                $this->amount_paid = $service->formatMoney(0);
+            }
+        } else {
             $this->amount_paid = $service->formatMoney(0);
         }
 
@@ -424,12 +439,20 @@ class Form extends Component
         $this->dispatchBusyState();
 
         try {
+            if (! $this->persistAdmin()) {
+                return;
+            }
+
             $order = OnlineSaleOrder::query()->findOrFail($this->orderId);
-            app(OnlineSaleOrderService::class)->convertToSale($order, auth()->user());
-            $this->loadOrder($this->orderId);
-            $this->setStatus(__('online_sale_orders.messages.converted_to_invoice', ['number' => $order->order_number]), 'success');
+            app(OnlineSaleOrderService::class)->convertToSale($order->fresh(['items']), auth()->user());
+            session()->flash(
+                'online_order_status',
+                __('online_sale_orders.messages.converted_to_invoice', ['number' => $order->order_number]),
+            );
             $this->dispatch('online-sale-orders-saved');
             $this->dispatch('online-quotations-saved');
+            $this->dispatch('close-form-panel');
+            $this->redirect(\App\Filament\Clusters\Sales\OnlineOrdersPage::getUrl(), navigate: true);
         } catch (ValidationException $exception) {
             $this->setStatus((string) (collect($exception->errors())->flatten()->first()
                 ?? __('online_sale_orders.messages.save_failed')), 'error');
@@ -697,7 +720,7 @@ class Form extends Component
             'fulfillmentStatusOptions' => collect(OnlineSaleOrder::FULFILLMENT_STATUSES)
                 ->mapWithKeys(fn (string $status): array => [$status => __('order_dispatch.fulfillment_statuses.' . $status)])
                 ->all(),
-            'paymentOptions' => collect(SaleService::PAYMENT_STATUSES)
+            'paymentOptions' => collect(['paid', 'partial'])
                 ->mapWithKeys(fn (string $status): array => [$status => __('pos.payment_statuses.' . $status)])
                 ->all(),
             'paymentMethodOptions' => collect(SaleService::PAYMENT_METHODS)
@@ -733,10 +756,16 @@ class Form extends Component
         $this->customer_bank_receipt_url = (string) ($state['customer_bank_receipt_url'] ?? '');
         $this->payment_proof_rejection_note = (string) ($state['payment_proof_rejection_note'] ?? '');
         $this->payment_method = (string) $state['payment_method'];
+        if ($this->payment_method === '' && filled($state['customer_payment_method'] ?? null)) {
+            $this->payment_method = (string) $state['customer_payment_method'];
+        }
         $this->bank_account_id = $state['bank_account_id'] ? (int) $state['bank_account_id'] : null;
         $this->amount_paid = (string) $state['amount_paid'];
         $this->subtotal = (string) $state['subtotal'];
         $this->total_amount = (string) $state['total_amount'];
+        if ($this->payment_status === 'paid' && app(SaleService::class)->numeric($this->amount_paid) <= 0) {
+            $this->amount_paid = $this->total_amount;
+        }
         $this->balance_due = (string) $state['balance_due'];
         $this->ship_contact_name = (string) $state['ship_contact_name'];
         $this->ship_phone = (string) $state['ship_phone'];
@@ -750,6 +779,10 @@ class Form extends Component
         $this->customer_notes = (string) $state['customer_notes'];
         $this->admin_notes = (string) $state['admin_notes'];
         $this->linked_sale_number = (string) $state['sale_number'];
+        $this->converted_by_name = (string) ($state['converted_by_name'] ?? '');
+        $this->converted_at = (string) ($state['converted_at'] ?? '');
+        $this->queued_at_display = (string) ($state['queued_at'] ?? '');
+        $this->queue_document = (string) ($state['queue_document'] ?? '');
         $this->selectedSupplierIds = array_map('intval', $state['supplier_assignment_ids'] ?? []);
         $this->rows = $state['rows'];
 
@@ -904,6 +937,10 @@ class Form extends Component
             'customer_notes',
             'admin_notes',
             'linked_sale_number',
+            'converted_by_name',
+            'converted_at',
+            'queued_at_display',
+            'queue_document',
             'selectedSupplierIds',
             'supplierFulfillment',
             'supplierProofUploads',

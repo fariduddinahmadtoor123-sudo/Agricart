@@ -9,6 +9,7 @@ use App\Models\OnlineSaleOrderItem;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\User;
+use App\Services\Activity\ActivityLogger;
 use App\Services\Finance\BankAccountService;
 use App\Services\Identifiers\DocumentCounterService;
 use App\Services\Logistics\DeliveryMethodService;
@@ -220,13 +221,16 @@ class OnlineSaleOrderService
                 'converted_at' => now(),
                 'converted_by_id' => $actor->id,
                 'queued_at' => null,
+                'queue_document' => null,
             ])->save();
+
+            app(ActivityLogger::class)->onlineQuotationConverted($order->fresh(), $sale, $actor);
 
             return $sale;
         }, 5);
     }
 
-    public function sendToDispatchQueue(OnlineSaleOrder $order): OnlineSaleOrder
+    public function sendToDispatchQueue(OnlineSaleOrder $order, string $document = OnlineSaleOrder::QUEUE_DOCUMENT_INVOICE): OnlineSaleOrder
     {
         if ($order->order_status !== OnlineSaleOrder::STATUS_CONVERTED) {
             throw ValidationException::withMessages([
@@ -234,12 +238,19 @@ class OnlineSaleOrderService
             ]);
         }
 
+        if (! in_array($document, OnlineSaleOrder::QUEUE_DOCUMENTS, true)) {
+            throw ValidationException::withMessages([
+                'order' => [__('online_sale_orders.validation.queue_document_invalid')],
+            ]);
+        }
+
         if ($order->queued_at !== null) {
-            return $order->fresh();
+            return $order->fresh(['items', 'customer', 'sale', 'assignedUser', 'supplierAssignments.supplier']);
         }
 
         $order->forceFill([
             'queued_at' => now(),
+            'queue_document' => $document,
             'fulfillment_status' => $order->fulfillment_status ?: OnlineSaleOrder::FULFILLMENT_AWAITING,
         ])->save();
 
@@ -539,7 +550,7 @@ class OnlineSaleOrderService
      */
     public function toFormState(OnlineSaleOrder $order): array
     {
-        $order->loadMissing(['items', 'customer', 'sale', 'supplierAssignments']);
+        $order->loadMissing(['items', 'customer', 'sale', 'convertedBy', 'supplierAssignments']);
 
         $rows = [];
 
@@ -593,6 +604,10 @@ class OnlineSaleOrderService
             'customer_notes' => (string) ($order->customer_notes ?? ''),
             'admin_notes' => (string) ($order->admin_notes ?? ''),
             'sale_number' => $order->sale?->sale_number ?? '',
+            'converted_by_name' => (string) ($order->convertedBy?->name ?? ''),
+            'converted_at' => $order->converted_at?->format('Y-m-d H:i') ?? '',
+            'queued_at' => $order->queued_at?->format('Y-m-d H:i') ?? '',
+            'queue_document' => (string) ($order->queue_document ?? ''),
             'supplier_assignment_ids' => $order->supplierAssignments->pluck('supplier_id')->all(),
             'rows' => $rows,
         ];

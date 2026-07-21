@@ -5,6 +5,7 @@ namespace App\Livewire\OnlineSaleOrders;
 use App\Models\OnlineSaleOrder;
 use App\Models\User;
 use App\Services\Sales\OnlineSaleOrderService;
+use Filament\Notifications\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
@@ -18,17 +19,15 @@ class ListOnlineSaleOrders extends Component
     /** @var list<string> */
     public array $visibleColumns = [
         'order_number',
+        'sale_number',
         'customer',
         'total_amount',
         'payment_status',
-        'queue_status',
         'order_date',
         'created_at',
     ];
 
     public string $search = '';
-
-    public string $queueFilter = '';
 
     #[On('online-sale-orders-saved')]
     #[On('online-quotations-saved')]
@@ -48,32 +47,13 @@ class ListOnlineSaleOrders extends Component
     #[On('online-orders-filter')]
     public function applyFilter(string $filter): void
     {
-        if (! str_contains($filter, ':')) {
-            return;
-        }
-
-        [$field, $value] = explode(':', $filter, 2);
-
-        if ($field === 'queue') {
-            $this->queueFilter = $value;
-        }
-
-        $this->resetPage();
+        // Ready for Queue has no list filters — keep handler for toolbar compatibility.
     }
 
     #[On('online-orders-clear-filters')]
     public function clearFilters(): void
     {
-        $this->queueFilter = '';
-        $this->resetPage();
-    }
-
-    public function removeFilter(string $field): void
-    {
-        if ($field === 'queue') {
-            $this->queueFilter = '';
-        }
-
+        $this->search = '';
         $this->resetPage();
     }
 
@@ -82,23 +62,12 @@ class ListOnlineSaleOrders extends Component
      */
     public function activeFilters(): array
     {
-        $filters = [];
-
-        if (filled($this->queueFilter)) {
-            $filters[] = [
-                'field' => 'queue',
-                'label' => __('online_sale_orders.filters.active_queue_status', [
-                    'status' => __('online_sale_orders.queue_statuses.' . $this->queueFilter),
-                ]),
-            ];
-        }
-
-        return $filters;
+        return [];
     }
 
     public function hasListConstraints(): bool
     {
-        return filled($this->search) || filled($this->queueFilter);
+        return filled($this->search);
     }
 
     #[On('online-orders-column-toggle')]
@@ -126,6 +95,7 @@ class ListOnlineSaleOrders extends Component
     {
         $order = OnlineSaleOrder::query()
             ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
+            ->whereNull('queued_at')
             ->find($orderId);
 
         if ($order === null) {
@@ -139,34 +109,20 @@ class ListOnlineSaleOrders extends Component
             formKey: 'online-orders',
             orderId: $orderId,
             mode: 'view',
+            onlineOrderContext: 'invoice',
         );
     }
 
     public function openEdit(int $orderId): void
     {
-        $order = OnlineSaleOrder::query()
-            ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
-            ->find($orderId);
-
-        if ($order === null || ! $this->userCan('edit')) {
-            return;
-        }
-
-        // Invoices are locked; fulfillment is edited from the queue page after Send to Queue.
-        $this->dispatch(
-            'open-form-panel',
-            title: __('online_sale_orders.actions.view_short') . ': ' . $order->order_number,
-            resource: __('agricart.pages.sales.online-orders'),
-            formKey: 'online-orders',
-            orderId: $orderId,
-            mode: 'view',
-        );
+        $this->openView($orderId);
     }
 
     public function printPackingSlip(int $orderId): void
     {
         $order = OnlineSaleOrder::query()
             ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
+            ->whereNull('queued_at')
             ->find($orderId);
 
         if ($order === null) {
@@ -176,26 +132,57 @@ class ListOnlineSaleOrders extends Component
         $this->dispatch('online-sale-orders-open-print', url: route('admin.online-sale-orders.packing-slip', $order));
     }
 
-    public function sendToQueue(int $orderId): void
+    public function sendInvoiceToQueue(int $orderId): void
+    {
+        $this->sendToQueue($orderId, OnlineSaleOrder::QUEUE_DOCUMENT_INVOICE);
+    }
+
+    public function sendPackingListToQueue(int $orderId): void
+    {
+        $this->sendToQueue($orderId, OnlineSaleOrder::QUEUE_DOCUMENT_PACKING_LIST);
+    }
+
+    public function sendToQueue(int $orderId, string $document = OnlineSaleOrder::QUEUE_DOCUMENT_INVOICE): void
     {
         if (! $this->userCan('edit')) {
+            Notification::make()
+                ->title(__('online_sale_orders.messages.send_queue_denied'))
+                ->danger()
+                ->send();
+
             return;
         }
 
         $order = OnlineSaleOrder::query()
             ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
+            ->whereNull('queued_at')
             ->find($orderId);
 
         if ($order === null) {
+            Notification::make()
+                ->title(__('online_sale_orders.messages.send_queue_missing'))
+                ->danger()
+                ->send();
+
             return;
         }
 
         try {
-            app(OnlineSaleOrderService::class)->sendToDispatchQueue($order);
+            app(OnlineSaleOrderService::class)->sendToDispatchQueue($order, $document);
             $this->dispatch('online-sale-orders-saved');
             $this->dispatch('order-dispatch-saved');
-        } catch (ValidationException) {
-            // Ignore — order not eligible.
+            $this->dispatch('pending-shipments-saved');
+
+            Notification::make()
+                ->title(__('online_sale_orders.messages.sent_to_queue', ['number' => $order->order_number]))
+                ->success()
+                ->send();
+        } catch (ValidationException $exception) {
+            Notification::make()
+                ->title((string) (collect($exception->errors())->flatten()->first()
+                    ?? __('online_sale_orders.messages.send_queue_failed')))
+                ->danger()
+                ->send();
         }
     }
 
@@ -204,10 +191,14 @@ class ListOnlineSaleOrders extends Component
         $orders = OnlineSaleOrder::query()
             ->with(['customer', 'sale'])
             ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
+            ->whereNull('queued_at')
             ->when(filled($this->search), function ($query): void {
                 $needle = '%' . $this->search . '%';
                 $query->where(function ($inner) use ($needle): void {
                     $inner->where('order_number', 'like', $needle)
+                        ->orWhereHas('sale', function ($sale) use ($needle): void {
+                            $sale->where('sale_number', 'like', $needle);
+                        })
                         ->orWhereHas('customer', function ($customer) use ($needle): void {
                             $customer->where('display_name', 'like', $needle)
                                 ->orWhere('customer_number', 'like', $needle)
@@ -215,9 +206,6 @@ class ListOnlineSaleOrders extends Component
                         });
                 });
             })
-            ->when($this->queueFilter === 'pending', fn ($query) => $query->whereNull('queued_at'))
-            ->when($this->queueFilter === 'queued', fn ($query) => $query->whereNotNull('queued_at'))
-            ->orderByRaw('CASE WHEN queued_at IS NULL THEN 0 ELSE 1 END')
             ->orderByDesc('converted_at')
             ->orderByDesc('created_at')
             ->paginate(20);

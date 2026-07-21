@@ -204,10 +204,10 @@ return [
         ],
         'sales' => [
             'overview' => 'جائزہ', 'pos-sales' => 'سیلز اینڈ پی او ایس',
-            'online-quotations' => 'آن لائن کوٹیشنز', 'online-orders' => 'ان لائن سیل آرڈرز', 'order-dispatch' => 'آن لائن آرڈرز ان کیو', 'sales-quotations' => 'سیل کوٹیشنز', 'sales-returns' => 'سیل ریٹرنز',
+            'online-quotations' => 'آن لائن کوٹیشنز', 'online-orders' => 'Ready for Queue', 'order-dispatch' => 'آن لائن آرڈرز ان کیو', 'sales-quotations' => 'سیل کوٹیشنز', 'sales-returns' => 'سیل ریٹرنز',
         ],
         'store' => ['overview' => 'جائزہ', 'top-bar' => 'اوپر پٹی', 'ticker' => 'ٹکر', 'header' => 'ہیڈر', 'menu' => 'مینیو', 'pages' => 'صفحات', 'footer' => 'فٹر', 'items' => 'اشیاء', 'messages' => 'پیغامات', 'visitor-analytics' => 'وزیٹر اینالیٹکس'],
-        'logistics' => ['overview' => 'جائزہ', 'delivery-methods' => 'ڈیلیوری طریقے', 'shipments' => 'شپمنٹ'],
+        'logistics' => ['overview' => 'جائزہ', 'delivery-methods' => 'ڈیلیوری طریقے', 'shipments' => 'زیر التوا'],
         'service' => ['overview' => 'جائزہ', 'requests' => 'درخواستیں'],
         'reports' => [
             'overview' => 'جائزہ',
@@ -532,6 +532,7 @@ return [
             'created' => 'Created',
             'updated' => 'Updated',
             'deleted' => 'Deleted',
+            'converted' => 'کنورٹ',
         ],
         'subjects' => [
             'User' => 'User',
@@ -548,6 +549,7 @@ return [
             'CompanyProfile' => 'Business profile',
             'StoreSetting' => 'Store setting',
             'PrintProfile' => 'Print profile',
+            'OnlineSaleOrder' => 'آن لائن کوٹیشن',
         ],
         'descriptions' => [
             'login' => ':user signed in',
@@ -556,6 +558,7 @@ return [
             'created' => 'Created :type :label',
             'updated' => 'Updated :type :label',
             'deleted' => 'Deleted :type :label',
+            'converted' => 'آن لائن کوٹیشن :order کو سیل :sale میں کنورٹ کیا',
         ],
         'detail' => [
             'event' => 'Event',
@@ -574,6 +577,7 @@ return [
         'overview' => [
             'cards' => [
                 'delivery_methods' => 'ڈیلیوری طریقے',
+                'pending_shipments' => 'زیر التوا شپمنٹ',
             ],
             'active_count' => ':count فعال',
         ],
@@ -2547,6 +2551,12 @@ return [
             'detail_heading' => 'آرڈر :number',
             'back_to_list' => 'آرڈرز پر واپس',
             'invoice_issued_note' => 'آپ کی انوائس جاری ہو چکی ہے۔ ہماری ٹیم آپ کا آرڈر پروسیس اور ڈسپیچ کرے گی۔',
+            'fulfillment_heading' => 'شپمنٹ کی صورتحال',
+            'fulfillment_label' => 'سٹیٹس',
+            'tracking_heading' => 'ٹریکنگ اور بلٹی',
+            'carrier' => 'کیریئر',
+            'tracking_number' => 'ٹریکنگ نمبر',
+            'bilty' => 'بلٹی / رسید نمبر',
             'shipping' => 'ڈیلیوری کی تفصیل',
             'items_preview' => 'اس آرڈر کی اشیاء',
             'total' => 'آرڈر کل',

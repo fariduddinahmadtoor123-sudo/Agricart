@@ -204,10 +204,10 @@ return [
         ],
         'sales' => [
             'overview' => 'Overview', 'pos-sales' => 'Sales & POS',
-            'online-quotations' => 'Online Quotations', 'online-orders' => 'Online Sale Orders', 'order-dispatch' => 'Online Orders in Queue', 'sales-quotations' => 'Sale Quotations', 'sales-returns' => 'Sale Returns',
+            'online-quotations' => 'Online Quotations', 'online-orders' => 'Ready for Queue', 'order-dispatch' => 'Online Orders in Queue', 'sales-quotations' => 'Sale Quotations', 'sales-returns' => 'Sale Returns',
         ],
         'store' => ['overview' => 'Overview', 'top-bar' => 'Top Bar', 'ticker' => 'Ticker', 'header' => 'Header', 'menu' => 'Menu', 'pages' => 'Pages', 'footer' => 'Footer', 'items' => 'Items', 'messages' => 'Messages', 'visitor-analytics' => 'Visitor Analytics'],
-        'logistics' => ['overview' => 'Overview', 'delivery-methods' => 'Delivery Methods', 'shipments' => 'Shipments'],
+        'logistics' => ['overview' => 'Overview', 'delivery-methods' => 'Delivery Methods', 'shipments' => 'Pending'],
         'service' => ['overview' => 'Overview', 'requests' => 'Requests'],
         'reports' => [
             'overview' => 'Overview',
@@ -532,6 +532,7 @@ return [
             'created' => 'Created',
             'updated' => 'Updated',
             'deleted' => 'Deleted',
+            'converted' => 'Converted',
         ],
         'subjects' => [
             'User' => 'User',
@@ -548,6 +549,7 @@ return [
             'CompanyProfile' => 'Business profile',
             'StoreSetting' => 'Store setting',
             'PrintProfile' => 'Print profile',
+            'OnlineSaleOrder' => 'Online quotation',
         ],
         'descriptions' => [
             'login' => ':user signed in',
@@ -556,6 +558,7 @@ return [
             'created' => 'Created :type :label',
             'updated' => 'Updated :type :label',
             'deleted' => 'Deleted :type :label',
+            'converted' => 'Converted online quotation :order to sale :sale',
         ],
         'detail' => [
             'event' => 'Event',
@@ -574,6 +577,7 @@ return [
         'overview' => [
             'cards' => [
                 'delivery_methods' => 'Delivery methods',
+                'pending_shipments' => 'Pending shipments',
             ],
             'active_count' => ':count active',
         ],
@@ -2547,6 +2551,12 @@ return [
             'detail_heading' => 'Order :number',
             'back_to_list' => 'Back to orders',
             'invoice_issued_note' => 'Your invoice has been issued. Our team will process and dispatch your order.',
+            'fulfillment_heading' => 'Shipment status',
+            'fulfillment_label' => 'Status',
+            'tracking_heading' => 'Tracking & bilty',
+            'carrier' => 'Carrier',
+            'tracking_number' => 'Tracking number',
+            'bilty' => 'Bilty / receipt number',
             'shipping' => 'Delivery details',
             'items_preview' => 'Items in this order',
             'total' => 'Order total',

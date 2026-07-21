@@ -52,16 +52,34 @@ return [
 
     'validation' => [
         'shipped_proof_required' => 'For Shipped status, enter tracking, BOL/receipt reference, or upload a proof file.',
+        'select_items_to_forward' => 'Select at least one product line to forward.',
+        'invalid_forward_items' => 'One or more selected lines do not belong to this order.',
+        'items_already_forwarded' => 'One or more selected lines were already sent to a supplier.',
+        'supplier_required' => 'Choose an active supplier.',
+        'packing_for_suppliers' => 'Switch to Packing list to forward lines to suppliers.',
+    ],
+
+    'messages' => [
+        'packing_partial' => 'Packing progress: :sent of :total lines sent · :remaining remaining — order stays in queue.',
+        'packing_complete' => 'All product lines have been sent for packing. Order remains in queue for fulfillment.',
+        'supplier_intro' => 'Assalam-o-Alaikum :supplier, please fulfill order :number:',
+        'invoice_intro' => 'Assalam-o-Alaikum :name, invoice for order :number:',
+        'invoice_total' => 'Total: :amount',
+        'invoice_link' => 'Open invoice:',
+        'ship_to' => 'Ship to',
+        'notes' => 'Notes',
     ],
 
     'list' => [
-        'queue_note' => 'Invoices sent from Online Sale Orders. Forward to suppliers/staff here, then manage fulfillment and logistics.',
+        'queue_note' => 'Invoices and packing lists from Ready for Queue. Forward packing lines to suppliers (by category) and invoices to staff. Partial packing keeps the order in queue.',
         'empty' => 'No invoices in the online orders queue.',
-        'empty_hint' => 'From Online Sale Orders, use Send to Queue after Convert into Invoice.',
+        'empty_hint' => 'From Ready for Queue, send Invoice or Packing List to Queue after Convert into Invoice.',
         'no_results' => 'No orders match your search or filters.',
         'col_fulfillment' => 'Fulfillment',
         'col_staff' => 'Staff',
         'col_suppliers' => 'Suppliers',
+        'col_packing_progress' => 'Packing',
+        'packing_progress' => ':sent / :total lines',
     ],
 
     'fulfillment_statuses' => [
@@ -86,15 +104,6 @@ return [
 
     'email' => [
         'subject' => 'Online order :number',
-    ],
-
-    'messages' => [
-        'supplier_intro' => 'Assalam-o-Alaikum :supplier, please fulfill order :number:',
-        'invoice_intro' => 'Assalam-o-Alaikum :name, invoice for order :number:',
-        'invoice_total' => 'Total: :amount',
-        'invoice_link' => 'Open invoice:',
-        'ship_to' => 'Ship to',
-        'notes' => 'Notes',
     ],
 
     'packing_slip' => [

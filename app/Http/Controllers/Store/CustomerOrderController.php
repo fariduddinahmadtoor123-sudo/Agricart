@@ -40,7 +40,7 @@ class CustomerOrderController extends Controller
         $model = OnlineSaleOrder::query()
             ->where('order_number', $order)
             ->where('customer_id', $customer->id)
-            ->with(['items.product'])
+            ->with(['items.product', 'supplierAssignments'])
             ->firstOrFail();
 
         return view('store.orders.show', [

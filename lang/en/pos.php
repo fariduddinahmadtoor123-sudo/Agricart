@@ -97,12 +97,19 @@ return [
     ],
 
     'filters' => [
+        'channel' => 'Channel',
         'invoice' => 'Invoice status',
         'payment' => 'Payment status',
         'method' => 'Payment method',
+        'active_channel' => 'Channel: :channel',
         'active_invoice' => 'Invoice: :status',
         'active_payment' => 'Payment: :status',
         'active_method' => 'Method: :method',
+    ],
+
+    'channels' => [
+        'online' => 'Online store',
+        'offline' => 'Offline / POS',
     ],
 
     'list' => [
@@ -110,6 +117,7 @@ return [
         'no_results' => 'No invoices match your search or filters.',
         'clear_filters' => 'Clear filters',
         'col_number' => 'Invoice #',
+        'col_channel' => 'Channel',
         'col_customer' => 'Customer',
         'col_cashier' => 'Cashier',
         'col_total' => 'Total',

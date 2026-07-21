@@ -56,6 +56,16 @@ class OnlineSaleOrder extends Model
 
     public const FULFILLMENT_ON_HOLD = 'on_hold';
 
+    public const QUEUE_DOCUMENT_INVOICE = 'invoice';
+
+    public const QUEUE_DOCUMENT_PACKING_LIST = 'packing_list';
+
+    /** @var list<string> */
+    public const QUEUE_DOCUMENTS = [
+        self::QUEUE_DOCUMENT_INVOICE,
+        self::QUEUE_DOCUMENT_PACKING_LIST,
+    ];
+
     /** @var list<string> */
     public const FULFILLMENT_STATUSES = [
         self::FULFILLMENT_AWAITING,
@@ -118,6 +128,7 @@ class OnlineSaleOrder extends Model
         'admin_notes',
         'converted_at',
         'queued_at',
+        'queue_document',
         'converted_by_id',
         'notification_dispatched_at',
         'assigned_user_id',
@@ -151,6 +162,51 @@ class OnlineSaleOrder extends Model
     public function isAwaitingDispatchQueue(): bool
     {
         return $this->order_status === self::STATUS_CONVERTED && $this->queued_at === null;
+    }
+
+    public function queueDocumentLabel(): string
+    {
+        $document = $this->queue_document;
+
+        if (! in_array($document, self::QUEUE_DOCUMENTS, true)) {
+            $document = self::QUEUE_DOCUMENT_INVOICE;
+        }
+
+        return __('online_sale_orders.queue_documents.'.$document);
+    }
+
+    /**
+     * Customer-safe shipping rows (no supplier names).
+     *
+     * @return list<array{carrier: string|null, tracking: string|null, bilty: string|null}>
+     */
+    public function customerShippingParcels(): array
+    {
+        $this->loadMissing('supplierAssignments');
+
+        $parcels = [];
+
+        foreach ($this->supplierAssignments as $assignment) {
+            if ($assignment->status === OnlineSaleOrderSupplierAssignment::STATUS_DECLINED) {
+                continue;
+            }
+
+            $carrier = filled($assignment->carrier_name) ? trim((string) $assignment->carrier_name) : null;
+            $tracking = filled($assignment->tracking_number) ? trim((string) $assignment->tracking_number) : null;
+            $bilty = filled($assignment->shipping_reference) ? trim((string) $assignment->shipping_reference) : null;
+
+            if ($carrier === null && $tracking === null && $bilty === null) {
+                continue;
+            }
+
+            $parcels[] = [
+                'carrier' => $carrier,
+                'tracking' => $tracking,
+                'bilty' => $bilty,
+            ];
+        }
+
+        return $parcels;
     }
 
     public function customer(): BelongsTo

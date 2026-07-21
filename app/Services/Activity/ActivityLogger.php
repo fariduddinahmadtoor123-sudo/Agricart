@@ -4,6 +4,8 @@ namespace App\Services\Activity;
 
 use App\Enums\ActivityEvent;
 use App\Models\ActivityLog;
+use App\Models\OnlineSaleOrder;
+use App\Models\Sale;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
@@ -110,6 +112,27 @@ class ActivityLogger
 
         return $this->modelEvent(ActivityEvent::Deleted, $model, [
             'attributes' => $this->redact($model->getAttributes()),
+        ]);
+    }
+
+    public function onlineQuotationConverted(OnlineSaleOrder $order, Sale $sale, User $actor): ?ActivityLog
+    {
+        $orderLabel = filled($order->order_number) ? (string) $order->order_number : '#'.$order->getKey();
+        $saleLabel = filled($sale->sale_number) ? (string) $sale->sale_number : '#'.$sale->getKey();
+
+        return $this->write(ActivityEvent::Converted, $actor, [
+            'description' => __('agricart.activity.descriptions.converted', [
+                'order' => $orderLabel,
+                'sale' => $saleLabel,
+            ]),
+            'subject' => $order,
+            'subject_label' => $orderLabel,
+            'user_id' => $actor->id,
+            'properties' => [
+                'order_number' => $orderLabel,
+                'sale_id' => $sale->id,
+                'sale_number' => $saleLabel,
+            ],
         ]);
     }
 

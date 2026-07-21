@@ -139,11 +139,6 @@
                                 <button type="button" class="agricart-categories__action" wire:click="openView({{ $order->id }})">
                                     {{ __('online_sale_orders.actions.view_short') }}
                                 </button>
-                                @if ($canEdit && ! $order->isLocked())
-                                    <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $order->id }})">
-                                        {{ __('online_sale_orders.actions.edit_short') }}
-                                    </button>
-                                @endif
                             </td>
                         </tr>
                     @endforeach

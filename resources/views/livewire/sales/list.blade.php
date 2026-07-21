@@ -33,6 +33,9 @@
                         @if (in_array('sale_number', $visibleColumns, true))
                             <th>{{ __('pos.list.col_number') }}</th>
                         @endif
+                        @if (in_array('channel', $visibleColumns, true))
+                            <th>{{ __('pos.list.col_channel') }}</th>
+                        @endif
                         @if (in_array('customer', $visibleColumns, true))
                             <th>{{ __('pos.list.col_customer') }}</th>
                         @endif
@@ -64,7 +67,15 @@
                     @foreach ($sales as $sale)
                         <tr wire:key="sale-{{ $sale->id }}" @class(['agricart-categories__row', 'is-held' => $sale->isHeld()])>
                             @if (in_array('sale_number', $visibleColumns, true))
-                                <td><code>{{ $sale->sale_number }}</code></td>
+                                <td>
+                                    <code>{{ $sale->sale_number }}</code>
+                                    @if ($sale->onlineSaleOrder)
+                                        <div><small><code>{{ $sale->onlineSaleOrder->order_number }}</code></small></div>
+                                    @endif
+                                </td>
+                            @endif
+                            @if (in_array('channel', $visibleColumns, true))
+                                <td>{{ $sale->isOnlineInvoice() ? __('pos.channels.online') : __('pos.channels.offline') }}</td>
                             @endif
                             @if (in_array('customer', $visibleColumns, true))
                                 <td>{{ $sale->customer?->displayLabel() ?? '—' }}</td>

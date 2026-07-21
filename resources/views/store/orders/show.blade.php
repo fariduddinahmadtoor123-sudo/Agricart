@@ -29,6 +29,47 @@
                 @if ($statusKey === 'converted')
                     <p class="ag-store-orders__invoice-note">{{ __('agricart.customer.orders.invoice_issued_note') }}</p>
                 @endif
+                @if ($order->queued_at !== null || filled($order->fulfillment_status))
+                    <section class="ag-store-orders__detail-card ag-store-orders__fulfillment">
+                        <h2 class="ag-store-orders__section-title">{{ __('agricart.customer.orders.fulfillment_heading') }}</h2>
+                        <dl class="ag-store-orders__meta ag-store-orders__meta--grid">
+                            <div>
+                                <dt>{{ __('agricart.customer.orders.fulfillment_label') }}</dt>
+                                <dd>{{ __('order_dispatch.fulfillment_statuses.' . ($order->fulfillment_status ?: 'awaiting_assignment')) }}</dd>
+                            </div>
+                        </dl>
+                        @php $parcels = $order->customerShippingParcels(); @endphp
+                        @if ($parcels !== [])
+                            <h3 class="ag-store-orders__section-title">{{ __('agricart.customer.orders.tracking_heading') }}</h3>
+                            <ul class="ag-store-orders__tracking-list">
+                                @foreach ($parcels as $parcel)
+                                    <li class="ag-store-orders__tracking-item">
+                                        <dl class="ag-store-orders__meta ag-store-orders__meta--grid">
+                                            @if (filled($parcel['carrier']))
+                                                <div>
+                                                    <dt>{{ __('agricart.customer.orders.carrier') }}</dt>
+                                                    <dd>{{ $parcel['carrier'] }}</dd>
+                                                </div>
+                                            @endif
+                                            @if (filled($parcel['tracking']))
+                                                <div>
+                                                    <dt>{{ __('agricart.customer.orders.tracking_number') }}</dt>
+                                                    <dd><code>{{ $parcel['tracking'] }}</code></dd>
+                                                </div>
+                                            @endif
+                                            @if (filled($parcel['bilty']))
+                                                <div>
+                                                    <dt>{{ __('agricart.customer.orders.bilty') }}</dt>
+                                                    <dd><code>{{ $parcel['bilty'] }}</code></dd>
+                                                </div>
+                                            @endif
+                                        </dl>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </section>
+                @endif
             </header>
 
             @if (session('customer_auth_status'))
