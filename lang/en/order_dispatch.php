@@ -55,8 +55,9 @@ return [
     ],
 
     'list' => [
-        'empty' => 'No paid orders in the dispatch queue.',
-        'empty_hint' => 'Orders appear here after payment is confirmed (paid or partial).',
+        'queue_note' => 'Invoices sent from Online Sale Orders. Forward to suppliers/staff here, then manage fulfillment and logistics.',
+        'empty' => 'No invoices in the online orders queue.',
+        'empty_hint' => 'From Online Sale Orders, use Send to Queue after Convert into Invoice.',
         'no_results' => 'No orders match your search or filters.',
         'col_fulfillment' => 'Fulfillment',
         'col_staff' => 'Staff',
@@ -89,6 +90,9 @@ return [
 
     'messages' => [
         'supplier_intro' => 'Assalam-o-Alaikum :supplier, please fulfill order :number:',
+        'invoice_intro' => 'Assalam-o-Alaikum :name, invoice for order :number:',
+        'invoice_total' => 'Total: :amount',
+        'invoice_link' => 'Open invoice:',
         'ship_to' => 'Ship to',
         'notes' => 'Notes',
     ],
@@ -96,6 +100,7 @@ return [
     'packing_slip' => [
         'title' => 'Packing list',
         'heading' => 'Packing list — warehouse / supplier',
+        'to' => 'To: :name',
         'notice' => 'Pack these items for the order number above. Do not share this slip with the end customer. Customer name, rates, and delivery address are not shown.',
         'footer' => 'Return packed goods to Agricart staff for dispatch. Tracking and bilty details are entered by office staff only.',
         'packed_by' => 'Assigned staff',

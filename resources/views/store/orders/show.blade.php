@@ -26,6 +26,9 @@
                 <p class="ag-store-customer-auth__lead ag-store-orders__detail-date">
                     {{ $order->order_date?->locale(app()->getLocale())->translatedFormat(app()->getLocale() === 'ur' ? 'l، d M Y' : 'l, d M Y') }}
                 </p>
+                @if ($statusKey === 'converted')
+                    <p class="ag-store-orders__invoice-note">{{ __('agricart.customer.orders.invoice_issued_note') }}</p>
+                @endif
             </header>
 
             @if (session('customer_auth_status'))

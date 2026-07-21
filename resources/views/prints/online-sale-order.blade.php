@@ -78,6 +78,14 @@
         .invoice--receipt .invoice__payment-row.is-grand { font-size: 0.75rem; }
         .invoice__message { margin-top: 0.55rem; text-align: center; font-size: 0.75rem; color: #374151; border-top: 1px dashed #d1d5db; padding-top: 0.35rem; }
         .invoice--receipt .invoice__message { font-size: 0.6rem; }
+        .invoice__appendix {
+            margin-top: 0.85rem; padding-top: 0.65rem; border-top: 1px dashed #9ca3af;
+            font-size: 0.8125rem; color: #374151;
+        }
+        .invoice--receipt .invoice__appendix { margin-top: 0.45rem; padding-top: 0.35rem; font-size: 0.6rem; }
+        .invoice__appendix-title { margin: 0 0 0.35rem; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; color: #6b7280; }
+        .invoice--receipt .invoice__appendix-title { font-size: 0.58rem; }
+        .invoice__appendix-row { display: flex; justify-content: space-between; gap: 0.5rem; margin: 0.12rem 0; }
         @media print { body { background: #fff; } .print-actions { display: none; } .print-shell { padding: 0; } .invoice { border: none; max-width: none; width: 100%; } .invoice--receipt { padding: 0; } }
         @if ($isReceipt)
         @media print { @page { size: {{ $widthCss }}mm auto; margin: {{ $marginCss }}mm; } }
@@ -112,11 +120,18 @@
                     · {{ $order->order_date?->format('d M Y') }}
                     @if (filled($storePhone)) · {{ $storePhone }} @endif
                 </p>
-                @if ($order->customer)
-                    <p class="invoice__meta">{{ __('pos.print.customer') }}: {{ $order->customer->displayLabel() }}</p>
-                @endif
-                @if (filled($order->ship_contact_name) || filled($order->ship_phone))
-                    <p class="invoice__meta">{{ __('online_sale_orders.print.ship_to') }}: {{ trim(collect([$order->ship_contact_name, $order->ship_phone, $order->ship_address, $order->ship_city])->filter()->implode(', ')) }}</p>
+                @php
+                    $customerName = $order->customer?->displayLabel() ?: $order->ship_contact_name;
+                    $customerPhone = filled($order->ship_phone) ? $order->ship_phone : $order->customer?->primaryPhone();
+                    $customerLine = collect([
+                        $customerName,
+                        $customerPhone,
+                        $order->ship_address,
+                        $order->ship_city,
+                    ])->filter()->implode(' · ');
+                @endphp
+                @if (filled($customerLine))
+                    <p class="invoice__meta">{{ __('pos.print.customer') }}: {{ $customerLine }}</p>
                 @endif
             </header>
 
@@ -187,11 +202,10 @@
             <footer class="invoice__payment">
                 <div class="invoice__payment-row"><span>{{ __('pos.fields.subtotal') }}</span><span>{{ $formatAmount((string) $order->subtotal) }}</span></div>
                 <div class="invoice__payment-row is-grand"><span>{{ __('pos.fields.total') }}</span><span>{{ $formatAmount((string) $order->total_amount) }}</span></div>
-                <div class="invoice__payment-row"><span>{{ __('online_sale_orders.list.col_order_status') }}</span><span>{{ __('online_sale_orders.order_statuses.' . $order->order_status) }}</span></div>
-                <div class="invoice__payment-row"><span>{{ __('pos.fields.payment_status') }}</span><span>{{ __('pos.payment_statuses.' . $order->payment_status) }}</span></div>
-                @if (filled($order->customer_payment_method))
-                    <div class="invoice__payment-row"><span>{{ __('online_sale_orders.list.col_customer_payment') }}</span><span>{{ __('pos.payment_methods.' . $order->customer_payment_method) }}</span></div>
+                @if (filled($order->payment_method))
+                    <div class="invoice__payment-row"><span>{{ __('pos.fields.payment_method') }}</span><span>{{ __('pos.payment_methods.' . $order->payment_method) }}</span></div>
                 @endif
+                <div class="invoice__payment-row"><span>{{ __('pos.fields.payment_status') }}</span><span>{{ __('pos.payment_statuses.' . $order->payment_status) }}</span></div>
                 <div class="invoice__payment-row"><span>{{ __('pos.fields.amount_paid') }}</span><span>{{ $formatAmount((string) $order->amount_paid) }}</span></div>
                 <div class="invoice__payment-row"><span>{{ __('pos.fields.balance_due') }}</span><span>{{ $formatAmount((string) $balanceDue) }}</span></div>
             </footer>
@@ -199,6 +213,32 @@
             @if (filled($storeMessage))
                 <p class="invoice__message">{{ $storeMessage }}</p>
             @endif
+
+            <section class="invoice__appendix" aria-label="{{ __('online_sale_orders.print.appendix_heading') }}">
+                <h2 class="invoice__appendix-title">{{ __('online_sale_orders.print.appendix_heading') }}</h2>
+                <div class="invoice__appendix-row">
+                    <span>{{ __('online_sale_orders.list.col_order_status') }}</span>
+                    <span>{{ __('online_sale_orders.order_statuses.' . $order->order_status) }}</span>
+                </div>
+                @if (filled($order->customer_payment_method))
+                    <div class="invoice__appendix-row">
+                        <span>{{ __('online_sale_orders.sections.customer_payment') }}</span>
+                        <span>{{ __('pos.payment_methods.' . $order->customer_payment_method) }}</span>
+                    </div>
+                @endif
+                @if ($order->assignedUser)
+                    <div class="invoice__appendix-row">
+                        <span>{{ __('order_dispatch.fields.assigned_staff') }}</span>
+                        <span>{{ $order->assignedUser->name }}</span>
+                    </div>
+                @endif
+                @if ($order->relationLoaded('supplierAssignments') && $order->supplierAssignments->isNotEmpty())
+                    <div class="invoice__appendix-row">
+                        <span>{{ __('order_dispatch.sections.suppliers') }}</span>
+                        <span>{{ $order->supplierAssignments->map(fn ($a) => $a->supplier?->displayBusinessName())->filter()->implode(', ') }}</span>
+                    </div>
+                @endif
+            </section>
         </article>
     </div>
 

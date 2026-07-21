@@ -331,6 +331,37 @@ class Form extends Component
         return $this->userCan('edit');
     }
 
+    public function isInvoice(): bool
+    {
+        return $this->order_status === OnlineSaleOrder::STATUS_CONVERTED;
+    }
+
+    public function showFulfillmentSection(): bool
+    {
+        // Fulfillment / suppliers only on the dispatch queue (after Send to Queue).
+        return $this->isInvoice() && $this->isQueued();
+    }
+
+    public function isQueued(): bool
+    {
+        if ($this->orderId === null) {
+            return false;
+        }
+
+        $order = OnlineSaleOrder::query()->find($this->orderId);
+
+        return $order?->isInDispatchQueue() ?? false;
+    }
+
+    public function canManageFulfillment(): bool
+    {
+        if ($this->orderId === null || ! $this->showFulfillmentSection() || $this->mode === 'view') {
+            return false;
+        }
+
+        return $this->userCan('edit');
+    }
+
     public function canEditFields(): bool
     {
         return $this->canConfirmPayment() && $this->mode === 'edit';
@@ -349,7 +380,7 @@ class Form extends Component
 
     public function isReadonly(): bool
     {
-        return ! $this->canConfirmPayment();
+        return ! $this->canConfirmPayment() && ! $this->canManageFulfillment();
     }
 
     /** Order lines and header are view-only unless full edit mode (reserved for future). */
@@ -396,8 +427,9 @@ class Form extends Component
             $order = OnlineSaleOrder::query()->findOrFail($this->orderId);
             app(OnlineSaleOrderService::class)->convertToSale($order, auth()->user());
             $this->loadOrder($this->orderId);
-            $this->setStatus(__('online_sale_orders.messages.updated', ['number' => $order->order_number]), 'success');
+            $this->setStatus(__('online_sale_orders.messages.converted_to_invoice', ['number' => $order->order_number]), 'success');
             $this->dispatch('online-sale-orders-saved');
+            $this->dispatch('online-quotations-saved');
         } catch (ValidationException $exception) {
             $this->setStatus((string) (collect($exception->errors())->flatten()->first()
                 ?? __('online_sale_orders.messages.save_failed')), 'error');
@@ -495,7 +527,15 @@ class Form extends Component
 
     private function persistAdmin(): bool
     {
-        if (! $this->canConfirmPayment() || ! $this->orderId) {
+        if (! $this->orderId) {
+            return false;
+        }
+
+        if ($this->canManageFulfillment() && $this->isLocked()) {
+            return $this->persistFulfillment();
+        }
+
+        if (! $this->canConfirmPayment()) {
             return false;
         }
 
@@ -526,6 +566,54 @@ class Form extends Component
                 'payment_method' => $this->payment_method,
                 'bank_account_id' => $this->bank_account_id,
                 'amount_paid' => $this->amount_paid,
+                'admin_notes' => $this->admin_notes,
+                'supplier_ids' => $this->selectedSupplierIds,
+                'supplier_fulfillment' => $fulfillmentPayload,
+                'supplier_proof_uploads' => $this->supplierProofUploads,
+            ]);
+
+            $this->setStatus(__('online_sale_orders.messages.updated', ['number' => $order->order_number]), 'success');
+            $this->supplierProofUploads = [];
+            $this->loadOrder($order->id);
+            $this->dispatch('online-sale-orders-saved');
+            $this->dispatch('online-quotations-saved');
+            $this->dispatch('order-dispatch-saved');
+
+            return true;
+        } catch (ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first()
+                ?? __('online_sale_orders.messages.save_failed');
+            $this->setStatus((string) $message, 'error');
+        } catch (\Throwable) {
+            $this->setStatus(__('online_sale_orders.messages.save_failed'), 'error');
+        } finally {
+            $this->saving = false;
+            $this->dispatchBusyState();
+        }
+
+        return false;
+    }
+
+    private function persistFulfillment(): bool
+    {
+        $this->saving = true;
+        $this->dispatchBusyState();
+
+        try {
+            $order = OnlineSaleOrder::query()->findOrFail($this->orderId);
+            $fulfillmentPayload = [];
+
+            foreach ($this->selectedSupplierIds as $supplierId) {
+                $key = (string) $supplierId;
+
+                if (isset($this->supplierFulfillment[$key])) {
+                    $fulfillmentPayload[$key] = $this->supplierFulfillment[$key];
+                }
+            }
+
+            app(OnlineSaleOrderService::class)->updateFulfillment($order, [
+                'fulfillment_status' => $this->fulfillment_status,
+                'assigned_user_id' => $this->assigned_user_id,
                 'admin_notes' => $this->admin_notes,
                 'supplier_ids' => $this->selectedSupplierIds,
                 'supplier_fulfillment' => $fulfillmentPayload,

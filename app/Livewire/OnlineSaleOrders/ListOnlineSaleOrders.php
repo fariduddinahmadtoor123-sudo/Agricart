@@ -4,7 +4,9 @@ namespace App\Livewire\OnlineSaleOrders;
 
 use App\Models\OnlineSaleOrder;
 use App\Models\User;
+use App\Services\Sales\OnlineSaleOrderService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -18,20 +20,19 @@ class ListOnlineSaleOrders extends Component
         'order_number',
         'customer',
         'total_amount',
-        'order_status',
         'payment_status',
-        'customer_payment_method',
+        'queue_status',
         'order_date',
         'created_at',
     ];
 
     public string $search = '';
 
-    public string $orderStatusFilter = '';
-
-    public string $paymentFilter = '';
+    public string $queueFilter = '';
 
     #[On('online-sale-orders-saved')]
+    #[On('online-quotations-saved')]
+    #[On('order-dispatch-saved')]
     public function refreshList(): void
     {
         $this->resetPage();
@@ -53,11 +54,9 @@ class ListOnlineSaleOrders extends Component
 
         [$field, $value] = explode(':', $filter, 2);
 
-        match ($field) {
-            'order' => $this->orderStatusFilter = $value,
-            'payment' => $this->paymentFilter = $value,
-            default => null,
-        };
+        if ($field === 'queue') {
+            $this->queueFilter = $value;
+        }
 
         $this->resetPage();
     }
@@ -65,18 +64,15 @@ class ListOnlineSaleOrders extends Component
     #[On('online-orders-clear-filters')]
     public function clearFilters(): void
     {
-        $this->orderStatusFilter = '';
-        $this->paymentFilter = '';
+        $this->queueFilter = '';
         $this->resetPage();
     }
 
     public function removeFilter(string $field): void
     {
-        match ($field) {
-            'order' => $this->orderStatusFilter = '',
-            'payment' => $this->paymentFilter = '',
-            default => null,
-        };
+        if ($field === 'queue') {
+            $this->queueFilter = '';
+        }
 
         $this->resetPage();
     }
@@ -88,20 +84,11 @@ class ListOnlineSaleOrders extends Component
     {
         $filters = [];
 
-        if (filled($this->orderStatusFilter)) {
+        if (filled($this->queueFilter)) {
             $filters[] = [
-                'field' => 'order',
-                'label' => __('online_sale_orders.filters.active_order_status', [
-                    'status' => __('online_sale_orders.order_statuses.' . $this->orderStatusFilter),
-                ]),
-            ];
-        }
-
-        if (filled($this->paymentFilter)) {
-            $filters[] = [
-                'field' => 'payment',
-                'label' => __('pos.filters.active_payment', [
-                    'status' => __('pos.payment_statuses.' . $this->paymentFilter),
+                'field' => 'queue',
+                'label' => __('online_sale_orders.filters.active_queue_status', [
+                    'status' => __('online_sale_orders.queue_statuses.' . $this->queueFilter),
                 ]),
             ];
         }
@@ -111,9 +98,7 @@ class ListOnlineSaleOrders extends Component
 
     public function hasListConstraints(): bool
     {
-        return filled($this->search)
-            || filled($this->orderStatusFilter)
-            || filled($this->paymentFilter);
+        return filled($this->search) || filled($this->queueFilter);
     }
 
     #[On('online-orders-column-toggle')]
@@ -139,57 +124,50 @@ class ListOnlineSaleOrders extends Component
 
     public function openView(int $orderId): void
     {
-        $order = OnlineSaleOrder::query()->find($orderId);
+        $order = OnlineSaleOrder::query()
+            ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
+            ->find($orderId);
 
         if ($order === null) {
             return;
         }
 
-        $canUpdate = $this->userCan('edit') && ! $order->isLocked();
-        $titleKey = $canUpdate ? 'edit_short' : 'view_short';
-
         $this->dispatch(
             'open-form-panel',
-            title: __('online_sale_orders.actions.' . $titleKey) . ': ' . $order->order_number,
-            resource: __('agricart.nav.sales.online-orders'),
+            title: __('online_sale_orders.actions.view_short') . ': ' . $order->order_number,
+            resource: __('agricart.pages.sales.online-orders'),
             formKey: 'online-orders',
             orderId: $orderId,
-            mode: $canUpdate ? 'edit' : 'view',
+            mode: 'view',
         );
     }
 
     public function openEdit(int $orderId): void
     {
-        $order = OnlineSaleOrder::query()->find($orderId);
+        $order = OnlineSaleOrder::query()
+            ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
+            ->find($orderId);
 
-        if ($order === null) {
+        if ($order === null || ! $this->userCan('edit')) {
             return;
         }
 
+        // Invoices are locked; fulfillment is edited from the queue page after Send to Queue.
         $this->dispatch(
             'open-form-panel',
-            title: __('online_sale_orders.actions.edit_short') . ': ' . $order->order_number,
-            resource: __('agricart.nav.sales.online-orders'),
+            title: __('online_sale_orders.actions.view_short') . ': ' . $order->order_number,
+            resource: __('agricart.pages.sales.online-orders'),
             formKey: 'online-orders',
             orderId: $orderId,
-            mode: 'edit',
+            mode: 'view',
         );
-    }
-
-    public function printOrder(int $orderId): void
-    {
-        $order = OnlineSaleOrder::query()->find($orderId);
-
-        if ($order === null) {
-            return;
-        }
-
-        $this->dispatch('online-sale-orders-open-print', url: route('admin.online-sale-orders.print', $order));
     }
 
     public function printPackingSlip(int $orderId): void
     {
-        $order = OnlineSaleOrder::query()->find($orderId);
+        $order = OnlineSaleOrder::query()
+            ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
+            ->find($orderId);
 
         if ($order === null) {
             return;
@@ -198,10 +176,34 @@ class ListOnlineSaleOrders extends Component
         $this->dispatch('online-sale-orders-open-print', url: route('admin.online-sale-orders.packing-slip', $order));
     }
 
+    public function sendToQueue(int $orderId): void
+    {
+        if (! $this->userCan('edit')) {
+            return;
+        }
+
+        $order = OnlineSaleOrder::query()
+            ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
+            ->find($orderId);
+
+        if ($order === null) {
+            return;
+        }
+
+        try {
+            app(OnlineSaleOrderService::class)->sendToDispatchQueue($order);
+            $this->dispatch('online-sale-orders-saved');
+            $this->dispatch('order-dispatch-saved');
+        } catch (ValidationException) {
+            // Ignore — order not eligible.
+        }
+    }
+
     public function render(): View
     {
         $orders = OnlineSaleOrder::query()
             ->with(['customer', 'sale'])
+            ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
             ->when(filled($this->search), function ($query): void {
                 $needle = '%' . $this->search . '%';
                 $query->where(function ($inner) use ($needle): void {
@@ -213,8 +215,10 @@ class ListOnlineSaleOrders extends Component
                         });
                 });
             })
-            ->when(filled($this->orderStatusFilter), fn ($query) => $query->where('order_status', $this->orderStatusFilter))
-            ->when(filled($this->paymentFilter), fn ($query) => $query->where('payment_status', $this->paymentFilter))
+            ->when($this->queueFilter === 'pending', fn ($query) => $query->whereNull('queued_at'))
+            ->when($this->queueFilter === 'queued', fn ($query) => $query->whereNotNull('queued_at'))
+            ->orderByRaw('CASE WHEN queued_at IS NULL THEN 0 ELSE 1 END')
+            ->orderByDesc('converted_at')
             ->orderByDesc('created_at')
             ->paginate(20);
 

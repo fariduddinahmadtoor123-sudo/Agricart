@@ -319,8 +319,8 @@ return [
     ],
 
     'order-dispatch' => [
-        'title' => 'Order Dispatch Queue',
-        'summary' => 'Operational queue for paid/partial online orders (not cancelled/converted); shared online-orders form.',
+        'title' => 'Online Orders in Queue',
+        'summary' => 'Converted invoices sent from Online Sale Orders (queued_at set). Forward to suppliers/staff and manage fulfillment here.',
         'meta' => [
             'routes' => ['/admin/sales/order-dispatch'],
             'permissions' => ['sales.view', 'sales.edit'],
@@ -331,7 +331,7 @@ return [
                 'type' => 'purpose',
                 'heading' => 'Purpose',
                 'paragraphs' => [
-                    'Filtered list matching SalesOverviewService::dispatchQueueQuery. Assign suppliers, WhatsApp/mail links, fulfillment proofs via OnlineOrderDispatchService.',
+                    'Shows converted invoices with queued_at. Forward (WhatsApp/email), assign staff/suppliers, and record fulfillment proofs via OnlineOrderDispatchService.',
                 ],
             ],
             [
@@ -339,8 +339,8 @@ return [
                 'type' => 'workflows',
                 'heading' => 'Workflow',
                 'steps' => [
-                    'Open queue item → same OnlineSaleOrders\\Form as online-orders.',
-                    'Suggest/assign suppliers; upload supplier fulfillment proofs.',
+                    'Online Quotations → verify payment → Convert into Invoice → Online Sale Orders → Send to Queue.',
+                    'Open queue item → fulfillment section; Forward packing list/invoice to suppliers or staff.',
                 ],
             ],
             [
@@ -348,7 +348,7 @@ return [
                 'type' => 'rebuild_notes',
                 'heading' => 'Rebuild notes',
                 'list' => [
-                    'No separate dispatch-only form; no convert to POS sale; no inventory allocation or shipment ledger.',
+                    'Fulfillment UI is hidden on invoices until Send to Queue. No inventory allocation or shipment ledger yet.',
                 ],
             ],
             [

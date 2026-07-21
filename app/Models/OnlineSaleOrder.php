@@ -117,6 +117,7 @@ class OnlineSaleOrder extends Model
         'customer_notes',
         'admin_notes',
         'converted_at',
+        'queued_at',
         'converted_by_id',
         'notification_dispatched_at',
         'assigned_user_id',
@@ -136,9 +137,20 @@ class OnlineSaleOrder extends Model
             'full_advance_required' => 'boolean',
             'shipping_charge_mode' => ShippingChargeMode::class,
             'converted_at' => 'datetime',
+            'queued_at' => 'datetime',
             'notification_dispatched_at' => 'datetime',
             'payment_proof_reviewed_at' => 'datetime',
         ];
+    }
+
+    public function isInDispatchQueue(): bool
+    {
+        return $this->order_status === self::STATUS_CONVERTED && $this->queued_at !== null;
+    }
+
+    public function isAwaitingDispatchQueue(): bool
+    {
+        return $this->order_status === self::STATUS_CONVERTED && $this->queued_at === null;
     }
 
     public function customer(): BelongsTo

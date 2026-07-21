@@ -1,3 +1,15 @@
+@php
+    $headerCustomerName = $selectedCustomer?->displayLabel() ?: ($ship_contact_name ?: null);
+    $headerCustomerPhone = filled($ship_phone) ? $ship_phone : ($selectedCustomer?->primaryPhone() ?: null);
+    $headerAddressParts = collect([
+        $headerCustomerName,
+        $headerCustomerPhone,
+        filled($ship_address) ? $ship_address : null,
+        filled($ship_city) ? $ship_city : null,
+        filled($delivery_method_name) ? $delivery_method_name : null,
+        filled($shipping_charge_mode_label) ? $shipping_charge_mode_label : null,
+    ])->filter()->values();
+@endphp
 <div
     class="agricart-purchase-form"
     x-on:online-order-form-open.window="$wire.openForm($event.detail.orderId ?? null, $event.detail.mode ?? 'view')"
@@ -20,6 +32,7 @@
         </div>
     @endif
 
+    {{-- Invoice header (POS-style): meta + customer/address on one line --}}
     <header class="agricart-purchase-form__banner agricart-sale-form__banner">
         <p class="agricart-sale-form__top-line">
             <span class="agricart-sale-form__top-item">
@@ -53,61 +66,42 @@
             @endif
         </p>
 
-        @if ($selectedCustomer)
-            <div class="agricart-purchase-form__banner-body">
-                <div class="agricart-purchase-form__party-line agricart-purchase-form__party-line--supplier">
-                    <p class="agricart-purchase-form__party-summary">
-                        <strong class="agricart-purchase-form__party-name">{{ $selectedCustomer->displayLabel() }}</strong>
-                        @if (filled($selectedCustomer->primaryPhone()))
+        <div class="agricart-purchase-form__banner-body">
+            <div class="agricart-purchase-form__party-line agricart-purchase-form__party-line--supplier">
+                <p class="agricart-purchase-form__party-summary agricart-online-order__address-inline">
+                    @forelse ($headerAddressParts as $partIndex => $part)
+                        @if ($partIndex === 0)
+                            <strong class="agricart-purchase-form__party-name">{{ $part }}</strong>
+                        @else
                             <span class="agricart-purchase-form__party-sep" aria-hidden="true">·</span>
-                            <span>{{ $selectedCustomer->primaryPhone() }}</span>
+                            <span>{{ $part }}</span>
                         @endif
-                    </p>
-                </div>
+                    @empty
+                        <strong class="agricart-purchase-form__party-name is-muted">—</strong>
+                    @endforelse
+                </p>
             </div>
-        @endif
+        </div>
     </header>
 
-    @if (filled($ship_contact_name) || filled($ship_address) || filled($ship_city) || filled($delivery_method_name))
-        <div class="agricart-online-order__ship-block">
-            <h3 class="agricart-online-order__section-title">{{ __('online_sale_orders.sections.shipping') }}</h3>
-            @if (filled($delivery_method_name))
+    @if ($full_advance_required || (filled($cod_min_advance_percent) && (float) $cod_min_advance_percent > 0) || filled($delivery_customer_notice))
+        <div class="agricart-online-order__ship-hints">
+            @if ($full_advance_required || (filled($cod_min_advance_percent) && (float) $cod_min_advance_percent > 0))
                 <p class="agricart-online-order__ship-line">
-                    <strong>{{ __('online_sale_orders.fields.delivery_method') }}:</strong>
-                    <span>{{ $delivery_method_name }}</span>
-                    @if (filled($shipping_charge_mode_label))
-                        <span class="agricart-purchase-form__party-sep" aria-hidden="true">·</span>
-                        <span>{{ $shipping_charge_mode_label }}</span>
+                    @if ($full_advance_required)
+                        {{ __('agricart.storefront.checkout.full_advance_hint') }}
+                    @else
+                        {{ __('agricart.storefront.checkout.cod_advance_hint', ['percent' => $cod_min_advance_percent]) }}
                     @endif
                 </p>
-                @if ($full_advance_required || (filled($cod_min_advance_percent) && (float) $cod_min_advance_percent > 0))
-                    <p class="agricart-online-order__ship-line">
-                        @if ($full_advance_required)
-                            {{ __('agricart.storefront.checkout.full_advance_hint') }}
-                        @else
-                            {{ __('agricart.storefront.checkout.cod_advance_hint', ['percent' => $cod_min_advance_percent]) }}
-                        @endif
-                    </p>
-                @endif
-                @if (filled($delivery_customer_notice))
-                    <p class="agricart-online-order__ship-line">{{ $delivery_customer_notice }}</p>
-                @endif
             @endif
-            <p class="agricart-online-order__ship-line">
-                @if (filled($ship_contact_name))
-                    <strong>{{ $ship_contact_name }}</strong>
-                @endif
-                @if (filled($ship_phone))
-                    <span class="agricart-purchase-form__party-sep" aria-hidden="true">·</span>
-                    <span>{{ $ship_phone }}</span>
-                @endif
-            </p>
-            @if (filled($ship_address) || filled($ship_city))
-                <p class="agricart-online-order__ship-line">{{ trim($ship_address . ($ship_city ? ', ' . $ship_city : '')) }}</p>
+            @if (filled($delivery_customer_notice))
+                <p class="agricart-online-order__ship-line">{{ $delivery_customer_notice }}</p>
             @endif
         </div>
     @endif
 
+    {{-- Invoice body: line items --}}
     <div class="agricart-purchase-form__grid-wrap">
         <table class="agricart-purchase-form__grid">
             <thead>
@@ -149,183 +143,7 @@
         </table>
     </div>
 
-    <div class="agricart-online-order__declared-payment">
-        <h3 class="agricart-online-order__section-title">{{ __('online_sale_orders.sections.customer_payment') }}</h3>
-        <p class="agricart-online-order__meta-line">
-            <span class="agricart-sale-form__top-label">{{ __('online_sale_orders.fields.customer_payment_method') }}</span>
-            <strong>
-                @if (filled($customer_payment_method))
-                    {{ __('pos.payment_methods.' . $customer_payment_method) }}
-                @else
-                    —
-                @endif
-            </strong>
-        </p>
-        @if (filled($customer_payment_note))
-            <p class="agricart-online-order__meta-line">{{ $customer_payment_note }}</p>
-        @endif
-        @if (filled($customer_payment_reference))
-            <p class="agricart-online-order__meta-line">
-                <span class="agricart-sale-form__top-label">{{ __('online_sale_orders.fields.customer_payment_reference') }}</span>
-                <strong><code>{{ $customer_payment_reference }}</code></strong>
-            </p>
-        @endif
-        @if (filled($customer_payment_proof_status) && $customer_payment_proof_status !== 'none')
-            <p class="agricart-online-order__meta-line">
-                <span class="agricart-sale-form__top-label">{{ __('online_sale_orders.fields.payment_proof_status') }}</span>
-                <strong>{{ __('online_sale_orders.payment_proof_statuses.' . $customer_payment_proof_status) }}</strong>
-            </p>
-        @endif
-        @if (filled($customer_bank_receipt_url))
-            <div class="agricart-online-order__customer-receipt">
-                <p class="agricart-sale-form__top-label">{{ __('online_sale_orders.fields.customer_bank_receipt') }}</p>
-                @if ($this->customerBankReceiptIsPreviewable())
-                    <a href="{{ $customer_bank_receipt_url }}" target="_blank" rel="noopener" class="agricart-online-order__receipt-preview-link">
-                        <img src="{{ $customer_bank_receipt_url }}" alt="" class="agricart-online-order__receipt-preview" />
-                    </a>
-                @endif
-                <a href="{{ $customer_bank_receipt_url }}" target="_blank" rel="noopener" class="agricart-online-order__proof-link">
-                    {{ __('online_sale_orders.actions.view_customer_receipt') }}
-                </a>
-            </div>
-        @endif
-        @if (filled($payment_proof_rejection_note))
-            <p class="agricart-online-order__meta-line agricart-online-order__meta-line--reject">{{ $payment_proof_rejection_note }}</p>
-        @endif
-        @if ($this->canConfirmPayment() && $customer_payment_proof_status === 'submitted')
-            <div class="agricart-online-order__proof-actions">
-                <button type="button" class="agricart-categories__action is-primary" wire:click="verifyCustomerPaymentProof" wire:loading.attr="disabled">
-                    {{ __('online_sale_orders.actions.verify_payment') }}
-                </button>
-                <div class="agricart-online-order__reject-row">
-                    <input type="text" class="agricart-purchase-form__input agricart-purchase-form__input--compact" wire:model="payment_proof_reject_input" placeholder="{{ __('online_sale_orders.hints.reject_payment_note') }}" />
-                    <button type="button" class="agricart-categories__action is-danger" wire:click="rejectCustomerPaymentProof" wire:loading.attr="disabled">
-                        {{ __('online_sale_orders.actions.reject_payment') }}
-                    </button>
-                </div>
-            </div>
-        @endif
-    </div>
-
-    <h3 class="agricart-online-order__section-title">{{ __('order_dispatch.sections.fulfillment') }}</h3>
-    @if ($orderId)
-        <div class="agricart-online-order__print-actions">
-            <button type="button" class="agricart-categories__action" wire:click="printPackingSlip">
-                {{ __('online_sale_orders.actions.packing_slip') }}
-            </button>
-            @if ($this->canConfirmPayment())
-                <button type="button" class="agricart-categories__action is-primary" wire:click="convertToSale" wire:loading.attr="disabled">
-                    Convert to Sale
-                </button>
-            @endif
-        </div>
-    @endif
-    <div class="agricart-sale-form__status-row agricart-sale-form__status-row--four-fields">
-        <div class="agricart-purchase-form__field">
-            <label class="agricart-purchase-form__label" for="online-order-assigned-user">{{ __('order_dispatch.fields.assigned_staff') }}</label>
-            <select id="online-order-assigned-user" class="agricart-purchase-form__input agricart-purchase-form__input--compact agricart-purchase-form__input--status" wire:model.live="assigned_user_id" @disabled(! $this->canConfirmPayment())>
-                <option value="">{{ __('order_dispatch.hints.all_staff') }}</option>
-                @foreach ($staffOptions as $staff)
-                    <option value="{{ $staff['id'] }}">{{ $staff['label'] }}</option>
-                @endforeach
-            </select>
-        </div>
-        <div class="agricart-purchase-form__field agricart-purchase-form__field--wide">
-            <label class="agricart-purchase-form__label" for="online-order-fulfillment-status">{{ __('order_dispatch.fields.fulfillment_status') }}</label>
-            <select id="online-order-fulfillment-status" class="agricart-purchase-form__input agricart-purchase-form__input--compact agricart-purchase-form__input--status" wire:model.live="fulfillment_status" @disabled(! $this->canConfirmPayment())>
-                @foreach ($fulfillmentStatusOptions as $value => $label)
-                    <option value="{{ $value }}">{{ $label }}</option>
-                @endforeach
-            </select>
-        </div>
-    </div>
-
-    @if ($suggestedSuppliers !== [])
-        <div class="agricart-online-order__supplier-block">
-            <h3 class="agricart-online-order__section-title">{{ __('order_dispatch.sections.suppliers') }}</h3>
-            <ul class="agricart-online-order__supplier-list">
-                @foreach ($suggestedSuppliers as $supplier)
-                    @php
-                        $supplierKey = (string) $supplier['id'];
-                        $fulfillment = $supplierFulfillment[$supplierKey] ?? null;
-                        $isAssigned = $supplier['is_assigned'] ?? false;
-                        $currentStatus = $fulfillment['status'] ?? ($supplier['status'] ?? 'pending');
-                    @endphp
-                    <li wire:key="online-order-supplier-{{ $supplier['id'] }}" class="agricart-online-order__supplier-item agricart-online-order__supplier-item--stacked">
-                        <div class="agricart-online-order__supplier-head">
-                            <label class="agricart-online-order__supplier-check">
-                                <input
-                                    type="checkbox"
-                                    value="{{ $supplier['id'] }}"
-                                    wire:model.live="selectedSupplierIds"
-                                    @disabled(! $this->canConfirmPayment())
-                                />
-                                <span>{{ $supplier['label'] }}</span>
-                            </label>
-                        </div>
-
-                        @if ($isAssigned)
-                            <div class="agricart-online-order__supplier-fulfillment">
-                                <div class="agricart-purchase-form__field">
-                                    <label class="agricart-purchase-form__label">{{ __('order_dispatch.fields.supplier_status') }}</label>
-                                    <select
-                                        class="agricart-purchase-form__input agricart-purchase-form__input--compact agricart-purchase-form__input--status"
-                                        wire:model.live="supplierFulfillment.{{ $supplierKey }}.status"
-                                        @disabled(! $this->canConfirmPayment())
-                                    >
-                                        @foreach ($supplierStatusOptions as $value => $label)
-                                            <option value="{{ $value }}">{{ $label }}</option>
-                                        @endforeach
-                                    </select>
-                                </div>
-
-                                @if (filled($fulfillment['acknowledged_at'] ?? null))
-                                    <p class="agricart-online-order__meta-line">{{ __('order_dispatch.fields.acknowledged_at') }}: {{ $fulfillment['acknowledged_at'] }}</p>
-                                @endif
-
-                                @if (($fulfillment['status'] ?? '') === 'shipped')
-                                    <div class="agricart-online-order__supplier-ship-grid">
-                                        <div class="agricart-purchase-form__field">
-                                            <label class="agricart-purchase-form__label">{{ __('order_dispatch.fields.carrier_name') }}</label>
-                                            <input type="text" class="agricart-purchase-form__input agricart-purchase-form__input--compact" wire:model.live.debounce.400ms="supplierFulfillment.{{ $supplierKey }}.carrier_name" @disabled(! $this->canConfirmPayment()) placeholder="{{ __('order_dispatch.hints.carrier_name') }}" />
-                                        </div>
-                                        <div class="agricart-purchase-form__field">
-                                            <label class="agricart-purchase-form__label">{{ __('order_dispatch.fields.tracking_number') }}</label>
-                                            <input type="text" class="agricart-purchase-form__input agricart-purchase-form__input--compact" wire:model.live.debounce.400ms="supplierFulfillment.{{ $supplierKey }}.tracking_number" @disabled(! $this->canConfirmPayment()) />
-                                        </div>
-                                        <div class="agricart-purchase-form__field">
-                                            <label class="agricart-purchase-form__label">{{ __('order_dispatch.fields.shipping_reference') }}</label>
-                                            <input type="text" class="agricart-purchase-form__input agricart-purchase-form__input--compact" wire:model.live.debounce.400ms="supplierFulfillment.{{ $supplierKey }}.shipping_reference" @disabled(! $this->canConfirmPayment()) placeholder="{{ __('order_dispatch.hints.shipping_reference') }}" />
-                                        </div>
-                                        <div class="agricart-purchase-form__field agricart-purchase-form__field--wide">
-                                            <label class="agricart-purchase-form__label">{{ __('order_dispatch.fields.shipping_proof') }}</label>
-                                            @if ($this->canConfirmPayment())
-                                                <input type="file" accept="image/*,.pdf" class="agricart-purchase-form__input agricart-purchase-form__input--compact" wire:model="supplierProofUploads.{{ $supplier['id'] }}" />
-                                            @endif
-                                            @if (filled($fulfillment['shipping_proof_path'] ?? null))
-                                                <a href="{{ $supplier['proof_url'] ?? '#' }}" target="_blank" rel="noopener" class="agricart-online-order__proof-link">{{ __('order_dispatch.actions.view_proof') }}</a>
-                                            @endif
-                                        </div>
-                                        @if (filled($fulfillment['shipped_at'] ?? null))
-                                            <p class="agricart-online-order__meta-line">{{ __('order_dispatch.fields.shipped_at') }}: {{ $fulfillment['shipped_at'] }}</p>
-                                        @endif
-                                    </div>
-                                @endif
-
-                                <div class="agricart-purchase-form__field agricart-purchase-form__field--wide">
-                                    <label class="agricart-purchase-form__label">{{ __('order_dispatch.fields.supplier_notes') }}</label>
-                                    <textarea class="agricart-sale-form__notes-input" rows="2" wire:model.live.debounce.300ms="supplierFulfillment.{{ $supplierKey }}.supplier_response_notes" @disabled(! $this->canConfirmPayment()) placeholder="{{ __('order_dispatch.hints.supplier_notes') }}"></textarea>
-                                </div>
-                            </div>
-                        @endif
-                    </li>
-                @endforeach
-            </ul>
-        </div>
-    @elseif ($this->canConfirmPayment() && $orderId)
-        <p class="agricart-online-order__meta-line">{{ __('order_dispatch.hints.no_suppliers') }}</p>
-    @endif
-
+    {{-- Payment method (admin / verified) — same position as POS --}}
     <h3 class="agricart-online-order__section-title">{{ __('online_sale_orders.sections.admin_payment') }}</h3>
     <div class="agricart-sale-form__status-row agricart-sale-form__status-row--four-fields">
         <div class="agricart-purchase-form__field">
@@ -385,7 +203,7 @@
             wire:model.live.debounce.300ms="admin_notes"
             rows="3"
             placeholder="{{ __('online_sale_orders.hints.admin_notes') }}"
-            @disabled(! $this->canConfirmPayment())
+            @disabled(! $this->canConfirmPayment() && ! $this->canManageFulfillment())
         ></textarea>
     </div>
 
@@ -393,5 +211,184 @@
         <div><span>{{ __('online_sale_orders.fields.subtotal') }}</span><strong>{{ $this->displayPrice($subtotal) }}</strong></div>
         <div><span>{{ __('online_sale_orders.fields.total_amount') }}</span><strong>{{ $this->displayPrice($total_amount) }}</strong></div>
         <div><span>{{ __('online_sale_orders.fields.balance_due') }}</span><strong>{{ $this->displayPrice($balance_due) }}</strong></div>
+    </div>
+
+    @php
+        $hasReceipt = filled($customer_bank_receipt_url);
+        $receiptNotified = in_array($customer_payment_proof_status, ['submitted', 'verified'], true);
+    @endphp
+
+    {{-- Below invoice: payment proof (quotations) + fulfillment (invoices only) --}}
+    <div class="agricart-online-order__below-invoice">
+        @unless ($this->isInvoice())
+            <div class="agricart-online-order__declared-payment">
+                <h3 class="agricart-online-order__section-title">{{ __('online_sale_orders.sections.customer_payment') }}</h3>
+
+                @if ($hasReceipt && $receiptNotified)
+                    <p class="agricart-online-order__receipt-status is-ready">{{ __('online_sale_orders.payment_proof_statuses.' . $customer_payment_proof_status) }}</p>
+                    <div class="agricart-online-order__customer-receipt">
+                        @if ($this->customerBankReceiptIsPreviewable())
+                            <a href="{{ $customer_bank_receipt_url }}" target="_blank" rel="noopener" class="agricart-online-order__receipt-preview-link">
+                                <img src="{{ $customer_bank_receipt_url }}" alt="" class="agricart-online-order__receipt-preview" />
+                            </a>
+                        @endif
+                        <a href="{{ $customer_bank_receipt_url }}" target="_blank" rel="noopener" class="agricart-online-order__proof-link">
+                            {{ __('online_sale_orders.actions.view_customer_receipt') }}
+                        </a>
+                    </div>
+                    @if (filled($customer_payment_reference))
+                        <p class="agricart-online-order__meta-line">
+                            <strong><code>{{ $customer_payment_reference }}</code></strong>
+                        </p>
+                    @endif
+                @else
+                    <p class="agricart-online-order__receipt-status is-pending">{{ __('online_sale_orders.hints.pending_payment') }}</p>
+                @endif
+
+                @if (filled($customer_payment_note))
+                    <p class="agricart-online-order__meta-line">{{ $customer_payment_note }}</p>
+                @endif
+                @if (filled($payment_proof_rejection_note))
+                    <p class="agricart-online-order__meta-line agricart-online-order__meta-line--reject">{{ $payment_proof_rejection_note }}</p>
+                @endif
+
+                @if ($this->canConfirmPayment() && $customer_payment_proof_status === 'submitted')
+                    <div class="agricart-online-order__proof-actions">
+                        <button type="button" class="agricart-categories__action is-primary" wire:click="verifyCustomerPaymentProof" wire:loading.attr="disabled">
+                            {{ __('online_sale_orders.actions.verify_payment') }}
+                        </button>
+                        <div class="agricart-online-order__reject-row">
+                            <input type="text" class="agricart-purchase-form__input agricart-purchase-form__input--compact" wire:model="payment_proof_reject_input" placeholder="{{ __('online_sale_orders.hints.reject_payment_note') }}" />
+                            <button type="button" class="agricart-categories__action is-danger" wire:click="rejectCustomerPaymentProof" wire:loading.attr="disabled">
+                                {{ __('online_sale_orders.actions.reject_payment') }}
+                            </button>
+                        </div>
+                    </div>
+                @endif
+
+                @if ($this->canConfirmPayment() && $orderId)
+                    <div class="agricart-online-order__print-actions">
+                        <button type="button" class="agricart-categories__action is-primary" wire:click="convertToSale" wire:loading.attr="disabled">
+                            {{ __('online_sale_orders.actions.convert_to_invoice') }}
+                        </button>
+                    </div>
+                @endif
+            </div>
+        @endunless
+
+        @if ($this->showFulfillmentSection())
+            <h3 class="agricart-online-order__section-title">{{ __('order_dispatch.sections.fulfillment') }}</h3>
+            @if ($orderId)
+                <div class="agricart-online-order__print-actions">
+                    <button type="button" class="agricart-categories__action" wire:click="printPackingSlip">
+                        {{ __('online_sale_orders.actions.packing_slip') }}
+                    </button>
+                </div>
+            @endif
+            <div class="agricart-sale-form__status-row agricart-sale-form__status-row--four-fields">
+                <div class="agricart-purchase-form__field">
+                    <label class="agricart-purchase-form__label" for="online-order-assigned-user">{{ __('order_dispatch.fields.assigned_staff') }}</label>
+                    <select id="online-order-assigned-user" class="agricart-purchase-form__input agricart-purchase-form__input--compact agricart-purchase-form__input--status" wire:model.live="assigned_user_id" @disabled(! $this->canManageFulfillment())>
+                        <option value="">{{ __('order_dispatch.hints.all_staff') }}</option>
+                        @foreach ($staffOptions as $staff)
+                            <option value="{{ $staff['id'] }}">{{ $staff['label'] }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <div class="agricart-purchase-form__field agricart-purchase-form__field--wide">
+                    <label class="agricart-purchase-form__label" for="online-order-fulfillment-status">{{ __('order_dispatch.fields.fulfillment_status') }}</label>
+                    <select id="online-order-fulfillment-status" class="agricart-purchase-form__input agricart-purchase-form__input--compact agricart-purchase-form__input--status" wire:model.live="fulfillment_status" @disabled(! $this->canManageFulfillment())>
+                        @foreach ($fulfillmentStatusOptions as $value => $label)
+                            <option value="{{ $value }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+
+            @if ($suggestedSuppliers !== [])
+                <div class="agricart-online-order__supplier-block">
+                    <h3 class="agricart-online-order__section-title">{{ __('order_dispatch.sections.suppliers') }}</h3>
+                    <ul class="agricart-online-order__supplier-list">
+                        @foreach ($suggestedSuppliers as $supplier)
+                            @php
+                                $supplierKey = (string) $supplier['id'];
+                                $fulfillment = $supplierFulfillment[$supplierKey] ?? null;
+                                $isAssigned = $supplier['is_assigned'] ?? false;
+                            @endphp
+                            <li wire:key="online-order-supplier-{{ $supplier['id'] }}" class="agricart-online-order__supplier-item agricart-online-order__supplier-item--stacked">
+                                <div class="agricart-online-order__supplier-head">
+                                    <label class="agricart-online-order__supplier-check">
+                                        <input
+                                            type="checkbox"
+                                            value="{{ $supplier['id'] }}"
+                                            wire:model.live="selectedSupplierIds"
+                                            @disabled(! $this->canManageFulfillment())
+                                        />
+                                        <span>{{ $supplier['label'] }}</span>
+                                    </label>
+                                </div>
+
+                                @if ($isAssigned)
+                                    <div class="agricart-online-order__supplier-fulfillment">
+                                        <div class="agricart-purchase-form__field">
+                                            <label class="agricart-purchase-form__label">{{ __('order_dispatch.fields.supplier_status') }}</label>
+                                            <select
+                                                class="agricart-purchase-form__input agricart-purchase-form__input--compact agricart-purchase-form__input--status"
+                                                wire:model.live="supplierFulfillment.{{ $supplierKey }}.status"
+                                                @disabled(! $this->canManageFulfillment())
+                                            >
+                                                @foreach ($supplierStatusOptions as $value => $label)
+                                                    <option value="{{ $value }}">{{ $label }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+
+                                        @if (filled($fulfillment['acknowledged_at'] ?? null))
+                                            <p class="agricart-online-order__meta-line">{{ __('order_dispatch.fields.acknowledged_at') }}: {{ $fulfillment['acknowledged_at'] }}</p>
+                                        @endif
+
+                                        @if (($fulfillment['status'] ?? '') === 'shipped')
+                                            <div class="agricart-online-order__supplier-ship-grid">
+                                                <div class="agricart-purchase-form__field">
+                                                    <label class="agricart-purchase-form__label">{{ __('order_dispatch.fields.carrier_name') }}</label>
+                                                    <input type="text" class="agricart-purchase-form__input agricart-purchase-form__input--compact" wire:model.live.debounce.400ms="supplierFulfillment.{{ $supplierKey }}.carrier_name" @disabled(! $this->canManageFulfillment()) placeholder="{{ __('order_dispatch.hints.carrier_name') }}" />
+                                                </div>
+                                                <div class="agricart-purchase-form__field">
+                                                    <label class="agricart-purchase-form__label">{{ __('order_dispatch.fields.tracking_number') }}</label>
+                                                    <input type="text" class="agricart-purchase-form__input agricart-purchase-form__input--compact" wire:model.live.debounce.400ms="supplierFulfillment.{{ $supplierKey }}.tracking_number" @disabled(! $this->canManageFulfillment()) />
+                                                </div>
+                                                <div class="agricart-purchase-form__field">
+                                                    <label class="agricart-purchase-form__label">{{ __('order_dispatch.fields.shipping_reference') }}</label>
+                                                    <input type="text" class="agricart-purchase-form__input agricart-purchase-form__input--compact" wire:model.live.debounce.400ms="supplierFulfillment.{{ $supplierKey }}.shipping_reference" @disabled(! $this->canManageFulfillment()) placeholder="{{ __('order_dispatch.hints.shipping_reference') }}" />
+                                                </div>
+                                                <div class="agricart-purchase-form__field agricart-purchase-form__field--wide">
+                                                    <label class="agricart-purchase-form__label">{{ __('order_dispatch.fields.shipping_proof') }}</label>
+                                                    @if ($this->canManageFulfillment())
+                                                        <input type="file" accept="image/*,.pdf" class="agricart-purchase-form__input agricart-purchase-form__input--compact" wire:model="supplierProofUploads.{{ $supplier['id'] }}" />
+                                                    @endif
+                                                    @if (filled($fulfillment['shipping_proof_path'] ?? null))
+                                                        <a href="{{ $supplier['proof_url'] ?? '#' }}" target="_blank" rel="noopener" class="agricart-online-order__proof-link">{{ __('order_dispatch.actions.view_proof') }}</a>
+                                                    @endif
+                                                </div>
+                                                @if (filled($fulfillment['shipped_at'] ?? null))
+                                                    <p class="agricart-online-order__meta-line">{{ __('order_dispatch.fields.shipped_at') }}: {{ $fulfillment['shipped_at'] }}</p>
+                                                @endif
+                                            </div>
+                                        @endif
+
+                                        <div class="agricart-purchase-form__field agricart-purchase-form__field--wide">
+                                            <label class="agricart-purchase-form__label">{{ __('order_dispatch.fields.supplier_notes') }}</label>
+                                            <textarea class="agricart-sale-form__notes-input" rows="2" wire:model.live.debounce.300ms="supplierFulfillment.{{ $supplierKey }}.supplier_response_notes" @disabled(! $this->canManageFulfillment()) placeholder="{{ __('order_dispatch.hints.supplier_notes') }}"></textarea>
+                                        </div>
+                                    </div>
+                                @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                </div>
+            @elseif ($this->canManageFulfillment() && $orderId)
+                <p class="agricart-online-order__meta-line">{{ __('order_dispatch.hints.no_suppliers') }}</p>
+            @endif
+        @endif
     </div>
 </div>

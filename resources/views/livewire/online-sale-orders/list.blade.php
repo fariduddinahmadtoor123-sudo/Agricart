@@ -21,11 +21,15 @@
         </div>
     @endif
 
+    <div class="agricart-online-order__list-note" role="note">
+        {{ __('online_sale_orders.list.invoices_note') }}
+    </div>
+
     @if ($orders->isEmpty())
         <div class="agricart-categories__empty">
-            <p>{{ $hasListConstraints ? __('online_sale_orders.list.no_results') : __('online_sale_orders.list.empty') }}</p>
+            <p>{{ $hasListConstraints ? __('online_sale_orders.list.no_results') : __('online_sale_orders.list.invoices_empty') }}</p>
             @unless ($hasListConstraints)
-                <p class="agricart-categories__empty-hint">{{ __('online_sale_orders.list.empty_hint') }}</p>
+                <p class="agricart-categories__empty-hint">{{ __('online_sale_orders.list.invoices_empty_hint') }}</p>
             @endunless
         </div>
     @else
@@ -42,14 +46,11 @@
                         @if (in_array('total_amount', $visibleColumns, true))
                             <th>{{ __('online_sale_orders.list.col_total') }}</th>
                         @endif
-                        @if (in_array('order_status', $visibleColumns, true))
-                            <th>{{ __('online_sale_orders.list.col_order_status') }}</th>
-                        @endif
                         @if (in_array('payment_status', $visibleColumns, true))
                             <th>{{ __('online_sale_orders.list.col_payment_status') }}</th>
                         @endif
-                        @if (in_array('customer_payment_method', $visibleColumns, true))
-                            <th>{{ __('online_sale_orders.list.col_customer_payment') }}</th>
+                        @if (in_array('queue_status', $visibleColumns, true))
+                            <th>{{ __('online_sale_orders.list.col_queue_status') }}</th>
                         @endif
                         @if (in_array('order_date', $visibleColumns, true))
                             <th>{{ __('online_sale_orders.list.col_order_date') }}</th>
@@ -62,7 +63,10 @@
                 </thead>
                 <tbody>
                     @foreach ($orders as $order)
-                        <tr wire:key="online-order-{{ $order->id }}">
+                        @php
+                            $inQueue = $order->queued_at !== null;
+                        @endphp
+                        <tr wire:key="online-order-{{ $order->id }}" @class(['agricart-online-order__row--queue-pending' => ! $inQueue])>
                             @if (in_array('order_number', $visibleColumns, true))
                                 <td><code>{{ $order->order_number }}</code></td>
                             @endif
@@ -72,19 +76,20 @@
                             @if (in_array('total_amount', $visibleColumns, true))
                                 <td>{{ number_format((float) $order->total_amount, 2) }}</td>
                             @endif
-                            @if (in_array('order_status', $visibleColumns, true))
-                                <td>{{ __('online_sale_orders.order_statuses.' . $order->order_status) }}</td>
-                            @endif
                             @if (in_array('payment_status', $visibleColumns, true))
-                                <td>{{ __('pos.payment_statuses.' . $order->payment_status) }}</td>
+                                <td>{{ __('pos.payment_statuses.paid') }}</td>
                             @endif
-                            @if (in_array('customer_payment_method', $visibleColumns, true))
+                            @if (in_array('queue_status', $visibleColumns, true))
                                 <td>
-                                    @if (filled($order->customer_payment_method))
-                                        {{ __('pos.payment_methods.' . $order->customer_payment_method) }}
-                                    @else
-                                        —
-                                    @endif
+                                    <span @class([
+                                        'agricart-online-order__receipt-badge',
+                                        'is-waiting' => ! $inQueue,
+                                        'is-verified' => $inQueue,
+                                    ])>
+                                        {{ $inQueue
+                                            ? __('online_sale_orders.queue_statuses.queued')
+                                            : __('online_sale_orders.queue_statuses.pending') }}
+                                    </span>
                                 </td>
                             @endif
                             @if (in_array('order_date', $visibleColumns, true))
@@ -97,11 +102,12 @@
                                 <button type="button" class="agricart-categories__action" wire:click="openView({{ $order->id }})">
                                     {{ __('online_sale_orders.actions.view_short') }}
                                 </button>
-                                <button type="button" class="agricart-categories__action" wire:click="printOrder({{ $order->id }})">{{ __('online_sale_orders.actions.print_short') }}</button>
-                                <button type="button" class="agricart-categories__action" wire:click="printPackingSlip({{ $order->id }})">{{ __('online_sale_orders.actions.packing_slip_short') }}</button>
-                                @if ($canEdit && ! $order->isLocked())
-                                    <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $order->id }})">
-                                        {{ __('online_sale_orders.actions.edit_short') }}
+                                <button type="button" class="agricart-categories__action" wire:click="printPackingSlip({{ $order->id }})">
+                                    {{ __('online_sale_orders.actions.packing_slip_short') }}
+                                </button>
+                                @if ($canEdit && ! $inQueue)
+                                    <button type="button" class="agricart-categories__action is-primary" wire:click="sendToQueue({{ $order->id }})">
+                                        {{ __('online_sale_orders.actions.send_to_queue') }}
                                     </button>
                                 @endif
                             </td>

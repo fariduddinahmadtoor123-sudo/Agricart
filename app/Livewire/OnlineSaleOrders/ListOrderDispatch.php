@@ -5,6 +5,7 @@ namespace App\Livewire\OnlineSaleOrders;
 use App\Models\OnlineSaleOrder;
 use App\Models\Supplier;
 use App\Models\User;
+use App\Services\Sales\OnlineOrderDispatchService;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -21,6 +22,11 @@ class ListOrderDispatch extends Component
     public string $supplierFilter = '';
 
     public string $fulfillmentFilter = '';
+
+    public ?int $forwardOrderId = null;
+
+    /** @var 'packing'|'invoice' */
+    public string $forwardDocument = 'packing';
 
     /** @var list<string> */
     public array $visibleColumns = [
@@ -155,13 +161,16 @@ class ListOrderDispatch extends Component
 
     public function openOrder(int $orderId): void
     {
-        $order = OnlineSaleOrder::query()->find($orderId);
+        $order = OnlineSaleOrder::query()
+            ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
+            ->whereNotNull('queued_at')
+            ->find($orderId);
 
         if ($order === null) {
             return;
         }
 
-        $canUpdate = $this->userCan('edit') && ! $order->isLocked();
+        $canUpdate = $this->userCan('edit');
 
         $this->dispatch(
             'open-form-panel',
@@ -175,7 +184,7 @@ class ListOrderDispatch extends Component
 
     public function printOrder(int $orderId): void
     {
-        $order = OnlineSaleOrder::query()->find($orderId);
+        $order = $this->queuedOrder($orderId);
 
         if ($order === null) {
             return;
@@ -186,7 +195,7 @@ class ListOrderDispatch extends Component
 
     public function printPackingSlip(int $orderId): void
     {
-        $order = OnlineSaleOrder::query()->find($orderId);
+        $order = $this->queuedOrder($orderId);
 
         if ($order === null) {
             return;
@@ -195,12 +204,148 @@ class ListOrderDispatch extends Component
         $this->dispatch('online-sale-orders-open-print', url: route('admin.online-sale-orders.packing-slip', $order));
     }
 
+    public function openForward(int $orderId): void
+    {
+        if ($this->queuedOrder($orderId) === null) {
+            return;
+        }
+
+        $this->forwardOrderId = $orderId;
+        $this->forwardDocument = 'packing';
+    }
+
+    public function closeForward(): void
+    {
+        $this->forwardOrderId = null;
+        $this->forwardDocument = 'packing';
+    }
+
+    public function updatedForwardDocument(string $value): void
+    {
+        if (! in_array($value, ['packing', 'invoice'], true)) {
+            $this->forwardDocument = 'packing';
+        }
+    }
+
+    public function forwardWhatsApp(string $recipientType, int $recipientId): void
+    {
+        $order = $this->forwardOrder();
+
+        if ($order === null) {
+            return;
+        }
+
+        $dispatch = app(OnlineOrderDispatchService::class);
+        $document = $this->forwardDocument;
+        $url = null;
+
+        if ($recipientType === 'supplier') {
+            $supplier = $this->resolveForwardSupplier($order, $recipientId, $dispatch);
+
+            if ($supplier === null) {
+                return;
+            }
+
+            $dispatch->ensureAndMarkSupplierSent($order, $supplier->id, auth()->user() instanceof User ? auth()->user() : null);
+            $url = $dispatch->whatsAppUrlForSupplier($order, $supplier, $document);
+        }
+
+        if ($recipientType === 'staff') {
+            $staff = User::query()->whereKey($recipientId)->where('status', User::STATUS_ACTIVE)->first();
+
+            if ($staff === null) {
+                return;
+            }
+
+            $url = $dispatch->whatsAppUrlForStaff($order, $staff, $document);
+        }
+
+        if ($url !== null) {
+            $this->dispatch('online-sale-orders-open-external', url: $url);
+        }
+    }
+
+    public function forwardEmail(string $recipientType, int $recipientId): void
+    {
+        $order = $this->forwardOrder();
+
+        if ($order === null) {
+            return;
+        }
+
+        $dispatch = app(OnlineOrderDispatchService::class);
+        $document = $this->forwardDocument;
+        $url = null;
+
+        if ($recipientType === 'supplier') {
+            $supplier = $this->resolveForwardSupplier($order, $recipientId, $dispatch);
+
+            if ($supplier === null) {
+                return;
+            }
+
+            $dispatch->ensureAndMarkSupplierSent($order, $supplier->id, auth()->user() instanceof User ? auth()->user() : null);
+            $url = $dispatch->mailToUrlForSupplier($order, $supplier, $document);
+        }
+
+        if ($recipientType === 'staff') {
+            $staff = User::query()->whereKey($recipientId)->where('status', User::STATUS_ACTIVE)->first();
+
+            if ($staff === null) {
+                return;
+            }
+
+            $url = $dispatch->mailToUrlForStaff($order, $staff, $document);
+        }
+
+        if ($url !== null) {
+            $this->dispatch('online-sale-orders-open-external', url: $url);
+        }
+    }
+
+    public function forwardOpen(string $recipientType, int $recipientId): void
+    {
+        $order = $this->forwardOrder();
+
+        if ($order === null) {
+            return;
+        }
+
+        $dispatch = app(OnlineOrderDispatchService::class);
+        $supplierId = null;
+        $staffId = null;
+
+        if ($recipientType === 'supplier') {
+            $supplier = $this->resolveForwardSupplier($order, $recipientId, $dispatch);
+
+            if ($supplier === null) {
+                return;
+            }
+
+            $supplierId = $supplier->id;
+            $dispatch->ensureAndMarkSupplierSent($order, $supplier->id, auth()->user() instanceof User ? auth()->user() : null);
+        }
+
+        if ($recipientType === 'staff') {
+            $staff = User::query()->whereKey($recipientId)->where('status', User::STATUS_ACTIVE)->first();
+
+            if ($staff === null) {
+                return;
+            }
+
+            $staffId = $staff->id;
+        }
+
+        $url = $dispatch->documentUrl($order, $this->forwardDocument, $supplierId, $staffId);
+        $this->dispatch('online-sale-orders-open-print', url: $url);
+    }
+
     public function render(): View
     {
         $orders = OnlineSaleOrder::query()
             ->with(['customer', 'assignedUser', 'supplierAssignments.supplier'])
-            ->whereNotIn('order_status', [OnlineSaleOrder::STATUS_CANCELLED, OnlineSaleOrder::STATUS_CONVERTED])
-            ->whereIn('payment_status', ['paid', 'partial'])
+            ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
+            ->whereNotNull('queued_at')
             ->when(filled($this->search), function ($query): void {
                 $needle = '%' . $this->search . '%';
                 $query->where(function ($inner) use ($needle): void {
@@ -218,14 +363,85 @@ class ListOrderDispatch extends Component
                 $query->whereHas('supplierAssignments', fn ($inner) => $inner->where('supplier_id', $supplierId));
             })
             ->when(filled($this->fulfillmentFilter), fn ($query) => $query->where('fulfillment_status', $this->fulfillmentFilter))
-            ->orderByDesc('created_at')
+            ->orderByDesc('queued_at')
+            ->orderByDesc('converted_at')
             ->paginate(20);
+
+        $forwardOrder = $this->forwardOrder();
+        $dispatch = app(OnlineOrderDispatchService::class);
+
+        $forwardSuppliers = [];
+        $forwardStaff = [];
+
+        if ($forwardOrder !== null) {
+            $forwardSuppliers = $dispatch->suggestSuppliersForOrder($forwardOrder)
+                ->map(fn (Supplier $supplier): array => [
+                    'id' => $supplier->id,
+                    'name' => $supplier->displayBusinessName(),
+                    'phone' => $supplier->primaryMobile(),
+                    'email' => filled($supplier->email) ? (string) $supplier->email : null,
+                    'can_whatsapp' => $dispatch->normalizePhoneDigits($supplier->primaryMobile()) !== null,
+                    'can_email' => filled($supplier->email),
+                ])
+                ->values()
+                ->all();
+
+            $forwardStaff = User::query()
+                ->where('status', User::STATUS_ACTIVE)
+                ->orderBy('name')
+                ->get()
+                ->map(function (User $user) use ($dispatch): array {
+                    $phone = $dispatch->primaryPhoneForUser($user);
+
+                    return [
+                        'id' => $user->id,
+                        'name' => (string) $user->name,
+                        'phone' => $phone,
+                        'email' => filled($user->email) ? (string) $user->email : null,
+                        'can_whatsapp' => $dispatch->normalizePhoneDigits($phone) !== null,
+                        'can_email' => filled($user->email),
+                    ];
+                })
+                ->all();
+        }
 
         return view('livewire.online-sale-orders.list-order-dispatch', [
             'orders' => $orders,
             'activeFilters' => $this->activeFilters(),
             'hasListConstraints' => $this->hasListConstraints(),
+            'forwardOrder' => $forwardOrder,
+            'forwardSuppliers' => $forwardSuppliers,
+            'forwardStaff' => $forwardStaff,
         ]);
+    }
+
+    private function queuedOrder(int $orderId): ?OnlineSaleOrder
+    {
+        return OnlineSaleOrder::query()
+            ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
+            ->whereNotNull('queued_at')
+            ->find($orderId);
+    }
+
+    private function forwardOrder(): ?OnlineSaleOrder
+    {
+        if ($this->forwardOrderId === null) {
+            return null;
+        }
+
+        return OnlineSaleOrder::query()
+            ->with(['items.product.category.parent', 'customer'])
+            ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
+            ->whereNotNull('queued_at')
+            ->find($this->forwardOrderId);
+    }
+
+    private function resolveForwardSupplier(
+        OnlineSaleOrder $order,
+        int $supplierId,
+        OnlineOrderDispatchService $dispatch,
+    ): ?Supplier {
+        return $dispatch->suggestSuppliersForOrder($order)->firstWhere('id', $supplierId);
     }
 
     private function userCan(string $action): bool

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\CompanyProfile;
 use App\Models\OnlineSaleOrder;
+use App\Models\Supplier;
 use App\Models\User;
 use App\Services\Sales\OnlineSaleOrderService;
 use Illuminate\Contracts\View\View;
@@ -35,7 +36,34 @@ class OnlineSaleOrderPackingSlipPrintController extends Controller
             'storeName' => (string) ($company->localized('business_name') ?? ''),
             'storeLogoUrl' => $company->displayLogoUrl(),
             'autoprint' => request()->query('autoprint', '1') !== '0',
+            'recipientName' => $this->resolveRecipientName(),
         ]);
+    }
+
+    private function resolveRecipientName(): ?string
+    {
+        $supplierId = (int) request()->query('supplier_id', 0);
+
+        if ($supplierId > 0) {
+            $supplier = Supplier::query()->find($supplierId);
+
+            if ($supplier !== null) {
+                $name = trim($supplier->displayBusinessName());
+
+                return $name !== '' ? $name : null;
+            }
+        }
+
+        $staffId = (int) request()->query('staff_id', 0);
+
+        if ($staffId > 0) {
+            $staff = User::query()->find($staffId);
+            $name = trim((string) ($staff?->name ?? ''));
+
+            return $name !== '' ? $name : null;
+        }
+
+        return null;
     }
 
     private function authorizeSalesAccess(): void

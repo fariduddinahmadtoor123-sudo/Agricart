@@ -20,6 +20,8 @@ class OnlineSaleOrderPrintController extends Controller
         $order->load([
             'items' => fn ($query) => $query->orderBy('sort_order'),
             'customer',
+            'assignedUser',
+            'supplierAssignments.supplier',
         ]);
 
         $localeQuery = request()->query('locale');

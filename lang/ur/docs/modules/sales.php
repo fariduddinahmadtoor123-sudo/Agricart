@@ -307,8 +307,8 @@ return [
     ],
 
     'order-dispatch' => [
-        'title' => 'Order Dispatch Queue',
-        'summary' => 'paid/partial آن لائن آرڈرز کی قطار؛ مشترکہ فارم۔',
+        'title' => 'آن لائن آرڈرز ان کیو',
+        'summary' => 'Online Sale Orders سے بھیجی گئی کنورٹ شدہ انوائسز۔ یہاں Forward اور فلфилمنٹ۔',
         'meta' => [
             'routes' => ['/admin/sales/order-dispatch'],
             'permissions' => ['sales.view', 'sales.edit'],
@@ -319,7 +319,7 @@ return [
                 'type' => 'purpose',
                 'heading' => 'مقصد',
                 'paragraphs' => [
-                    'سپلائر تفویض، WhatsApp/میل، fulfillment proofs۔',
+                    'queued_at والی انوائسز۔ سپلائر/اسٹاف Forward، تفویض، fulfillment proofs۔',
                 ],
             ],
             [
@@ -327,8 +327,8 @@ return [
                 'type' => 'workflows',
                 'heading' => 'عمل',
                 'steps' => [
-                    'قطار کھولیں → OnlineSaleOrders\\Form۔',
-                    'سپلائر/proof۔',
+                    'کوٹیشن → ادائیگی تصدیق → Convert into Invoice → Send to Queue۔',
+                    'کیو کھولیں → فلфилمنٹ؛ پیکنگ/انوائس Forward۔',
                 ],
             ],
             [
@@ -336,7 +336,7 @@ return [
                 'type' => 'rebuild_notes',
                 'heading' => 'Rebuild نوٹس',
                 'list' => [
-                    'POS convert / shipment ledger نہیں۔',
+                    'فلфилمنٹ UI صرف Send to Queue کے بعد۔ shipment ledger ابھی نہیں۔',
                 ],
             ],
             [

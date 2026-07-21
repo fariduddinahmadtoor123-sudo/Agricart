@@ -3,7 +3,7 @@
 namespace App\Services\Notifications;
 
 use App\Filament\Clusters\Approvals\StaffPage;
-use App\Filament\Clusters\Sales\OnlineOrdersPage;
+use App\Filament\Clusters\Sales\OnlineQuotationsPage;
 use App\Filament\Clusters\Settings\SystemErrorsPage;
 use App\Filament\Clusters\Store\MessagesPage;
 use App\Models\OnlineSaleOrder;
@@ -34,13 +34,14 @@ class TopbarNotificationService
             $this->item(
                 key: 'online_orders',
                 count: OnlineSaleOrder::query()
+                    ->where('order_status', '!=', OnlineSaleOrder::STATUS_CONVERTED)
                     ->where(function ($query): void {
                         $query
                             ->where('order_status', OnlineSaleOrder::STATUS_PENDING)
                             ->orWhere('customer_payment_proof_status', OnlineSaleOrder::PROOF_SUBMITTED);
                     })
                     ->count(),
-                pageClass: OnlineOrdersPage::class,
+                pageClass: OnlineQuotationsPage::class,
             ),
             $this->item(
                 key: 'system_errors',

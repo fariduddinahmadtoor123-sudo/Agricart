@@ -23,6 +23,7 @@
         .slip__logo { max-height: 3rem; margin: 0 auto 0.35rem; display: block; }
         .slip__store { margin: 0; font-size: 1.2rem; font-weight: 800; }
         .slip__title { margin: 0.35rem 0 0; font-size: 1rem; font-weight: 700; color: #374151; }
+        .slip__to { margin: 0.5rem 0 0; font-size: 1.05rem; font-weight: 800; color: #111827; }
         .slip__order { margin: 0.5rem 0 0; font-size: 1.35rem; font-weight: 800; letter-spacing: 0.02em; }
         .slip__meta { margin: 0.25rem 0 0; font-size: 0.8125rem; color: #4b5563; }
         .slip__notice {
@@ -56,6 +57,9 @@
                     <h1 class="slip__store">{{ $storeName }}</h1>
                 @endif
                 <p class="slip__title">{{ __('order_dispatch.packing_slip.heading') }}</p>
+                @if (filled($recipientName ?? null))
+                    <p class="slip__to">{{ __('order_dispatch.packing_slip.to', ['name' => $recipientName]) }}</p>
+                @endif
                 <p class="slip__order">{{ $order->order_number }}</p>
                 <p class="slip__meta">{{ $order->order_date?->format('d M Y') }}</p>
                 @if ($order->assignedUser)

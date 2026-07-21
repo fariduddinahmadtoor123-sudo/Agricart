@@ -120,6 +120,7 @@ abstract class ClusterPageToolbar
             'pos-sales' => 'sales',
             'sales-quotations' => 'sale-quotations',
             'sales-returns' => 'sale-returns',
+            'online-quotations' => 'online-orders',
             'online-orders' => 'online-orders',
             'order-dispatch' => 'online-orders',
             're-order-center' => 're-order-center',

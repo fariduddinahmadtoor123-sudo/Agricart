@@ -19,16 +19,6 @@
 @endpush
 
 @section('content')
-    <section class="ag-store-howto" aria-labelledby="store-howto-heading">
-        <h2 id="store-howto-heading" class="ag-store-howto__title">{{ __('agricart.storefront.home.howto_title') }}</h2>
-        <ol class="ag-store-howto__steps">
-            <li>{{ __('agricart.storefront.home.howto_step_1') }}</li>
-            <li>{{ __('agricart.storefront.home.howto_step_2') }}</li>
-            <li>{{ __('agricart.storefront.home.howto_step_3') }}</li>
-            <li>{{ __('agricart.storefront.home.howto_step_4') }}</li>
-        </ol>
-    </section>
-
     @if ($settings->category_grid_enabled)
         @include('store.components.category-grid', [
             'categories' => $rootCategories,

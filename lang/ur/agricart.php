@@ -204,7 +204,7 @@ return [
         ],
         'sales' => [
             'overview' => 'جائزہ', 'pos-sales' => 'سیلز اینڈ پی او ایس',
-            'online-orders' => 'ان لائن سیل آرڈرز', 'order-dispatch' => 'آرڈر ڈسپیچ کیو', 'sales-quotations' => 'سیل کوٹیشنز', 'sales-returns' => 'سیل ریٹرنز',
+            'online-quotations' => 'آن لائن کوٹیشنز', 'online-orders' => 'ان لائن سیل آرڈرز', 'order-dispatch' => 'آن لائن آرڈرز ان کیو', 'sales-quotations' => 'سیل کوٹیشنز', 'sales-returns' => 'سیل ریٹرنز',
         ],
         'store' => ['overview' => 'جائزہ', 'top-bar' => 'اوپر پٹی', 'ticker' => 'ٹکر', 'header' => 'ہیڈر', 'menu' => 'مینیو', 'pages' => 'صفحات', 'footer' => 'فٹر', 'items' => 'اشیاء', 'messages' => 'پیغامات', 'visitor-analytics' => 'وزیٹر اینالیٹکس'],
         'logistics' => ['overview' => 'جائزہ', 'delivery-methods' => 'ڈیلیوری طریقے', 'shipments' => 'شپمنٹ'],
@@ -305,13 +305,13 @@ return [
         'notification_items' => [
             'staff_approvals' => 'عملہ منظوری کی درخواستیں',
             'customer_messages' => 'نئے کسٹمر پیغامات',
-            'online_orders' => 'جائزے کے منتظر آن لائن آرڈرز',
+            'online_orders' => 'جائزے کے منتظر آن لائن کوٹیشنز',
             'system_errors' => 'خطرناک سسٹم ایررز',
         ],
         'notification_counts' => [
             'staff_approvals' => ':count درخواست منظوری کی منتظر ہے|:count درخواستیں منظوری کی منتظر ہیں',
             'customer_messages' => ':count نیا کسٹمر پیغام|:count نئے کسٹمر پیغامات',
-            'online_orders' => ':count آرڈر جائزے کا منتظر ہے|:count آرڈرز جائزے کے منتظر ہیں',
+            'online_orders' => ':count کوٹیشن جائزے کا منتظر ہے|:count کوٹیشنز جائزے کے منتظر ہیں',
             'system_errors' => ':count خطرناک ایرر توجہ کا منتظر ہے|:count خطرناک ایررز توجہ کے منتظر ہیں',
         ],
     ],
@@ -711,7 +711,7 @@ return [
                 'sales_quotations' => 'سیل کوٹیشنز',
                 'sales_returns' => 'سیل واپسی',
                 'online_orders' => 'آن لائن آرڈرز',
-                'order_dispatch' => 'آرڈر ڈسپیچ',
+                'order_dispatch' => 'آن لائن آرڈرز ان کیو',
             ],
             'meta' => [
                 'pos_sales' => ':count ہولڈ',
@@ -2546,6 +2546,7 @@ return [
             'detail_title' => 'آرڈر :number',
             'detail_heading' => 'آرڈر :number',
             'back_to_list' => 'آرڈرز پر واپس',
+            'invoice_issued_note' => 'آپ کی انوائس جاری ہو چکی ہے۔ ہماری ٹیم آپ کا آرڈر پروسیس اور ڈسپیچ کرے گی۔',
             'shipping' => 'ڈیلیوری کی تفصیل',
             'items_preview' => 'اس آرڈر کی اشیاء',
             'total' => 'آرڈر کل',

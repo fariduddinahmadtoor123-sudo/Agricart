@@ -12,9 +12,9 @@ class OrderDispatchPage extends BaseModulePage
 {
     protected static ?string $cluster = SalesCluster::class;
 
-    protected static ?string $navigationLabel = 'Order Dispatch Queue';
+    protected static ?string $navigationLabel = 'Online Orders in Queue';
 
-    protected static ?int $navigationSort = 8;
+    protected static ?int $navigationSort = 9;
 
     protected static ?string $slug = 'order-dispatch';
 

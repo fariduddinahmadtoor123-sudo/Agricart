@@ -109,8 +109,8 @@ class SalesOverviewService
     private function dispatchQueueQuery(): Builder
     {
         return OnlineSaleOrder::query()
-            ->whereNotIn('order_status', [OnlineSaleOrder::STATUS_CANCELLED, OnlineSaleOrder::STATUS_CONVERTED])
-            ->whereIn('payment_status', ['paid', 'partial']);
+            ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
+            ->whereNotNull('queued_at');
     }
 
     /**

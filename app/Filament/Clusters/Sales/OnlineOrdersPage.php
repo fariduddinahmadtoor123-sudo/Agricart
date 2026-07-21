@@ -14,7 +14,7 @@ class OnlineOrdersPage extends BaseModulePage
 
     protected static ?string $navigationLabel = 'Online Sale Orders';
 
-    protected static ?int $navigationSort = 7;
+    protected static ?int $navigationSort = 8;
 
     protected static ?string $slug = 'online-orders';
 

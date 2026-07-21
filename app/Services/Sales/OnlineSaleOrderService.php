@@ -179,18 +179,21 @@ class OnlineSaleOrderService
             $productIds = $order->items->pluck('product_id')->filter()->map(fn ($id): int => (int) $id)->unique()->sort()->values();
             Product::query()->whereIn('id', $productIds)->orderBy('id')->lockForUpdate()->get();
 
+            $paymentMethod = $order->payment_method ?: $order->customer_payment_method ?: 'cash';
+            $total = (float) $order->total_amount;
+
             $sale = $this->saleService->complete([
                 'customer_id' => $order->customer_id,
                 'cashier_id' => $actor->id,
                 'sale_date' => now()->toDateString(),
                 'locale' => $order->locale,
-                'payment_status' => $order->payment_status,
-                'payment_method' => $order->payment_method ?: $order->customer_payment_method ?: 'cash',
+                'payment_status' => 'paid',
+                'payment_method' => $paymentMethod,
                 'bank_account_id' => $order->bank_account_id,
                 'price_display' => 'plain',
                 'discount_type' => null,
                 'discount_value' => 0,
-                'amount_paid' => $order->amount_paid,
+                'amount_paid' => $total,
                 'print_controls' => false,
                 'notes' => 'Converted from online order '.$order->order_number,
                 'rows' => $order->items->map(fn (OnlineSaleOrderItem $item): array => [
@@ -211,12 +214,36 @@ class OnlineSaleOrderService
             $order->forceFill([
                 'sale_id' => $sale->id,
                 'order_status' => OnlineSaleOrder::STATUS_CONVERTED,
+                'payment_status' => 'paid',
+                'payment_method' => $paymentMethod,
+                'amount_paid' => $total,
                 'converted_at' => now(),
                 'converted_by_id' => $actor->id,
+                'queued_at' => null,
             ])->save();
 
             return $sale;
         }, 5);
+    }
+
+    public function sendToDispatchQueue(OnlineSaleOrder $order): OnlineSaleOrder
+    {
+        if ($order->order_status !== OnlineSaleOrder::STATUS_CONVERTED) {
+            throw ValidationException::withMessages([
+                'order' => [__('online_sale_orders.validation.queue_requires_invoice')],
+            ]);
+        }
+
+        if ($order->queued_at !== null) {
+            return $order->fresh();
+        }
+
+        $order->forceFill([
+            'queued_at' => now(),
+            'fulfillment_status' => $order->fulfillment_status ?: OnlineSaleOrder::FULFILLMENT_AWAITING,
+        ])->save();
+
+        return $order->fresh(['items', 'customer', 'sale', 'assignedUser', 'supplierAssignments.supplier']);
     }
 
     /**
@@ -346,6 +373,67 @@ class OnlineSaleOrderService
     /**
      * @param  array<string, mixed>  $payload
      */
+    /**
+     * Fulfillment updates allowed after Convert into Invoice (order is otherwise locked).
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    public function updateFulfillment(OnlineSaleOrder $order, array $payload): OnlineSaleOrder
+    {
+        if (! $order->isInDispatchQueue()) {
+            throw ValidationException::withMessages([
+                'order' => [__('online_sale_orders.validation.fulfillment_requires_queue')],
+            ]);
+        }
+
+        $validated = validator($payload, [
+            'fulfillment_status' => ['nullable', 'string', Rule::in(OnlineSaleOrder::FULFILLMENT_STATUSES)],
+            'assigned_user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'admin_notes' => ['nullable', 'string', 'max:5000'],
+            'supplier_ids' => ['nullable', 'array'],
+            'supplier_ids.*' => ['integer', 'exists:suppliers,id'],
+        ])->validate();
+
+        $order->fill([
+            'fulfillment_status' => $validated['fulfillment_status'] ?? $order->fulfillment_status,
+            'assigned_user_id' => $validated['assigned_user_id'] ?? null,
+            'admin_notes' => array_key_exists('admin_notes', $validated)
+                ? ($validated['admin_notes'] ?? null)
+                : $order->admin_notes,
+        ]);
+
+        if (
+            filled($validated['assigned_user_id'] ?? null)
+            && $order->fulfillment_status === OnlineSaleOrder::FULFILLMENT_AWAITING
+        ) {
+            $order->fulfillment_status = OnlineSaleOrder::FULFILLMENT_ASSIGNED;
+        }
+
+        $order->save();
+
+        $supplierIds = $validated['supplier_ids'] ?? null;
+
+        if (is_array($supplierIds)) {
+            app(OnlineOrderDispatchService::class)->syncSupplierAssignments(
+                $order,
+                $supplierIds,
+                auth()->user(),
+            );
+        }
+
+        $order = $order->fresh(['supplierAssignments']);
+
+        if (isset($payload['supplier_fulfillment']) && is_array($payload['supplier_fulfillment'])) {
+            app(OnlineOrderDispatchService::class)->applySupplierFulfillmentUpdates(
+                $order,
+                $payload['supplier_fulfillment'],
+                is_array($payload['supplier_proof_uploads'] ?? null) ? $payload['supplier_proof_uploads'] : [],
+            );
+        }
+
+        return $order->fresh(['items', 'customer', 'sale', 'supplierAssignments.supplier', 'assignedUser']);
+    }
+
     public function updateAdmin(OnlineSaleOrder $order, array $payload): OnlineSaleOrder
     {
         if ($order->isLocked()) {

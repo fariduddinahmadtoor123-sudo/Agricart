@@ -204,7 +204,7 @@ return [
         ],
         'sales' => [
             'overview' => 'Overview', 'pos-sales' => 'Sales & POS',
-            'online-orders' => 'Online Sale Orders', 'order-dispatch' => 'Order Dispatch Queue', 'sales-quotations' => 'Sale Quotations', 'sales-returns' => 'Sale Returns',
+            'online-quotations' => 'Online Quotations', 'online-orders' => 'Online Sale Orders', 'order-dispatch' => 'Online Orders in Queue', 'sales-quotations' => 'Sale Quotations', 'sales-returns' => 'Sale Returns',
         ],
         'store' => ['overview' => 'Overview', 'top-bar' => 'Top Bar', 'ticker' => 'Ticker', 'header' => 'Header', 'menu' => 'Menu', 'pages' => 'Pages', 'footer' => 'Footer', 'items' => 'Items', 'messages' => 'Messages', 'visitor-analytics' => 'Visitor Analytics'],
         'logistics' => ['overview' => 'Overview', 'delivery-methods' => 'Delivery Methods', 'shipments' => 'Shipments'],
@@ -305,13 +305,13 @@ return [
         'notification_items' => [
             'staff_approvals' => 'Staff approval requests',
             'customer_messages' => 'New customer messages',
-            'online_orders' => 'Online orders requiring review',
+            'online_orders' => 'Online quotations requiring review',
             'system_errors' => 'Critical system errors',
         ],
         'notification_counts' => [
             'staff_approvals' => ':count application requires approval|:count applications require approval',
             'customer_messages' => ':count unread customer message|:count unread customer messages',
-            'online_orders' => ':count order requires review|:count orders require review',
+            'online_orders' => ':count quotation requires review|:count quotations require review',
             'system_errors' => ':count critical error requires attention|:count critical errors require attention',
         ],
     ],
@@ -711,7 +711,7 @@ return [
                 'sales_quotations' => 'Sale quotations',
                 'sales_returns' => 'Sale returns',
                 'online_orders' => 'Online orders',
-                'order_dispatch' => 'Order dispatch',
+                'order_dispatch' => 'Online orders in queue',
             ],
             'meta' => [
                 'pos_sales' => ':count held',
@@ -2546,6 +2546,7 @@ return [
             'detail_title' => 'Order :number',
             'detail_heading' => 'Order :number',
             'back_to_list' => 'Back to orders',
+            'invoice_issued_note' => 'Your invoice has been issued. Our team will process and dispatch your order.',
             'shipping' => 'Delivery details',
             'items_preview' => 'Items in this order',
             'total' => 'Order total',

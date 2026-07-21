@@ -55,8 +55,9 @@ return [
     ],
 
     'list' => [
-        'empty' => 'ڈسپیچ کیو میں کوئی ادا شدہ آرڈر نہیں۔',
-        'empty_hint' => 'ادائیگی (paid/partial) تصدیق کے بعد آرڈر یہاں آئیں گے۔',
+        'queue_note' => 'Online Sale Orders سے بھیجی گئی انوائسز۔ یہاں سپلائر/اسٹاف کو Forward کریں، پھر فلфилمنٹ اور لوجسٹکس چلائیں۔',
+        'empty' => 'آن لائن آرڈرز کیو میں کوئی انوائس نہیں۔',
+        'empty_hint' => 'Online Sale Orders سے Convert into Invoice کے بعد Send to Queue کریں۔',
         'no_results' => 'تلاش یا فلٹر کے مطابق کوئی آرڈر نہیں۔',
         'col_fulfillment' => 'فلfillment',
         'col_staff' => 'اسٹاف',
@@ -89,6 +90,9 @@ return [
 
     'messages' => [
         'supplier_intro' => 'السلام علیکم :supplier، براہ کرم آرڈر :number پورا کریں:',
+        'invoice_intro' => 'السلام علیکم :name، آرڈر :number کی انوائس:',
+        'invoice_total' => 'کل: :amount',
+        'invoice_link' => 'انوائس کھولیں:',
         'ship_to' => 'شپنگ',
         'notes' => 'نوٹس',
     ],
@@ -96,6 +100,7 @@ return [
     'packing_slip' => [
         'title' => 'پیکنگ لسٹ',
         'heading' => 'پیکنگ لسٹ — وئیرہاؤس / سپلائر',
+        'to' => 'برائے: :name',
         'notice' => 'اوپر والے آرڈر نمبر کے لیے یہ اشیاء پیک کریں۔ کسٹمر کو یہ سلپ نہ دیں۔ کسٹمر کا نام، ریٹ اور ڈیلیوری پتہ نہیں دکھایا گیا۔',
         'footer' => 'پیک شدہ مال Agricart اسٹاف کو واپس دیں۔ ٹریکنگ اور بلٹی صرف آفس اسٹاف درج کرے گا۔',
         'packed_by' => 'ذمہ دار اسٹاف',
