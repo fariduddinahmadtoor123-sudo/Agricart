@@ -1139,6 +1139,20 @@ return [
                 'labels' => 'Product labels',
             ],
         ],
+        'portable' => [
+            'hint' => 'Encrypted .ags for :entity only. Filename is :entity plus today\'s date. Use Export/Import on this page for masters-only transfer. Full catalog (all masters + products + label fields) is on Products.',
+            'export_ok' => 'Exported :count :entity.',
+            'import_ok' => 'Import finished for :entity: :created created, :updated updated, :skipped skipped, :media media files.',
+            'forbidden' => 'You do not have permission to import or export this catalog data.',
+            'entities' => [
+                'brands' => 'brands',
+                'categories' => 'categories',
+                'units' => 'units',
+                'packing-units' => 'packing units',
+                'attributes' => 'attributes',
+                'controls' => 'controls',
+            ],
+        ],
     ],
 
     'purchasing' => [
@@ -1710,7 +1724,7 @@ return [
             'whatsapp_share' => 'WhatsApp',
         ],
         'portable' => [
-            'hint' => 'Encrypted .ags package: products, brands, categories, units, attributes, controls, and images. Upserts by code/slug. Passwords/stock movements are not included. Delivery methods must already exist in Logistics (matched by slug).',
+            'hint' => 'Encrypted .ags full catalog: all masters + products + images. Label print codes travel with products; the Labels page has no separate archive. Upserts by code/slug. Passwords/stock movements are not included. Delivery methods must already exist in Logistics (matched by slug).',
             'export_ok' => 'Exported catalog (:count products).',
             'import_ok' => 'Import finished: :created created, :updated updated, :skipped skipped, :media media files, :products products written.',
             'facebook_ok' => 'Facebook CSV ready (:count active products). Upload it in Meta Commerce Manager.',

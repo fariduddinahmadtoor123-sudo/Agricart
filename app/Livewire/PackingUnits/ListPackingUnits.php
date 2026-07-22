@@ -2,17 +2,22 @@
 
 namespace App\Livewire\PackingUnits;
 
+use App\Livewire\Concerns\HandlesCatalogPortableArchive;
 use App\Models\PackingUnit;
 use App\Models\User;
+use App\Services\Catalog\CatalogPortableArchiveService;
 use App\Services\Catalog\PackingUnitService;
 use Filament\Notifications\Notification;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 class ListPackingUnits extends Component
 {
+    use HandlesCatalogPortableArchive;
+    use WithFileUploads;
     use WithPagination;
 
     /** @var list<string> */
@@ -22,10 +27,26 @@ class ListPackingUnits extends Component
 
     public string $statusFilter = '';
 
+    #[On('packing-units-action')]
+    public function handleToolbarAction(string $action): mixed
+    {
+        return $this->handleCatalogPortableAction($action);
+    }
+
     #[On('packing-units-saved')]
     public function refreshList(): void
     {
         $this->resetPage();
+    }
+
+    protected function catalogPortableScope(): string
+    {
+        return CatalogPortableArchiveService::SCOPE_PACKING_UNITS;
+    }
+
+    protected function catalogPortableCan(string $action): bool
+    {
+        return $this->userCan($action);
     }
 
     #[On('packing-units-search')]

@@ -14,6 +14,7 @@ use App\Services\Catalog\FacebookCatalogCsvService;
 use App\Services\PortableArchive\PortableArchiveCodec;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class CatalogPortableArchiveTest extends TestCase
@@ -148,6 +149,79 @@ class CatalogPortableArchiveTest extends TestCase
         $this->assertSame('Seeds', $restored->category?->name_en);
         $this->assertTrue($restored->attributes->contains(fn ($a) => $a->code === 'ATR-SIZE' && ($a->pivot->value ?? '') === '1kg'));
         $this->assertTrue($restored->deliveryMethods->contains(fn ($d) => $d->slug === 'pickup'));
+
+        @unlink($export['path']);
+    }
+
+    public function test_brands_scoped_export_filename_and_rejects_wrong_page_format(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('brands/logo.webp', 'brand-bytes');
+
+        Brand::query()->create([
+            'code' => 'BRD-SCOPE',
+            'slug' => 'scope-brand',
+            'status' => 'active',
+            'name_en' => 'Scope Brand',
+            'name_ur' => 'اسکوپ',
+            'image_path' => 'brands/logo.webp',
+            'ai_status' => 'none',
+        ]);
+
+        $service = app(CatalogPortableArchiveService::class);
+        $export = $service->export(CatalogPortableArchiveService::SCOPE_BRANDS);
+
+        $this->assertSame(1, $export['count']);
+        $this->assertSame(CatalogPortableArchiveService::SCOPE_BRANDS, $export['scope']);
+        $this->assertStringStartsWith('brands-', $export['filename']);
+        $this->assertStringEndsWith('.ags', $export['filename']);
+
+        $this->expectException(ValidationException::class);
+        try {
+            $service->importFromPath($export['path'], CatalogPortableArchiveService::SCOPE_CATEGORIES);
+        } finally {
+            @unlink($export['path']);
+        }
+    }
+
+    public function test_brands_scoped_import_does_not_touch_units(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('brands/logo.webp', 'brand-bytes');
+
+        Brand::query()->create([
+            'code' => 'BRD-ONLY',
+            'slug' => 'only-brand',
+            'status' => 'active',
+            'name_en' => 'Only Brand',
+            'name_ur' => 'صرف',
+            'image_path' => 'brands/logo.webp',
+            'ai_status' => 'none',
+        ]);
+
+        Unit::query()->create([
+            'code' => 'UNT-STAY',
+            'slug' => 'stay-unit',
+            'status' => 'active',
+            'name_en' => 'Stay Unit',
+            'name_ur' => 'رہو',
+            'abbreviation_en' => 'su',
+            'abbreviation_ur' => 'س',
+            'ai_status' => 'none',
+        ]);
+
+        $service = app(CatalogPortableArchiveService::class);
+        $export = $service->export(CatalogPortableArchiveService::SCOPE_BRANDS);
+
+        Brand::query()->where('code', 'BRD-ONLY')->delete();
+        Unit::query()->where('code', 'UNT-STAY')->delete();
+
+        $result = $service->importFromPath($export['path'], CatalogPortableArchiveService::SCOPE_BRANDS);
+
+        $this->assertGreaterThanOrEqual(1, $result['created']);
+        $this->assertNotNull(Brand::query()->where('code', 'BRD-ONLY')->first());
+        $this->assertNull(Unit::query()->where('code', 'UNT-STAY')->first());
+        $this->assertSame(0, $result['products']);
 
         @unlink($export['path']);
     }

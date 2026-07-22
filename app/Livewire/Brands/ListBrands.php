@@ -2,17 +2,22 @@
 
 namespace App\Livewire\Brands;
 
+use App\Livewire\Concerns\HandlesCatalogPortableArchive;
 use App\Models\Brand;
 use App\Models\User;
 use App\Services\Catalog\BrandService;
+use App\Services\Catalog\CatalogPortableArchiveService;
 use Filament\Notifications\Notification;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 class ListBrands extends Component
 {
+    use HandlesCatalogPortableArchive;
+    use WithFileUploads;
     use WithPagination;
 
     /** @var list<string> */
@@ -22,10 +27,26 @@ class ListBrands extends Component
 
     public string $statusFilter = '';
 
+    #[On('brands-action')]
+    public function handleToolbarAction(string $action): mixed
+    {
+        return $this->handleCatalogPortableAction($action);
+    }
+
     #[On('brands-saved')]
     public function refreshList(): void
     {
         $this->resetPage();
+    }
+
+    protected function catalogPortableScope(): string
+    {
+        return CatalogPortableArchiveService::SCOPE_BRANDS;
+    }
+
+    protected function catalogPortableCan(string $action): bool
+    {
+        return $this->userCan($action);
     }
 
     #[On('brands-search')]

@@ -2,17 +2,22 @@
 
 namespace App\Livewire\Categories;
 
+use App\Livewire\Concerns\HandlesCatalogPortableArchive;
 use App\Models\Category;
 use App\Models\User;
+use App\Services\Catalog\CatalogPortableArchiveService;
 use Filament\Notifications\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 class ListCategories extends Component
 {
+    use HandlesCatalogPortableArchive;
+    use WithFileUploads;
     use WithPagination;
 
     /** @var list<string> */
@@ -22,10 +27,26 @@ class ListCategories extends Component
 
     public string $statusFilter = '';
 
+    #[On('categories-action')]
+    public function handleToolbarAction(string $action): mixed
+    {
+        return $this->handleCatalogPortableAction($action);
+    }
+
     #[On('categories-saved')]
     public function refreshList(): void
     {
         $this->resetPage();
+    }
+
+    protected function catalogPortableScope(): string
+    {
+        return CatalogPortableArchiveService::SCOPE_CATEGORIES;
+    }
+
+    protected function catalogPortableCan(string $action): bool
+    {
+        return $this->userCan($action);
     }
 
     #[On('categories-search')]

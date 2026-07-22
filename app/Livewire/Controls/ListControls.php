@@ -2,17 +2,22 @@
 
 namespace App\Livewire\Controls;
 
+use App\Livewire\Concerns\HandlesCatalogPortableArchive;
 use App\Models\CatalogControl;
 use App\Models\User;
+use App\Services\Catalog\CatalogPortableArchiveService;
 use App\Services\Catalog\ControlService;
 use Filament\Notifications\Notification;
 use Illuminate\Contracts\View\View;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 
 class ListControls extends Component
 {
+    use HandlesCatalogPortableArchive;
+    use WithFileUploads;
     use WithPagination;
 
     /** @var list<string> */
@@ -22,10 +27,26 @@ class ListControls extends Component
 
     public string $statusFilter = '';
 
+    #[On('controls-action')]
+    public function handleToolbarAction(string $action): mixed
+    {
+        return $this->handleCatalogPortableAction($action);
+    }
+
     #[On('controls-saved')]
     public function refreshList(): void
     {
         $this->resetPage();
+    }
+
+    protected function catalogPortableScope(): string
+    {
+        return CatalogPortableArchiveService::SCOPE_CONTROLS;
+    }
+
+    protected function catalogPortableCan(string $action): bool
+    {
+        return $this->userCan($action);
     }
 
     #[On('controls-search')]

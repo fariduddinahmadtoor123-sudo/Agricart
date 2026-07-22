@@ -27,6 +27,27 @@ class CatalogPageToolbar extends ClusterPageToolbar
     }
 
     /**
+     * @return list<array{label: string, value: string, color: string, outlined: bool}>
+     */
+    protected static function portableArchiveToolbarActions(): array
+    {
+        return array_values(array_filter([
+            static::userCan('view') ? [
+                'label' => __('agricart.products.actions.export_archive'),
+                'value' => 'export_archive',
+                'color' => 'gray',
+                'outlined' => true,
+            ] : null,
+            static::userCan('create') ? [
+                'label' => __('agricart.products.actions.import_archive'),
+                'value' => 'import_archive',
+                'color' => 'gray',
+                'outlined' => true,
+            ] : null,
+        ]));
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     public static function config(): ?array
@@ -54,18 +75,7 @@ class CatalogPageToolbar extends ClusterPageToolbar
                     ['label' => __('agricart.form_panel.statuses.draft'), 'value' => 'status:draft'],
                 ],
                 'toolbarActions' => array_values(array_filter([
-                    static::userCan('view') ? [
-                        'label' => __('agricart.products.actions.export_archive'),
-                        'value' => 'export_archive',
-                        'color' => 'gray',
-                        'outlined' => true,
-                    ] : null,
-                    static::userCan('create') ? [
-                        'label' => __('agricart.products.actions.import_archive'),
-                        'value' => 'import_archive',
-                        'color' => 'gray',
-                        'outlined' => true,
-                    ] : null,
+                    ...static::portableArchiveToolbarActions(),
                     static::userCan('view') ? [
                         'label' => __('agricart.products.actions.export_facebook_csv'),
                         'value' => 'export_facebook_csv',
@@ -97,6 +107,7 @@ class CatalogPageToolbar extends ClusterPageToolbar
                 'livewirePrefix' => 'categories',
                 'columnDataAttr' => 'data-category-column',
                 'interactive' => true,
+                'toolbarActions' => static::portableArchiveToolbarActions(),
                 'filters' => [
                     ['label' => __('agricart.form_panel.statuses.active'), 'value' => 'status:active'],
                     ['label' => __('agricart.form_panel.statuses.inactive'), 'value' => 'status:inactive'],
@@ -117,6 +128,7 @@ class CatalogPageToolbar extends ClusterPageToolbar
                 'livewirePrefix' => 'brands',
                 'columnDataAttr' => 'data-brand-column',
                 'interactive' => true,
+                'toolbarActions' => static::portableArchiveToolbarActions(),
                 'filters' => [
                     ['label' => __('agricart.form_panel.statuses.active'), 'value' => 'status:active'],
                     ['label' => __('agricart.form_panel.statuses.inactive'), 'value' => 'status:inactive'],
@@ -136,6 +148,7 @@ class CatalogPageToolbar extends ClusterPageToolbar
                 'livewirePrefix' => 'units',
                 'columnDataAttr' => 'data-unit-column',
                 'interactive' => true,
+                'toolbarActions' => static::portableArchiveToolbarActions(),
                 'filters' => [
                     ['label' => __('agricart.form_panel.statuses.active'), 'value' => 'status:active'],
                     ['label' => __('agricart.form_panel.statuses.inactive'), 'value' => 'status:inactive'],
@@ -156,6 +169,7 @@ class CatalogPageToolbar extends ClusterPageToolbar
                 'livewirePrefix' => 'packing-units',
                 'columnDataAttr' => 'data-packing-unit-column',
                 'interactive' => true,
+                'toolbarActions' => static::portableArchiveToolbarActions(),
                 'filters' => [
                     ['label' => __('agricart.form_panel.statuses.active'), 'value' => 'status:active'],
                     ['label' => __('agricart.form_panel.statuses.inactive'), 'value' => 'status:inactive'],
@@ -174,6 +188,7 @@ class CatalogPageToolbar extends ClusterPageToolbar
                 'livewirePrefix' => 'attributes',
                 'columnDataAttr' => 'data-attribute-column',
                 'interactive' => true,
+                'toolbarActions' => static::portableArchiveToolbarActions(),
                 'filters' => [
                     ['label' => __('agricart.form_panel.statuses.active'), 'value' => 'status:active'],
                     ['label' => __('agricart.form_panel.statuses.inactive'), 'value' => 'status:inactive'],
@@ -192,6 +207,7 @@ class CatalogPageToolbar extends ClusterPageToolbar
                 'livewirePrefix' => 'controls',
                 'columnDataAttr' => 'data-control-column',
                 'interactive' => true,
+                'toolbarActions' => static::portableArchiveToolbarActions(),
                 'filters' => [
                     ['label' => __('agricart.form_panel.statuses.active'), 'value' => 'status:active'],
                     ['label' => __('agricart.form_panel.statuses.inactive'), 'value' => 'status:inactive'],

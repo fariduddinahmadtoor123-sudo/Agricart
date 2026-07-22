@@ -1,4 +1,22 @@
 <div class="agricart-categories agricart-packing-units">
+    @if (filled($portableStatus))
+        <div @class([
+            'agricart-portable-import__alert',
+            'is-success' => ($portableStatusTone ?? 'success') === 'success',
+            'is-danger' => ($portableStatusTone ?? 'success') === 'danger',
+        ]) role="status">
+            <p>{{ $portableStatus }}</p>
+        </div>
+    @endif
+
+    @if ($showImportPanel)
+        @include('livewire.partials.portable-import-panel', [
+            'hint' => __('agricart.catalog.portable.hint', ['entity' => __('agricart.catalog.portable.entities.packing-units')]),
+            'importLabel' => __('agricart.products.actions.import_archive'),
+            'cancelLabel' => __('agricart.products.actions.remove'),
+        ])
+    @endif
+
     @if ($packingUnits->isEmpty())
         <div class="agricart-categories__empty">
             <p>{{ __('agricart.packing_units.list.empty') }}</p>

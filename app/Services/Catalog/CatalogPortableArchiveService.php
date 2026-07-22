@@ -21,6 +21,8 @@ use Illuminate\Validation\ValidationException;
  * Portable encrypted catalog archive (.ags): units, packing units, attributes,
  * controls, brands, categories, products + media. Upsert by code → slug.
  * stock_qty is not overwritten on update; new products start at 0.
+ *
+ * Supports full-catalog and single-scope archives (brands, categories, …).
  */
 class CatalogPortableArchiveService
 {
@@ -28,30 +30,303 @@ class CatalogPortableArchiveService
 
     public const VERSION = 1;
 
+    public const SCOPE_FULL = 'catalog';
+
+    public const SCOPE_BRANDS = 'brands';
+
+    public const SCOPE_CATEGORIES = 'categories';
+
+    public const SCOPE_UNITS = 'units';
+
+    public const SCOPE_PACKING_UNITS = 'packing-units';
+
+    public const SCOPE_ATTRIBUTES = 'attributes';
+
+    public const SCOPE_CONTROLS = 'controls';
+
+    /** @var list<string> */
+    public const SCOPES = [
+        self::SCOPE_FULL,
+        self::SCOPE_BRANDS,
+        self::SCOPE_CATEGORIES,
+        self::SCOPE_UNITS,
+        self::SCOPE_PACKING_UNITS,
+        self::SCOPE_ATTRIBUTES,
+        self::SCOPE_CONTROLS,
+    ];
+
     public function __construct(
         private readonly PortableArchiveCodec $codec,
     ) {}
 
+    public static function formatForScope(string $scope): string
+    {
+        return $scope === self::SCOPE_FULL
+            ? self::FORMAT
+            : 'agricart.catalog.'.$scope.'.portable';
+    }
+
     /**
-     * @return array{path: string, filename: string, count: int}
+     * @return array{path: string, filename: string, count: int, scope: string}
      */
     public function exportAll(): array
     {
+        return $this->export(self::SCOPE_FULL);
+    }
+
+    /**
+     * @param  self::SCOPE_*  $scope
+     * @return array{path: string, filename: string, count: int, scope: string}
+     */
+    public function export(string $scope = self::SCOPE_FULL): array
+    {
+        $scope = $this->assertScope($scope);
         $workDir = storage_path('app/tmp/catalog-export-'.Str::lower(Str::random(8)));
         File::ensureDirectoryExists($workDir.'/media');
 
-        $units = Unit::query()->orderBy('id')->get()->map(fn (Unit $row): array => $this->exportSimpleMaster($row))->all();
-        $packingUnits = PackingUnit::query()->orderBy('id')->get()->map(fn (PackingUnit $row): array => $this->exportSimpleMaster($row))->all();
-        $attributes = CatalogAttribute::query()->orderBy('id')->get()->map(fn (CatalogAttribute $row): array => $this->exportSimpleMaster($row))->all();
-        $controls = CatalogControl::query()->orderBy('id')->get()->map(function (CatalogControl $row): array {
-            return [
-                ...$this->exportSimpleMaster($row),
-                'value_en' => $row->value_en,
-                'value_ur' => $row->value_ur,
-            ];
-        })->all();
+        $bundle = [
+            'units' => [],
+            'packing_units' => [],
+            'attributes' => [],
+            'controls' => [],
+            'brands' => [],
+            'categories' => [],
+            'products' => [],
+        ];
 
+        $includeAll = $scope === self::SCOPE_FULL;
+
+        if ($includeAll || $scope === self::SCOPE_UNITS) {
+            $bundle['units'] = Unit::query()
+                ->orderBy('id')
+                ->get()
+                ->map(fn (Unit $row): array => $this->exportSimpleMaster($row))
+                ->all();
+        }
+
+        if ($includeAll || $scope === self::SCOPE_PACKING_UNITS) {
+            $bundle['packing_units'] = PackingUnit::query()
+                ->orderBy('id')
+                ->get()
+                ->map(fn (PackingUnit $row): array => $this->exportSimpleMaster($row))
+                ->all();
+        }
+
+        if ($includeAll || $scope === self::SCOPE_ATTRIBUTES) {
+            $bundle['attributes'] = CatalogAttribute::query()
+                ->orderBy('id')
+                ->get()
+                ->map(fn (CatalogAttribute $row): array => $this->exportSimpleMaster($row))
+                ->all();
+        }
+
+        if ($includeAll || $scope === self::SCOPE_CONTROLS) {
+            $bundle['controls'] = CatalogControl::query()
+                ->orderBy('id')
+                ->get()
+                ->map(function (CatalogControl $row): array {
+                    return [
+                        ...$this->exportSimpleMaster($row),
+                        'value_en' => $row->value_en,
+                        'value_ur' => $row->value_ur,
+                    ];
+                })
+                ->all();
+        }
+
+        if ($includeAll || $scope === self::SCOPE_BRANDS) {
+            $bundle['brands'] = $this->exportBrands($workDir);
+        }
+
+        if ($includeAll || $scope === self::SCOPE_CATEGORIES) {
+            $bundle['categories'] = $this->exportCategories($workDir);
+        }
+
+        if ($includeAll) {
+            $bundle['products'] = $this->exportProducts($workDir);
+        }
+
+        $productCount = count($bundle['products']);
+        $brandCount = count($bundle['brands']);
+        $categoryCount = count($bundle['categories']);
+
+        $count = match ($scope) {
+            self::SCOPE_BRANDS => $brandCount,
+            self::SCOPE_CATEGORIES => $categoryCount,
+            self::SCOPE_UNITS => count($bundle['units']),
+            self::SCOPE_PACKING_UNITS => count($bundle['packing_units']),
+            self::SCOPE_ATTRIBUTES => count($bundle['attributes']),
+            self::SCOPE_CONTROLS => count($bundle['controls']),
+            default => $productCount,
+        };
+
+        $manifest = [
+            'format' => self::formatForScope($scope),
+            'version' => self::VERSION,
+            'entity' => $scope,
+            'app' => (string) config('app.name', 'Agricart'),
+            'exported_at' => now()->toIso8601String(),
+            'product_count' => $productCount,
+            'brand_count' => $brandCount,
+            'category_count' => $categoryCount,
+        ];
+
+        File::put($workDir.'/manifest.json', json_encode($manifest, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+        File::put($workDir.'/catalog.json', json_encode($bundle, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+
+        $filenameParts = $scope === self::SCOPE_FULL ? ['catalog'] : [$scope];
+
+        try {
+            $sealed = $this->codec->sealWorkDir(
+                $workDir,
+                $this->codec->datedFilename($filenameParts),
+            );
+        } finally {
+            File::deleteDirectory($workDir);
+        }
+
+        return [
+            'path' => $sealed['path'],
+            'filename' => $sealed['filename'],
+            'count' => $count,
+            'scope' => $scope,
+        ];
+    }
+
+    /**
+     * @param  self::SCOPE_*  $expectedScope
+     * @return array{created: int, updated: int, skipped: int, media: int, products: int}
+     */
+    public function importFromPath(string $archivePath, string $expectedScope = self::SCOPE_FULL): array
+    {
+        $expectedScope = $this->assertScope($expectedScope);
+        $expectedFormat = self::formatForScope($expectedScope);
+        $pack = $this->codec->unsealToExtracted($archivePath);
+
+        try {
+            $manifestPath = $pack['extracted'].'/manifest.json';
+            $catalogPath = $pack['extracted'].'/catalog.json';
+
+            if (! is_file($manifestPath) || ! is_file($catalogPath)) {
+                throw ValidationException::withMessages([
+                    'archive' => [__('agricart.portable.import_invalid')],
+                ]);
+            }
+
+            /** @var array<string, mixed> $manifest */
+            $manifest = json_decode((string) file_get_contents($manifestPath), true, 512, JSON_THROW_ON_ERROR);
+
+            if (($manifest['format'] ?? null) !== $expectedFormat) {
+                throw ValidationException::withMessages([
+                    'archive' => [__('agricart.portable.import_format')],
+                ]);
+            }
+
+            /** @var array<string, mixed> $bundle */
+            $bundle = json_decode((string) file_get_contents($catalogPath), true, 512, JSON_THROW_ON_ERROR);
+
+            $created = 0;
+            $updated = 0;
+            $skipped = 0;
+            $media = 0;
+            $productWrites = 0;
+
+            $includeAll = $expectedScope === self::SCOPE_FULL;
+
+            DB::transaction(function () use (
+                $bundle,
+                $pack,
+                $includeAll,
+                $expectedScope,
+                &$created,
+                &$updated,
+                &$skipped,
+                &$media,
+                &$productWrites,
+            ): void {
+                if ($includeAll || $expectedScope === self::SCOPE_UNITS) {
+                    foreach (is_array($bundle['units'] ?? null) ? $bundle['units'] : [] as $row) {
+                        $this->upsertSimpleMaster(Unit::class, is_array($row) ? $row : [], $created, $updated, $skipped);
+                    }
+                }
+
+                if ($includeAll || $expectedScope === self::SCOPE_PACKING_UNITS) {
+                    foreach (is_array($bundle['packing_units'] ?? null) ? $bundle['packing_units'] : [] as $row) {
+                        $this->upsertSimpleMaster(PackingUnit::class, is_array($row) ? $row : [], $created, $updated, $skipped);
+                    }
+                }
+
+                if ($includeAll || $expectedScope === self::SCOPE_ATTRIBUTES) {
+                    foreach (is_array($bundle['attributes'] ?? null) ? $bundle['attributes'] : [] as $row) {
+                        $this->upsertSimpleMaster(CatalogAttribute::class, is_array($row) ? $row : [], $created, $updated, $skipped);
+                    }
+                }
+
+                if ($includeAll || $expectedScope === self::SCOPE_CONTROLS) {
+                    $this->importControls(
+                        is_array($bundle['controls'] ?? null) ? $bundle['controls'] : [],
+                        $created,
+                        $updated,
+                        $skipped,
+                    );
+                }
+
+                if ($includeAll || $expectedScope === self::SCOPE_BRANDS) {
+                    $this->importBrands(
+                        is_array($bundle['brands'] ?? null) ? $bundle['brands'] : [],
+                        $pack['extracted'],
+                        $created,
+                        $updated,
+                        $skipped,
+                        $media,
+                    );
+                }
+
+                if ($includeAll || $expectedScope === self::SCOPE_CATEGORIES) {
+                    $this->importCategories(
+                        is_array($bundle['categories'] ?? null) ? $bundle['categories'] : [],
+                        $pack['extracted'],
+                        $created,
+                        $updated,
+                        $skipped,
+                        $media,
+                    );
+                }
+
+                if ($includeAll) {
+                    $this->importProducts(
+                        is_array($bundle['products'] ?? null) ? $bundle['products'] : [],
+                        $pack['extracted'],
+                        $created,
+                        $updated,
+                        $skipped,
+                        $media,
+                        $productWrites,
+                    );
+                }
+            });
+
+            CatalogCache::forgetOverviewStats();
+
+            return [
+                'created' => $created,
+                'updated' => $updated,
+                'skipped' => $skipped,
+                'media' => $media,
+                'products' => $productWrites,
+            ];
+        } finally {
+            File::deleteDirectory($pack['work_dir']);
+        }
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function exportBrands(string $workDir): array
+    {
         $brands = [];
+
         foreach (Brand::query()->orderBy('id')->get() as $brand) {
             $key = $this->entityKey($brand->code, $brand->slug, $brand->id);
             $brands[] = [
@@ -70,7 +345,16 @@ class CatalogPortableArchiveService
             ];
         }
 
+        return $brands;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function exportCategories(string $workDir): array
+    {
         $categories = [];
+
         foreach (Category::query()->with('displayInCategories:id,code,slug')->orderBy('id')->get() as $category) {
             $key = $this->entityKey($category->code, $category->slug, $category->id);
             $parent = $category->parent_id
@@ -127,7 +411,16 @@ class CatalogPortableArchiveService
             ];
         }
 
+        return $categories;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function exportProducts(string $workDir): array
+    {
         $products = [];
+
         foreach (
             Product::query()
                 ->with([
@@ -234,453 +527,394 @@ class CatalogPortableArchiveService
             ];
         }
 
-        $bundle = [
-            'units' => $units,
-            'packing_units' => $packingUnits,
-            'attributes' => $attributes,
-            'controls' => $controls,
-            'brands' => $brands,
-            'categories' => $categories,
-            'products' => $products,
-        ];
-
-        $productCount = count($products);
-        $manifest = [
-            'format' => self::FORMAT,
-            'version' => self::VERSION,
-            'entity' => 'catalog',
-            'app' => (string) config('app.name', 'Agricart'),
-            'exported_at' => now()->toIso8601String(),
-            'product_count' => $productCount,
-            'brand_count' => count($brands),
-            'category_count' => count($categories),
-        ];
-
-        File::put($workDir.'/manifest.json', json_encode($manifest, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-        File::put($workDir.'/catalog.json', json_encode($bundle, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-
-        try {
-            $sealed = $this->codec->sealWorkDir(
-                $workDir,
-                $this->codec->datedFilename(['catalog']),
-            );
-        } finally {
-            File::deleteDirectory($workDir);
-        }
-
-        return [
-            'path' => $sealed['path'],
-            'filename' => $sealed['filename'],
-            'count' => $productCount,
-        ];
+        return $products;
     }
 
     /**
-     * @return array{created: int, updated: int, skipped: int, media: int, products: int}
+     * @param  list<mixed>  $rows
      */
-    public function importFromPath(string $archivePath): array
+    private function importControls(array $rows, int &$created, int &$updated, int &$skipped): void
     {
-        $pack = $this->codec->unsealToExtracted($archivePath);
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                $skipped++;
 
-        try {
-            $manifestPath = $pack['extracted'].'/manifest.json';
-            $catalogPath = $pack['extracted'].'/catalog.json';
-
-            if (! is_file($manifestPath) || ! is_file($catalogPath)) {
-                throw ValidationException::withMessages([
-                    'archive' => [__('agricart.portable.import_invalid')],
-                ]);
+                continue;
             }
 
-            /** @var array<string, mixed> $manifest */
-            $manifest = json_decode((string) file_get_contents($manifestPath), true, 512, JSON_THROW_ON_ERROR);
+            $data = $this->masterPayload($row, [
+                'value_en' => (string) ($row['value_en'] ?? $row['name_en'] ?? 'Control'),
+                'value_ur' => (string) ($row['value_ur'] ?? $row['name_ur'] ?? ''),
+            ]);
 
-            if (($manifest['format'] ?? null) !== self::FORMAT) {
-                throw ValidationException::withMessages([
-                    'archive' => [__('agricart.portable.import_format')],
-                ]);
+            if ($data === null) {
+                $skipped++;
+
+                continue;
             }
 
-            /** @var array<string, mixed> $bundle */
-            $bundle = json_decode((string) file_get_contents($catalogPath), true, 512, JSON_THROW_ON_ERROR);
+            $existing = $this->findByCodeOrSlug(CatalogControl::class, $row);
 
-            $created = 0;
-            $updated = 0;
-            $skipped = 0;
-            $media = 0;
-            $productWrites = 0;
+            if ($existing === null) {
+                CatalogControl::query()->create($data);
+                $created++;
+            } else {
+                $existing->update($data);
+                $updated++;
+            }
+        }
+    }
 
-            DB::transaction(function () use ($bundle, $pack, &$created, &$updated, &$skipped, &$media, &$productWrites): void {
-                foreach (is_array($bundle['units'] ?? null) ? $bundle['units'] : [] as $row) {
-                    $this->upsertSimpleMaster(Unit::class, is_array($row) ? $row : [], $created, $updated, $skipped);
+    /**
+     * @param  list<mixed>  $rows
+     */
+    private function importBrands(
+        array $rows,
+        string $extracted,
+        int &$created,
+        int &$updated,
+        int &$skipped,
+        int &$media,
+    ): void {
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                $skipped++;
+
+                continue;
+            }
+
+            $existing = $this->findByCodeOrSlug(Brand::class, $row);
+            $mediaMap = is_array($row['media'] ?? null) ? $row['media'] : [];
+            $imagePath = $existing?->image_path;
+            $restored = $this->codec->restoreMediaFile($extracted, $mediaMap['image'] ?? null, 'brands');
+            if ($restored !== null) {
+                $imagePath = $restored;
+                $media++;
+            }
+
+            $data = $this->masterPayload($row, [
+                'description_en' => $row['description_en'] ?? null,
+                'description_ur' => $row['description_ur'] ?? null,
+                'website_url' => $row['website_url'] ?? null,
+                'image_path' => $imagePath ?: 'brands/placeholder.webp',
+            ]);
+
+            if ($data === null) {
+                $skipped++;
+
+                continue;
+            }
+
+            if (($imagePath === null || $imagePath === 'brands/placeholder.webp') && ! Storage::disk('public')->exists('brands/placeholder.webp')) {
+                Storage::disk('public')->put('brands/placeholder.webp', '');
+            }
+
+            if ($existing === null) {
+                Brand::query()->create($data);
+                $created++;
+            } else {
+                $existing->update($data);
+                $updated++;
+            }
+        }
+    }
+
+    /**
+     * @param  list<mixed>  $rows
+     */
+    private function importCategories(
+        array $rows,
+        string $extracted,
+        int &$created,
+        int &$updated,
+        int &$skipped,
+        int &$media,
+    ): void {
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                $skipped++;
+
+                continue;
+            }
+
+            $existing = $this->findByCodeOrSlug(Category::class, $row);
+            $mediaMap = is_array($row['media'] ?? null) ? $row['media'] : [];
+            $imagePath = $existing?->image_path;
+            $restored = $this->codec->restoreMediaFile($extracted, $mediaMap['image'] ?? null, 'categories');
+            if ($restored !== null) {
+                $imagePath = $restored;
+                $media++;
+            }
+
+            $data = $this->masterPayload($row, [
+                'parent_id' => null,
+                'short_description_en' => $row['short_description_en'] ?? null,
+                'short_description_ur' => $row['short_description_ur'] ?? null,
+                'full_description_en' => $row['full_description_en'] ?? null,
+                'full_description_ur' => $row['full_description_ur'] ?? null,
+                'usage_guidelines_en' => $row['usage_guidelines_en'] ?? null,
+                'usage_guidelines_ur' => $row['usage_guidelines_ur'] ?? null,
+                'benefits_en' => $row['benefits_en'] ?? null,
+                'benefits_ur' => $row['benefits_ur'] ?? null,
+                'warnings_en' => $row['warnings_en'] ?? null,
+                'warnings_ur' => $row['warnings_ur'] ?? null,
+                'buying_guide_en' => $row['buying_guide_en'] ?? null,
+                'buying_guide_ur' => $row['buying_guide_ur'] ?? null,
+                'seo_title_en' => $row['seo_title_en'] ?? null,
+                'seo_title_ur' => $row['seo_title_ur'] ?? null,
+                'seo_description_en' => $row['seo_description_en'] ?? null,
+                'seo_description_ur' => $row['seo_description_ur'] ?? null,
+                'seo_keywords_en' => $row['seo_keywords_en'] ?? null,
+                'seo_keywords_ur' => $row['seo_keywords_ur'] ?? null,
+                'seo_focus_keyword_en' => $row['seo_focus_keyword_en'] ?? null,
+                'seo_focus_keyword_ur' => $row['seo_focus_keyword_ur'] ?? null,
+                'search_terms' => is_array($row['search_terms'] ?? null) ? $row['search_terms'] : [],
+                'hs_code' => $row['hs_code'] ?? null,
+                'customs_notes_en' => $row['customs_notes_en'] ?? null,
+                'customs_notes_ur' => $row['customs_notes_ur'] ?? null,
+                'import_notes_en' => $row['import_notes_en'] ?? null,
+                'import_notes_ur' => $row['import_notes_ur'] ?? null,
+                'export_notes_en' => $row['export_notes_en'] ?? null,
+                'export_notes_ur' => $row['export_notes_ur'] ?? null,
+                'visual_mapping' => is_array($row['visual_mapping'] ?? null) ? $row['visual_mapping'] : [],
+                'visual_map_code' => $row['visual_map_code'] ?? null,
+                'faqs' => is_array($row['faqs'] ?? null) ? $row['faqs'] : [],
+                'image_path' => $imagePath,
+            ]);
+
+            if ($data === null) {
+                $skipped++;
+
+                continue;
+            }
+
+            if ($existing === null) {
+                Category::query()->create($data);
+                $created++;
+            } else {
+                $existing->update($data);
+                $updated++;
+            }
+        }
+
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $category = $this->findByCodeOrSlug(Category::class, $row);
+            if ($category === null) {
+                continue;
+            }
+
+            $parent = $this->findByCodeOrSlug(Category::class, [
+                'code' => $row['parent_code'] ?? null,
+                'slug' => $row['parent_slug'] ?? null,
+            ]);
+
+            if ($parent !== null && (int) $parent->id !== (int) $category->id) {
+                $category->update(['parent_id' => $parent->id]);
+            }
+
+            $displayIds = [];
+            foreach (is_array($row['display_categories'] ?? null) ? $row['display_categories'] : [] as $ref) {
+                if (! is_array($ref)) {
+                    continue;
                 }
-
-                foreach (is_array($bundle['packing_units'] ?? null) ? $bundle['packing_units'] : [] as $row) {
-                    $this->upsertSimpleMaster(PackingUnit::class, is_array($row) ? $row : [], $created, $updated, $skipped);
+                $display = $this->findByCodeOrSlug(Category::class, $ref);
+                if ($display !== null) {
+                    $displayIds[] = $display->id;
                 }
+            }
+            $category->displayInCategories()->sync(array_values(array_unique($displayIds)));
+        }
+    }
 
-                foreach (is_array($bundle['attributes'] ?? null) ? $bundle['attributes'] : [] as $row) {
-                    $this->upsertSimpleMaster(CatalogAttribute::class, is_array($row) ? $row : [], $created, $updated, $skipped);
-                }
+    /**
+     * @param  list<mixed>  $rows
+     */
+    private function importProducts(
+        array $rows,
+        string $extracted,
+        int &$created,
+        int &$updated,
+        int &$skipped,
+        int &$media,
+        int &$productWrites,
+    ): void {
+        foreach ($rows as $row) {
+            if (! is_array($row) || (! filled($row['code'] ?? null) && ! filled($row['slug'] ?? null))) {
+                $skipped++;
 
-                foreach (is_array($bundle['controls'] ?? null) ? $bundle['controls'] : [] as $row) {
-                    if (! is_array($row)) {
-                        $skipped++;
+                continue;
+            }
 
-                        continue;
-                    }
+            $existing = $this->findByCodeOrSlug(Product::class, $row);
+            $mediaMap = is_array($row['media'] ?? null) ? $row['media'] : [];
+            $imagePath = $existing?->image_path;
+            $restored = $this->codec->restoreMediaFile($extracted, $mediaMap['image'] ?? null, 'products');
+            if ($restored !== null) {
+                $imagePath = $restored;
+                $media++;
+            }
 
-                    $data = $this->masterPayload($row, [
-                        'value_en' => (string) ($row['value_en'] ?? $row['name_en'] ?? 'Control'),
-                        'value_ur' => (string) ($row['value_ur'] ?? $row['name_ur'] ?? ''),
-                    ]);
-
-                    if ($data === null) {
-                        $skipped++;
-
-                        continue;
-                    }
-
-                    $existing = $this->findByCodeOrSlug(CatalogControl::class, $row);
-
-                    if ($existing === null) {
-                        CatalogControl::query()->create($data);
-                        $created++;
-                    } else {
-                        $existing->update($data);
-                        $updated++;
-                    }
-                }
-
-                foreach (is_array($bundle['brands'] ?? null) ? $bundle['brands'] : [] as $row) {
-                    if (! is_array($row)) {
-                        $skipped++;
-
-                        continue;
-                    }
-
-                    $existing = $this->findByCodeOrSlug(Brand::class, $row);
-                    $mediaMap = is_array($row['media'] ?? null) ? $row['media'] : [];
-                    $imagePath = $existing?->image_path;
-                    $restored = $this->codec->restoreMediaFile($pack['extracted'], $mediaMap['image'] ?? null, 'brands');
-                    if ($restored !== null) {
-                        $imagePath = $restored;
+            $gallery = $existing?->gallery_images ?? [];
+            if (is_array($mediaMap['gallery'] ?? null)) {
+                $gallery = [];
+                foreach ($mediaMap['gallery'] as $relative) {
+                    $path = $this->codec->restoreMediaFile($extracted, is_string($relative) ? $relative : null, 'products/gallery');
+                    if ($path !== null) {
+                        $gallery[] = $path;
                         $media++;
                     }
-
-                    $data = $this->masterPayload($row, [
-                        'description_en' => $row['description_en'] ?? null,
-                        'description_ur' => $row['description_ur'] ?? null,
-                        'website_url' => $row['website_url'] ?? null,
-                        'image_path' => $imagePath ?: 'brands/placeholder.webp',
-                    ]);
-
-                    if ($data === null) {
-                        $skipped++;
-
-                        continue;
-                    }
-
-                    if (($imagePath === null || $imagePath === 'brands/placeholder.webp') && ! Storage::disk('public')->exists('brands/placeholder.webp')) {
-                        Storage::disk('public')->put('brands/placeholder.webp', '');
-                    }
-
-                    if ($existing === null) {
-                        Brand::query()->create($data);
-                        $created++;
-                    } else {
-                        $existing->update($data);
-                        $updated++;
-                    }
                 }
+            }
 
-                $categoryRows = is_array($bundle['categories'] ?? null) ? $bundle['categories'] : [];
-                foreach ($categoryRows as $row) {
-                    if (! is_array($row)) {
-                        $skipped++;
+            $category = $this->findByCodeOrSlug(Category::class, [
+                'code' => $row['category_code'] ?? null,
+                'slug' => $row['category_slug'] ?? null,
+            ]);
+            $brand = $this->findByCodeOrSlug(Brand::class, [
+                'code' => $row['brand_code'] ?? null,
+                'slug' => $row['brand_slug'] ?? null,
+            ]);
+            $unit = $this->findByCodeOrSlug(Unit::class, [
+                'code' => $row['unit_code'] ?? null,
+                'slug' => $row['unit_slug'] ?? null,
+            ]);
+            $packUnit = $this->findByCodeOrSlug(PackingUnit::class, [
+                'code' => $row['pack_unit_code'] ?? null,
+                'slug' => $row['pack_unit_slug'] ?? null,
+            ]);
 
-                        continue;
-                    }
+            $code = filled($row['code'] ?? null)
+                ? (string) $row['code']
+                : ($existing?->code ?: 'PRD-'.Str::upper(Str::random(6)));
+            $slug = filled($row['slug'] ?? null)
+                ? (string) $row['slug']
+                : ($existing?->slug ?: Str::slug((string) ($row['name_en'] ?? $code)));
 
-                    $existing = $this->findByCodeOrSlug(Category::class, $row);
-                    $mediaMap = is_array($row['media'] ?? null) ? $row['media'] : [];
-                    $imagePath = $existing?->image_path;
-                    $restored = $this->codec->restoreMediaFile($pack['extracted'], $mediaMap['image'] ?? null, 'categories');
-                    if ($restored !== null) {
-                        $imagePath = $restored;
-                        $media++;
-                    }
-
-                    $data = $this->masterPayload($row, [
-                        'parent_id' => null,
-                        'short_description_en' => $row['short_description_en'] ?? null,
-                        'short_description_ur' => $row['short_description_ur'] ?? null,
-                        'full_description_en' => $row['full_description_en'] ?? null,
-                        'full_description_ur' => $row['full_description_ur'] ?? null,
-                        'usage_guidelines_en' => $row['usage_guidelines_en'] ?? null,
-                        'usage_guidelines_ur' => $row['usage_guidelines_ur'] ?? null,
-                        'benefits_en' => $row['benefits_en'] ?? null,
-                        'benefits_ur' => $row['benefits_ur'] ?? null,
-                        'warnings_en' => $row['warnings_en'] ?? null,
-                        'warnings_ur' => $row['warnings_ur'] ?? null,
-                        'buying_guide_en' => $row['buying_guide_en'] ?? null,
-                        'buying_guide_ur' => $row['buying_guide_ur'] ?? null,
-                        'seo_title_en' => $row['seo_title_en'] ?? null,
-                        'seo_title_ur' => $row['seo_title_ur'] ?? null,
-                        'seo_description_en' => $row['seo_description_en'] ?? null,
-                        'seo_description_ur' => $row['seo_description_ur'] ?? null,
-                        'seo_keywords_en' => $row['seo_keywords_en'] ?? null,
-                        'seo_keywords_ur' => $row['seo_keywords_ur'] ?? null,
-                        'seo_focus_keyword_en' => $row['seo_focus_keyword_en'] ?? null,
-                        'seo_focus_keyword_ur' => $row['seo_focus_keyword_ur'] ?? null,
-                        'search_terms' => is_array($row['search_terms'] ?? null) ? $row['search_terms'] : [],
-                        'hs_code' => $row['hs_code'] ?? null,
-                        'customs_notes_en' => $row['customs_notes_en'] ?? null,
-                        'customs_notes_ur' => $row['customs_notes_ur'] ?? null,
-                        'import_notes_en' => $row['import_notes_en'] ?? null,
-                        'import_notes_ur' => $row['import_notes_ur'] ?? null,
-                        'export_notes_en' => $row['export_notes_en'] ?? null,
-                        'export_notes_ur' => $row['export_notes_ur'] ?? null,
-                        'visual_mapping' => is_array($row['visual_mapping'] ?? null) ? $row['visual_mapping'] : [],
-                        'visual_map_code' => $row['visual_map_code'] ?? null,
-                        'faqs' => is_array($row['faqs'] ?? null) ? $row['faqs'] : [],
-                        'image_path' => $imagePath,
-                    ]);
-
-                    if ($data === null) {
-                        $skipped++;
-
-                        continue;
-                    }
-
-                    if ($existing === null) {
-                        Category::query()->create($data);
-                        $created++;
-                    } else {
-                        $existing->update($data);
-                        $updated++;
-                    }
-                }
-
-                foreach ($categoryRows as $row) {
-                    if (! is_array($row)) {
-                        continue;
-                    }
-
-                    $category = $this->findByCodeOrSlug(Category::class, $row);
-                    if ($category === null) {
-                        continue;
-                    }
-
-                    $parent = $this->findByCodeOrSlug(Category::class, [
-                        'code' => $row['parent_code'] ?? null,
-                        'slug' => $row['parent_slug'] ?? null,
-                    ]);
-
-                    if ($parent !== null && (int) $parent->id !== (int) $category->id) {
-                        $category->update(['parent_id' => $parent->id]);
-                    }
-
-                    $displayIds = [];
-                    foreach (is_array($row['display_categories'] ?? null) ? $row['display_categories'] : [] as $ref) {
-                        if (! is_array($ref)) {
-                            continue;
-                        }
-                        $display = $this->findByCodeOrSlug(Category::class, $ref);
-                        if ($display !== null) {
-                            $displayIds[] = $display->id;
-                        }
-                    }
-                    $category->displayInCategories()->sync(array_values(array_unique($displayIds)));
-                }
-
-                foreach (is_array($bundle['products'] ?? null) ? $bundle['products'] : [] as $row) {
-                    if (! is_array($row) || (! filled($row['code'] ?? null) && ! filled($row['slug'] ?? null))) {
-                        $skipped++;
-
-                        continue;
-                    }
-
-                    $existing = $this->findByCodeOrSlug(Product::class, $row);
-                    $mediaMap = is_array($row['media'] ?? null) ? $row['media'] : [];
-                    $imagePath = $existing?->image_path;
-                    $restored = $this->codec->restoreMediaFile($pack['extracted'], $mediaMap['image'] ?? null, 'products');
-                    if ($restored !== null) {
-                        $imagePath = $restored;
-                        $media++;
-                    }
-
-                    $gallery = $existing?->gallery_images ?? [];
-                    if (is_array($mediaMap['gallery'] ?? null)) {
-                        $gallery = [];
-                        foreach ($mediaMap['gallery'] as $relative) {
-                            $path = $this->codec->restoreMediaFile($pack['extracted'], is_string($relative) ? $relative : null, 'products/gallery');
-                            if ($path !== null) {
-                                $gallery[] = $path;
-                                $media++;
-                            }
-                        }
-                    }
-
-                    $category = $this->findByCodeOrSlug(Category::class, [
-                        'code' => $row['category_code'] ?? null,
-                        'slug' => $row['category_slug'] ?? null,
-                    ]);
-                    $brand = $this->findByCodeOrSlug(Brand::class, [
-                        'code' => $row['brand_code'] ?? null,
-                        'slug' => $row['brand_slug'] ?? null,
-                    ]);
-                    $unit = $this->findByCodeOrSlug(Unit::class, [
-                        'code' => $row['unit_code'] ?? null,
-                        'slug' => $row['unit_slug'] ?? null,
-                    ]);
-                    $packUnit = $this->findByCodeOrSlug(PackingUnit::class, [
-                        'code' => $row['pack_unit_code'] ?? null,
-                        'slug' => $row['pack_unit_slug'] ?? null,
-                    ]);
-
-                    $code = filled($row['code'] ?? null)
-                        ? (string) $row['code']
-                        : ($existing?->code ?: 'PRD-'.Str::upper(Str::random(6)));
-                    $slug = filled($row['slug'] ?? null)
-                        ? (string) $row['slug']
-                        : ($existing?->slug ?: Str::slug((string) ($row['name_en'] ?? $code)));
-
-                    $payload = [
-                        'code' => $code,
-                        'slug' => $slug,
-                        'status' => in_array(($row['status'] ?? 'active'), ['active', 'inactive', 'draft'], true)
-                            ? $row['status']
-                            : 'active',
-                        'name_en' => $row['name_en'] ?? $existing?->name_en ?? $code,
-                        'name_ur' => $row['name_ur'] ?? $existing?->name_ur ?? '',
-                        'sku' => $row['sku'] ?? null,
-                        'category_id' => $category?->id,
-                        'brand_id' => $brand?->id,
-                        'unit_id' => $unit?->id,
-                        'pack_unit_id' => $packUnit?->id,
-                        'unit_qty' => $row['unit_qty'] ?? null,
-                        'pack_qty' => $row['pack_qty'] ?? null,
-                        'required_qty' => $row['required_qty'] ?? null,
-                        'alert_qty' => $row['alert_qty'] ?? null,
-                        'retail_price' => $row['retail_price'] ?? null,
-                        'wholesale_price' => $row['wholesale_price'] ?? null,
-                        'super_wholesale_price' => $row['super_wholesale_price'] ?? null,
-                        'distributor_price' => $row['distributor_price'] ?? null,
-                        'price_tier_quantities' => is_array($row['price_tier_quantities'] ?? null) ? $row['price_tier_quantities'] : [],
-                        'channel_prices' => is_array($row['channel_prices'] ?? null) ? $row['channel_prices'] : [],
-                        'short_description_en' => $row['short_description_en'] ?? null,
-                        'short_description_ur' => $row['short_description_ur'] ?? null,
-                        'full_description_en' => $row['full_description_en'] ?? null,
-                        'full_description_ur' => $row['full_description_ur'] ?? null,
-                        'usage_guidelines_en' => $row['usage_guidelines_en'] ?? null,
-                        'usage_guidelines_ur' => $row['usage_guidelines_ur'] ?? null,
-                        'benefits_en' => $row['benefits_en'] ?? null,
-                        'benefits_ur' => $row['benefits_ur'] ?? null,
-                        'warnings_en' => $row['warnings_en'] ?? null,
-                        'warnings_ur' => $row['warnings_ur'] ?? null,
-                        'buying_guide_en' => $row['buying_guide_en'] ?? null,
-                        'buying_guide_ur' => $row['buying_guide_ur'] ?? null,
-                        'seo_title_en' => $row['seo_title_en'] ?? null,
-                        'seo_title_ur' => $row['seo_title_ur'] ?? null,
-                        'seo_description_en' => $row['seo_description_en'] ?? null,
-                        'seo_description_ur' => $row['seo_description_ur'] ?? null,
-                        'seo_keywords_en' => $row['seo_keywords_en'] ?? null,
-                        'seo_keywords_ur' => $row['seo_keywords_ur'] ?? null,
-                        'seo_focus_keyword_en' => $row['seo_focus_keyword_en'] ?? null,
-                        'seo_focus_keyword_ur' => $row['seo_focus_keyword_ur'] ?? null,
-                        'search_terms' => is_array($row['search_terms'] ?? null) ? $row['search_terms'] : [],
-                        'hs_code' => $row['hs_code'] ?? null,
-                        'customs_notes_en' => $row['customs_notes_en'] ?? null,
-                        'customs_notes_ur' => $row['customs_notes_ur'] ?? null,
-                        'import_notes_en' => $row['import_notes_en'] ?? null,
-                        'import_notes_ur' => $row['import_notes_ur'] ?? null,
-                        'export_notes_en' => $row['export_notes_en'] ?? null,
-                        'export_notes_ur' => $row['export_notes_ur'] ?? null,
-                        'label_code' => $row['label_code'] ?? $existing?->label_code,
-                        'category_visual_map_code' => $row['category_visual_map_code'] ?? $existing?->category_visual_map_code,
-                        'label_sequence' => $row['label_sequence'] ?? $existing?->label_sequence,
-                        'label_qr' => is_array($row['label_qr'] ?? null) ? $row['label_qr'] : $existing?->label_qr,
-                        'label_barcode' => is_array($row['label_barcode'] ?? null) ? $row['label_barcode'] : $existing?->label_barcode,
-                        'ai_status' => $row['ai_status'] ?? 'none',
-                        'image_path' => $imagePath,
-                        'gallery_images' => $gallery,
-                    ];
-
-                    if ($existing === null) {
-                        $payload['stock_qty'] = 0;
-                        $product = Product::query()->create($payload);
-                        $created++;
-                    } else {
-                        $existing->update($payload);
-                        $product = $existing->fresh();
-                        $updated++;
-                    }
-
-                    $displayIds = [];
-                    foreach (is_array($row['display_categories'] ?? null) ? $row['display_categories'] : [] as $ref) {
-                        if (! is_array($ref)) {
-                            continue;
-                        }
-                        $display = $this->findByCodeOrSlug(Category::class, $ref);
-                        if ($display !== null && (int) $display->id !== (int) ($product->category_id ?? 0)) {
-                            $displayIds[] = $display->id;
-                        }
-                    }
-                    $product->displayCategories()->sync(array_values(array_unique($displayIds)));
-
-                    $attributeSync = [];
-                    foreach (is_array($row['attributes'] ?? null) ? $row['attributes'] : [] as $ref) {
-                        if (! is_array($ref)) {
-                            continue;
-                        }
-                        $attribute = $this->findByCodeOrSlug(CatalogAttribute::class, $ref);
-                        if ($attribute !== null && filled($ref['value'] ?? null)) {
-                            $attributeSync[$attribute->id] = ['value' => (string) $ref['value']];
-                        }
-                    }
-                    $product->attributes()->sync($attributeSync);
-
-                    $controlIds = [];
-                    foreach (is_array($row['controls'] ?? null) ? $row['controls'] : [] as $ref) {
-                        if (! is_array($ref)) {
-                            continue;
-                        }
-                        $control = $this->findByCodeOrSlug(CatalogControl::class, $ref);
-                        if ($control !== null) {
-                            $controlIds[] = $control->id;
-                        }
-                    }
-                    $product->controls()->sync(array_values(array_unique($controlIds)));
-
-                    $deliveryIds = [];
-                    foreach (is_array($row['delivery_methods'] ?? null) ? $row['delivery_methods'] : [] as $ref) {
-                        $slug = is_array($ref) ? ($ref['slug'] ?? null) : null;
-                        if (! filled($slug)) {
-                            continue;
-                        }
-                        $method = DeliveryMethod::query()->where('slug', $slug)->first();
-                        if ($method !== null) {
-                            $deliveryIds[] = $method->id;
-                        }
-                    }
-                    $product->deliveryMethods()->sync(array_values(array_unique($deliveryIds)));
-
-                    $productWrites++;
-                }
-            });
-
-            CatalogCache::forgetOverviewStats();
-
-            return [
-                'created' => $created,
-                'updated' => $updated,
-                'skipped' => $skipped,
-                'media' => $media,
-                'products' => $productWrites,
+            $payload = [
+                'code' => $code,
+                'slug' => $slug,
+                'status' => in_array(($row['status'] ?? 'active'), ['active', 'inactive', 'draft'], true)
+                    ? $row['status']
+                    : 'active',
+                'name_en' => $row['name_en'] ?? $existing?->name_en ?? $code,
+                'name_ur' => $row['name_ur'] ?? $existing?->name_ur ?? '',
+                'sku' => $row['sku'] ?? null,
+                'category_id' => $category?->id,
+                'brand_id' => $brand?->id,
+                'unit_id' => $unit?->id,
+                'pack_unit_id' => $packUnit?->id,
+                'unit_qty' => $row['unit_qty'] ?? null,
+                'pack_qty' => $row['pack_qty'] ?? null,
+                'required_qty' => $row['required_qty'] ?? null,
+                'alert_qty' => $row['alert_qty'] ?? null,
+                'retail_price' => $row['retail_price'] ?? null,
+                'wholesale_price' => $row['wholesale_price'] ?? null,
+                'super_wholesale_price' => $row['super_wholesale_price'] ?? null,
+                'distributor_price' => $row['distributor_price'] ?? null,
+                'price_tier_quantities' => is_array($row['price_tier_quantities'] ?? null) ? $row['price_tier_quantities'] : [],
+                'channel_prices' => is_array($row['channel_prices'] ?? null) ? $row['channel_prices'] : [],
+                'short_description_en' => $row['short_description_en'] ?? null,
+                'short_description_ur' => $row['short_description_ur'] ?? null,
+                'full_description_en' => $row['full_description_en'] ?? null,
+                'full_description_ur' => $row['full_description_ur'] ?? null,
+                'usage_guidelines_en' => $row['usage_guidelines_en'] ?? null,
+                'usage_guidelines_ur' => $row['usage_guidelines_ur'] ?? null,
+                'benefits_en' => $row['benefits_en'] ?? null,
+                'benefits_ur' => $row['benefits_ur'] ?? null,
+                'warnings_en' => $row['warnings_en'] ?? null,
+                'warnings_ur' => $row['warnings_ur'] ?? null,
+                'buying_guide_en' => $row['buying_guide_en'] ?? null,
+                'buying_guide_ur' => $row['buying_guide_ur'] ?? null,
+                'seo_title_en' => $row['seo_title_en'] ?? null,
+                'seo_title_ur' => $row['seo_title_ur'] ?? null,
+                'seo_description_en' => $row['seo_description_en'] ?? null,
+                'seo_description_ur' => $row['seo_description_ur'] ?? null,
+                'seo_keywords_en' => $row['seo_keywords_en'] ?? null,
+                'seo_keywords_ur' => $row['seo_keywords_ur'] ?? null,
+                'seo_focus_keyword_en' => $row['seo_focus_keyword_en'] ?? null,
+                'seo_focus_keyword_ur' => $row['seo_focus_keyword_ur'] ?? null,
+                'search_terms' => is_array($row['search_terms'] ?? null) ? $row['search_terms'] : [],
+                'hs_code' => $row['hs_code'] ?? null,
+                'customs_notes_en' => $row['customs_notes_en'] ?? null,
+                'customs_notes_ur' => $row['customs_notes_ur'] ?? null,
+                'import_notes_en' => $row['import_notes_en'] ?? null,
+                'import_notes_ur' => $row['import_notes_ur'] ?? null,
+                'export_notes_en' => $row['export_notes_en'] ?? null,
+                'export_notes_ur' => $row['export_notes_ur'] ?? null,
+                'label_code' => $row['label_code'] ?? $existing?->label_code,
+                'category_visual_map_code' => $row['category_visual_map_code'] ?? $existing?->category_visual_map_code,
+                'label_sequence' => $row['label_sequence'] ?? $existing?->label_sequence,
+                'label_qr' => is_array($row['label_qr'] ?? null) ? $row['label_qr'] : $existing?->label_qr,
+                'label_barcode' => is_array($row['label_barcode'] ?? null) ? $row['label_barcode'] : $existing?->label_barcode,
+                'ai_status' => $row['ai_status'] ?? 'none',
+                'image_path' => $imagePath,
+                'gallery_images' => $gallery,
             ];
-        } finally {
-            File::deleteDirectory($pack['work_dir']);
+
+            if ($existing === null) {
+                $payload['stock_qty'] = 0;
+                $product = Product::query()->create($payload);
+                $created++;
+            } else {
+                $existing->update($payload);
+                $product = $existing->fresh();
+                $updated++;
+            }
+
+            $displayIds = [];
+            foreach (is_array($row['display_categories'] ?? null) ? $row['display_categories'] : [] as $ref) {
+                if (! is_array($ref)) {
+                    continue;
+                }
+                $display = $this->findByCodeOrSlug(Category::class, $ref);
+                if ($display !== null && (int) $display->id !== (int) ($product->category_id ?? 0)) {
+                    $displayIds[] = $display->id;
+                }
+            }
+            $product->displayCategories()->sync(array_values(array_unique($displayIds)));
+
+            $attributeSync = [];
+            foreach (is_array($row['attributes'] ?? null) ? $row['attributes'] : [] as $ref) {
+                if (! is_array($ref)) {
+                    continue;
+                }
+                $attribute = $this->findByCodeOrSlug(CatalogAttribute::class, $ref);
+                if ($attribute !== null && filled($ref['value'] ?? null)) {
+                    $attributeSync[$attribute->id] = ['value' => (string) $ref['value']];
+                }
+            }
+            $product->attributes()->sync($attributeSync);
+
+            $controlIds = [];
+            foreach (is_array($row['controls'] ?? null) ? $row['controls'] : [] as $ref) {
+                if (! is_array($ref)) {
+                    continue;
+                }
+                $control = $this->findByCodeOrSlug(CatalogControl::class, $ref);
+                if ($control !== null) {
+                    $controlIds[] = $control->id;
+                }
+            }
+            $product->controls()->sync(array_values(array_unique($controlIds)));
+
+            $deliveryIds = [];
+            foreach (is_array($row['delivery_methods'] ?? null) ? $row['delivery_methods'] : [] as $ref) {
+                $slug = is_array($ref) ? ($ref['slug'] ?? null) : null;
+                if (! filled($slug)) {
+                    continue;
+                }
+                $method = DeliveryMethod::query()->where('slug', $slug)->first();
+                if ($method !== null) {
+                    $deliveryIds[] = $method->id;
+                }
+            }
+            $product->deliveryMethods()->sync(array_values(array_unique($deliveryIds)));
+
+            $productWrites++;
         }
     }
 
@@ -783,5 +1017,19 @@ class CatalogPortableArchiveService
         $raw = filled($code) ? $code : (filled($slug) ? $slug : 'id-'.$id);
 
         return Str::slug($raw, '-') ?: 'id-'.$id;
+    }
+
+    /**
+     * @return self::SCOPE_*
+     */
+    private function assertScope(string $scope): string
+    {
+        if (! in_array($scope, self::SCOPES, true)) {
+            throw ValidationException::withMessages([
+                'archive' => [__('agricart.portable.import_invalid')],
+            ]);
+        }
+
+        return $scope;
     }
 }

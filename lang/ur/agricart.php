@@ -1139,6 +1139,20 @@ return [
                 'labels' => 'پروڈکٹ لیبلز',
             ],
         ],
+        'portable' => [
+            'hint' => 'صرف :entity کے لیے انکرپٹڈ .ags۔ فائل نام :entity اور آج کی تاریخ ہے۔ اس صفحے پر Export/Import صرف ماسٹرز کے لیے۔ مکمل کیٹلاگ (تمام ماسٹرز + پروڈکٹس + لیبل فیلڈز) Products پر ہے۔',
+            'export_ok' => ':count :entity ایکسپورٹ ہو گئے۔',
+            'import_ok' => ':entity امپورٹ مکمل: :created نئے، :updated اپڈیٹ، :skipped چھوڑے، :media میڈیا فائلیں۔',
+            'forbidden' => 'اس کیٹلاگ ڈیٹا کی امپورٹ/ایکسپورٹ کی اجازت نہیں۔',
+            'entities' => [
+                'brands' => 'برانڈز',
+                'categories' => 'زمرے',
+                'units' => 'اکائیاں',
+                'packing-units' => 'پیکنگ اکائیاں',
+                'attributes' => 'خصوصیات',
+                'controls' => 'کنٹرولز',
+            ],
+        ],
     ],
 
     'purchasing' => [
@@ -1710,7 +1724,7 @@ return [
             'whatsapp_share' => 'واٹس ایپ',
         ],
         'portable' => [
-            'hint' => 'انکرپٹڈ .ags: پروڈکٹس، برانڈز، کیٹگریز، یونٹس، ایٹریبیوٹس، کنٹرولز، تصاویر۔ code/slug سے upsert۔ stock/پاس ورڈ نہیں۔ ڈیلیوری Logistics میں پہلے موجود ہوں (slug سے میل)۔',
+            'hint' => 'انکرپٹڈ .ags مکمل کیٹلاگ: تمام ماسٹرز + پروڈکٹس + تصاویر۔ لیبل پرنٹ کوڈز پروڈکٹس کے ساتھ آتے ہیں؛ Labels صفحے پر الگ آرکائیو نہیں۔ code/slug سے upsert۔ stock/پاس ورڈ نہیں۔ ڈیلیوری Logistics میں پہلے موجود ہوں (slug سے میل)۔',
             'export_ok' => 'کیٹلاگ ایکسپورٹ (:count پروڈکٹس)۔',
             'import_ok' => 'امپورٹ مکمل: :created نئے، :updated اپڈیٹ، :skipped چھوڑے، :media میڈیا، :products پروڈکٹس۔',
             'facebook_ok' => 'Facebook CSV تیار (:count فعال پروڈکٹس)۔ Meta Commerce Manager میں اپلوڈ کریں۔',
