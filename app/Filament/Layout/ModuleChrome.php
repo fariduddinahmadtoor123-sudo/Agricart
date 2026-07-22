@@ -15,7 +15,9 @@ class ModuleChrome
      */
     public static function modules(): array
     {
-        return [
+        $comingSoon = config('agricart.modules_coming_soon', []);
+
+        $modules = [
             [
                 'key' => 'dashboard',
                 'path' => 'admin/dashboard',
@@ -78,7 +80,6 @@ class ModuleChrome
                 'subNavigation' => ServiceSubNavigation::class,
                 'toolbar' => ServicePageToolbar::class,
                 'navLabel' => 'Service',
-                'comingSoon' => true,
             ],
             [
                 'key' => 'reports',
@@ -123,6 +124,15 @@ class ModuleChrome
                 'navLabel' => 'Docs',
             ],
         ];
+
+        return array_map(
+            static function (array $module) use ($comingSoon): array {
+                $module['comingSoon'] = in_array($module['key'], $comingSoon, true);
+
+                return $module;
+            },
+            $modules,
+        );
     }
 
     /**

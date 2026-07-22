@@ -26,6 +26,11 @@ class OnlineOrdersPage extends BaseModulePage
      */
     protected static bool $shouldRegisterNavigation = false;
 
+    public static function registersInModuleChrome(): bool
+    {
+        return false;
+    }
+
     protected string $view = 'filament.pages.sales.online-orders';
 
     public function getHeading(): string|Htmlable|null

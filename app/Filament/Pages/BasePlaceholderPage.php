@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Filament\Clusters\BaseAgricartCluster;
 use App\Filament\Concerns\ChecksAgricartPermissions;
 use App\Filament\Concerns\HasTranslatedNavigationLabel;
+use App\Filament\Concerns\RegistersInModuleChrome;
 use Filament\Pages\Page;
 use Illuminate\Contracts\Support\Htmlable;
 
@@ -12,6 +13,7 @@ abstract class BasePlaceholderPage extends Page
 {
     use ChecksAgricartPermissions;
     use HasTranslatedNavigationLabel;
+    use RegistersInModuleChrome;
 
     protected string $view = 'filament.pages.placeholder';
 

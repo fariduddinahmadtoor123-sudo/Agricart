@@ -17,7 +17,12 @@ abstract class ClusterSubNavigation
         return static::clusterClass()::$slug ?? '';
     }
 
-    abstract protected static function pathPrefix(): string;
+    protected static function pathPrefix(): string
+    {
+        $slug = static::clusterClass()::getSlug() ?? static::moduleKey();
+
+        return 'admin/'.$slug;
+    }
 
     public static function isModulePath(?string $path = null): bool
     {
@@ -42,7 +47,11 @@ abstract class ClusterSubNavigation
                 continue;
             }
 
-            if (! $component::shouldRegisterNavigation()) {
+            // Agricart chrome only — never gate on Filament shouldRegisterNavigation().
+            if (
+                method_exists($component, 'registersInModuleChrome')
+                && ! $component::registersInModuleChrome()
+            ) {
                 continue;
             }
 

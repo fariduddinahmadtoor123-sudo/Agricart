@@ -14,15 +14,6 @@ class ModuleSubNavigationVisibilityTest extends TestCase
 {
     use RefreshDatabase;
 
-    /**
-     * Pages intentionally omitted from module chrome (product decision, not a bug).
-     *
-     * @var list<string>
-     */
-    private const INTENTIONALLY_HIDDEN = [
-        \App\Filament\Clusters\Sales\OnlineOrdersPage::class, // Ready for Queue — merged into dispatch flow
-    ];
-
     protected function setUp(): void
     {
         parent::setUp();
@@ -56,7 +47,10 @@ class ModuleSubNavigationVisibilityTest extends TestCase
                     continue;
                 }
 
-                if (in_array($component, self::INTENTIONALLY_HIDDEN, true)) {
+                if (
+                    method_exists($component, 'registersInModuleChrome')
+                    && ! $component::registersInModuleChrome()
+                ) {
                     continue;
                 }
 
