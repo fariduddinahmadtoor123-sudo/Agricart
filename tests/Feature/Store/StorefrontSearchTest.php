@@ -12,6 +12,30 @@ class StorefrontSearchTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_search_suggest_omits_missing_category_images_and_falls_back_to_parent(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        \Illuminate\Support\Facades\Storage::disk('public')->put('categories/parent.webp', 'parent-image');
+
+        $parent = $this->category('drill-bits-parent', 'Drill Bits Parent', [
+            'image_path' => 'categories/parent.webp',
+        ]);
+        $childMissing = $this->category('diamond-hole-saw-child', 'Diamond Hole Saw Child', [
+            'parent_id' => $parent->id,
+            'image_path' => 'categories/missing-child.webp',
+        ]);
+
+        $response = $this->getJson(route('store.search.suggest', ['q' => 'Diamond']))
+            ->assertOk();
+
+        $child = collect($response->json('results'))->firstWhere('id', $childMissing->id);
+        $this->assertIsArray($child);
+        $this->assertSame(
+            \Illuminate\Support\Facades\Storage::disk('public')->url('categories/parent.webp'),
+            $child['image'],
+        );
+    }
+
     public function test_search_returns_active_categories_subcategories_and_related_products(): void
     {
         $parent = $this->category('agriculture', 'Agriculture');
@@ -95,6 +119,9 @@ class StorefrontSearchTest extends TestCase
 
     public function test_fragment_and_suggestions_share_unified_results(): void
     {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        \Illuminate\Support\Facades\Storage::disk('public')->put('categories/seeds.png', 'seed-image');
+
         $category = $this->category('seeds', 'Seeds', [
             'image_path' => 'categories/seeds.png',
         ]);

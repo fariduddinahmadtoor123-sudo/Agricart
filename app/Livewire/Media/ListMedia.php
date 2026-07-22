@@ -191,7 +191,15 @@ class ListMedia extends Component
             ->when($this->sourceFilter === 'store', fn ($query) => $query->whereIn('source_module', ['store', 'company']))
             ->when(filled($this->sourceFilter) && ! in_array($this->sourceFilter, ['profiles', 'store'], true), fn ($query) => $query->where('source_module', $this->sourceFilter))
             ->when($this->usageFilter === 'used', fn ($query) => $query->has('usages'))
-            ->when($this->usageFilter === 'unused', fn ($query) => $query->doesntHave('usages'))
+            ->when($this->usageFilter === 'unused', function ($query): void {
+                $query->doesntHave('usages')
+                    ->where(function ($inner): void {
+                        $inner->where('visibility', '!=', 'private')
+                            ->where('disk', '!=', 'local')
+                            ->where('path', 'not like', 'users/cnic/%')
+                            ->where('path', 'not like', 'online-orders/customer-receipts/%');
+                    });
+            })
             ->when(filled($this->typeFilter), fn ($query) => $query->where('mime_type', $this->typeFilter === 'jpeg' ? 'image/jpeg' : 'image/'.$this->typeFilter))
             ->when($this->dateFilter === 'today', fn ($query) => $query->whereDate('created_at', today()))
             ->when($this->dateFilter === '7days', fn ($query) => $query->where('created_at', '>=', now()->subDays(7)))
@@ -207,7 +215,16 @@ class ListMedia extends Component
             'stats' => [
                 'all' => MediaAsset::query()->whereNull('trashed_at')->count(),
                 'used' => MediaAsset::query()->whereNull('trashed_at')->has('usages')->count(),
-                'unused' => MediaAsset::query()->whereNull('trashed_at')->doesntHave('usages')->count(),
+                'unused' => MediaAsset::query()
+                    ->whereNull('trashed_at')
+                    ->doesntHave('usages')
+                    ->where(function ($inner): void {
+                        $inner->where('visibility', '!=', 'private')
+                            ->where('disk', '!=', 'local')
+                            ->where('path', 'not like', 'users/cnic/%')
+                            ->where('path', 'not like', 'online-orders/customer-receipts/%');
+                    })
+                    ->count(),
                 'trash' => MediaAsset::query()->whereNotNull('trashed_at')->count(),
             ],
         ]);

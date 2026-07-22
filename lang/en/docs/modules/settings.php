@@ -203,7 +203,7 @@ return [
                 $field('phone_numbers', 'Phone rows', 'JSON', false, 'Contact person EN/UR and phone max 30.'),
                 $field('bank_accounts', 'Bank rows', 'JSON', false, 'Bank name, account title EN/UR, account number.'),
                 $field('profile_photo_path', 'Profile photo', 'WebP path', false, 'Image max 5MB under users/profile-photos.'),
-                $field('cnic_front_path / cnic_back_path', 'CNIC images', 'public paths', false, 'Image max 5MB under users/cnic.'),
+                $field('cnic_front_path / cnic_back_path', 'CNIC images', 'private local paths', false, 'Image max 5MB under users/cnic on the private disk; served only via authorized admin routes.'),
             ]],
             ['id' => 'workflows', 'type' => 'workflows', 'heading' => 'Workflow', 'steps' => ['Create the least-privilege role first.', 'Add user identity, unique email, secure password, and role.', 'Keep pending/inactive until approved; activate only after verification.', 'Use edit to rotate credentials, change status, or role.', 'Immediately disable compromised/departed accounts and review audit activity.']],
             ['id' => 'ai', 'type' => 'ai', 'heading' => 'AI enrichment', 'paragraphs' => ['UserEnrichmentService may fill missing bilingual names, address, contact-person, and account-title text. It must never choose a role/status, generate or inspect passwords, change email/phone/account number, or infer CNIC.']],

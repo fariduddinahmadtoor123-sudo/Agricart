@@ -57,7 +57,7 @@ class PrivateUserDocumentTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_cnic_document_falls_back_to_public_disk_when_missing_on_local(): void
+    public function test_legacy_public_cnic_is_migrated_to_private_disk_on_authorized_view(): void
     {
         Storage::fake('local');
         Storage::fake('public');
@@ -72,6 +72,31 @@ class PrivateUserDocumentTest extends TestCase
         $this->actingAs($admin)
             ->get(route('admin.users.documents.show', ['user' => $staff, 'side' => 'front']))
             ->assertOk();
+
+        Storage::disk('local')->assertExists($staff->cnic_front_path);
+        Storage::disk('public')->assertMissing($staff->cnic_front_path);
+    }
+
+    public function test_cnic_backfill_command_moves_and_deletes_verified_public_originals(): void
+    {
+        Storage::fake('local');
+        Storage::fake('public');
+
+        $staff = User::factory()->create([
+            'status' => User::STATUS_ACTIVE,
+            'cnic_front_path' => 'users/cnic/batch-front.webp',
+            'cnic_back_path' => 'users/cnic/batch-back.webp',
+        ]);
+        Storage::disk('public')->put($staff->cnic_front_path, 'front');
+        Storage::disk('public')->put($staff->cnic_back_path, 'back');
+
+        $this->artisan('users:backfill-private-cnic', ['--delete-public' => true])
+            ->assertSuccessful();
+
+        Storage::disk('local')->assertExists($staff->cnic_front_path);
+        Storage::disk('local')->assertExists($staff->cnic_back_path);
+        Storage::disk('public')->assertMissing($staff->cnic_front_path);
+        Storage::disk('public')->assertMissing($staff->cnic_back_path);
     }
 
     private function superAdmin(): User

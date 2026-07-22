@@ -726,8 +726,10 @@ class Form extends Component
             );
         }
 
+        $owner = User::query()->find($userId);
+
         if (filled($this->storedCnicFrontPath)) {
-            $library->registerPath(
+            $front = $library->registerPath(
                 $this->storedCnicFrontPath,
                 $person.' — ID card front.jpg',
                 $person.' — ID card front',
@@ -735,10 +737,14 @@ class Form extends Component
                 'local',
                 ['user_id' => $userId, 'side' => 'front'],
             );
+
+            if ($front !== null && $owner instanceof User) {
+                $library->attach($front, $owner, 'cnic-front', 0, $person.' — ID card front');
+            }
         }
 
         if (filled($this->storedCnicBackPath)) {
-            $library->registerPath(
+            $back = $library->registerPath(
                 $this->storedCnicBackPath,
                 $person.' — ID card back.jpg',
                 $person.' — ID card back',
@@ -746,6 +752,10 @@ class Form extends Component
                 'local',
                 ['user_id' => $userId, 'side' => 'back'],
             );
+
+            if ($back !== null && $owner instanceof User) {
+                $library->attach($back, $owner, 'cnic-back', 0, $person.' — ID card back');
+            }
         }
     }
 

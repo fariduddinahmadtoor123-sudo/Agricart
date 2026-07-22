@@ -4,12 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\Security\PrivateDocumentStorage;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class UserDocumentController extends Controller
 {
-    public function __invoke(User $user, string $side): StreamedResponse
+    public function __invoke(User $user, string $side, PrivateDocumentStorage $documents): StreamedResponse
     {
         $actor = auth()->user();
 
@@ -33,16 +34,9 @@ class UserDocumentController extends Controller
         $path = $user->{$field};
 
         abort_unless(is_string($path) && str_starts_with($path, 'users/cnic/'), 404);
+        abort_unless($documents->ensurePrivate($path), 404);
 
-        $disk = match (true) {
-            Storage::disk('local')->exists($path) => 'local',
-            Storage::disk('public')->exists($path) => 'public',
-            default => null,
-        };
-
-        abort_unless($disk !== null, 404);
-
-        return Storage::disk($disk)->response(
+        return Storage::disk('local')->response(
             $path,
             basename($path),
             [
@@ -50,6 +44,7 @@ class UserDocumentController extends Controller
                 'Cache-Control' => 'private, no-store, max-age=0',
                 'Pragma' => 'no-cache',
                 'X-Content-Type-Options' => 'nosniff',
+                'Content-Security-Policy' => "default-src 'none'; sandbox",
             ],
         );
     }

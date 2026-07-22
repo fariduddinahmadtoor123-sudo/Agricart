@@ -245,9 +245,18 @@ class MediaLibraryService
     public function deleteFileIfUnused(string $path, string $disk = 'public'): bool
     {
         $path = $this->normalizePath($path);
+
+        if ($this->isProtectedDocumentPath($path, $disk)) {
+            return false;
+        }
+
         $asset = Schema::hasTable('media_assets')
             ? MediaAsset::query()->where('disk', $disk)->where('path', $path)->first()
             : null;
+
+        if ($asset instanceof MediaAsset && $this->isProtectedDocument($asset)) {
+            return false;
+        }
 
         if ($asset?->usages()->exists() || $asset?->source_module === 'media-library') {
             return false;
@@ -264,6 +273,10 @@ class MediaLibraryService
 
     public function canSafelyTrash(MediaAsset $asset): bool
     {
+        if ($this->isProtectedDocument($asset)) {
+            return false;
+        }
+
         return ! $asset->usages()->exists() && ! $this->pathIsReferenced($asset->path);
     }
 
@@ -422,7 +435,7 @@ class MediaLibraryService
             ->whereDoesntHave('usages')
             ->orderBy('id')
             ->each(function (MediaAsset $asset) use ($dryRun, &$count): void {
-                if ($this->pathIsReferenced($asset->path)) {
+                if ($this->isProtectedDocument($asset) || $this->pathIsReferenced($asset->path)) {
                     return;
                 }
 
@@ -438,7 +451,7 @@ class MediaLibraryService
 
     public function trash(MediaAsset $asset): MediaAsset
     {
-        if ($asset->usages()->exists() || $this->pathIsReferenced($asset->path)) {
+        if ($this->isProtectedDocument($asset) || $asset->usages()->exists() || $this->pathIsReferenced($asset->path)) {
             throw new RuntimeException(__('agricart.media.messages.still_referenced'));
         }
 
@@ -456,7 +469,7 @@ class MediaLibraryService
 
     public function permanentlyDelete(MediaAsset $asset): void
     {
-        if ($asset->usages()->exists() || $this->pathIsReferenced($asset->path)) {
+        if ($this->isProtectedDocument($asset) || $asset->usages()->exists() || $this->pathIsReferenced($asset->path)) {
             throw new RuntimeException(__('agricart.media.messages.still_referenced'));
         }
 
@@ -469,6 +482,30 @@ class MediaLibraryService
         });
     }
 
+    public function isProtectedDocument(MediaAsset $asset): bool
+    {
+        if ($asset->visibility === 'private') {
+            return true;
+        }
+
+        return $this->isProtectedDocumentPath($asset->path, $asset->disk);
+    }
+
+    public function isProtectedDocumentPath(string $path, ?string $disk = null): bool
+    {
+        $path = $this->normalizePath($path);
+
+        if ($path === '') {
+            return false;
+        }
+
+        if (str_starts_with($path, 'users/cnic/') || str_starts_with($path, 'online-orders/customer-receipts/')) {
+            return true;
+        }
+
+        return $disk === 'local' && str_starts_with($path, 'users/');
+    }
+
     public function pathIsReferenced(string $path): bool
     {
         $path = $this->normalizePath($path);
@@ -477,6 +514,18 @@ class MediaLibraryService
             if ($modelClass::query()->where($column, $path)->exists()) {
                 return true;
             }
+        }
+
+        if (
+            str_starts_with($path, 'users/cnic/')
+            && User::query()
+                ->where(function ($query) use ($path): void {
+                    $query->where('cnic_front_path', $path)
+                        ->orWhere('cnic_back_path', $path);
+                })
+                ->exists()
+        ) {
+            return true;
         }
 
         return Product::query()
@@ -499,6 +548,12 @@ class MediaLibraryService
             ->orderBy('id')
             ->chunkById(200, function ($assets) use (&$count): void {
                 foreach ($assets as $asset) {
+                    if ($this->isProtectedDocument($asset)) {
+                        $asset->forceFill(['trashed_at' => null])->save();
+
+                        continue;
+                    }
+
                     $this->permanentlyDelete($asset);
                     $count++;
                 }

@@ -1,10 +1,11 @@
 <?php
 
 return [
-    // Temporary compatibility switch. Disable after running the private-proof backfill
-    // with --delete-public and verifying no legacy public originals remain.
+    // Deprecated: payment proofs and CNIC documents are served only from the private
+    // local disk. Authorized reads auto-migrate any legacy public original, then delete
+    // the public copy. Keep this false; use the backfill commands for bulk cleanup.
     'legacy_public_payment_proof_fallback' => filter_var(
-        env('SECURITY_LEGACY_PUBLIC_PAYMENT_PROOF_FALLBACK', true),
+        env('SECURITY_LEGACY_PUBLIC_PAYMENT_PROOF_FALLBACK', false),
         FILTER_VALIDATE_BOOLEAN,
     ),
 

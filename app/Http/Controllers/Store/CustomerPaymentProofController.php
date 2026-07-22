@@ -5,13 +5,14 @@ namespace App\Http\Controllers\Store;
 use App\Http\Controllers\Controller;
 use App\Models\OnlineSaleOrder;
 use App\Models\User;
+use App\Services\Security\PrivateDocumentStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class CustomerPaymentProofController extends Controller
 {
-    public function customer(Request $request, string $order): StreamedResponse
+    public function customer(Request $request, string $order, PrivateDocumentStorage $documents): StreamedResponse
     {
         $customer = $request->user('customer');
 
@@ -20,10 +21,10 @@ class CustomerPaymentProofController extends Controller
             ->where('customer_id', $customer?->id)
             ->firstOrFail();
 
-        return $this->response($model);
+        return $this->response($model, $documents);
     }
 
-    public function admin(OnlineSaleOrder $order): StreamedResponse
+    public function admin(OnlineSaleOrder $order, PrivateDocumentStorage $documents): StreamedResponse
     {
         $user = auth()->user();
 
@@ -33,10 +34,10 @@ class CustomerPaymentProofController extends Controller
             403,
         );
 
-        return $this->response($order);
+        return $this->response($order, $documents);
     }
 
-    private function response(OnlineSaleOrder $order): StreamedResponse
+    private function response(OnlineSaleOrder $order, PrivateDocumentStorage $documents): StreamedResponse
     {
         $path = $order->customer_bank_receipt_path;
 
@@ -46,16 +47,11 @@ class CustomerPaymentProofController extends Controller
             404,
         );
 
-        $disk = 'local';
+        // Owner or authorized staff only. Move any legacy public original onto the
+        // private disk and delete the public copy so /storage/... cannot leak it.
+        abort_unless($documents->ensurePrivate($path), 404);
 
-        if (! Storage::disk($disk)->exists($path)
-            && config('security.legacy_public_payment_proof_fallback', true)) {
-            $disk = 'public';
-        }
-
-        abort_unless(Storage::disk($disk)->exists($path), 404);
-
-        return Storage::disk($disk)->response($path, basename($path), [
+        return Storage::disk('local')->response($path, basename($path), [
             'Cache-Control' => 'private, no-store, max-age=0',
             'Pragma' => 'no-cache',
             'X-Content-Type-Options' => 'nosniff',

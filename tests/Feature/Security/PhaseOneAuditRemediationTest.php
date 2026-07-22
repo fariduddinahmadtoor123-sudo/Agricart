@@ -114,7 +114,7 @@ class PhaseOneAuditRemediationTest extends TestCase
         $this->assertStringNotContainsString("'online-orders/customer-receipts/' . \$order->id,\n                    'public'", $source);
     }
 
-    public function test_legacy_public_payment_proofs_remain_available_and_backfill_is_idempotent(): void
+    public function test_legacy_public_payment_proofs_migrate_to_private_on_authorized_view(): void
     {
         Storage::fake('local');
         Storage::fake('public');
@@ -129,9 +129,8 @@ class PhaseOneAuditRemediationTest extends TestCase
             ->get(route('store.customer.orders.payment-proof.show', $order->order_number))
             ->assertOk();
 
-        $this->artisan('online-orders:backfill-private-payment-proofs')->assertSuccessful();
         Storage::disk('local')->assertExists($path);
-        Storage::disk('public')->assertExists($path);
+        Storage::disk('public')->assertMissing($path);
 
         $this->artisan('online-orders:backfill-private-payment-proofs', ['--delete-public' => true])
             ->assertSuccessful();
@@ -154,12 +153,14 @@ class PhaseOneAuditRemediationTest extends TestCase
         $this->artisan('online-orders:backfill-private-payment-proofs', ['--delete-public' => true])
             ->assertFailed();
         Storage::disk('public')->assertExists($path);
+        Storage::disk('local')->assertExists($path);
 
-        config(['security.legacy_public_payment_proof_fallback' => false]);
-        Storage::disk('local')->delete($path);
+        // Authorized view keeps the private copy and does not replace it with the mismatched public file.
         $this->actingAs($customer, 'customer')
             ->get(route('store.customer.orders.payment-proof.show', $order->order_number))
-            ->assertNotFound();
+            ->assertOk();
+        $this->assertSame('different-private-copy', Storage::disk('local')->get($path));
+        Storage::disk('public')->assertExists($path);
     }
 
     public function test_locale_redirect_rejects_network_path_and_backslash_redirects(): void

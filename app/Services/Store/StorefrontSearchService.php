@@ -118,9 +118,7 @@ class StorefrontSearchService
                     : __('agricart.storefront.search.category'),
                 'name' => $this->localized($category->name_en, $category->name_ur),
                 'url' => route('store.category', $category->slug),
-                'image' => filled($category->image_path)
-                    ? Storage::disk('public')->url($category->image_path)
-                    : null,
+                'image' => $this->categoryImageUrl($category),
                 'meta' => $category->parent
                     ? __('agricart.storefront.search.in_category', [
                         'category' => $this->localized($category->parent->name_en, $category->parent->name_ur),
@@ -132,6 +130,23 @@ class StorefrontSearchService
                 ),
             ])
             ->values();
+    }
+
+    private function categoryImageUrl(Category $category): ?string
+    {
+        foreach ([$category->image_path, $category->parent?->image_path] as $path) {
+            if (! is_string($path) || $path === '') {
+                continue;
+            }
+
+            if (! Storage::disk('public')->exists($path)) {
+                continue;
+            }
+
+            return Storage::disk('public')->url($path);
+        }
+
+        return null;
     }
 
     /**

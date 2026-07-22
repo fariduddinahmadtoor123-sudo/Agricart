@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\OnlineSaleOrder;
+use App\Services\Security\PrivateDocumentStorage;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
 
@@ -14,7 +15,7 @@ class BackfillPrivatePaymentProofsCommand extends Command
 
     protected $description = 'Copy legacy public customer payment proofs to private storage and optionally remove verified originals';
 
-    public function handle(): int
+    public function handle(PrivateDocumentStorage $documents): int
     {
         $copied = 0;
         $verified = 0;
@@ -25,7 +26,7 @@ class BackfillPrivatePaymentProofsCommand extends Command
         OnlineSaleOrder::query()
             ->whereNotNull('customer_bank_receipt_path')
             ->select(['id', 'customer_bank_receipt_path'])
-            ->chunkById(100, function ($orders) use (&$copied, &$verified, &$deleted, &$missing, &$failed): void {
+            ->chunkById(100, function ($orders) use ($documents, &$copied, &$verified, &$deleted, &$missing, &$failed): void {
                 foreach ($orders as $order) {
                     $path = (string) $order->customer_bank_receipt_path;
 
@@ -43,6 +44,7 @@ class BackfillPrivatePaymentProofsCommand extends Command
                             $missing++;
                             $this->warn("Missing payment proof for order {$order->id}: {$path}");
                         }
+
                         continue;
                     }
 
@@ -50,25 +52,24 @@ class BackfillPrivatePaymentProofsCommand extends Command
                         if ($this->option('dry-run')) {
                             $this->line("Would copy order {$order->id}: {$path}");
                             $copied++;
+
                             continue;
                         }
 
-                        $input = $public->readStream($path);
-                        if (! is_resource($input) || ! $private->writeStream($path, $input)) {
-                            if (is_resource($input)) {
-                                fclose($input);
-                            }
+                        if (! $documents->ensurePrivate($path, deletePublicWhenVerified: false)) {
                             $failed++;
                             $this->error("Failed to copy order {$order->id}: {$path}");
+
                             continue;
                         }
-                        fclose($input);
+
                         $copied++;
                     }
 
-                    if (! $this->copiesMatch($path)) {
+                    if (! $documents->copiesMatch($path)) {
                         $failed++;
                         $this->error("Private copy verification failed for order {$order->id}: {$path}");
+
                         continue;
                     }
 
@@ -93,42 +94,5 @@ class BackfillPrivatePaymentProofsCommand extends Command
         );
 
         return $failed === 0 ? self::SUCCESS : self::FAILURE;
-    }
-
-    private function copiesMatch(string $path): bool
-    {
-        $private = Storage::disk('local');
-        $public = Storage::disk('public');
-
-        if (! $private->exists($path) || ! $public->exists($path)) {
-            return false;
-        }
-
-        if ($private->size($path) !== $public->size($path)) {
-            return false;
-        }
-
-        $privateStream = $private->readStream($path);
-        $publicStream = $public->readStream($path);
-
-        if (! is_resource($privateStream) || ! is_resource($publicStream)) {
-            if (is_resource($privateStream)) {
-                fclose($privateStream);
-            }
-            if (is_resource($publicStream)) {
-                fclose($publicStream);
-            }
-
-            return false;
-        }
-
-        $privateHash = hash_init('sha256');
-        $publicHash = hash_init('sha256');
-        hash_update_stream($privateHash, $privateStream);
-        hash_update_stream($publicHash, $publicStream);
-        fclose($privateStream);
-        fclose($publicStream);
-
-        return hash_final($privateHash) === hash_final($publicHash);
     }
 }

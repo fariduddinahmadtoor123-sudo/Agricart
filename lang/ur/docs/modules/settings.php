@@ -152,7 +152,7 @@ return [
                 $field('phone_numbers', 'Phones', 'JSON', false, 'Contact EN/UR + phone max 30۔'),
                 $field('bank_accounts', 'Banks', 'JSON', false, 'Bank/title/account number۔'),
                 $field('profile_photo_path', 'Photo', 'WebP path', false, 'Max 5MB۔'),
-                $field('cnic_front_path / cnic_back_path', 'CNIC', 'paths', false, 'Current public storage؛ rebuild میں private۔'),
+                $field('cnic_front_path / cnic_back_path', 'CNIC', 'private local paths', false, 'Private disk پر users/cnic؛ صرف authorized admin route سے نظر آتی ہے۔'),
             ]],
             ['id' => 'workflows', 'type' => 'workflows', 'heading' => 'عمل', 'steps' => ['Least-privilege role پہلے بنائیں۔', 'Identity/email/password/role درج کریں۔', 'Verification تک pending/inactive رکھیں۔', 'Edit سے credentials/status/role بدلیں۔', 'Compromised/departed account فوراً disable کریں۔']],
             ['id' => 'ai', 'type' => 'ai', 'heading' => 'AI enrichment', 'paragraphs' => ['UserEnrichmentService missing bilingual text بھر سکتی ہے؛ role/status/password/email/phone/account/CNIC نہ چنے یا infer کرے۔']],

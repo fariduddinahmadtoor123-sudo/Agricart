@@ -258,6 +258,34 @@ class MediaLibraryTest extends TestCase
         Storage::disk('public')->assertExists('products/linked.jpg');
     }
 
+    public function test_private_cnic_assets_cannot_be_trashed_as_unused(): void
+    {
+        Storage::fake('local');
+        Storage::disk('local')->put('users/cnic/staff-front.jpg', UploadedFile::fake()->image('staff-front.jpg')->getContent());
+        $library = app(MediaLibraryService::class);
+        $user = User::withoutEvents(fn () => User::factory()->create([
+            'cnic_front_path' => 'users/cnic/staff-front.jpg',
+        ]));
+        $asset = $library->registerPath(
+            'users/cnic/staff-front.jpg',
+            'staff-front.jpg',
+            'Staff — ID card front',
+            'users',
+            'local',
+            ['user_id' => $user->id, 'side' => 'front'],
+        );
+
+        $this->assertInstanceOf(MediaAsset::class, $asset);
+        $this->assertSame('private', $asset->visibility);
+        $this->assertTrue($library->pathIsReferenced('users/cnic/staff-front.jpg'));
+        $this->assertFalse($library->canSafelyTrash($asset));
+
+        $result = $library->trashUnused();
+        $this->assertSame(0, $result['trashed']);
+        $this->assertNull($asset->refresh()->trashed_at);
+        Storage::disk('local')->assertExists('users/cnic/staff-front.jpg');
+    }
+
     /**
      * @param  list<string>  $permissions
      */
