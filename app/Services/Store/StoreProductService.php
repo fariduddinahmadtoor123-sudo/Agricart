@@ -81,7 +81,7 @@ class StoreProductService
         }
 
         $products = $this->storefrontSearchQuery($term)
-            ->with(['brand'])
+            ->with(['brand', 'category'])
             ->tap(fn (Builder $query) => $this->orderBySearchRelevance($query, $term))
             ->orderBy('id')
             ->limit($limit)
@@ -134,11 +134,39 @@ class StoreProductService
 
     public function imageUrl(?Product $product): ?string
     {
-        if ($product === null || ! filled($product->image_path)) {
+        if ($product === null) {
             return null;
         }
 
-        return Storage::disk('public')->url($product->image_path);
+        foreach ($this->candidateImagePaths($product) as $path) {
+            if (Storage::disk('public')->exists($path)) {
+                return Storage::disk('public')->url($path);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function candidateImagePaths(Product $product): array
+    {
+        $paths = [];
+
+        if (filled($product->image_path)) {
+            $paths[] = (string) $product->image_path;
+        }
+
+        $categoryPath = $product->relationLoaded('category')
+            ? $product->category?->image_path
+            : $product->category()->value('image_path');
+
+        if (is_string($categoryPath) && $categoryPath !== '') {
+            $paths[] = $categoryPath;
+        }
+
+        return array_values(array_unique($paths));
     }
 
     /**
@@ -146,11 +174,17 @@ class StoreProductService
      */
     public function imageData(?Product $product): ?array
     {
-        if ($product === null || ! filled($product->image_path)) {
+        if ($product === null) {
             return null;
         }
 
-        return $this->imageDataForPath((string) $product->image_path);
+        foreach ($this->candidateImagePaths($product) as $path) {
+            if (Storage::disk('public')->exists($path)) {
+                return $this->imageDataForPath($path);
+            }
+        }
+
+        return null;
     }
 
     public function localizedName(Product $product): string

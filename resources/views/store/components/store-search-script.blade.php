@@ -69,7 +69,7 @@
                     var meta = [result.type_label, result.code, result.brand].filter(Boolean).join(' · ');
                     var letter = String(result.name || '?').trim().charAt(0).toUpperCase() || '?';
                     var thumb = result.image
-                        ? '<img class="ag-store-search-suggestions__thumb-img" src="' + escapeHtml(result.image) + '" alt="" width="40" height="40" loading="lazy" decoding="async" />'
+                        ? '<img class="ag-store-search-suggestions__thumb-img" src="' + escapeHtml(result.image) + '" alt="" width="40" height="40" loading="lazy" decoding="async" data-thumb-letter="' + escapeHtml(letter) + '" onerror="var letter=this.getAttribute(\'data-thumb-letter\')||\'?\';var span=document.createElement(\'span\');span.className=\'ag-store-search-suggestions__thumb-letter\';span.setAttribute(\'aria-hidden\',\'true\');span.textContent=letter;this.replaceWith(span);" />'
                         : '<span class="ag-store-search-suggestions__thumb-letter" aria-hidden="true">' + escapeHtml(letter) + '</span>';
 
                     return '<a id="' + list.id + '-option-' + index + '" role="option" aria-selected="false" class="ag-store-search-suggestions__option" href="' +

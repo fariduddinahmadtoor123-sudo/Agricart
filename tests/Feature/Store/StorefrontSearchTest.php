@@ -191,6 +191,31 @@ class StorefrontSearchTest extends TestCase
             ->assertJsonCount(0, 'results');
     }
 
+    public function test_search_suggest_falls_back_to_category_image_when_product_file_is_missing(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake('public');
+        \Illuminate\Support\Facades\Storage::disk('public')->put('categories/boom-filters.webp', 'category-image');
+
+        $category = $this->category('boom-filter-meshes', 'Boom Filter Meshes', [
+            'image_path' => 'categories/boom-filters.webp',
+        ]);
+        $product = $this->product('boom-arm-filter', 'Boom Arm Filter Mash Single Ring', $category, [
+            'code' => 'PRD-000010',
+            'image_path' => 'products/missing-product.webp',
+        ]);
+
+        $response = $this->getJson(route('store.search.suggest', ['q' => 'Boom Arm']))
+            ->assertOk();
+
+        $row = collect($response->json('results'))->firstWhere('id', $product->id);
+        $this->assertIsArray($row);
+        $this->assertSame('product', $row['type']);
+        $this->assertSame(
+            \Illuminate\Support\Facades\Storage::disk('public')->url('categories/boom-filters.webp'),
+            $row['image'],
+        );
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      */
