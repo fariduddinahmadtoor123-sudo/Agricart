@@ -7,9 +7,9 @@ return [
     ],
 
     'list' => [
-        'note' => 'Orders sent from Ready for Queue. Enter carrier, tracking, and bilty here. Packing / WhatsApp forward stays under Sales → Online Orders in Queue.',
+        'note' => 'Orders released from Sales → Forwarded. Enter carrier, tracking, and bilty here.',
         'empty' => 'No pending shipments.',
-        'empty_hint' => 'When an invoice is sent to the queue from Sales, it appears here until marked delivered.',
+        'empty_hint' => 'When someone marks goods released on Forwarded, the order appears here until delivered.',
         'no_results' => 'No shipments match your search or filters.',
         'clear_filters' => 'Clear filters',
         'col_shipping' => 'Carrier / tracking / bilty',

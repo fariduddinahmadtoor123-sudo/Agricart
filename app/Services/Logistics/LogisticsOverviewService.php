@@ -23,6 +23,10 @@ class LogisticsOverviewService
                 $query->whereNull('fulfillment_status')
                     ->orWhere('fulfillment_status', '!=', OnlineSaleOrder::FULFILLMENT_DELIVERED);
             })
+            ->where(function ($query): void {
+                $query->whereHas('supplierAssignments', fn ($inner) => $inner->whereNotNull('released_at'))
+                    ->orWhereHas('staffAssignments', fn ($inner) => $inner->whereNotNull('released_at'));
+            })
             ->count();
 
         return [

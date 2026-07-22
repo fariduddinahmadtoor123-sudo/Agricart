@@ -71,9 +71,9 @@ return [
     ],
 
     'list' => [
-        'queue_note' => 'Invoices and packing lists from Ready for Queue. Forward packing lines to suppliers (by category) and invoices to staff. Partial packing keeps the order in queue.',
-        'empty' => 'No invoices in the online orders queue.',
-        'empty_hint' => 'From Ready for Queue, send Invoice or Packing List to Queue after Convert into Invoice.',
+        'queue_note' => 'Invoices and packing lists from Ready for Queue that still need Forward. After you forward, they move to Forwarded until Mark released.',
+        'empty' => 'No orders left in the queue (all forwarded, or none sent from Ready for Queue yet).',
+        'empty_hint' => 'Send from Ready for Queue, then forward packing lists to suppliers or invoices to staff here.',
         'no_results' => 'No orders match your search or filters.',
         'col_fulfillment' => 'Fulfillment',
         'col_staff' => 'Staff',

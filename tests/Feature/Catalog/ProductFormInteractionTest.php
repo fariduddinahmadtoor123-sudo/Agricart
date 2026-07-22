@@ -309,6 +309,50 @@ class ProductFormInteractionTest extends TestCase
         Storage::disk('public')->assertExists($product->image_path);
     }
 
+    public function test_save_and_add_next_keeps_category_hierarchy(): void
+    {
+        Storage::fake('public');
+
+        $parent = Category::query()->create([
+            'slug' => 'agriculture',
+            'code' => 'CAT-AGRI',
+            'status' => 'active',
+            'name_en' => 'Agriculture',
+            'name_ur' => 'زراعت',
+        ]);
+        $child = Category::query()->create([
+            'slug' => 'seeds-child',
+            'code' => 'CAT-SEED-C',
+            'status' => 'active',
+            'parent_id' => $parent->id,
+            'name_en' => 'Seeds',
+            'name_ur' => 'بیج',
+        ]);
+        $catalog = $this->requiredCatalog();
+
+        $component = Livewire::test(Form::class)->call('openForm');
+
+        $this->fillRequiredProductFields($component, $child->id, $catalog)
+            ->set('name_en', 'First Seed Pack')
+            ->set('name_ur', 'پہلا بیج پیک')
+            ->call('addDisplayCategory', $parent->id)
+            ->assertSet('parent_id', $child->id)
+            ->assertSet('hierarchySlots.0', $parent->id)
+            ->assertSet('hierarchySlots.1', $child->id)
+            ->call('saveAndAddNext')
+            ->assertHasNoErrors()
+            ->assertSet('productId', null)
+            ->assertSet('mode', 'create')
+            ->assertSet('name_en', '')
+            ->assertSet('parent_id', $child->id)
+            ->assertSet('hierarchySlots.0', $parent->id)
+            ->assertSet('hierarchySlots.1', $child->id)
+            ->assertSet('display_category_ids', [$parent->id])
+            ->assertSee(__('agricart.products.messages.saved_next'), false);
+
+        $this->assertSame(1, Product::query()->where('name_en', 'First Seed Pack')->count());
+    }
+
     public function test_cannot_save_product_without_brand_unit_pack_attribute_or_control(): void
     {
         $category = Category::query()->create([

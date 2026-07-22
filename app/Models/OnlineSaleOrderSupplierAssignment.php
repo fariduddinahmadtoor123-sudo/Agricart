@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -44,6 +45,7 @@ class OnlineSaleOrderSupplierAssignment extends Model
         'sent_at',
         'acknowledged_at',
         'shipped_at',
+        'released_at',
         'carrier_name',
         'tracking_number',
         'shipping_reference',
@@ -62,7 +64,25 @@ class OnlineSaleOrderSupplierAssignment extends Model
             'sent_at' => 'datetime',
             'acknowledged_at' => 'datetime',
             'shipped_at' => 'datetime',
+            'released_at' => 'datetime',
         ];
+    }
+
+    public function isReleased(): bool
+    {
+        return $this->released_at !== null;
+    }
+
+    /**
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeAwaitingRelease(Builder $query): Builder
+    {
+        return $query
+            ->whereNull('released_at')
+            ->where('status', '!=', self::STATUS_DECLINED)
+            ->whereIn('status', [self::STATUS_SENT, self::STATUS_ACKNOWLEDGED, self::STATUS_SHIPPED]);
     }
 
     public function shippingProofUrl(): ?string

@@ -13323,3 +13323,94 @@ body.agricart-price-tags-panel-open {
         width: 100%;
     }
 }
+
+.agricart-forwarded-orders__groups {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border: 1px solid #ebedf0;
+    background: #fff;
+}
+
+.agricart-forwarded-orders__group + .agricart-forwarded-orders__group {
+    border-top: 1px solid #ebedf0;
+}
+
+.agricart-forwarded-orders__group-head {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    border: 0;
+    background: #fff;
+    text-align: left;
+    cursor: pointer;
+    font-family: Arial, sans-serif;
+}
+
+.agricart-forwarded-orders__group-head:hover {
+    background: #f4f5f7;
+}
+
+.agricart-forwarded-orders__identity {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.agricart-forwarded-orders__identity strong {
+    color: #0f172a;
+    font-size: 0.95rem;
+}
+
+.agricart-forwarded-orders__identity span {
+    color: #64748b;
+    font-size: 0.75rem;
+}
+
+.agricart-forwarded-orders__counts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    align-items: center;
+    color: #64748b;
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.agricart-forwarded-orders__orders {
+    list-style: none;
+    margin: 0;
+    padding: 0 1rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    background: #f4f5f7;
+    border-top: 1px solid #ebedf0;
+}
+
+.agricart-forwarded-orders__order {
+    background: #fff;
+    border: 1px solid #ebedf0;
+    padding: 0.75rem 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.agricart-forwarded-orders__order-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.agricart-forwarded-orders__lines {
+    margin: 0;
+    padding-left: 1.1rem;
+    color: #0f172a;
+    font-size: 0.85rem;
+}
+

@@ -20,14 +20,10 @@ class PendingShipmentsTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_queued_invoice_appears_on_pending_shipments_list(): void
+    public function test_queued_invoice_appears_on_pending_shipments_only_after_release(): void
     {
         $admin = $this->superAdmin();
         $invoice = $this->makeInvoice('ONL-LOG-PEND');
-
-        Livewire::actingAs($admin)
-            ->test(ListPendingShipments::class)
-            ->assertDontSee('ONL-LOG-PEND', false);
 
         Livewire::actingAs($admin)
             ->test(ListOnlineSaleOrders::class)
@@ -35,8 +31,33 @@ class PendingShipmentsTest extends TestCase
 
         Livewire::actingAs($admin)
             ->test(ListPendingShipments::class)
-            ->assertSee('ONL-LOG-PEND', false)
-            ->assertSee(__('order_dispatch.fulfillment_statuses.awaiting_assignment'), false);
+            ->assertDontSee('ONL-LOG-PEND', false);
+
+        $supplier = \App\Models\Supplier::query()->create([
+            'supplier_code' => 'SUP-PEND1',
+            'status' => 'active',
+            'business_name_en' => 'Pend Supply',
+            'business_name_ur' => 'Pend Supply',
+            'email' => 'pend@test.test',
+            'address_en' => '1 Street',
+            'city_en' => 'Lahore',
+            'opening_balance' => 0,
+            'contacts' => [['mobile_number' => '03001112233', 'contact_name_en' => 'P']],
+        ]);
+
+        $assignment = OnlineSaleOrderSupplierAssignment::query()->create([
+            'online_sale_order_id' => $invoice->id,
+            'supplier_id' => $supplier->id,
+            'status' => OnlineSaleOrderSupplierAssignment::STATUS_SENT,
+            'sent_at' => now(),
+            'released_at' => now(),
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(ListPendingShipments::class)
+            ->assertSee('ONL-LOG-PEND', false);
+
+        $this->assertNotNull($assignment->released_at);
     }
 
     public function test_delivered_orders_are_hidden_from_pending_shipments(): void
@@ -56,11 +77,35 @@ class PendingShipmentsTest extends TestCase
 
     public function test_overview_includes_pending_shipments_count(): void
     {
-        $this->makeInvoice('ONL-LOG-OV');
-        OnlineSaleOrder::query()->where('order_number', 'ONL-LOG-OV')->update([
+        $invoice = $this->makeInvoice('ONL-LOG-OV');
+        $invoice->update([
             'queued_at' => now(),
             'queue_document' => OnlineSaleOrder::QUEUE_DOCUMENT_INVOICE,
             'fulfillment_status' => OnlineSaleOrder::FULFILLMENT_SOURCING,
+        ]);
+
+        $cards = app(LogisticsOverviewService::class)->statCards();
+        $pending = collect($cards)->firstWhere('key', 'pending_shipments');
+        $this->assertSame(0, $pending['count']);
+
+        $supplier = \App\Models\Supplier::query()->create([
+            'supplier_code' => 'SUP-OV1',
+            'status' => 'active',
+            'business_name_en' => 'Ov Supply',
+            'business_name_ur' => 'Ov Supply',
+            'email' => 'ov@test.test',
+            'address_en' => '1 Street',
+            'city_en' => 'Lahore',
+            'opening_balance' => 0,
+            'contacts' => [['mobile_number' => '03001112233', 'contact_name_en' => 'O']],
+        ]);
+
+        OnlineSaleOrderSupplierAssignment::query()->create([
+            'online_sale_order_id' => $invoice->id,
+            'supplier_id' => $supplier->id,
+            'status' => OnlineSaleOrderSupplierAssignment::STATUS_SENT,
+            'sent_at' => now(),
+            'released_at' => now(),
         ]);
 
         $cards = app(LogisticsOverviewService::class)->statCards();

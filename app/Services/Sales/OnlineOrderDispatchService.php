@@ -5,6 +5,7 @@ namespace App\Services\Sales;
 use App\Models\Category;
 use App\Models\OnlineSaleOrder;
 use App\Models\OnlineSaleOrderItem;
+use App\Models\OnlineSaleOrderStaffAssignment;
 use App\Models\OnlineSaleOrderSupplierAssignment;
 use App\Models\OnlineSaleOrderSupplierAssignmentItem;
 use App\Models\Product;
@@ -416,6 +417,296 @@ class OnlineOrderDispatchService
         $assignment->save();
 
         return $assignment->fresh(['supplier', 'order']);
+    }
+
+    public function ensureAndMarkStaffSent(
+        OnlineSaleOrder $order,
+        User $staff,
+        string $document = 'invoice',
+        ?User $actor = null,
+    ): OnlineSaleOrderStaffAssignment {
+        $document = $document === 'packing'
+            ? OnlineSaleOrderStaffAssignment::DOCUMENT_PACKING
+            : OnlineSaleOrderStaffAssignment::DOCUMENT_INVOICE;
+
+        $assignment = OnlineSaleOrderStaffAssignment::query()->firstOrNew([
+            'online_sale_order_id' => $order->id,
+            'user_id' => $staff->id,
+        ]);
+
+        $assignment->document = $document;
+        $assignment->status = OnlineSaleOrderStaffAssignment::STATUS_SENT;
+        $assignment->sent_at = $assignment->sent_at ?? now();
+        $assignment->assigned_by_id = $actor?->id ?? $assignment->assigned_by_id;
+        $assignment->save();
+
+        return $assignment->fresh(['user', 'order']);
+    }
+
+    public function markSupplierReleased(OnlineSaleOrderSupplierAssignment $assignment): OnlineSaleOrderSupplierAssignment
+    {
+        if ($assignment->status === OnlineSaleOrderSupplierAssignment::STATUS_DECLINED) {
+            throw ValidationException::withMessages([
+                'assignment' => [__('forwarded_orders.validation.cannot_release_declined')],
+            ]);
+        }
+
+        if ($assignment->released_at === null) {
+            $assignment->released_at = now();
+            $assignment->save();
+        }
+
+        $this->syncOrderAfterRelease(OnlineSaleOrder::query()->find($assignment->online_sale_order_id));
+
+        return $assignment->fresh(['supplier', 'order', 'lines']);
+    }
+
+    public function markStaffReleased(OnlineSaleOrderStaffAssignment $assignment): OnlineSaleOrderStaffAssignment
+    {
+        if ($assignment->released_at === null) {
+            $assignment->released_at = now();
+            $assignment->save();
+        }
+
+        $this->syncOrderAfterRelease(OnlineSaleOrder::query()->find($assignment->online_sale_order_id));
+
+        return $assignment->fresh(['user', 'order']);
+    }
+
+    public function syncOrderAfterRelease(?OnlineSaleOrder $order): void
+    {
+        if ($order === null) {
+            return;
+        }
+
+        $order->loadMissing(['supplierAssignments', 'staffAssignments']);
+
+        $supplierPending = $order->supplierAssignments
+            ->filter(fn (OnlineSaleOrderSupplierAssignment $a): bool => $a->status !== OnlineSaleOrderSupplierAssignment::STATUS_DECLINED
+                && $a->released_at === null
+                && in_array($a->status, [
+                    OnlineSaleOrderSupplierAssignment::STATUS_SENT,
+                    OnlineSaleOrderSupplierAssignment::STATUS_ACKNOWLEDGED,
+                    OnlineSaleOrderSupplierAssignment::STATUS_SHIPPED,
+                ], true));
+
+        $staffPending = $order->staffAssignments
+            ->filter(fn (OnlineSaleOrderStaffAssignment $a): bool => $a->released_at === null);
+
+        if ($supplierPending->isNotEmpty() || $staffPending->isNotEmpty()) {
+            return;
+        }
+
+        $hasReleased = $order->supplierAssignments->contains(fn (OnlineSaleOrderSupplierAssignment $a): bool => $a->released_at !== null)
+            || $order->staffAssignments->contains(fn (OnlineSaleOrderStaffAssignment $a): bool => $a->released_at !== null);
+
+        if (! $hasReleased) {
+            return;
+        }
+
+        if (in_array($order->fulfillment_status, [
+            OnlineSaleOrder::FULFILLMENT_TRANSIT,
+            OnlineSaleOrder::FULFILLMENT_OUT,
+            OnlineSaleOrder::FULFILLMENT_DELIVERED,
+        ], true)) {
+            return;
+        }
+
+        $order->fulfillment_status = OnlineSaleOrder::FULFILLMENT_READY;
+        $order->save();
+    }
+
+    public function hasStaffSentAssignment(OnlineSaleOrder $order): bool
+    {
+        return $order->staffAssignments()
+            ->whereNotNull('sent_at')
+            ->exists();
+    }
+
+    /**
+     * Whether the order should still appear on Online Orders in Queue.
+     */
+    public function orderStillNeedsForward(OnlineSaleOrder $order): bool
+    {
+        $progress = $this->packingProgress($order);
+        $remaining = (int) ($progress['remaining'] ?? 0);
+        $sent = (int) ($progress['sent'] ?? 0);
+
+        if ($order->queue_document === OnlineSaleOrder::QUEUE_DOCUMENT_PACKING_LIST) {
+            return $remaining > 0;
+        }
+
+        // Invoice document: staff forward required; if packing was started, finish it too.
+        if (! $this->hasStaffSentAssignment($order)) {
+            return true;
+        }
+
+        if ($sent > 0) {
+            return $remaining > 0;
+        }
+
+        return false;
+    }
+
+    public function orderHasReleasedAssignments(OnlineSaleOrder $order): bool
+    {
+        return $order->supplierAssignments()->whereNotNull('released_at')->exists()
+            || $order->staffAssignments()->whereNotNull('released_at')->exists();
+    }
+
+    /**
+     * Recipients with at least one unreleased forward (for Forwarded outbox).
+     *
+     * @return list<array{
+     *   key: string,
+     *   type: 'supplier'|'staff',
+     *   id: int,
+     *   name: string,
+     *   phone: string|null,
+     *   order_count: int,
+     *   line_count: int,
+     *   orders: list<array{order_id: int, order_number: string, document: string, assignment_id: int, assignment_type: string, lines: list<string>}>
+     * }>
+     */
+    public function forwardedRecipientGroups(?string $search = null): array
+    {
+        $needle = mb_strtolower(trim((string) $search));
+
+        $supplierAssignments = OnlineSaleOrderSupplierAssignment::query()
+            ->awaitingRelease()
+            ->with(['supplier', 'order.items', 'lines.orderItem'])
+            ->whereHas('order', function ($query): void {
+                $query->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
+                    ->whereNotNull('queued_at');
+            })
+            ->get();
+
+        $staffAssignments = OnlineSaleOrderStaffAssignment::query()
+            ->awaitingRelease()
+            ->with(['user', 'order.items'])
+            ->whereHas('order', function ($query): void {
+                $query->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
+                    ->whereNotNull('queued_at');
+            })
+            ->get();
+
+        $groups = [];
+
+        foreach ($supplierAssignments as $assignment) {
+            $supplier = $assignment->supplier;
+
+            if ($supplier === null) {
+                continue;
+            }
+
+            $key = 'supplier:'.$supplier->id;
+            $name = $supplier->displayBusinessName();
+            $phone = $supplier->primaryMobile();
+
+            if ($needle !== '' && ! str_contains(mb_strtolower($name), $needle)
+                && ! str_contains(mb_strtolower((string) $phone), $needle)
+                && ! str_contains(mb_strtolower((string) $assignment->order?->order_number), $needle)) {
+                continue;
+            }
+
+            if (! isset($groups[$key])) {
+                $groups[$key] = [
+                    'key' => $key,
+                    'type' => 'supplier',
+                    'id' => $supplier->id,
+                    'name' => $name,
+                    'phone' => $phone,
+                    'order_count' => 0,
+                    'line_count' => 0,
+                    'orders' => [],
+                ];
+            }
+
+            $lineLabels = $assignment->lines
+                ->map(function ($line) use ($assignment): string {
+                    $item = $line->orderItem;
+                    if ($item === null) {
+                        return '—';
+                    }
+
+                    return sprintf(
+                        '%s × %s',
+                        $item->displayName($assignment->order?->locale ?? 'en'),
+                        $item->quantity ?? '1',
+                    );
+                })
+                ->values()
+                ->all();
+
+            $groups[$key]['order_count']++;
+            $groups[$key]['line_count'] += max(1, count($lineLabels));
+            $groups[$key]['orders'][] = [
+                'order_id' => (int) $assignment->online_sale_order_id,
+                'order_number' => (string) ($assignment->order?->order_number ?? ''),
+                'document' => 'packing',
+                'assignment_id' => $assignment->id,
+                'assignment_type' => 'supplier',
+                'lines' => $lineLabels !== [] ? $lineLabels : [
+                    __('forwarded_orders.list.all_items'),
+                ],
+            ];
+        }
+
+        foreach ($staffAssignments as $assignment) {
+            $staff = $assignment->user;
+
+            if ($staff === null) {
+                continue;
+            }
+
+            $key = 'staff:'.$staff->id;
+            $name = (string) $staff->name;
+            $phone = $this->primaryPhoneForUser($staff);
+
+            if ($needle !== '' && ! str_contains(mb_strtolower($name), $needle)
+                && ! str_contains(mb_strtolower((string) $phone), $needle)
+                && ! str_contains(mb_strtolower((string) $assignment->order?->order_number), $needle)) {
+                continue;
+            }
+
+            if (! isset($groups[$key])) {
+                $groups[$key] = [
+                    'key' => $key,
+                    'type' => 'staff',
+                    'id' => $staff->id,
+                    'name' => $name,
+                    'phone' => $phone,
+                    'order_count' => 0,
+                    'line_count' => 0,
+                    'orders' => [],
+                ];
+            }
+
+            $lineLabels = ($assignment->order?->items ?? collect())
+                ->map(fn ($item): string => sprintf(
+                    '%s × %s',
+                    $item->displayName($assignment->order?->locale ?? 'en'),
+                    $item->quantity ?? '1',
+                ))
+                ->values()
+                ->all();
+
+            $groups[$key]['order_count']++;
+            $groups[$key]['line_count'] += max(1, count($lineLabels));
+            $groups[$key]['orders'][] = [
+                'order_id' => (int) $assignment->online_sale_order_id,
+                'order_number' => (string) ($assignment->order?->order_number ?? ''),
+                'document' => $assignment->document,
+                'assignment_id' => $assignment->id,
+                'assignment_type' => 'staff',
+                'lines' => $lineLabels,
+            ];
+        }
+
+        $list = array_values($groups);
+        usort($list, fn (array $a, array $b): int => strcasecmp($a['name'], $b['name']));
+
+        return $list;
     }
 
     /**

@@ -327,6 +327,11 @@ class OnlineSaleOrder extends Model
         return $this->hasMany(OnlineSaleOrderSupplierAssignment::class);
     }
 
+    public function staffAssignments(): HasMany
+    {
+        return $this->hasMany(OnlineSaleOrderStaffAssignment::class);
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(OnlineSaleOrderItem::class)->orderBy('sort_order');

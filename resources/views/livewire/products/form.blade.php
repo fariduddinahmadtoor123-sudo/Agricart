@@ -21,8 +21,8 @@
             }));
         });
     "
-    x-on:product-form-action.window="$wire.handlePanelAction($event.detail.action)"
-    x-on:product-form-open.window="$wire.openForm($event.detail.productId ?? null, $event.detail.mode ?? 'create')"
+    x-on:product-form-action.window="$wire.handlePanelAction($event.detail?.action ?? $event.detail?.[0]?.action ?? '')"
+    x-on:product-form-open.window="$wire.openForm($event.detail?.productId ?? $event.detail?.[0]?.productId ?? null, $event.detail?.mode ?? $event.detail?.[0]?.mode ?? 'create')"
 >
     <style>
         .agricart-product-form__quantities {

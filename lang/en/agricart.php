@@ -204,7 +204,7 @@ return [
         ],
         'sales' => [
             'overview' => 'Overview', 'pos-sales' => 'Sales & POS',
-            'online-quotations' => 'Online Quotations', 'online-orders' => 'Ready for Queue', 'order-dispatch' => 'Online Orders in Queue', 'sales-quotations' => 'Sale Quotations', 'sales-returns' => 'Sale Returns',
+            'online-quotations' => 'Online Quotations', 'online-orders' => 'Ready for Queue', 'order-dispatch' => 'Online Orders in Queue', 'forwarded-orders' => 'Forwarded', 'sales-quotations' => 'Sale Quotations', 'sales-returns' => 'Sale Returns',
         ],
         'store' => ['overview' => 'Overview', 'top-bar' => 'Top Bar', 'ticker' => 'Ticker', 'header' => 'Header', 'menu' => 'Menu', 'pages' => 'Pages', 'footer' => 'Footer', 'items' => 'Items', 'messages' => 'Messages', 'visitor-analytics' => 'Visitor Analytics'],
         'logistics' => ['overview' => 'Overview', 'delivery-methods' => 'Delivery Methods', 'shipments' => 'Pending'],
@@ -1651,6 +1651,7 @@ return [
         ],
         'messages' => [
             'saved' => 'Product saved successfully. Labels generated.',
+            'saved_next' => 'Saved. Hierarchy kept — ready for the next product.',
             'validation_failed' => 'Please fix the highlighted fields.',
             'required_fields' => 'Please fill required fields: :fields.',
             'attribute_required' => 'Add at least one attribute with a value.',

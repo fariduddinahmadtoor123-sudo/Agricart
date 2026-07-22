@@ -204,7 +204,7 @@ return [
         ],
         'sales' => [
             'overview' => 'جائزہ', 'pos-sales' => 'سیلز اینڈ پی او ایس',
-            'online-quotations' => 'آن لائن کوٹیشنز', 'online-orders' => 'Ready for Queue', 'order-dispatch' => 'آن لائن آرڈرز ان کیو', 'sales-quotations' => 'سیل کوٹیشنز', 'sales-returns' => 'سیل ریٹرنز',
+            'online-quotations' => 'آن لائن کوٹیشنز', 'online-orders' => 'Ready for Queue', 'order-dispatch' => 'آن لائن آرڈرز ان کیو', 'forwarded-orders' => 'فارورڈڈ', 'sales-quotations' => 'سیل کوٹیشنز', 'sales-returns' => 'سیل ریٹرنز',
         ],
         'store' => ['overview' => 'جائزہ', 'top-bar' => 'اوپر پٹی', 'ticker' => 'ٹکر', 'header' => 'ہیڈر', 'menu' => 'مینیو', 'pages' => 'صفحات', 'footer' => 'فٹر', 'items' => 'اشیاء', 'messages' => 'پیغامات', 'visitor-analytics' => 'وزیٹر اینالیٹکس'],
         'logistics' => ['overview' => 'جائزہ', 'delivery-methods' => 'ڈیلیوری طریقے', 'shipments' => 'زیر التوا'],
@@ -1651,6 +1651,7 @@ return [
         ],
         'messages' => [
             'saved' => 'مصنوعات محفوظ ہو گئی۔ لیبلز بن گئے۔',
+            'saved_next' => 'محفوظ ہو گئی۔ کیٹگری سلسلہ برقرار ہے — اگلی پروڈکٹ کے لیے تیار۔',
             'validation_failed' => 'نشان زد فیلڈز درست کریں۔',
             'required_fields' => 'ضروری فیلڈز بھریں: :fields.',
             'attribute_required' => 'کم از کم ایک ایٹریبیوٹ اور اس کی ویلیو شامل کریں۔',

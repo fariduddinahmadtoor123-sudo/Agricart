@@ -177,6 +177,19 @@ class SalesPageToolbar extends ClusterPageToolbar
                     ['label' => __('online_sale_orders.list.col_created'), 'value' => 'created_at', 'visible' => false],
                 ],
             ],
+            'forwarded-orders' => [
+                ...$config,
+                'livewirePrefix' => 'forwarded-orders',
+                'interactive' => true,
+                'formKey' => 'online-orders',
+                'addLabel' => null,
+                'compactAddButton' => false,
+                'hideFilters' => true,
+                'hideColumns' => true,
+                'searchPlaceholder' => __('forwarded_orders.list.search'),
+                'filters' => [],
+                'columns' => [],
+            ],
             default => $config,
         };
     }

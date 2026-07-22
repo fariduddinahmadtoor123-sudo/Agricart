@@ -675,7 +675,26 @@ class Form extends Component
     {
         if ($this->persist()) {
             $this->dispatch('products-saved');
+
+            $keepParentId = $this->parent_id;
+            $keepDisplayCategoryIds = $this->display_category_ids;
+
             $this->resetForm();
+            $this->applyDefaultTierQuantities();
+
+            // Keep hierarchy / display categories so the next product can be added under the same tree.
+            if ($keepParentId) {
+                $this->parent_id = $keepParentId;
+                $this->syncHierarchyFromParent($keepParentId);
+            }
+
+            $this->display_category_ids = array_values(array_unique(array_filter(array_map(
+                static fn ($id): int => (int) $id,
+                $keepDisplayCategoryIds,
+            ))));
+
+            $this->setStatus(__('agricart.products.messages.saved_next'), 'success');
+            $this->dispatch('product-form-scroll', step: 1);
         }
     }
 

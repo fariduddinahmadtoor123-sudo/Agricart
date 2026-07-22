@@ -38,6 +38,7 @@ class ListPendingShipments extends Component
     #[On('pending-shipments-saved')]
     #[On('online-sale-orders-saved')]
     #[On('order-dispatch-saved')]
+    #[On('forwarded-orders-saved')]
     public function refreshList(): void
     {
         $this->resetPage();
@@ -164,12 +165,16 @@ class ListPendingShipments extends Component
         $dispatch = app(OnlineOrderDispatchService::class);
 
         $orders = OnlineSaleOrder::query()
-            ->with(['customer', 'supplierAssignments'])
+            ->with(['customer', 'supplierAssignments', 'staffAssignments'])
             ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
             ->whereNotNull('queued_at')
             ->where(function ($query): void {
                 $query->whereNull('fulfillment_status')
                     ->orWhere('fulfillment_status', '!=', OnlineSaleOrder::FULFILLMENT_DELIVERED);
+            })
+            ->where(function ($query): void {
+                $query->whereHas('supplierAssignments', fn ($inner) => $inner->whereNotNull('released_at'))
+                    ->orWhereHas('staffAssignments', fn ($inner) => $inner->whereNotNull('released_at'));
             })
             ->when(filled($this->search), function ($query): void {
                 $needle = '%' . $this->search . '%';
@@ -215,6 +220,10 @@ class ListPendingShipments extends Component
             ->where(function ($query): void {
                 $query->whereNull('fulfillment_status')
                     ->orWhere('fulfillment_status', '!=', OnlineSaleOrder::FULFILLMENT_DELIVERED);
+            })
+            ->where(function ($query): void {
+                $query->whereHas('supplierAssignments', fn ($inner) => $inner->whereNotNull('released_at'))
+                    ->orWhereHas('staffAssignments', fn ($inner) => $inner->whereNotNull('released_at'));
             })
             ->find($orderId);
     }

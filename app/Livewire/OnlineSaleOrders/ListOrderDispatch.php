@@ -323,12 +323,19 @@ class ListOrderDispatch extends Component
                     return;
                 }
 
+                $dispatch->ensureAndMarkStaffSent($order, $staff, $document, $actor);
                 $url = $dispatch->whatsAppUrlForStaff($order, $staff, $document);
+                $this->dispatch('forwarded-orders-saved');
+                $this->dispatch('order-dispatch-saved');
 
                 if ($url === null) {
                     $this->forwardStatusMessage = __('online_sale_orders.forward.whatsapp_unavailable');
 
                     return;
+                }
+
+                if (! $dispatch->orderStillNeedsForward($order->fresh(['items', 'supplierAssignments.lines', 'staffAssignments']) ?? $order)) {
+                    $this->closeForward();
                 }
             }
         } catch (\Illuminate\Validation\ValidationException $exception) {
@@ -410,6 +417,14 @@ class ListOrderDispatch extends Component
 
                     return;
                 }
+
+                $dispatch->ensureAndMarkStaffSent($order, $staff, $document, $actor);
+                $this->dispatch('forwarded-orders-saved');
+                $this->dispatch('order-dispatch-saved');
+
+                if (! $dispatch->orderStillNeedsForward($order->fresh(['items', 'supplierAssignments.lines', 'staffAssignments']) ?? $order)) {
+                    $this->closeForward();
+                }
             }
         } catch (\Illuminate\Validation\ValidationException $exception) {
             $this->forwardStatusMessage = (string) (collect($exception->errors())->flatten()->first() ?? '');
@@ -466,6 +481,13 @@ class ListOrderDispatch extends Component
                 }
 
                 $staffId = $staff->id;
+                $dispatch->ensureAndMarkStaffSent($order, $staff, $this->forwardDocument, $actor);
+                $this->dispatch('forwarded-orders-saved');
+                $this->dispatch('order-dispatch-saved');
+
+                if (! $dispatch->orderStillNeedsForward($order->fresh(['items', 'supplierAssignments.lines', 'staffAssignments']) ?? $order)) {
+                    $this->closeForward();
+                }
             }
         } catch (\Illuminate\Validation\ValidationException $exception) {
             $this->forwardStatusMessage = (string) (collect($exception->errors())->flatten()->first() ?? '');
@@ -482,7 +504,7 @@ class ListOrderDispatch extends Component
         $dispatch = app(OnlineOrderDispatchService::class);
 
         $orders = OnlineSaleOrder::query()
-            ->with(['customer', 'assignedUser', 'supplierAssignments.supplier', 'supplierAssignments.lines', 'items'])
+            ->with(['customer', 'assignedUser', 'supplierAssignments.supplier', 'supplierAssignments.lines', 'staffAssignments', 'items'])
             ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
             ->whereNotNull('queued_at')
             ->when(filled($this->search), function ($query): void {
@@ -504,7 +526,19 @@ class ListOrderDispatch extends Component
             ->when(filled($this->fulfillmentFilter), fn ($query) => $query->where('fulfillment_status', $this->fulfillmentFilter))
             ->orderByDesc('queued_at')
             ->orderByDesc('converted_at')
-            ->paginate(20);
+            ->get()
+            ->filter(fn (OnlineSaleOrder $order): bool => $dispatch->orderStillNeedsForward($order))
+            ->values();
+
+        $page = $this->getPage();
+        $perPage = 20;
+        $orders = new \Illuminate\Pagination\LengthAwarePaginator(
+            $orders->forPage($page, $perPage)->values(),
+            $orders->count(),
+            $perPage,
+            $page,
+            ['path' => request()->url(), 'pageName' => 'page'],
+        );
 
         $forwardOrder = $this->forwardOrder();
         $forwardLineStates = [];
@@ -595,6 +629,7 @@ class ListOrderDispatch extends Component
     private function afterPackingForward(OnlineSaleOrder $order, OnlineOrderDispatchService $dispatch): void
     {
         $this->dispatch('order-dispatch-saved');
+        $this->dispatch('forwarded-orders-saved');
         $fresh = $order->fresh(['items', 'supplierAssignments.supplier', 'supplierAssignments.lines']);
 
         if ($fresh === null) {
@@ -616,6 +651,10 @@ class ListOrderDispatch extends Component
                 'total' => $progress['total'],
                 'remaining' => $progress['remaining'],
             ]);
+
+        if (! $dispatch->orderStillNeedsForward($fresh)) {
+            $this->closeForward();
+        }
     }
 
     /**
