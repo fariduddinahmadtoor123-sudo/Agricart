@@ -29,12 +29,16 @@ class VisitorAnalyticsDashboard extends Component
      * @var array<string, int>
      */
     public array $sectionPages = [
+        'top_pages' => 1,
         'top_products' => 1,
         'top_categories' => 1,
+        'top_cms_pages' => 1,
         'countries' => 1,
         'cities' => 1,
         'ip_networks' => 1,
         'devices' => 1,
+        'browsers' => 1,
+        'operating_systems' => 1,
         'sources' => 1,
     ];
 

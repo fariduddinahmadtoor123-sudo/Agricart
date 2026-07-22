@@ -35,7 +35,9 @@ use App\Http\Controllers\Store\HomeController;
 use App\Http\Controllers\Store\PageController;
 use App\Http\Controllers\Store\ProductController;
 use App\Http\Controllers\Store\RegisterController;
+use App\Http\Controllers\Store\RobotsController;
 use App\Http\Controllers\Store\SearchController;
+use App\Http\Controllers\Store\SitemapController;
 use App\Http\Controllers\Store\StaffRegisterController;
 use App\Http\Controllers\Store\StoreInquiryController;
 use App\Http\Middleware\BlockOnlineStoreMaintenance;
@@ -43,12 +45,15 @@ use App\Http\Middleware\SetAgricartLocale;
 use App\Http\Middleware\TrackStorefrontAnalytics;
 use Illuminate\Support\Facades\Route;
 
+Route::get('/robots.txt', RobotsController::class)->name('store.robots');
+
 Route::middleware([
     SetAgricartLocale::class,
     BlockOnlineStoreMaintenance::class,
     TrackStorefrontAnalytics::class,
 ])->group(function (): void {
     Route::get('/', [HomeController::class, 'index'])->name('store.home');
+    Route::get('/sitemap.xml', SitemapController::class)->name('store.sitemap');
     Route::get('/login', [CustomerAuthController::class, 'show'])
         ->middleware('guest:customer')
         ->name('store.customer.login');

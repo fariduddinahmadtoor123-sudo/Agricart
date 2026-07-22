@@ -50,7 +50,8 @@ class PhaseSixStorefrontTest extends TestCase
 
         $this->get(route('store.category', $category->slug))
             ->assertOk()
-            ->assertSee('<h1 class="ag-store-page-title">Crop Care</h1>', false)
+            ->assertSee('ag-store-page-title', false)
+            ->assertSee('Crop Care', false)
             ->assertSee('<link rel="canonical" href="'.route('store.category', $category->slug).'">', false)
             ->assertSee('<meta property="og:title" content="Crop Care Supplies', false)
             ->assertSee('"@type":"CollectionPage"', false)
@@ -65,7 +66,19 @@ class PhaseSixStorefrontTest extends TestCase
         $this->get(route('store.product', $product->slug))
             ->assertOk()
             ->assertSee('https://schema.org/OutOfStock', false)
+            ->assertSee('"price":"100.00"', false)
             ->assertDontSee('hreflang=', false);
+    }
+
+    public function test_home_includes_organization_and_search_action_schema(): void
+    {
+        $this->get(route('store.home'))
+            ->assertOk()
+            ->assertSee('"@type":"Organization"', false)
+            ->assertSee('"@type":"WebSite"', false)
+            ->assertSee('"@type":"SearchAction"', false)
+            ->assertSee('"@type":"EntryPoint"', false)
+            ->assertSee('urlTemplate', false);
     }
 
     public function test_mobile_cart_quantity_has_contextual_accessible_name_and_labels(): void

@@ -112,6 +112,13 @@ class VisitorAnalyticsTracker
                 ])->save();
                 $session->increment('page_views');
 
+                if (
+                    ($payload['page_type'] ?? null) === 'checkout_success'
+                    && (int) $session->conversions < 1
+                ) {
+                    $session->increment('conversions');
+                }
+
                 AnalyticsPageView::query()->create([
                     'visitor_id' => $visitor->id,
                     'session_id' => $session->id,

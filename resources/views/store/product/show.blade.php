@@ -20,7 +20,7 @@
                     '@type' => 'Offer',
                     'url' => route('store.product', $product->slug),
                     'priceCurrency' => 'PKR',
-                    'price' => $buyPrice['price'] ?? $buyPrice['formatted'],
+                    'price' => $buyPrice['amount'] ?? $buyPrice['unit_price'],
                     'availability' => (float) ($product->stock_qty ?? 0) > 0
                         ? 'https://schema.org/InStock'
                         : 'https://schema.org/OutOfStock',

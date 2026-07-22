@@ -40,8 +40,14 @@ class VisitorAnalyticsReportTest extends TestCase
             'name_ur' => 'مقبول پراڈکٹ',
         ]);
 
+        $this->pageView($visitor->id, $session->id, 'home', null, null);
         $this->pageView($visitor->id, $session->id, 'product', $product->id, $product->slug);
         $this->pageView($visitor->id, $session->id, 'category', $category->id, $category->slug);
+        $this->pageView($visitor->id, $session->id, 'cart', null, null);
+        $this->pageView($visitor->id, $session->id, 'checkout', null, null);
+        $this->pageView($visitor->id, $session->id, 'checkout_success', null, null);
+
+        $session->forceFill(['conversions' => 1, 'browser' => 'Chrome', 'operating_system' => 'Windows'])->save();
 
         $report = app(VisitorAnalyticsReportService::class)->report(
             CarbonImmutable::today()->subDay(),
@@ -49,14 +55,26 @@ class VisitorAnalyticsReportTest extends TestCase
         );
 
         $this->assertSame(1, $report['kpis']['today']);
-        $this->assertSame(2, $report['kpis']['total_page_views']);
+        $this->assertSame(6, $report['kpis']['total_page_views']);
         $this->assertSame(1, $report['selected']['visitors']);
+        $this->assertSame(1, $report['selected']['conversions']);
+        $this->assertFalse($report['geoip_ready']);
         $this->assertSame('Popular Product', $report['top_products'][0]['label']);
         $this->assertSame('Popular Category', $report['top_categories'][0]['label']);
         $this->assertSame('Pakistan', $report['countries'][0]['label']);
         $this->assertSame('Lahore', $report['cities'][0]['label']);
         $this->assertSame('mobile', $report['devices'][0]['label']);
+        $this->assertSame('Chrome', $report['browsers'][0]['label']);
+        $this->assertSame('Windows', $report['operating_systems'][0]['label']);
         $this->assertSame('facebook', $report['sources'][0]['label']);
+        $this->assertContains(
+            __('agricart.analytics.route_home'),
+            array_column($report['top_pages'], 'label'),
+        );
+        $this->assertSame(1, $report['funnel'][0]['sessions']);
+        $this->assertSame('home', $report['funnel'][0]['key']);
+        $this->assertSame('checkout_success', $report['funnel'][4]['key']);
+        $this->assertSame(1, $report['funnel'][4]['sessions']);
     }
 
     public function test_rollups_and_pruning_preserve_compact_history(): void

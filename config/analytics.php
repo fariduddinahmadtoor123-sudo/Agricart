@@ -13,6 +13,16 @@ return [
 
     'raw_retention_days' => (int) env('ANALYTICS_RAW_RETENTION_DAYS', 90),
     'visitor_retention_days' => (int) env('ANALYTICS_VISITOR_RETENTION_DAYS', 760),
+    'rollup_retention_days' => (int) env('ANALYTICS_ROLLUP_RETENTION_DAYS', 1095),
+
+    /*
+    | Comma-separated public IPs or prefixes to never count as storefront visitors
+    | (office / warehouse / your own ISP). Example: 203.0.113.10,39.40.
+    */
+    'exclude_ips' => array_values(array_filter(array_map(
+        static fn (string $ip): string => trim($ip),
+        explode(',', (string) env('ANALYTICS_EXCLUDE_IPS', '')),
+    ))),
 
     'geoip_database' => env(
         'ANALYTICS_GEOIP_DATABASE',

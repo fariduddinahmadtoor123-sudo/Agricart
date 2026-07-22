@@ -7,6 +7,9 @@
         $seoDescription = trim($__env->yieldContent('seo_description', (string) ($settings->localized('footer_tagline') ?? $siteName)));
         $canonical = trim($__env->yieldContent('canonical', request()->url()));
         $seoImage = trim($__env->yieldContent('seo_image', (string) ($logo_url ?? '')));
+        if ($seoImage !== '' && ! preg_match('#^https?://#i', $seoImage)) {
+            $seoImage = url($seoImage);
+        }
         $noindex = request()->routeIs(
             'store.search', 'store.search.*', 'store.cart', 'store.checkout', 'store.checkout.*',
             'store.customer.*', 'auth.*'
@@ -25,7 +28,10 @@
     <meta property="og:title" content="{{ $seoTitle }}">
     <meta property="og:description" content="{{ $seoDescription }}">
     <meta property="og:url" content="{{ $canonical }}">
-    @if ($seoImage !== '')<meta property="og:image" content="{{ $seoImage }}">@endif
+    @if ($seoImage !== '')
+        <meta property="og:image" content="{{ $seoImage }}">
+        <meta name="twitter:image" content="{{ $seoImage }}">
+    @endif
     <meta name="twitter:card" content="{{ $seoImage !== '' ? 'summary_large_image' : 'summary' }}">
     <meta name="twitter:title" content="{{ $seoTitle }}">
     <meta name="twitter:description" content="{{ $seoDescription }}">

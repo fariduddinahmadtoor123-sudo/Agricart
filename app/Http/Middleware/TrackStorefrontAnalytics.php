@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Services\Analytics\AnalyticsContext;
+use App\Services\Analytics\AnalyticsTrafficFilter;
 use App\Services\Analytics\VisitorAnalyticsTracker;
 use Closure;
 use Illuminate\Http\Request;
@@ -13,6 +14,7 @@ class TrackStorefrontAnalytics
     public function __construct(
         private readonly VisitorAnalyticsTracker $tracker,
         private readonly AnalyticsContext $context,
+        private readonly AnalyticsTrafficFilter $trafficFilter,
     ) {}
 
     public function handle(Request $request, Closure $next): Response
@@ -80,11 +82,7 @@ class TrackStorefrontAnalytics
             return false;
         }
 
-        if (
-            auth()->check()
-            || $request->headers->get('Sec-GPC') === '1'
-            || $request->headers->get('DNT') === '1'
-        ) {
+        if ($this->trafficFilter->shouldSkip($request)) {
             return false;
         }
 
@@ -116,6 +114,7 @@ class TrackStorefrontAnalytics
             $routeName === 'store.home' => 'home',
             $routeName === 'store.search' => 'search',
             $routeName === 'store.cart' => 'cart',
+            $routeName === 'store.checkout.success' => 'checkout_success',
             str_starts_with($routeName, 'store.checkout') => 'checkout',
             str_starts_with($routeName, 'store.customer.account') => 'account',
             str_starts_with($routeName, 'auth.') => 'registration',

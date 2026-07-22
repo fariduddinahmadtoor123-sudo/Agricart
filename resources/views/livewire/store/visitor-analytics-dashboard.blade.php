@@ -21,6 +21,12 @@
         <div class="agricart-visitor-analytics__notice" role="status">{{ $statusMessage }}</div>
     @endif
 
+    @unless ($report['geoip_ready'])
+        <div class="agricart-visitor-analytics__notice is-warning" role="status">
+            {{ __('agricart.analytics.geoip_missing') }}
+        </div>
+    @endunless
+
     <div class="agricart-visitor-analytics__actions">
         <a href="{{ $exportUrl }}">{{ __('agricart.analytics.export') }}</a>
     </div>
@@ -47,7 +53,21 @@
         <strong>{{ number_format($report['selected']['visitors']) }} {{ __('agricart.analytics.visitors') }}</strong>
         <strong>{{ number_format($report['selected']['sessions']) }} {{ __('agricart.analytics.sessions') }}</strong>
         <strong>{{ number_format($report['selected']['page_views']) }} {{ __('agricart.analytics.page_views') }}</strong>
+        <strong>{{ number_format($report['selected']['conversions']) }} {{ __('agricart.analytics.conversions') }}</strong>
     </div>
+
+    <section class="agricart-visitor-analytics__funnel">
+        <h3>{{ __('agricart.analytics.funnel_title') }}</h3>
+        <div class="agricart-visitor-analytics__funnel-steps">
+            @foreach ($report['funnel'] as $step)
+                <div class="agricart-visitor-analytics__funnel-step">
+                    <span>{{ $step['label'] }}</span>
+                    <strong>{{ number_format($step['sessions']) }}</strong>
+                    <em>{{ number_format($step['percentage'], 1) }}%</em>
+                </div>
+            @endforeach
+        </div>
+    </section>
 
     <div class="agricart-visitor-analytics__charts">
         @foreach ([
@@ -81,12 +101,16 @@
 
     <div class="agricart-visitor-analytics__tables">
         @foreach ([
+            'top_pages' => __('agricart.analytics.top_pages'),
             'top_products' => __('agricart.analytics.top_products'),
             'top_categories' => __('agricart.analytics.top_categories'),
+            'top_cms_pages' => __('agricart.analytics.top_cms_pages'),
             'countries' => __('agricart.analytics.countries'),
             'cities' => __('agricart.analytics.cities'),
             'ip_networks' => __('agricart.analytics.ip_networks'),
             'devices' => __('agricart.analytics.devices'),
+            'browsers' => __('agricart.analytics.browsers'),
+            'operating_systems' => __('agricart.analytics.operating_systems'),
             'sources' => __('agricart.analytics.traffic_sources'),
         ] as $key => $title)
             @php

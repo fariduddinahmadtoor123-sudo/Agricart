@@ -46,7 +46,7 @@ class StorefrontProductPresenter
     }
 
     /**
-     * @return array{unit_price: string, formatted: string, tier_key: string, tier_label: string}|null
+     * @return array{amount: string, unit_price: string, formatted: string, tier_key: string, tier_label: string}|null
      */
     public function priceForQuantity(Product $product, float $quantity): ?array
     {
@@ -66,6 +66,7 @@ class StorefrontProductPresenter
         $tierKey = $tier instanceof QuantityChannelTier ? $tier->tier_key : 'retail';
 
         return [
+            'amount' => number_format($numeric, 2, '.', ''),
             'unit_price' => $this->saleService->formatMoney($numeric),
             'formatted' => $this->priceEngine->formatPrice($numeric),
             'tier_key' => $tierKey,

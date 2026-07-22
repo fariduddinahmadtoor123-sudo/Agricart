@@ -125,6 +125,61 @@ class VisitorAnalyticsTrackingTest extends TestCase
         $this->assertDatabaseCount('analytics_page_views', 0);
     }
 
+    public function test_excluded_office_ip_is_not_tracked(): void
+    {
+        config(['analytics.exclude_ips' => ['203.0.113.10']]);
+
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.10'])
+            ->withHeader('User-Agent', 'Mozilla/5.0')
+            ->get(route('store.home'))
+            ->assertOk();
+
+        $this->assertDatabaseCount('analytics_page_views', 0);
+    }
+
+    public function test_checkout_success_increments_session_conversion(): void
+    {
+        $visitorToken = str_repeat('c', 64);
+        $sessionToken = str_repeat('d', 64);
+
+        $this->withCookie((string) config('analytics.visitor_cookie'), $visitorToken)
+            ->withCookie((string) config('analytics.session_cookie'), $sessionToken)
+            ->withServerVariables(['REMOTE_ADDR' => '8.8.4.4'])
+            ->withHeader('User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/126.0')
+            ->get(route('store.home'))
+            ->assertOk();
+
+        // Simulate checkout success page type via tracker (full checkout needs cart/customer).
+        $tracker = app(VisitorAnalyticsTracker::class);
+        $tracker->record([
+            'visitor_token' => $visitorToken,
+            'session_token' => $sessionToken,
+            'page_type' => 'checkout_success',
+            'entity_id' => null,
+            'entity_slug' => null,
+            'device_type' => 'desktop',
+            'browser' => 'Chrome',
+            'operating_system' => 'Windows',
+            'is_bot' => false,
+            'source' => 'direct',
+            'referrer_host' => null,
+            'utm_source' => null,
+            'utm_medium' => null,
+            'utm_campaign' => null,
+            'ip' => '8.8.4.4',
+            'route_name' => 'store.checkout.success',
+            'response_status' => 200,
+            'duration_ms' => 12,
+        ]);
+
+        $session = AnalyticsSession::query()->firstOrFail();
+        $this->assertSame(1, (int) $session->conversions);
+        $this->assertDatabaseHas('analytics_page_views', [
+            'page_type' => 'checkout_success',
+            'route_name' => 'store.checkout.success',
+        ]);
+    }
+
     public function test_footer_does_not_expose_visitor_analytics_opt_out(): void
     {
         $this->withHeader('User-Agent', 'Mozilla/5.0')

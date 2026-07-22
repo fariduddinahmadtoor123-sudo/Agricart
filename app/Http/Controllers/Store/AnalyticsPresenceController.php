@@ -4,19 +4,16 @@ namespace App\Http\Controllers\Store;
 
 use App\Http\Controllers\Controller;
 use App\Models\AnalyticsSession;
+use App\Services\Analytics\AnalyticsTrafficFilter;
 use App\Services\Analytics\VisitorAnalyticsTracker;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 class AnalyticsPresenceController extends Controller
 {
-    public function update(Request $request, VisitorAnalyticsTracker $tracker): Response
+    public function update(Request $request, VisitorAnalyticsTracker $tracker, AnalyticsTrafficFilter $trafficFilter): Response
     {
-        if (
-            ! config('analytics.enabled')
-            || $request->headers->get('Sec-GPC') === '1'
-            || $request->headers->get('DNT') === '1'
-        ) {
+        if (! config('analytics.enabled') || $trafficFilter->shouldSkip($request)) {
             return response()->noContent();
         }
 

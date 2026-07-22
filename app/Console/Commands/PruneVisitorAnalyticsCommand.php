@@ -16,9 +16,9 @@ class PruneVisitorAnalyticsCommand extends Command
 
     public function handle(): int
     {
-        $rawDays = max(7, (int) ($this->option('raw-days') ?: config('retention.analytics_raw_days')));
-        $visitorDays = max($rawDays, (int) ($this->option('visitor-days') ?: config('retention.analytics_visitor_days')));
-        $rollupDays = max($rawDays, (int) ($this->option('rollup-days') ?: config('retention.analytics_rollup_days')));
+        $rawDays = max(7, (int) ($this->option('raw-days') ?: config('analytics.raw_retention_days', config('retention.analytics_raw_days'))));
+        $visitorDays = max($rawDays, (int) ($this->option('visitor-days') ?: config('analytics.visitor_retention_days', config('retention.analytics_visitor_days'))));
+        $rollupDays = max($rawDays, (int) ($this->option('rollup-days') ?: config('analytics.rollup_retention_days', config('retention.analytics_rollup_days'))));
 
         $views = $this->deleteInBatches('analytics_page_views', 'occurred_at', now()->subDays($rawDays));
         $sessions = $this->deleteInBatches('analytics_sessions', 'last_seen_at', now()->subDays($rawDays));
