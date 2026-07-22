@@ -2,6 +2,7 @@
 
 use App\Services\Backup\BackupScheduleRegistrar;
 use App\Services\SystemErrors\SystemErrorCaptureService;
+use App\Http\Middleware\RunSchedulerWebTick;
 use App\Http\Middleware\SecurityHeaders;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
@@ -87,6 +88,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) use ($trustedProxies): void {
         $middleware->trustProxies(at: $trustedProxies);
         $middleware->append(SecurityHeaders::class);
+        $middleware->append(RunSchedulerWebTick::class);
         $middleware->redirectGuestsTo(
             fn (Request $request): string => $request->is('admin/*')
                 ? url('/admin/login')

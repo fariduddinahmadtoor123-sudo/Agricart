@@ -14,6 +14,15 @@ return [
         env('SCHEDULER_CONFIGURED', false),
         FILTER_VALIDATE_BOOLEAN,
     ),
+    /*
+    | Shared hosting (Hostinger) often has no SSH crontab. When true, web
+    | requests run `schedule:run` at most once per minute after the response.
+    */
+    'scheduler_web_tick' => filter_var(
+        env('SCHEDULER_WEB_TICK', true),
+        FILTER_VALIDATE_BOOLEAN,
+    ),
+    'scheduler_token' => env('SCHEDULER_TOKEN', ''),
     'queue_worker_configured' => filter_var(
         env('QUEUE_WORKER_CONFIGURED', false),
         FILTER_VALIDATE_BOOLEAN,

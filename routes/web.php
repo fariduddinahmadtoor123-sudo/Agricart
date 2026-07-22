@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\SaleReturnPrintController;
 use App\Http\Controllers\Admin\TopbarNotificationController;
 use App\Http\Controllers\Admin\UserDocumentController;
 use App\Http\Controllers\Admin\VisitorAnalyticsExportController;
+use App\Http\Controllers\SchedulerRunController;
 use App\Http\Controllers\Store\AnalyticsPresenceController;
 use App\Http\Controllers\Store\CartController;
 use App\Http\Controllers\Store\CategoryController;
@@ -46,6 +47,7 @@ use App\Http\Middleware\TrackStorefrontAnalytics;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/robots.txt', RobotsController::class)->name('store.robots');
+Route::get('/internal/schedule-run', SchedulerRunController::class)->name('internal.schedule-run');
 
 Route::middleware([
     SetAgricartLocale::class,

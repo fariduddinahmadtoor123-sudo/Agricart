@@ -36,7 +36,7 @@ class AnalyticsRollupService
                     ->count(),
             ]);
 
-            foreach (['country_name' => 'country', 'city' => 'city', 'device_type' => 'device', 'traffic_source' => 'source'] as $column => $dimension) {
+            foreach (['country_name' => 'country', 'region_name' => 'region', 'city' => 'city', 'timezone' => 'timezone', 'device_type' => 'device', 'traffic_source' => 'source'] as $column => $dimension) {
                 $rows = DB::table('analytics_page_views as views')
                     ->join('analytics_sessions as sessions', 'sessions.id', '=', 'views.session_id')
                     ->whereBetween('views.occurred_at', [$start, $end])

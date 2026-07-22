@@ -13,6 +13,8 @@ class AnalyticsVisitor extends Model
         'first_country_code',
         'first_country_name',
         'first_city',
+        'first_region_name',
+        'first_timezone',
         'first_device_type',
         'opted_out',
     ];

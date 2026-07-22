@@ -15,6 +15,11 @@ class AnalyticsSession extends Model
         'country_code',
         'country_name',
         'city',
+        'region_name',
+        'region_code',
+        'timezone',
+        'latitude',
+        'longitude',
         'masked_ip',
         'ip_hash',
         'device_type',
@@ -36,6 +41,8 @@ class AnalyticsSession extends Model
             'last_seen_at' => 'datetime',
             'page_views' => 'integer',
             'conversions' => 'integer',
+            'latitude' => 'float',
+            'longitude' => 'float',
         ];
     }
 }

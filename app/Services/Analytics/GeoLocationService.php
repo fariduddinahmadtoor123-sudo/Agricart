@@ -8,14 +8,28 @@ use Throwable;
 class GeoLocationService
 {
     /**
-     * @return array{country_code: ?string, country_name: ?string, city: ?string}
+     * @return array{
+     *     country_code: ?string,
+     *     country_name: ?string,
+     *     region_name: ?string,
+     *     region_code: ?string,
+     *     city: ?string,
+     *     timezone: ?string,
+     *     latitude: ?float,
+     *     longitude: ?float
+     * }
      */
     public function locate(?string $ip): array
     {
         $unknown = [
             'country_code' => null,
             'country_name' => null,
+            'region_name' => null,
+            'region_code' => null,
             'city' => null,
+            'timezone' => null,
+            'latitude' => null,
+            'longitude' => null,
         ];
 
         if (! $this->isPublicIp($ip)) {
@@ -30,11 +44,19 @@ class GeoLocationService
 
         try {
             $record = (new Reader($database))->city((string) $ip);
+            $subdivision = $record->mostSpecificSubdivision;
+            $latitude = $record->location->latitude;
+            $longitude = $record->location->longitude;
 
             return [
                 'country_code' => $this->bounded($record->country->isoCode, 2),
                 'country_name' => $this->bounded($record->country->name, 255),
+                'region_name' => $this->bounded($subdivision->name, 255),
+                'region_code' => $this->bounded($subdivision->isoCode, 16),
                 'city' => $this->bounded($record->city->name, 255),
+                'timezone' => $this->bounded($record->location->timeZone, 64),
+                'latitude' => is_numeric($latitude) ? round((float) $latitude, 7) : null,
+                'longitude' => is_numeric($longitude) ? round((float) $longitude, 7) : null,
             ];
         } catch (Throwable) {
             return $unknown;
