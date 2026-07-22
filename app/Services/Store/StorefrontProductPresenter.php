@@ -174,10 +174,6 @@ class StorefrontProductPresenter
             $facts[] = ['key' => 'unit', 'label' => __('agricart.storefront.product.facts.unit'), 'value' => $pack];
         }
 
-        if (filled($product->hs_code)) {
-            $facts[] = ['key' => 'hs', 'label' => __('agricart.storefront.product.facts.hs_code'), 'value' => $product->hs_code];
-        }
-
         return $facts;
     }
 

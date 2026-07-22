@@ -9,6 +9,7 @@ use App\Models\DeliveryMethod;
 use App\Models\Product;
 use App\Services\Logistics\DeliveryMethodService;
 use App\Services\Sales\SaleService;
+use App\Services\Store\StorefrontProductPresenter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -41,11 +42,15 @@ class ProductDetailsTabsTest extends TestCase
             'hs_code' => '1209.99',
         ]);
 
+        $factKeys = collect(app(StorefrontProductPresenter::class)->identityFacts($product))->pluck('key');
+        $this->assertFalse($factKeys->contains('hs'));
+
         $response = $this->get(route('store.product', $product->slug));
 
         $response
             ->assertOk()
             ->assertSeeInOrder(['Description', 'Usage guidelines', 'Warnings', 'Customs Notes', 'HS Code'])
+            ->assertDontSee(__('agricart.storefront.product.facts.hs_code'), false)
             ->assertSee('data-store-pdp-tab="content-0"', false)
             ->assertSee('aria-controls="store-pdp-panel-content-0"', false)
             ->assertSee('data-store-pdp-panel="content-1"', false)
