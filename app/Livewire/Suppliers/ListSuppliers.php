@@ -3,12 +3,12 @@
 namespace App\Livewire\Suppliers;
 
 use App\Filament\Forms\CategoryForm;
+use App\Livewire\Concerns\ImportsPortableArchive;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Services\Contacts\SupplierPortableArchiveService;
 use App\Services\Contacts\SupplierService;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\File;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -18,6 +18,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ListSuppliers extends Component
 {
+    use ImportsPortableArchive;
     use WithFileUploads;
     use WithPagination;
 
@@ -171,17 +172,8 @@ class ListSuppliers extends Component
             'importArchive' => __('suppliers.actions.import_archive'),
         ]);
 
-        $stored = $this->importArchive->storeAs(
-            'tmp',
-            'supplier-import-'.uniqid('', true).'.ags',
-            'local',
-        );
-
-        $absolute = storage_path('app/private/'.$stored);
-
-        if (! is_file($absolute)) {
-            $absolute = storage_path('app/'.$stored);
-        }
+        $materialized = $this->materializePortableArchiveUpload($this->importArchive, 'supplier-import');
+        $absolute = $materialized['path'];
 
         try {
             $result = app(SupplierPortableArchiveService::class)->importFromPath($absolute);
@@ -194,8 +186,8 @@ class ListSuppliers extends Component
             $this->portableStatus = collect($exception->errors())->flatten()->first();
             $this->portableStatusTone = 'danger';
         } finally {
-            if (is_file($absolute)) {
-                File::delete($absolute);
+            if ($materialized['delete'] && is_file($absolute)) {
+                @unlink($absolute);
             }
         }
     }

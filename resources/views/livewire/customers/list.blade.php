@@ -1,29 +1,26 @@
 <div class="agricart-categories agricart-customers">
     @if (session('customer_error'))
-        <div class="agricart-categories__empty" role="alert">
+        <div class="agricart-portable-import__alert is-danger" role="alert">
             <p>{{ session('customer_error') }}</p>
         </div>
     @endif
 
     @if (filled($portableStatus))
-        <div class="agricart-categories__empty" role="status">
+        <div @class([
+            'agricart-portable-import__alert',
+            'is-success' => ($portableStatusTone ?? 'success') === 'success',
+            'is-danger' => ($portableStatusTone ?? 'success') === 'danger',
+        ]) role="status">
             <p>{{ $portableStatus }}</p>
         </div>
     @endif
 
     @if ($showImportPanel)
-        <div class="agricart-categories__empty" style="text-align:start">
-            <p>{{ __('customers.portable.hint') }}</p>
-            <div style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:center;margin-top:0.75rem">
-                <input type="file" wire:model="importArchive" accept=".ags,application/octet-stream" />
-                <button type="button" class="agricart-categories__action" wire:click="importUploadedArchive" wire:loading.attr="disabled">
-                    {{ __('customers.actions.import_archive') }}
-                </button>
-                <button type="button" class="agricart-categories__action" wire:click="closeImportPanel">
-                    {{ __('customers.actions.remove') }}
-                </button>
-            </div>
-        </div>
+        @include('livewire.partials.portable-import-panel', [
+            'hint' => __('customers.portable.hint'),
+            'importLabel' => __('customers.actions.import_archive'),
+            'cancelLabel' => __('customers.actions.remove'),
+        ])
     @endif
 
     @if ($customers->isEmpty())

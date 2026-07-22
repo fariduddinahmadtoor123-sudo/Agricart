@@ -2,12 +2,12 @@
 
 namespace App\Livewire\Customers;
 
+use App\Livewire\Concerns\ImportsPortableArchive;
 use App\Models\Customer;
 use App\Models\User;
 use App\Services\Contacts\CustomerPortableArchiveService;
 use App\Services\Contacts\CustomerService;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\File;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -17,6 +17,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ListCustomers extends Component
 {
+    use ImportsPortableArchive;
     use WithFileUploads;
     use WithPagination;
 
@@ -35,6 +36,8 @@ class ListCustomers extends Component
     public $importArchive = null;
 
     public ?string $portableStatus = null;
+
+    public string $portableStatusTone = 'success';
 
     #[On('customers-saved')]
     public function refreshList(): void
@@ -112,6 +115,7 @@ class ListCustomers extends Component
     {
         if (! $this->userCan('create')) {
             $this->portableStatus = __('customers.portable.forbidden');
+            $this->portableStatusTone = 'danger';
 
             return;
         }
@@ -131,6 +135,7 @@ class ListCustomers extends Component
     {
         if (! $this->userCan('view')) {
             $this->portableStatus = __('customers.portable.forbidden');
+            $this->portableStatusTone = 'danger';
 
             return null;
         }
@@ -146,6 +151,7 @@ class ListCustomers extends Component
                 'count' => $archive['count'],
                 'scope' => $scopeLabel,
             ]);
+            $this->portableStatusTone = 'success';
 
             return response()
                 ->download($archive['path'], $archive['filename'], [
@@ -154,6 +160,7 @@ class ListCustomers extends Component
                 ->deleteFileAfterSend(true);
         } catch (ValidationException $exception) {
             $this->portableStatus = collect($exception->errors())->flatten()->first();
+            $this->portableStatusTone = 'danger';
 
             return null;
         }
@@ -163,6 +170,7 @@ class ListCustomers extends Component
     {
         if (! $this->userCan('create')) {
             $this->portableStatus = __('customers.portable.forbidden');
+            $this->portableStatusTone = 'danger';
 
             return;
         }
@@ -173,29 +181,22 @@ class ListCustomers extends Component
             'importArchive' => __('customers.actions.import_archive'),
         ]);
 
-        $stored = $this->importArchive->storeAs(
-            'tmp',
-            'customer-import-'.uniqid('', true).'.ags',
-            'local',
-        );
-
-        $absolute = storage_path('app/private/'.$stored);
-
-        if (! is_file($absolute)) {
-            $absolute = storage_path('app/'.$stored);
-        }
+        $materialized = $this->materializePortableArchiveUpload($this->importArchive, 'customer-import');
+        $absolute = $materialized['path'];
 
         try {
             $result = app(CustomerPortableArchiveService::class)->importFromPath($absolute);
             $this->portableStatus = __('customers.portable.import_ok', $result);
+            $this->portableStatusTone = 'success';
             $this->showImportPanel = false;
             $this->importArchive = null;
             $this->resetPage();
         } catch (ValidationException $exception) {
             $this->portableStatus = collect($exception->errors())->flatten()->first();
+            $this->portableStatusTone = 'danger';
         } finally {
-            if (is_file($absolute)) {
-                File::delete($absolute);
+            if ($materialized['delete'] && is_file($absolute)) {
+                @unlink($absolute);
             }
         }
     }

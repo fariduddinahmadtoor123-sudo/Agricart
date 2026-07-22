@@ -42,11 +42,17 @@ return [
     ],
 
     'portable' => [
+        'panel_title' => 'پورٹیبل آرکائیو امپورٹ',
+        'choose_file' => '.ags فائل منتخب کریں',
+        'uploading' => 'فائل اپلوڈ ہو رہی ہے…',
+        'importing' => 'امپورٹ ہو رہا ہے…',
+        'file_ready' => 'تیار: :name',
         'export_failed' => 'آرکائیو فائل نہیں بن سکی۔',
         'import_missing' => 'درست Agricart آرکائیو (.ags) اپلوڈ کریں۔',
         'import_invalid' => 'یہ فائل درست Agricart پورٹیبل آرکائیو نہیں۔',
+        'import_truncated' => 'اپلوڈ شدہ آرکائیو نامکمل لگتی ہے (اپلوڈ کٹ سکتی ہے)۔ اپلوڈ مکمل ہونے دیں، پھر دوبارہ کوشش کریں۔',
         'import_format' => 'اس صفحے کے لیے آرکائیو فارمیٹ سپورٹ نہیں۔',
-        'import_decrypt' => 'آرکائیو ڈکرپٹ نہیں ہوئی۔ AGRICART_PORTABLE_ARCHIVE_KEY ایکسپورٹ سرور جیسی رکھیں۔',
+        'import_decrypt' => 'آرکائیو ڈکرپٹ نہیں ہوئی۔ AGRICART_PORTABLE_ARCHIVE_KEY ایکسپورٹ سرور جیسی رکھیں، یا فائل کٹی ہو تو دوبارہ ایکسپورٹ/اپلوڈ کریں۔',
     ],
 
     'errors' => [

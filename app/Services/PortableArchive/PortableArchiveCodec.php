@@ -257,7 +257,7 @@ class PortableArchiveCodec
 
         if (strlen($body) < 12 + 16 + 1) {
             throw ValidationException::withMessages([
-                'archive' => [__('agricart.portable.import_invalid')],
+                'archive' => [__('agricart.portable.import_truncated')],
             ]);
         }
 

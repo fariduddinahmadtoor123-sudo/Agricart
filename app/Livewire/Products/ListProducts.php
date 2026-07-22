@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Products;
 
+use App\Livewire\Concerns\ImportsPortableArchive;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\Catalog\CatalogPortableArchiveService;
@@ -9,7 +10,6 @@ use App\Services\Catalog\FacebookCatalogCsvService;
 use App\Services\Catalog\ProductSearchQuery;
 use App\Services\Catalog\ProductService;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\File;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -19,6 +19,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ListProducts extends Component
 {
+    use ImportsPortableArchive;
     use WithFileUploads;
     use WithPagination;
 
@@ -179,12 +180,8 @@ class ListProducts extends Component
             'importArchive' => __('agricart.products.actions.import_archive'),
         ]);
 
-        $stored = $this->importArchive->storeAs(
-            'tmp',
-            'catalog-import-'.uniqid('', true).'.ags',
-            'local',
-        );
-        $absolute = storage_path('app/'.$stored);
+        $materialized = $this->materializePortableArchiveUpload($this->importArchive, 'catalog-import');
+        $absolute = $materialized['path'];
 
         try {
             $result = app(CatalogPortableArchiveService::class)->importFromPath($absolute);
@@ -197,8 +194,8 @@ class ListProducts extends Component
             $this->portableStatus = collect($exception->errors())->flatten()->first();
             $this->portableStatusTone = 'danger';
         } finally {
-            if (is_file($absolute)) {
-                File::delete($absolute);
+            if ($materialized['delete'] && is_file($absolute)) {
+                @unlink($absolute);
             }
         }
     }

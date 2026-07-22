@@ -42,11 +42,17 @@ return [
     ],
 
     'portable' => [
+        'panel_title' => 'Import portable archive',
+        'choose_file' => 'Choose .ags file',
+        'uploading' => 'Uploading file…',
+        'importing' => 'Importing…',
+        'file_ready' => 'Ready: :name',
         'export_failed' => 'Could not build the archive file.',
         'import_missing' => 'Upload a valid Agricart archive (.ags) file.',
         'import_invalid' => 'This file is not a valid Agricart portable archive.',
+        'import_truncated' => 'The uploaded archive looks incomplete (upload may have been cut off). Wait for upload to finish, then try again.',
         'import_format' => 'Unsupported archive format for this page.',
-        'import_decrypt' => 'Could not decrypt this archive. Use the same AGRICART_PORTABLE_ARCHIVE_KEY as the export server.',
+        'import_decrypt' => 'Could not decrypt this archive. Use the same AGRICART_PORTABLE_ARCHIVE_KEY as the export server, or re-export and upload again if the file was truncated.',
     ],
 
     'errors' => [
