@@ -15,8 +15,6 @@ abstract class BasePlaceholderPage extends Page
 
     protected string $view = 'filament.pages.placeholder';
 
-    protected static bool $shouldRegisterNavigation = false;
-
     public function mount(): void
     {
         if (! static::allowsAccessForComingSoonCluster()) {
