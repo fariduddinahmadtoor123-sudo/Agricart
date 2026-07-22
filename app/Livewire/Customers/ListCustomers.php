@@ -4,15 +4,20 @@ namespace App\Livewire\Customers;
 
 use App\Models\Customer;
 use App\Models\User;
+use App\Services\Contacts\CustomerPortableArchiveService;
 use App\Services\Contacts\CustomerService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\File;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ListCustomers extends Component
 {
+    use WithFileUploads;
     use WithPagination;
 
     /** @var list<string> */
@@ -23,6 +28,13 @@ class ListCustomers extends Component
     public string $channelFilter = '';
 
     public string $statusFilter = '';
+
+    public bool $showImportPanel = false;
+
+    /** @var mixed */
+    public $importArchive = null;
+
+    public ?string $portableStatus = null;
 
     #[On('customers-saved')]
     public function refreshList(): void
@@ -84,6 +96,110 @@ class ListCustomers extends Component
         $this->dispatch('customers-columns-sync', columns: $this->visibleColumns);
     }
 
+    #[On('customers-action')]
+    public function handleToolbarAction(string $action): mixed
+    {
+        return match ($action) {
+            'export_all' => $this->exportArchive(CustomerPortableArchiveService::SCOPE_ALL),
+            'export_online' => $this->exportArchive(CustomerPortableArchiveService::SCOPE_ONLINE),
+            'export_offline' => $this->exportArchive(CustomerPortableArchiveService::SCOPE_OFFLINE),
+            'import_archive' => $this->openImportPanel(),
+            default => null,
+        };
+    }
+
+    public function openImportPanel(): void
+    {
+        if (! $this->userCan('create')) {
+            $this->portableStatus = __('customers.portable.forbidden');
+
+            return;
+        }
+
+        $this->showImportPanel = true;
+        $this->importArchive = null;
+        $this->portableStatus = null;
+    }
+
+    public function closeImportPanel(): void
+    {
+        $this->showImportPanel = false;
+        $this->importArchive = null;
+    }
+
+    public function exportArchive(string $scope = CustomerPortableArchiveService::SCOPE_ALL): ?BinaryFileResponse
+    {
+        if (! $this->userCan('view')) {
+            $this->portableStatus = __('customers.portable.forbidden');
+
+            return null;
+        }
+
+        try {
+            $archive = app(CustomerPortableArchiveService::class)->export($scope);
+            $scopeLabel = match ($archive['scope']) {
+                CustomerPortableArchiveService::SCOPE_ONLINE => __('customers.portable.scope_online'),
+                CustomerPortableArchiveService::SCOPE_OFFLINE => __('customers.portable.scope_offline'),
+                default => __('customers.portable.scope_all'),
+            };
+            $this->portableStatus = __('customers.portable.export_ok', [
+                'count' => $archive['count'],
+                'scope' => $scopeLabel,
+            ]);
+
+            return response()
+                ->download($archive['path'], $archive['filename'], [
+                    'Content-Type' => 'application/octet-stream',
+                ])
+                ->deleteFileAfterSend(true);
+        } catch (ValidationException $exception) {
+            $this->portableStatus = collect($exception->errors())->flatten()->first();
+
+            return null;
+        }
+    }
+
+    public function importUploadedArchive(): void
+    {
+        if (! $this->userCan('create')) {
+            $this->portableStatus = __('customers.portable.forbidden');
+
+            return;
+        }
+
+        $this->validate([
+            'importArchive' => ['required', 'file', 'max:512000'],
+        ], [], [
+            'importArchive' => __('customers.actions.import_archive'),
+        ]);
+
+        $stored = $this->importArchive->storeAs(
+            'tmp',
+            'customer-import-'.uniqid('', true).'.ags',
+            'local',
+        );
+
+        $absolute = storage_path('app/private/'.$stored);
+
+        if (! is_file($absolute)) {
+            $absolute = storage_path('app/'.$stored);
+        }
+
+        try {
+            $result = app(CustomerPortableArchiveService::class)->importFromPath($absolute);
+            $this->portableStatus = __('customers.portable.import_ok', $result);
+            $this->showImportPanel = false;
+            $this->importArchive = null;
+            $this->resetPage();
+        } catch (ValidationException $exception) {
+            $this->portableStatus = collect($exception->errors())->flatten()->first();
+        } finally {
+            if (is_file($absolute)) {
+                File::delete($absolute);
+            }
+        }
+    }
+
     public function openCreate(): void
     {
         $this->dispatch(
@@ -104,7 +220,7 @@ class ListCustomers extends Component
 
         $this->dispatch(
             'open-form-panel',
-            title: __('customers.actions.view_short') . ': ' . $customer->displayLabel(),
+            title: __('customers.actions.view_short').': '.$customer->displayLabel(),
             resource: __('agricart.nav.contacts.customers'),
             formKey: 'customers',
             customerId: $customerId,
@@ -122,7 +238,7 @@ class ListCustomers extends Component
 
         $this->dispatch(
             'open-form-panel',
-            title: __('customers.actions.edit_short') . ': ' . $customer->displayLabel(),
+            title: __('customers.actions.edit_short').': '.$customer->displayLabel(),
             resource: __('agricart.nav.contacts.customers'),
             formKey: 'customers',
             customerId: $customerId,
@@ -154,8 +270,11 @@ class ListCustomers extends Component
     {
         $customers = Customer::query()
             ->when(filled($this->search), function ($query): void {
-                $needle = '%' . $this->search . '%';
-                $query->where(function ($inner) use ($needle): void {
+                $term = trim($this->search);
+                $needle = '%'.$term.'%';
+                $normalized = app(CustomerService::class)->normalizePhone($term);
+
+                $query->where(function ($inner) use ($needle, $normalized): void {
                     $inner->where('customer_number', 'like', $needle)
                         ->orWhere('display_name', 'like', $needle)
                         ->orWhere('name_en', 'like', $needle)
@@ -166,7 +285,15 @@ class ListCustomers extends Component
                         ->orWhere('email', 'like', $needle)
                         ->orWhere('city_en', 'like', $needle)
                         ->orWhere('city_ur', 'like', $needle)
-                        ->orWhere('city', 'like', $needle);
+                        ->orWhere('city', 'like', $needle)
+                        ->orWhere('contacts', 'like', $needle);
+
+                    if ($normalized !== '') {
+                        $digitNeedle = '%'.$normalized.'%';
+                        $inner->orWhere('phone', 'like', $digitNeedle)
+                            ->orWhere('contacts', 'like', $digitNeedle)
+                            ->orWhereHas('phones', fn ($phones) => $phones->where('canonical_phone', 'like', $digitNeedle));
+                    }
                 });
             })
             ->when(filled($this->channelFilter), fn ($query) => $query->where('customer_channel', $this->channelFilter))
@@ -195,6 +322,6 @@ class ListCustomers extends Component
             return true;
         }
 
-        return $user->hasPermission('contacts.' . $action);
+        return $user->hasPermission('contacts.'.$action);
     }
 }

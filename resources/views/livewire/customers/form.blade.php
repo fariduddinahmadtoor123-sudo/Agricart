@@ -149,6 +149,7 @@
                     <x-filament::input.wrapper>
                         <input id="cu-opening" type="number" step="0.01" wire:model="opening_balance" class="fi-input" @disabled($readonly) />
                     </x-filament::input.wrapper>
+                    <p class="agricart-form-panel__hint">{{ __('customers.hints.opening_balance') }}</p>
                 </div>
                 <div class="agricart-form-panel__field">
                     <label class="agricart-form-panel__label" for="cu-credit">{{ __('customers.fields.credit_limit') }}</label>

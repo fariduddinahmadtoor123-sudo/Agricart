@@ -1,5 +1,32 @@
 @php use Illuminate\Support\Facades\Storage; @endphp
 <div class="agricart-categories agricart-products">
+    @if (session('product_error'))
+        <div class="agricart-categories__empty" role="alert">
+            <p>{{ session('product_error') }}</p>
+        </div>
+    @endif
+
+    @if (filled($portableStatus))
+        <div class="agricart-categories__empty" role="status">
+            <p>{{ $portableStatus }}</p>
+        </div>
+    @endif
+
+    @if ($showImportPanel)
+        <div class="agricart-categories__empty" style="text-align:start">
+            <p>{{ __('agricart.products.portable.hint') }}</p>
+            <div style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:center;margin-top:0.75rem">
+                <input type="file" wire:model="importArchive" accept=".ags,application/octet-stream" />
+                <button type="button" class="agricart-categories__action" wire:click="importUploadedArchive" wire:loading.attr="disabled">
+                    {{ __('agricart.products.actions.import_archive') }}
+                </button>
+                <button type="button" class="agricart-categories__action" wire:click="closeImportPanel">
+                    {{ __('agricart.products.actions.remove') }}
+                </button>
+            </div>
+        </div>
+    @endif
+
     @if ($products->isEmpty())
         <div class="agricart-categories__empty">
             <p>{{ __('agricart.products.list.empty') }}</p>
@@ -70,6 +97,8 @@
                                 @if ($canEdit)
                                     <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $product->id }})">{{ __('agricart.products.actions.edit_short') }}</button>
                                 @endif
+                                <a class="agricart-categories__action" href="{{ $this->storeUrl($product) }}" target="_blank" rel="noopener noreferrer">{{ __('agricart.products.actions.store_link') }}</a>
+                                <a class="agricart-categories__action" href="{{ $this->whatsappShareUrl($product) }}" target="_blank" rel="noopener noreferrer">{{ __('agricart.products.actions.whatsapp_share') }}</a>
                                 @if ($canDelete)
                                     <button type="button" class="agricart-categories__action is-danger" wire:click="deleteProduct({{ $product->id }})" wire:confirm="{{ __('agricart.products.actions.delete_confirm') }}">{{ __('agricart.products.actions.delete_short') }}</button>
                                 @endif
@@ -79,7 +108,6 @@
                 </tbody>
             </table>
         </div>
-
         <div class="agricart-categories__pagination">
             {{ $products->links() }}
         </div>

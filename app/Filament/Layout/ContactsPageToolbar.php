@@ -51,6 +51,20 @@ class ContactsPageToolbar extends ClusterPageToolbar
                 'formKey' => 'suppliers',
                 'addLabel' => static::userCan('create') ? __('suppliers.actions.add') : null,
                 'filters' => static::supplierFilters(),
+                'toolbarActions' => array_values(array_filter([
+                    static::userCan('view') ? [
+                        'label' => __('suppliers.actions.export_archive'),
+                        'value' => 'export_archive',
+                        'color' => 'gray',
+                        'outlined' => true,
+                    ] : null,
+                    static::userCan('create') ? [
+                        'label' => __('suppliers.actions.import_archive'),
+                        'value' => 'import_archive',
+                        'color' => 'gray',
+                        'outlined' => true,
+                    ] : null,
+                ])),
                 'columns' => [
                     ['label' => __('suppliers.list.col_code'), 'value' => 'supplier_code', 'visible' => true],
                     ['label' => __('suppliers.list.col_business'), 'value' => 'business_name', 'visible' => true],
@@ -70,6 +84,32 @@ class ContactsPageToolbar extends ClusterPageToolbar
                 'formKey' => 'customers',
                 'addLabel' => static::userCan('create') ? __('customers.actions.add') : null,
                 'filters' => static::customerFilters(),
+                'toolbarActions' => array_values(array_filter([
+                    static::userCan('view') ? [
+                        'label' => __('customers.actions.export_all'),
+                        'value' => 'export_all',
+                        'color' => 'gray',
+                        'outlined' => true,
+                    ] : null,
+                    static::userCan('view') ? [
+                        'label' => __('customers.actions.export_online'),
+                        'value' => 'export_online',
+                        'color' => 'gray',
+                        'outlined' => true,
+                    ] : null,
+                    static::userCan('view') ? [
+                        'label' => __('customers.actions.export_offline'),
+                        'value' => 'export_offline',
+                        'color' => 'gray',
+                        'outlined' => true,
+                    ] : null,
+                    static::userCan('create') ? [
+                        'label' => __('customers.actions.import_archive'),
+                        'value' => 'import_archive',
+                        'color' => 'gray',
+                        'outlined' => true,
+                    ] : null,
+                ])),
                 'columns' => [
                     ['label' => __('customers.list.col_number'), 'value' => 'customer_number', 'visible' => true],
                     ['label' => __('customers.list.col_name'), 'value' => 'name', 'visible' => true],

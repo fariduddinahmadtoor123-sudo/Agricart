@@ -4,6 +4,28 @@
             <p>{{ session('supplier_error') }}</p>
         </div>
     @endif
+
+    @if (filled($portableStatus))
+        <div class="agricart-categories__empty" role="status">
+            <p>{{ $portableStatus }}</p>
+        </div>
+    @endif
+
+    @if ($showImportPanel)
+        <div class="agricart-categories__empty" style="text-align:start">
+            <p>{{ __('suppliers.portable.hint') }}</p>
+            <div style="display:flex;flex-wrap:wrap;gap:0.75rem;align-items:center;margin-top:0.75rem">
+                <input type="file" wire:model="importArchive" accept=".ags,application/octet-stream" />
+                <button type="button" class="agricart-categories__action" wire:click="importUploadedArchive" wire:loading.attr="disabled">
+                    {{ __('suppliers.actions.import_archive') }}
+                </button>
+                <button type="button" class="agricart-categories__action" wire:click="closeImportPanel">
+                    {{ __('suppliers.actions.remove') }}
+                </button>
+            </div>
+        </div>
+    @endif
+
     @if ($suppliers->isEmpty())
         <div class="agricart-categories__empty">
             <p>{{ __('suppliers.list.empty') }}</p>

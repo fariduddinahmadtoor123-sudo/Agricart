@@ -61,6 +61,9 @@ return [
                     'Save & Close persists and closes the panel; Save & Add Next persists and resets the form for another record.',
                     'Status values used by current catalog forms are active, inactive, and draft where supported.',
                     'English and Urdu fields are separate persisted values rather than runtime translations.',
+                    'Product create/update requires at least one attribute with a value, one control, and one delivery method (Logistics masters must exist first).',
+                    'stock_qty is an inventory mirror updated by Sales/Purchasing — not Catalog’s source of truth.',
+                    'Portable .ags export uses stable codes/slugs (never auto-increment IDs across installs). Backup CSV is not a full portable catalog.',
                 ],
             ],
             [
@@ -70,10 +73,11 @@ return [
                 'list' => [
                     'Purchasing selects products and changes inventory through receiving workflows.',
                     'POS searches and sells catalog products using names, codes, SKUs, and related identifiers.',
-                    'Pricing controls read product price tiers and quantity thresholds.',
+                    'Pricing controls read product price tiers and quantity thresholds (Marketplace may own channel_prices).',
                     'Storefront category placement uses the product primary category and product display-category relation.',
                     'Reports aggregate sales, purchasing, stock, and margin data by product, category, and brand.',
                     'Media storage supplies optimized public images to admin previews and customer-facing channels.',
+                    'CatalogPortableArchiveService seals units, packing units, attributes, controls, brands, categories, products, and media into .ags packages.',
                 ],
             ],
             [
@@ -89,6 +93,18 @@ return [
                 ],
             ],
             [
+                'id' => 'non-goals',
+                'type' => 'rebuild_notes',
+                'heading' => 'Freeze non-goals',
+                'list' => [
+                    'No product variants / multi-SKU commerce model in this freeze.',
+                    'No Facebook Catalog API or scheduled Meta feed sync in this freeze (CSV download is a separate Meta-lite phase).',
+                    'No WhatsApp Business product catalog API — storefront product URL share is sufficient for deep links.',
+                    'Hijri visual mapping UI remains deferred; do not document it as live.',
+                    'Category admin list remains flat (not a tree UI).',
+                ],
+            ],
+            [
                 'id' => 'acceptance',
                 'type' => 'acceptance',
                 'heading' => 'Acceptance criteria',
@@ -96,11 +112,11 @@ return [
                     'Every catalog sub-page is reachable through its Filament slug.',
                     'Core master data can be created, viewed, edited, searched, and consumed by dependent modules.',
                     'English and Urdu values survive save and reload.',
-                    'Relationships and pivot records survive export and import.',
+                    'Relationships and pivot records survive export and import via .ags.',
                     'Generated slugs and codes remain unique.',
                     'Media previews resolve from the public storage disk.',
+                    'Referenced products cannot be destructively deleted.',
                 ],
-                'screenshot_placeholder' => true,
             ],
         ],
     ],
@@ -112,8 +128,9 @@ return [
             'routes' => ['/admin/catalog/categories'],
             'permissions' => [
                 'catalog.view',
-                'catalog.create for the Add Category toolbar button',
-                'Current list view, edit, and delete actions do not enforce separate per-action permission checks',
+                'catalog.create',
+                'catalog.edit',
+                'catalog.delete',
             ],
             'related' => ['products', 'brands', 'store', 'reports'],
         ],
@@ -129,7 +146,6 @@ return [
                     'The administrative list is flat. It is not an expandable tree interface. Hierarchy is edited through parent_id in the category form and represented by ancestor preview slots.',
                     'A category may have one optional parent and may also be related to other categories through display_category_ids. These concepts are independent: parent_id defines hierarchy, while display_category_ids writes alternate display relationships.',
                 ],
-                'screenshot_placeholder' => true,
             ],
             [
                 'id' => 'technical',
@@ -158,7 +174,7 @@ return [
                     ],
                 ],
                 'paragraphs' => [
-                    'The shared form definition is App\\Filament\\Forms\\CategoryForm. CategoriesPage hosts the page, ListCategories renders the records, and Categories\\Form owns create, edit, view, upload, AI, and persistence behavior.',
+                    'The shared form definition is App\\Filament\\Forms\\CategoryForm. CategoriesPage hosts the page, ListCategories renders the records, and Categories\\Form owns create, edit, view, upload, AI, and persistence behavior. ListCategories enforces catalog.view|edit|delete per action.',
                 ],
             ],
             [
@@ -334,7 +350,6 @@ return [
                     'The Hijri icon catalog in config/agricart.php exists, but the current category form does not wire it to any selectable field.',
                     'Do not rebuild hero slots 1 through 4 as Hijri icon pickers unless a separate product decision changes current behavior.',
                 ],
-                'screenshot_placeholder' => true,
             ],
             [
                 'id' => 'alternate-display',
@@ -397,7 +412,8 @@ return [
                 'heading' => 'Persistence rules',
                 'list' => [
                     'name_en, name_ur, and an image path must be present before persistence succeeds.',
-                    'parent_id is nullable.',
+                    'parent_id is nullable and may be changed even when the category has products or child categories (the subtree moves with it). Cycle checks still block selecting a descendant as parent.',
+                    'Printed product label_code values stay stable when a category parent changes; category_visual_map_code is refreshed.',
                     'A blank slug is generated from name_en and uniquified by CategoryService.',
                     'code is optional and manual.',
                     'status defaults to active and supports active, inactive, and draft.',
@@ -418,7 +434,7 @@ return [
                     'Category image files have no sequential number. They use a random 40-character WebP filename beneath categories/.',
                     'category_display is read by the storefront category tree (also-show-in placements). Do not claim it changes parent_id.',
                     'Earlier documentation described the ancestor hero slots as Hijri icon selectors. That description was incorrect; slots 1 through 4 are ancestor category image previews.',
-                    'The category list view, edit action, and delete action lack separate per-action permission checks. Only catalog.view and the catalog.create gate for the Add button are established in this documented path.',
+                    'ListCategories enforces catalog.view|edit|delete per action (same pattern as other catalog lists).',
                     'The list is flat rather than a tree UI.',
                     'Regenerate visual map codes after hierarchy imports or parent changes.',
                 ],
@@ -452,8 +468,8 @@ return [
             'title' => 'Products',
             'summary' => 'Rebuild specification for sellable catalog records, classification, media, packing, prices, stock thresholds, AI, and pivots.',
             'routes' => ['/admin/catalog/products'],
-            'permissions' => ['catalog.view', 'catalog.create for the Add Product toolbar action'],
-            'related' => ['categories', 'brands', 'units', 'packing-units', 'attributes', 'controls', 'labels'],
+            'permissions' => ['catalog.view', 'catalog.create', 'catalog.edit', 'catalog.delete'],
+            'related' => ['categories', 'brands', 'units', 'packing-units', 'attributes', 'controls', 'labels', 'logistics'],
         ],
         'title' => 'Products',
         'summary' => 'Products are the central sellable records. They connect category hierarchy, brand, media, structured attributes, measurement and packing, quantity-based prices, stock thresholds, controls, bilingual content, SEO, compliance, and AI metadata.',
@@ -464,9 +480,9 @@ return [
                 'heading' => 'Purpose',
                 'paragraphs' => [
                     'A product represents a sellable catalog item consumed by purchasing, inventory, POS, pricing, storefront, labels, and reports.',
-                    'The current form requires English and Urdu names plus a primary category. Other fields are optional unless stricter validation is applied by ProductService or the database schema.',
+                    'ProductService requires at least one attribute (with value), one control, and one delivery method on create/update. Logistics delivery methods must exist before products can be saved through the form.',
+                    'Destructive delete is blocked when the product is referenced by sales, purchases, quotations, returns, online orders, planning, or reorder queues — deactivate instead.',
                 ],
-                'screenshot_placeholder' => true,
             ],
             [
                 'id' => 'fields-core',
@@ -567,6 +583,7 @@ return [
                     'Enter required_qty, alert_qty, prices, and price-tier thresholds.',
                     'Complete bilingual content, SEO, search, and compliance fields manually or through reviewed AI.',
                     'Save and verify the generated slug, product code, category-derived label code, pivots, and downstream availability.',
+                    'Optional: Export/Import .ags for full catalog transfer; Facebook CSV for Commerce Manager; Store link / WhatsApp share for storefront deep links.',
                 ],
             ],
             [
@@ -579,6 +596,8 @@ return [
                     'services' => [
                         'App\\Services\\Catalog\\ProductService',
                         'App\\Services\\Catalog\\ProductEnrichmentService',
+                        'App\\Services\\Catalog\\CatalogPortableArchiveService',
+                        'App\\Services\\Catalog\\FacebookCatalogCsvService',
                         'App\\Services\\PricingControls\\QuantityPricingEngine',
                         'App\\Services\\Media\\OptimizedImageStorage',
                     ],
@@ -1004,8 +1023,14 @@ return [
                 'heading' => 'Implementation map',
                 'classes' => [
                     'page' => ['App\\Filament\\Clusters\\Catalog\\LabelsPage'],
-                    'livewire' => ['App\\Livewire\\PriceTags\\ListPriceTags'],
-                    'services' => ['App\\Services\\Catalog\\CategoryVisualMappingService'],
+                    'livewire' => [
+                        'App\\Livewire\\Labels\\ListLabels',
+                        'App\\Livewire\\Labels\\PrintLabelsForm',
+                    ],
+                    'services' => [
+                        'App\\Services\\Catalog\\ProductLabelService',
+                        'App\\Services\\Catalog\\CategoryVisualMappingService',
+                    ],
                     'models' => ['App\\Models\\Product', 'App\\Models\\Category'],
                     'tables' => ['products', 'categories'],
                 ],

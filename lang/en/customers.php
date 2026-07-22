@@ -9,6 +9,21 @@ return [
         'delete_confirm' => 'Delete this customer?',
         'remove' => 'Remove',
         'add_phone' => 'Add phone',
+        'export_archive' => 'Export archive',
+        'export_all' => 'Export all',
+        'export_online' => 'Export online',
+        'export_offline' => 'Export offline',
+        'import_archive' => 'Import archive',
+    ],
+
+    'portable' => [
+        'hint' => 'Encrypted .ags package. Filename includes customers + optional online/offline + today’s date. Passwords are never exported; online imports get a random password and need a reset before login.',
+        'export_ok' => 'Exported :count customers (:scope).',
+        'import_ok' => 'Import finished: :created created, :updated updated, :skipped skipped, :media media files.',
+        'forbidden' => 'You do not have permission to import or export customers.',
+        'scope_all' => 'all',
+        'scope_online' => 'online',
+        'scope_offline' => 'offline',
     ],
 
     'sections' => [
@@ -57,6 +72,7 @@ return [
         'address_quick' => 'Optional short address',
         'email_optional' => 'Optional — for promotions',
         'bilingual_ai' => 'Save quickly with name and phone only. Run AI later to fill English/Urdu names and searchable addresses.',
+        'opening_balance' => 'Starting ledger amount only — not the live balance. Current balance comes from Customer Ledger (opening + sales − receipts).',
     ],
 
     'statuses' => [
@@ -87,7 +103,7 @@ return [
         'created' => 'Customer :name saved.',
         'updated' => 'Customer :name updated.',
         'save_failed' => 'Could not save customer. Please check the form and try again.',
-        'delete_blocked' => 'This customer has sales, online orders, or returns. Deactivate instead of deleting.',
+        'delete_blocked' => 'This customer has sales, online orders, returns, or fund receipts. Deactivate instead of deleting.',
     ],
 
     'validation' => [

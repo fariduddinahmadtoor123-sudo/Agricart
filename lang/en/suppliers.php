@@ -10,6 +10,20 @@ return [
         'remove' => 'Remove',
         'add_contact' => 'Add contact',
         'add_bank' => 'Add bank account',
+        'export_archive' => 'Export archive',
+        'import_archive' => 'Import archive',
+    ],
+
+    'portable' => [
+        'hint' => 'Encrypted .ags package (suppliers + photos). Not Excel. Passwords are never exported; portal login is forced off on import. Use the same AGRICART_PORTABLE_ARCHIVE_KEY on export and import servers.',
+        'export_ok' => 'Exported :count suppliers.',
+        'export_failed' => 'Could not build the supplier archive.',
+        'import_ok' => 'Import finished: :created created, :updated updated, :skipped skipped, :media media files.',
+        'import_missing' => 'Upload a supplier archive (.ags) file.',
+        'import_invalid' => 'This file is not a valid Agricart supplier archive.',
+        'import_format' => 'Unsupported supplier archive format.',
+        'import_decrypt' => 'Could not decrypt this archive. Use the same AGRICART_PORTABLE_ARCHIVE_KEY as the export server.',
+        'forbidden' => 'You do not have permission to import or export suppliers.',
     ],
 
     'sections' => [
@@ -17,7 +31,7 @@ return [
         'categories' => 'Supply Categories',
         'contacts' => 'Contacts',
         'banks' => 'Bank Accounts',
-        'portal' => 'Portal Access',
+        'portal' => 'Portal Access (not live yet)',
         'documents' => 'Documents',
     ],
 
@@ -47,7 +61,7 @@ return [
         'account_title' => 'Account Title',
         'account_title_ur' => 'Account Title (Urdu)',
         'account_number' => 'IBAN / Account Number',
-        'portal_enabled' => 'Allow supplier portal login',
+        'portal_enabled' => 'Store portal credentials (login not live yet)',
         'email' => 'Email',
         'password' => 'Password',
         'password_confirm' => 'Confirm Password',
@@ -64,7 +78,8 @@ return [
         'bank_search' => 'Search bank by English, Urdu, or code (HBL, UBL, NBP)…',
         'iban_or_account' => 'IBAN or account number',
         'choose_file' => 'No file chosen',
-        'portal_later' => 'Optional for now. When enabled, the supplier can sign in later to view ledgers and account details.',
+        'portal_later' => 'Not live yet. You can store email/password for a future supplier portal; there is no supplier login in production today.',
+        'opening_balance' => 'Starting payable amount only — not the live balance. Current position comes from Supplier Ledger (opening + purchases − payments).',
         'address_ur_panel' => 'Urdu address (auto-filled where possible)',
         'city_manual' => 'Enter city name',
         'primary_contact_required' => 'Primary contact name and mobile number are required (marked *).',

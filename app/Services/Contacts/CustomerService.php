@@ -4,6 +4,7 @@ namespace App\Services\Contacts;
 
 use App\Models\Customer;
 use App\Models\CustomerPhone;
+use App\Models\FundTransfer;
 use App\Models\OnlineSaleOrder;
 use App\Models\Sale;
 use App\Models\SaleReturn;
@@ -70,8 +71,11 @@ class CustomerService
         $saleCount = Sale::query()->where('customer_id', $customer->id)->count();
         $orderCount = OnlineSaleOrder::query()->where('customer_id', $customer->id)->count();
         $returnCount = SaleReturn::query()->where('customer_id', $customer->id)->count();
+        $receiptCount = FundTransfer::query()
+            ->where('destination_customer_id', $customer->id)
+            ->count();
 
-        if ($saleCount + $orderCount + $returnCount > 0) {
+        if ($saleCount + $orderCount + $returnCount + $receiptCount > 0) {
             throw ValidationException::withMessages([
                 'customer' => [__('customers.messages.delete_blocked')],
             ]);

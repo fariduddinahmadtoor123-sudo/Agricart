@@ -6,8 +6,16 @@ use App\Models\CatalogAttribute;
 use App\Models\CatalogControl;
 use App\Models\Category;
 use App\Models\DeliveryMethod;
+use App\Models\OnlineSaleOrderItem;
 use App\Models\PackingUnit;
 use App\Models\Product;
+use App\Models\PurchaseItem;
+use App\Models\PurchasePlanningItem;
+use App\Models\PurchaseQuotationItem;
+use App\Models\ReorderQueueItem;
+use App\Models\SaleItem;
+use App\Models\SaleQuotationItem;
+use App\Models\SaleReturnItem;
 use App\Services\Media\MediaLibraryService;
 use App\Services\Identifiers\DocumentCounterService;
 use Illuminate\Support\Arr;
@@ -160,6 +168,8 @@ class ProductService
 
     public function delete(Product $product): void
     {
+        $this->assertDeletable($product);
+
         $mediaPaths = array_values(array_filter(array_merge(
             [$product->image_path],
             $product->gallery_images ?? [],
@@ -172,6 +182,24 @@ class ProductService
         }
 
         CatalogCache::forgetOverviewStats();
+    }
+
+    public function assertDeletable(Product $product): void
+    {
+        $referenced = SaleItem::query()->where('product_id', $product->id)->exists()
+            || SaleQuotationItem::query()->where('product_id', $product->id)->exists()
+            || SaleReturnItem::query()->where('product_id', $product->id)->exists()
+            || OnlineSaleOrderItem::query()->where('product_id', $product->id)->exists()
+            || PurchaseItem::query()->where('product_id', $product->id)->exists()
+            || PurchaseQuotationItem::query()->where('product_id', $product->id)->exists()
+            || PurchasePlanningItem::query()->where('product_id', $product->id)->exists()
+            || ReorderQueueItem::query()->where('product_id', $product->id)->exists();
+
+        if ($referenced) {
+            throw ValidationException::withMessages([
+                'product' => [__('agricart.products.messages.delete_blocked')],
+            ]);
+        }
     }
 
     public function slugFromName(string $name): string

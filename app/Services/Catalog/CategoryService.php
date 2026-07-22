@@ -58,21 +58,11 @@ class CategoryService
             10,
             function () use ($category, $data, $displayCategoryIds): Category {
                 $category->refresh();
-                $requestedParentId = isset($data['parent_id']) ? (int) $data['parent_id'] : null;
+                $requestedParentId = array_key_exists('parent_id', $data)
+                    ? (isset($data['parent_id']) ? (int) $data['parent_id'] : null)
+                    : ($category->parent_id !== null ? (int) $category->parent_id : null);
                 $currentParentId = $category->parent_id !== null ? (int) $category->parent_id : null;
                 $parentChanged = $requestedParentId !== $currentParentId;
-
-                if (
-                    $parentChanged
-                    && (
-                        $category->children()->exists()
-                        || Product::query()->where('category_id', $category->id)->exists()
-                    )
-                ) {
-                    throw ValidationException::withMessages([
-                        'parent_id' => ['Move this category’s child categories and products first, then change its parent.'],
-                    ]);
-                }
 
                 $validated = $this->validate($data, $category->id);
 
@@ -92,12 +82,18 @@ class CategoryService
                 $validated['visual_mapping'] = $mapping;
                 $validated['visual_map_code'] = $mapping['map_code'];
 
-                return DB::transaction(function () use ($category, $validated, $displayCategoryIds): Category {
+                return DB::transaction(function () use ($category, $validated, $displayCategoryIds, $parentChanged): Category {
                     $category->update($validated);
                     $categoryNamesChanged = $category->wasChanged(['name_en', 'name_ur']);
                     $this->syncDisplayCategories($category, $displayCategoryIds);
 
-                    if ($categoryNamesChanged) {
+                    if ($parentChanged) {
+                        // Keep printed product label_code stable; refresh map pointer + sticker payloads only.
+                        Product::query()
+                            ->where('category_id', $category->id)
+                            ->update(['category_visual_map_code' => $category->visual_map_code]);
+                        $this->refreshProductLabelsForCategory($category->fresh());
+                    } elseif ($categoryNamesChanged) {
                         $this->refreshProductLabelsForCategory($category);
                     }
 

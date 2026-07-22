@@ -265,9 +265,11 @@ class Form extends Component
             return;
         }
 
+        $removeId = (int) $id;
+
         $this->display_category_ids = array_values(array_filter(
-            $this->display_category_ids,
-            fn (int $selectedId): bool => $selectedId !== (int) $id,
+            array_map(static fn ($selectedId): int => (int) $selectedId, $this->display_category_ids),
+            static fn (int $selectedId): bool => $selectedId !== $removeId,
         ));
     }
 

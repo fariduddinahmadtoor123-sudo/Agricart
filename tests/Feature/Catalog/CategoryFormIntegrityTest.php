@@ -192,22 +192,23 @@ class CategoryFormIntegrityTest extends TestCase
         );
     }
 
-    public function test_category_with_children_cannot_be_reparented(): void
+    public function test_category_with_children_can_be_reparented_as_a_subtree(): void
     {
         $root = $this->category('root', 'Root');
         $otherRoot = $this->category('other-root', 'Other Root');
-        $this->category('child', 'Child', ['parent_id' => $root->id]);
+        $child = $this->category('child', 'Child', ['parent_id' => $root->id]);
 
         Livewire::test(Form::class)
             ->call('openForm', $root->id, 'edit')
             ->call('selectParent', $otherRoot->id)
             ->call('saveAndClose')
-            ->assertSet('statusType', 'danger');
+            ->assertSet('statusType', 'success');
 
-        $this->assertNull($root->fresh()->parent_id);
+        $this->assertSame($otherRoot->id, (int) $root->fresh()->parent_id);
+        $this->assertSame($root->id, (int) $child->fresh()->parent_id);
     }
 
-    public function test_category_with_products_cannot_be_reparented(): void
+    public function test_category_with_products_can_be_reparented(): void
     {
         $root = $this->category('product-root', 'Product Root');
         $otherRoot = $this->category('product-other-root', 'Product Other Root');
@@ -224,9 +225,62 @@ class CategoryFormIntegrityTest extends TestCase
             ->call('openForm', $root->id, 'edit')
             ->call('selectParent', $otherRoot->id)
             ->call('saveAndClose')
-            ->assertSet('statusType', 'danger');
+            ->assertSet('statusType', 'success');
 
-        $this->assertNull($root->fresh()->parent_id);
+        $this->assertSame($otherRoot->id, (int) $root->fresh()->parent_id);
+    }
+
+    public function test_category_with_products_can_change_parent(): void
+    {
+        $oldParent = $this->category('water-pumps', 'Water Pumps');
+        $newParent = $this->category('boom-pumps', 'Boom Sprayer Pumps');
+        $bj170 = $this->category('bj-170', 'BJ-170 Pumps', [
+            'parent_id' => $oldParent->id,
+            'visual_map_code' => 'R1M1',
+            'visual_mapping' => ['map_code' => 'R1M1'],
+        ]);
+
+        Product::query()->create([
+            'category_id' => $bj170->id,
+            'slug' => 'bj-pump',
+            'code' => 'PRD-BJ',
+            'status' => 'active',
+            'name_en' => 'BJ Pump',
+            'name_ur' => 'بی جے',
+            'label_code' => 'R1M1-P1',
+            'category_visual_map_code' => 'R1M1',
+            'label_sequence' => 1,
+        ]);
+
+        Livewire::test(Form::class)
+            ->call('openForm', $bj170->id, 'edit')
+            ->call('selectParent', $newParent->id)
+            ->call('saveAndClose')
+            ->assertSet('statusType', 'success');
+
+        $bj170->refresh();
+        $this->assertSame($newParent->id, (int) $bj170->parent_id);
+        $this->assertSame('R1M1-P1', Product::query()->where('code', 'PRD-BJ')->value('label_code'));
+    }
+
+    public function test_also_show_in_display_categories_can_be_removed_and_saved(): void
+    {
+        $boom = $this->category('boom-show', 'Boom Show');
+        $water = $this->category('water-show', 'Water Show');
+        $bj170 = $this->category('bj-show', 'BJ Show', [
+            'parent_id' => $water->id,
+        ]);
+        $bj170->displayInCategories()->sync([$boom->id]);
+
+        Livewire::test(Form::class)
+            ->call('openForm', $bj170->id, 'edit')
+            ->assertSet('display_category_ids', [$boom->id])
+            ->call('removeDisplayCategory', $boom->id)
+            ->assertSet('display_category_ids', [])
+            ->call('saveAndClose')
+            ->assertSet('statusType', 'success');
+
+        $this->assertSame([], $bj170->fresh()->displayInCategories->pluck('id')->all());
     }
 
     public function test_category_name_change_refreshes_stored_product_labels(): void

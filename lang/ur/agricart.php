@@ -41,6 +41,14 @@ return [
         'copied' => 'کاپی ہو گیا',
     ],
 
+    'portable' => [
+        'export_failed' => 'آرکائیو فائل نہیں بن سکی۔',
+        'import_missing' => 'درست Agricart آرکائیو (.ags) اپلوڈ کریں۔',
+        'import_invalid' => 'یہ فائل درست Agricart پورٹیبل آرکائیو نہیں۔',
+        'import_format' => 'اس صفحے کے لیے آرکائیو فارمیٹ سپورٹ نہیں۔',
+        'import_decrypt' => 'آرکائیو ڈکرپٹ نہیں ہوئی۔ AGRICART_PORTABLE_ARCHIVE_KEY ایکسپورٹ سرور جیسی رکھیں۔',
+    ],
+
     'errors' => [
         'generic' => 'کچھ غلط ہو گیا۔ دوبارہ کوشش کریں — اگر بار بار ہو تو تفصیل سسٹم لاگ میں محفوظ ہے۔',
         'decrypt' => 'کوئی محفوظ خفیہ چیز (جیسے AI API key) اس انسٹالیشن پر پڑھی نہیں جا سکتی — عام طور پر دوسرے سرور کے backup restore کے بعد ایسا ہوتا ہے۔ Settings → AI میں key دوبارہ درج کریں۔',
@@ -1663,6 +1671,7 @@ return [
             'delivery_required' => 'کم از کم ایک ڈیلیوری آپشن منتخب کریں۔',
             'delivery_missing' => 'منتخب ڈیلیوری آپشن اب موجود نہیں۔',
             'delivery_inactive' => 'منتخب ڈیلیوری آپشن غیر فعال ہے۔',
+            'delete_blocked' => 'یہ پروڈکٹ سیل، خریداری، کوٹیشن، ریٹرن، آن لائن آرڈر یا ری آرڈر قطار میں استعمال ہو رہا ہے۔ حذف کی بجائے inactive کریں۔',
             'search_terms_invalid' => 'Search Terms ایک درست JSON array ہونا چاہیے۔',
             'image_invalid' => 'درست تصویر منتخب کریں (زیادہ سے زیادہ 5 MB)۔',
             'ui_only' => 'مصنوعات فارم اسکیما تیار ہے۔ اگلے مرحلے میں محفوظ کرنا اور لیبل جنریشن فعال ہوگا۔',
@@ -1688,6 +1697,18 @@ return [
             'edit_short' => 'ترمیم',
             'delete_short' => 'حذف',
             'delete_confirm' => 'یہ مصنوعات مستقل حذف کریں؟',
+            'export_archive' => 'آرکائیو ایکسپورٹ',
+            'import_archive' => 'آرکائیو امپورٹ',
+            'export_facebook_csv' => 'Facebook CSV',
+            'store_link' => 'اسٹور لنک',
+            'whatsapp_share' => 'واٹس ایپ',
+        ],
+        'portable' => [
+            'hint' => 'انکرپٹڈ .ags: پروڈکٹس، برانڈز، کیٹگریز، یونٹس، ایٹریبیوٹس، کنٹرولز، تصاویر۔ code/slug سے upsert۔ stock/پاس ورڈ نہیں۔ ڈیلیوری Logistics میں پہلے موجود ہوں (slug سے میل)۔',
+            'export_ok' => 'کیٹلاگ ایکسپورٹ (:count پروڈکٹس)۔',
+            'import_ok' => 'امپورٹ مکمل: :created نئے، :updated اپڈیٹ، :skipped چھوڑے، :media میڈیا، :products پروڈکٹس۔',
+            'facebook_ok' => 'Facebook CSV تیار (:count فعال پروڈکٹس)۔ Meta Commerce Manager میں اپلوڈ کریں۔',
+            'forbidden' => 'کیٹلاگ امپورٹ/ایکسپورٹ کی اجازت نہیں۔',
         ],
     ],
 

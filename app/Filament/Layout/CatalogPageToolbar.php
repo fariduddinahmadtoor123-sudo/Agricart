@@ -53,6 +53,26 @@ class CatalogPageToolbar extends ClusterPageToolbar
                     ['label' => __('agricart.form_panel.statuses.inactive'), 'value' => 'status:inactive'],
                     ['label' => __('agricart.form_panel.statuses.draft'), 'value' => 'status:draft'],
                 ],
+                'toolbarActions' => array_values(array_filter([
+                    static::userCan('view') ? [
+                        'label' => __('agricart.products.actions.export_archive'),
+                        'value' => 'export_archive',
+                        'color' => 'gray',
+                        'outlined' => true,
+                    ] : null,
+                    static::userCan('create') ? [
+                        'label' => __('agricart.products.actions.import_archive'),
+                        'value' => 'import_archive',
+                        'color' => 'gray',
+                        'outlined' => true,
+                    ] : null,
+                    static::userCan('view') ? [
+                        'label' => __('agricart.products.actions.export_facebook_csv'),
+                        'value' => 'export_facebook_csv',
+                        'color' => 'gray',
+                        'outlined' => true,
+                    ] : null,
+                ])),
                 'columns' => [
                     ['label' => __('agricart.products.list.col_image'), 'value' => 'image', 'visible' => true],
                     ['label' => __('agricart.products.list.col_code'), 'value' => 'code', 'visible' => true],

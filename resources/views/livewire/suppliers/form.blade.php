@@ -116,6 +116,7 @@
                 <x-filament::input.wrapper>
                     <input id="sp-opening" type="number" step="0.01" wire:model="opening_balance" class="fi-input" @disabled($readonly) />
                 </x-filament::input.wrapper>
+                <p class="agricart-form-panel__hint">{{ __('suppliers.hints.opening_balance') }}</p>
             </div>
         </div>
 
@@ -337,10 +338,14 @@
             </div>
         @endforeach
 
-        <label class="agricart-supplier-form__portal-toggle">
-            <input type="checkbox" wire:model.live="portal_enabled" @disabled($readonly) />
-            <span>{{ __('suppliers.fields.portal_enabled') }}</span>
-        </label>
+        <section class="agricart-customer-form__section agricart-supplier-form__portal">
+            <h2 class="agricart-customer-form__section-title">{{ __('suppliers.sections.portal') }}</h2>
+            <p class="agricart-form-panel__hint">{{ __('suppliers.hints.portal_later') }}</p>
+            <label class="agricart-supplier-form__portal-toggle">
+                <input type="checkbox" wire:model.live="portal_enabled" @disabled($readonly) />
+                <span>{{ __('suppliers.fields.portal_enabled') }}</span>
+            </label>
+        </section>
 
         @if ($portal_enabled)
             <div class="agricart-supplier-form__portal-grid">

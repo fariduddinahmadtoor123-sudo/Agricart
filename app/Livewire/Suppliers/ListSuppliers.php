@@ -5,15 +5,20 @@ namespace App\Livewire\Suppliers;
 use App\Filament\Forms\CategoryForm;
 use App\Models\Supplier;
 use App\Models\User;
+use App\Services\Contacts\SupplierPortableArchiveService;
 use App\Services\Contacts\SupplierService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\File;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ListSuppliers extends Component
 {
+    use WithFileUploads;
     use WithPagination;
 
     /** @var list<string> */
@@ -24,6 +29,15 @@ class ListSuppliers extends Component
     public string $statusFilter = '';
 
     public string $cityFilter = '';
+
+    public bool $showImportPanel = false;
+
+    /** @var mixed */
+    public $importArchive = null;
+
+    public ?string $portableStatus = null;
+
+    public string $portableStatusTone = 'success';
 
     #[On('suppliers-saved')]
     public function refreshList(): void
@@ -85,6 +99,107 @@ class ListSuppliers extends Component
         $this->dispatch('suppliers-columns-sync', columns: $this->visibleColumns);
     }
 
+    #[On('suppliers-action')]
+    public function handleToolbarAction(string $action): mixed
+    {
+        return match ($action) {
+            'export_archive' => $this->exportArchive(),
+            'import_archive' => $this->openImportPanel(),
+            default => null,
+        };
+    }
+
+    public function openImportPanel(): void
+    {
+        if (! $this->userCan('create')) {
+            $this->portableStatus = __('suppliers.portable.forbidden');
+            $this->portableStatusTone = 'danger';
+
+            return;
+        }
+
+        $this->showImportPanel = true;
+        $this->importArchive = null;
+        $this->portableStatus = null;
+    }
+
+    public function closeImportPanel(): void
+    {
+        $this->showImportPanel = false;
+        $this->importArchive = null;
+    }
+
+    public function exportArchive(): ?BinaryFileResponse
+    {
+        if (! $this->userCan('view')) {
+            $this->portableStatus = __('suppliers.portable.forbidden');
+            $this->portableStatusTone = 'danger';
+
+            return null;
+        }
+
+        try {
+            $archive = app(SupplierPortableArchiveService::class)->exportAll();
+            $this->portableStatus = __('suppliers.portable.export_ok', ['count' => $archive['count']]);
+            $this->portableStatusTone = 'success';
+
+            return response()
+                ->download($archive['path'], $archive['filename'], [
+                    'Content-Type' => 'application/octet-stream',
+                ])
+                ->deleteFileAfterSend(true);
+        } catch (ValidationException $exception) {
+            $this->portableStatus = collect($exception->errors())->flatten()->first();
+            $this->portableStatusTone = 'danger';
+
+            return null;
+        }
+    }
+
+    public function importUploadedArchive(): void
+    {
+        if (! $this->userCan('create')) {
+            $this->portableStatus = __('suppliers.portable.forbidden');
+            $this->portableStatusTone = 'danger';
+
+            return;
+        }
+
+        $this->validate([
+            'importArchive' => ['required', 'file', 'max:512000'],
+        ], [], [
+            'importArchive' => __('suppliers.actions.import_archive'),
+        ]);
+
+        $stored = $this->importArchive->storeAs(
+            'tmp',
+            'supplier-import-'.uniqid('', true).'.ags',
+            'local',
+        );
+
+        $absolute = storage_path('app/private/'.$stored);
+
+        if (! is_file($absolute)) {
+            $absolute = storage_path('app/'.$stored);
+        }
+
+        try {
+            $result = app(SupplierPortableArchiveService::class)->importFromPath($absolute);
+            $this->portableStatus = __('suppliers.portable.import_ok', $result);
+            $this->portableStatusTone = 'success';
+            $this->showImportPanel = false;
+            $this->importArchive = null;
+            $this->resetPage();
+        } catch (ValidationException $exception) {
+            $this->portableStatus = collect($exception->errors())->flatten()->first();
+            $this->portableStatusTone = 'danger';
+        } finally {
+            if (is_file($absolute)) {
+                File::delete($absolute);
+            }
+        }
+    }
+
     public function openCreate(): void
     {
         $this->dispatch(
@@ -105,7 +220,7 @@ class ListSuppliers extends Component
 
         $this->dispatch(
             'open-form-panel',
-            title: __('suppliers.actions.view_short') . ': ' . $supplier->displayBusinessName(),
+            title: __('suppliers.actions.view_short').': '.$supplier->displayBusinessName(),
             resource: __('agricart.nav.contacts.suppliers'),
             formKey: 'suppliers',
             supplierId: $supplierId,
@@ -123,7 +238,7 @@ class ListSuppliers extends Component
 
         $this->dispatch(
             'open-form-panel',
-            title: __('suppliers.actions.edit_short') . ': ' . $supplier->displayBusinessName(),
+            title: __('suppliers.actions.edit_short').': '.$supplier->displayBusinessName(),
             resource: __('agricart.nav.contacts.suppliers'),
             formKey: 'suppliers',
             supplierId: $supplierId,
@@ -156,14 +271,22 @@ class ListSuppliers extends Component
         $suppliers = Supplier::query()
             ->with('categories')
             ->when(filled($this->search), function ($query): void {
-                $needle = '%' . $this->search . '%';
-                $query->where(function ($inner) use ($needle): void {
+                $term = trim($this->search);
+                $needle = '%'.$term.'%';
+                $digits = preg_replace('/\D+/', '', $term) ?? '';
+
+                $query->where(function ($inner) use ($needle, $digits): void {
                     $inner->where('supplier_code', 'like', $needle)
                         ->orWhere('business_name_en', 'like', $needle)
                         ->orWhere('business_name_ur', 'like', $needle)
                         ->orWhere('city_en', 'like', $needle)
                         ->orWhere('city_ur', 'like', $needle)
-                        ->orWhere('email', 'like', $needle);
+                        ->orWhere('email', 'like', $needle)
+                        ->orWhere('contacts', 'like', $needle);
+
+                    if ($digits !== '') {
+                        $inner->orWhere('contacts', 'like', '%'.$digits.'%');
+                    }
                 });
             })
             ->when(filled($this->statusFilter), fn ($query) => $query->where('status', $this->statusFilter))
@@ -198,6 +321,6 @@ class ListSuppliers extends Component
             return true;
         }
 
-        return $user->hasPermission('contacts.' . $action);
+        return $user->hasPermission('contacts.'.$action);
     }
 }

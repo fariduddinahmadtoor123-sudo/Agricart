@@ -55,6 +55,26 @@ return [
         'driver' => env('AGRICART_SMS_DRIVER', 'log'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Supplier portable archive (.ags)
+    |--------------------------------------------------------------------------
+    |
+    | Shared secret for encrypting supplier export/import packages. When empty,
+    | Agricart uses a built-in format default so local and Hostinger installs of
+    | this codebase can exchange archives. Set a private key in production if
+    | you want archives that only your servers can open.
+    |
+    */
+    'supplier_archive_key' => env('AGRICART_SUPPLIER_ARCHIVE_KEY', ''),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Shared portable archive key (.ags for suppliers, customers, …)
+    |--------------------------------------------------------------------------
+    */
+    'portable_archive_key' => env('AGRICART_PORTABLE_ARCHIVE_KEY', env('AGRICART_SUPPLIER_ARCHIVE_KEY', '')),
+
     'online_store' => [
         'order_notifications' => [
             'email' => filter_var(env('AGRICART_ORDER_EMAIL_NOTIFY', true), FILTER_VALIDATE_BOOL),

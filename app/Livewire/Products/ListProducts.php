@@ -4,15 +4,22 @@ namespace App\Livewire\Products;
 
 use App\Models\Product;
 use App\Models\User;
+use App\Services\Catalog\CatalogPortableArchiveService;
+use App\Services\Catalog\FacebookCatalogCsvService;
 use App\Services\Catalog\ProductSearchQuery;
 use App\Services\Catalog\ProductService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\File;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ListProducts extends Component
 {
+    use WithFileUploads;
     use WithPagination;
 
     /** @var list<string> */
@@ -21,6 +28,15 @@ class ListProducts extends Component
     public string $search = '';
 
     public string $statusFilter = '';
+
+    public bool $showImportPanel = false;
+
+    /** @var mixed */
+    public $importArchive = null;
+
+    public ?string $portableStatus = null;
+
+    public string $portableStatusTone = 'success';
 
     #[On('products-saved')]
     public function refreshList(): void
@@ -78,6 +94,115 @@ class ListProducts extends Component
         $this->dispatch('products-columns-sync', columns: $this->visibleColumns);
     }
 
+    #[On('products-action')]
+    public function handleToolbarAction(string $action): mixed
+    {
+        return match ($action) {
+            'export_archive' => $this->exportArchive(),
+            'import_archive' => $this->openImportPanel(),
+            'export_facebook_csv' => $this->exportFacebookCsv(),
+            default => null,
+        };
+    }
+
+    public function openImportPanel(): void
+    {
+        if (! $this->userCan('create')) {
+            $this->portableStatus = __('agricart.products.portable.forbidden');
+            $this->portableStatusTone = 'danger';
+
+            return;
+        }
+
+        $this->showImportPanel = true;
+        $this->importArchive = null;
+        $this->portableStatus = null;
+    }
+
+    public function closeImportPanel(): void
+    {
+        $this->showImportPanel = false;
+        $this->importArchive = null;
+    }
+
+    public function exportArchive(): ?BinaryFileResponse
+    {
+        if (! $this->userCan('view')) {
+            $this->portableStatus = __('agricart.products.portable.forbidden');
+            $this->portableStatusTone = 'danger';
+
+            return null;
+        }
+
+        try {
+            $archive = app(CatalogPortableArchiveService::class)->exportAll();
+            $this->portableStatus = __('agricart.products.portable.export_ok', ['count' => $archive['count']]);
+            $this->portableStatusTone = 'success';
+
+            return response()->download($archive['path'], $archive['filename'])->deleteFileAfterSend(true);
+        } catch (ValidationException $exception) {
+            $this->portableStatus = collect($exception->errors())->flatten()->first();
+            $this->portableStatusTone = 'danger';
+
+            return null;
+        }
+    }
+
+    public function exportFacebookCsv(): ?BinaryFileResponse
+    {
+        if (! $this->userCan('view')) {
+            $this->portableStatus = __('agricart.products.portable.forbidden');
+            $this->portableStatusTone = 'danger';
+
+            return null;
+        }
+
+        $export = app(FacebookCatalogCsvService::class)->exportActiveProducts();
+        $this->portableStatus = __('agricart.products.portable.facebook_ok', ['count' => $export['count']]);
+        $this->portableStatusTone = 'success';
+
+        return response()->download($export['path'], $export['filename'])->deleteFileAfterSend(true);
+    }
+
+    public function importUploadedArchive(): void
+    {
+        if (! $this->userCan('create')) {
+            $this->portableStatus = __('agricart.products.portable.forbidden');
+            $this->portableStatusTone = 'danger';
+
+            return;
+        }
+
+        $this->validate([
+            'importArchive' => ['required', 'file', 'max:512000'],
+        ], [], [
+            'importArchive' => __('agricart.products.actions.import_archive'),
+        ]);
+
+        $stored = $this->importArchive->storeAs(
+            'tmp',
+            'catalog-import-'.uniqid('', true).'.ags',
+            'local',
+        );
+        $absolute = storage_path('app/'.$stored);
+
+        try {
+            $result = app(CatalogPortableArchiveService::class)->importFromPath($absolute);
+            $this->portableStatus = __('agricart.products.portable.import_ok', $result);
+            $this->portableStatusTone = 'success';
+            $this->showImportPanel = false;
+            $this->importArchive = null;
+            $this->resetPage();
+        } catch (ValidationException $exception) {
+            $this->portableStatus = collect($exception->errors())->flatten()->first();
+            $this->portableStatusTone = 'danger';
+        } finally {
+            if (is_file($absolute)) {
+                File::delete($absolute);
+            }
+        }
+    }
+
     public function openView(int $productId): void
     {
         $this->authorizeAction('view');
@@ -128,9 +253,25 @@ class ListProducts extends Component
             return;
         }
 
-        app(ProductService::class)->delete($product);
-        $this->dispatch('products-saved');
-        $this->resetPage();
+        try {
+            app(ProductService::class)->delete($product);
+            $this->dispatch('products-saved');
+            $this->resetPage();
+        } catch (ValidationException $exception) {
+            session()->flash('product_error', collect($exception->errors())->flatten()->first());
+        }
+    }
+
+    public function storeUrl(Product $product): string
+    {
+        return route('store.product', ['slug' => $product->slug]);
+    }
+
+    public function whatsappShareUrl(Product $product): string
+    {
+        $text = $product->name_en.' — '.$this->storeUrl($product);
+
+        return 'https://wa.me/?text='.rawurlencode($text);
     }
 
     public function render(): View

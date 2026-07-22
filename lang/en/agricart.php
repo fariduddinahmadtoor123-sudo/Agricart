@@ -41,6 +41,14 @@ return [
         'copied' => 'Copied',
     ],
 
+    'portable' => [
+        'export_failed' => 'Could not build the archive file.',
+        'import_missing' => 'Upload a valid Agricart archive (.ags) file.',
+        'import_invalid' => 'This file is not a valid Agricart portable archive.',
+        'import_format' => 'Unsupported archive format for this page.',
+        'import_decrypt' => 'Could not decrypt this archive. Use the same AGRICART_PORTABLE_ARCHIVE_KEY as the export server.',
+    ],
+
     'errors' => [
         'generic' => 'Something went wrong. Please try again — if it keeps happening, the details are saved in the system log.',
         'decrypt' => 'A saved secret (like an AI API key) cannot be read on this installation — this usually happens after restoring a backup from another server. Re-enter the key in Settings → AI.',
@@ -1663,6 +1671,7 @@ return [
             'delivery_required' => 'Select at least one delivery option.',
             'delivery_missing' => 'The selected delivery option no longer exists.',
             'delivery_inactive' => 'The selected delivery option is inactive.',
+            'delete_blocked' => 'This product is used on sales, purchases, quotations, returns, online orders, or reorder queues. Set status to inactive instead of deleting.',
             'search_terms_invalid' => 'Search Terms must be a valid JSON array.',
             'image_invalid' => 'Please choose a valid image file (max 5 MB).',
             'ui_only' => 'Product form schema is ready. Saving and label generation will be enabled in the next step.',
@@ -1688,6 +1697,18 @@ return [
             'edit_short' => 'Edit',
             'delete_short' => 'Delete',
             'delete_confirm' => 'Delete this product permanently?',
+            'export_archive' => 'Export archive',
+            'import_archive' => 'Import archive',
+            'export_facebook_csv' => 'Facebook CSV',
+            'store_link' => 'Store link',
+            'whatsapp_share' => 'WhatsApp',
+        ],
+        'portable' => [
+            'hint' => 'Encrypted .ags package: products, brands, categories, units, attributes, controls, and images. Upserts by code/slug. Passwords/stock movements are not included. Delivery methods must already exist in Logistics (matched by slug).',
+            'export_ok' => 'Exported catalog (:count products).',
+            'import_ok' => 'Import finished: :created created, :updated updated, :skipped skipped, :media media files, :products products written.',
+            'facebook_ok' => 'Facebook CSV ready (:count active products). Upload it in Meta Commerce Manager.',
+            'forbidden' => 'You do not have permission to import or export the catalog.',
         ],
     ],
 
