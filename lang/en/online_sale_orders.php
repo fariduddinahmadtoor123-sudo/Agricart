@@ -125,7 +125,7 @@ return [
     'list' => [
         'empty' => 'No online orders yet.',
         'empty_hint' => 'Orders are created when customers check out on your store. For a test order, run: php artisan online-orders:demo',
-        'quotations_note' => 'These are online quotations (checkout before invoice). After you verify payment and Convert into Invoice, they move to Ready for Queue.',
+        'quotations_note' => 'These are online quotations (checkout before invoice). After you verify payment and Convert into Invoice, they appear in Online Orders in Queue for forwarding.',
         'quotations_empty' => 'No online quotations yet.',
         'quotations_empty_hint' => 'Quotations appear when a customer completes checkout on the store.',
         'invoices_note' => 'Paid invoices waiting for the dispatch queue. Permanent records stay on Sales & POS. Use Send Invoice to Queue or Send Packing List to Queue when ready.',

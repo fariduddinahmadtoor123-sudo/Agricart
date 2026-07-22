@@ -2,7 +2,8 @@
 
 namespace App\Services\Sales;
 
-use App\Filament\Clusters\Sales\OnlineOrdersPage;
+use App\Filament\Clusters\Sales\OnlineQuotationsPage;
+use App\Filament\Clusters\Sales\OrderDispatchPage;
 use App\Filament\Clusters\Sales\PosSalesPage;
 use App\Filament\Clusters\Sales\SalesQuotationsPage;
 use App\Filament\Clusters\Sales\SalesReturnsPage;
@@ -37,7 +38,7 @@ class SalesSearchService
             'sales_returns' => SalesReturnsPage::canAccess()
                 ? $this->mapReturns($needle, $limitPerGroup)
                 : [],
-            'online_orders' => OnlineOrdersPage::canAccess()
+            'online_orders' => (OnlineQuotationsPage::canAccess() || OrderDispatchPage::canAccess())
                 ? $this->mapOnlineOrders($needle, $limitPerGroup)
                 : [],
         ], fn (array $items): bool => $items !== []);
@@ -131,8 +132,6 @@ class SalesSearchService
      */
     private function mapOnlineOrders(string $needle, int $limit): array
     {
-        $url = OnlineOrdersPage::getUrl();
-
         return OnlineSaleOrder::query()
             ->with(['customer'])
             ->where(function (Builder $query) use ($needle): void {
@@ -146,11 +145,19 @@ class SalesSearchService
             ->orderByDesc('order_date')
             ->limit($limit)
             ->get()
-            ->map(fn (OnlineSaleOrder $order): array => [
-                'label' => (string) $order->order_number,
-                'meta' => $order->customer?->displayLabel(),
-                'url' => $url,
-            ])
+            ->map(function (OnlineSaleOrder $order): array {
+                $inQueue = $order->order_status === OnlineSaleOrder::STATUS_CONVERTED
+                    && $order->queued_at !== null
+                    && OrderDispatchPage::canAccess();
+
+                return [
+                    'label' => (string) $order->order_number,
+                    'meta' => $order->customer?->displayLabel(),
+                    'url' => $inQueue
+                        ? OrderDispatchPage::getUrl()
+                        : OnlineQuotationsPage::getUrl(),
+                ];
+            })
             ->all();
     }
 }

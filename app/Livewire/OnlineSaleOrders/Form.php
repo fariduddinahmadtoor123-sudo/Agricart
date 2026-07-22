@@ -452,7 +452,7 @@ class Form extends Component
             $this->dispatch('online-sale-orders-saved');
             $this->dispatch('online-quotations-saved');
             $this->dispatch('close-form-panel');
-            $this->redirect(\App\Filament\Clusters\Sales\OnlineOrdersPage::getUrl(), navigate: true);
+            $this->redirect(\App\Filament\Clusters\Sales\OrderDispatchPage::getUrl(), navigate: true);
         } catch (ValidationException $exception) {
             $this->setStatus((string) (collect($exception->errors())->flatten()->first()
                 ?? __('online_sale_orders.messages.save_failed')), 'error');

@@ -220,8 +220,10 @@ class OnlineSaleOrderService
                 'amount_paid' => $total,
                 'converted_at' => now(),
                 'converted_by_id' => $actor->id,
-                'queued_at' => null,
-                'queue_document' => null,
+                // Skip the old "Ready for Queue" holding step — invoices enter dispatch immediately.
+                'queued_at' => now(),
+                'queue_document' => OnlineSaleOrder::QUEUE_DOCUMENT_INVOICE,
+                'fulfillment_status' => $order->fulfillment_status ?: OnlineSaleOrder::FULFILLMENT_AWAITING,
             ])->save();
 
             app(ActivityLogger::class)->onlineQuotationConverted($order->fresh(), $sale, $actor);

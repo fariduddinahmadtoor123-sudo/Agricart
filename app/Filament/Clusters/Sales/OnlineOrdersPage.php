@@ -20,6 +20,12 @@ class OnlineOrdersPage extends BaseModulePage
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedGlobeAlt;
 
+    /**
+     * Holding step removed: Convert into Invoice now queues directly for dispatch.
+     * Page kept for any legacy unqueued invoices (URL still works).
+     */
+    protected static bool $shouldRegisterNavigation = false;
+
     protected string $view = 'filament.pages.sales.online-orders';
 
     public function getHeading(): string|Htmlable|null

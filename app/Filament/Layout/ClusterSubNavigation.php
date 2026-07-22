@@ -42,6 +42,10 @@ abstract class ClusterSubNavigation
                 continue;
             }
 
+            if (! $component::shouldRegisterNavigation()) {
+                continue;
+            }
+
             $clusterClass = static::clusterClass();
 
             if (

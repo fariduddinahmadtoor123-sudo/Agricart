@@ -20,8 +20,6 @@ class ForwardedOrdersPage extends BaseModulePage
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPaperAirplane;
 
-    protected static bool $shouldRegisterNavigation = false;
-
     protected string $view = 'filament.pages.sales.forwarded-orders';
 
     public function getHeading(): string|Htmlable|null

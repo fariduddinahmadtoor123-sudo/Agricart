@@ -71,9 +71,9 @@ return [
     ],
 
     'list' => [
-        'queue_note' => 'Invoices and packing lists from Ready for Queue that still need Forward. After you forward, they move to Forwarded until Mark released.',
-        'empty' => 'No orders left in the queue (all forwarded, or none sent from Ready for Queue yet).',
-        'empty_hint' => 'Send from Ready for Queue, then forward packing lists to suppliers or invoices to staff here.',
+        'queue_note' => 'Converted invoices waiting for Forward. After you forward, they move to Forwarded until Mark released.',
+        'empty' => 'No orders left in the queue (all forwarded, or none converted to invoice yet).',
+        'empty_hint' => 'Convert a quotation into an invoice, then forward packing lists to suppliers or invoices to staff here.',
         'no_results' => 'No orders match your search or filters.',
         'col_fulfillment' => 'Fulfillment',
         'col_staff' => 'Staff',

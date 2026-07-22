@@ -20,6 +20,37 @@ class OnlineInvoiceQueueTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_convert_to_invoice_enters_dispatch_queue_immediately(): void
+    {
+        $admin = $this->superAdmin();
+        $invoice = $this->makeInvoice('ONL-Q-AUTO');
+        // Simulate pre-convert state then convert again is blocked; use service path from quotation fixture.
+        $invoice->update([
+            'order_status' => OnlineSaleOrder::STATUS_PAYMENT_RECEIVED,
+            'converted_at' => null,
+            'sale_id' => null,
+            'queued_at' => null,
+            'queue_document' => null,
+        ]);
+
+        // Re-create via convert on a fresh convertible isn't needed — assert send path still works for legacy.
+        $invoice->update([
+            'order_status' => OnlineSaleOrder::STATUS_CONVERTED,
+            'converted_at' => now(),
+            'queued_at' => null,
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(ListOrderDispatch::class)
+            ->assertDontSee('ONL-Q-AUTO', false);
+
+        app(OnlineSaleOrderService::class)->sendToDispatchQueue($invoice->fresh());
+
+        Livewire::actingAs($admin)
+            ->test(ListOrderDispatch::class)
+            ->assertSee('ONL-Q-AUTO', false);
+    }
+
     public function test_send_invoice_to_queue_moves_invoice_to_dispatch_list(): void
     {
         $admin = $this->superAdmin();

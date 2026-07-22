@@ -6,6 +6,7 @@ use App\Enums\ActivityEvent;
 use App\Livewire\OnlineSaleOrders\Form;
 use App\Livewire\OnlineSaleOrders\ListOnlineSaleOrders;
 use App\Livewire\OnlineSaleOrders\ListOnlineSaleQuotations;
+use App\Livewire\OnlineSaleOrders\ListOrderDispatch;
 use App\Livewire\Sales\ListSales;
 use App\Models\ActivityLog;
 use App\Models\Category;
@@ -60,7 +61,8 @@ class OnlineQuotationInvoiceSplitTest extends TestCase
         $this->assertSame(OnlineSaleOrder::STATUS_CONVERTED, $order->order_status);
         $this->assertSame('paid', $order->payment_status);
         $this->assertEquals(250.0, (float) $order->amount_paid);
-        $this->assertNull($order->queued_at);
+        $this->assertNotNull($order->queued_at);
+        $this->assertSame(OnlineSaleOrder::QUEUE_DOCUMENT_INVOICE, $order->queue_document);
         $this->assertNotNull($order->sale_id);
 
         $sale = Sale::query()->find($order->sale_id);
@@ -87,10 +89,12 @@ class OnlineQuotationInvoiceSplitTest extends TestCase
 
         Livewire::actingAs($admin)
             ->test(ListOnlineSaleOrders::class)
+            ->assertDontSee($order->order_number, false);
+
+        Livewire::actingAs($admin)
+            ->test(ListOrderDispatch::class)
             ->assertSee($order->order_number, false)
-            ->assertSee($sale->sale_number, false)
-            ->assertSee(__('online_sale_orders.actions.send_invoice_to_queue'), false)
-            ->assertSee(__('online_sale_orders.actions.send_packing_list_to_queue'), false);
+            ->assertSee(__('online_sale_orders.actions.forward_short'), false);
 
         Livewire::actingAs($admin)
             ->test(ListSales::class)

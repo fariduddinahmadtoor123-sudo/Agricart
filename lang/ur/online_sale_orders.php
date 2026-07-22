@@ -125,7 +125,7 @@ return [
     'list' => [
         'empty' => 'ابھی کوئی آن لائن آرڈر نہیں۔',
         'empty_hint' => 'آرڈرز سٹور پر چیک آؤٹ سے بنیں گے۔ ٹیسٹ کے لیے: php artisan online-orders:demo',
-        'quotations_note' => 'یہ آن لائن کوٹیشنز ہیں (انوائس سے پہلے چیک آؤٹ)۔ ادائیگی تصدیق اور Convert into Invoice کے بعد یہ Ready for Queue پر چلی جاتی ہیں۔',
+        'quotations_note' => 'یہ آن لائن کوٹیشنز ہیں (انوائس سے پہلے چیک آؤٹ)۔ ادائیگی تصدیق اور Convert into Invoice کے بعد یہ Online Orders in Queue پر فارورڈ کے لیے آ جاتی ہیں۔',
         'quotations_empty' => 'ابھی کوئی آن لائن کوٹیشن نہیں۔',
         'quotations_empty_hint' => 'گاہک سٹور پر چیک آؤٹ مکمل کرے تو کوٹیشن یہاں آئے گی۔',
         'invoices_note' => 'ادا شدہ انوائسز جو کیو کے انتظار میں ہیں۔ مستقل ریکارڈ Sales & POS پر۔ تیار ہوں تو Send Invoice to Queue یا Send Packing List to Queue استعمال کریں۔',

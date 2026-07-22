@@ -2,7 +2,7 @@
 
 namespace App\Services\Sales;
 
-use App\Filament\Clusters\Sales\OnlineOrdersPage;
+use App\Filament\Clusters\Sales\OnlineQuotationsPage;
 use App\Filament\Clusters\Sales\OrderDispatchPage;
 use App\Filament\Clusters\Sales\PosSalesPage;
 use App\Filament\Clusters\Sales\SalesQuotationsPage;
@@ -86,7 +86,7 @@ class SalesOverviewService
             ->where('order_status', OnlineSaleOrder::STATUS_PENDING)
             ->count();
 
-        return $this->card('online_orders', $count, $open, OnlineOrdersPage::class);
+        return $this->card('online_orders', $count, $open, OnlineQuotationsPage::class);
     }
 
     /**
