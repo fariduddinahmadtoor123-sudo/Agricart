@@ -101,17 +101,23 @@ class OpenRouterClient implements AiProviderClient
      * @param  list<array<string, mixed>>  $messages
      * @return array{success: bool, message: string, response: string|null, http_status?: int|null}
      */
-    public function sendChat(string $apiKey, string $modelId, array $messages, int $maxTokens = 300): array
+    public function sendChat(string $apiKey, string $modelId, array $messages, int $maxTokens = 300, bool $jsonObject = false): array
     {
         try {
+            $payload = [
+                'model' => $modelId,
+                'messages' => $messages,
+                'max_tokens' => $maxTokens,
+                'temperature' => 0.4,
+            ];
+
+            if ($jsonObject) {
+                $payload['response_format'] = ['type' => 'json_object'];
+            }
+
             $response = Http::withHeaders($this->headers($apiKey))
-                ->timeout(90)
-                ->post(self::BASE_URL . '/chat/completions', [
-                    'model' => $modelId,
-                    'messages' => $messages,
-                    'max_tokens' => $maxTokens,
-                    'temperature' => 0.4,
-                ]);
+                ->timeout(120)
+                ->post(self::BASE_URL.'/chat/completions', $payload);
 
             if ($response->failed()) {
                 return [
@@ -162,8 +168,15 @@ class OpenRouterClient implements AiProviderClient
     /**
      * @return array{success: bool, message: string, response: string|null, http_status?: int|null}
      */
-    public function chatWithImage(string $apiKey, string $modelId, string $prompt, string $imageBase64, string $mimeType = 'image/jpeg'): array
-    {
+    public function chatWithImage(
+        string $apiKey,
+        string $modelId,
+        string $prompt,
+        string $imageBase64,
+        string $mimeType = 'image/jpeg',
+        int $maxTokens = 4096,
+        bool $jsonObject = false,
+    ): array {
         return $this->sendChat($apiKey, $modelId, [
             [
                 'role' => 'user',
@@ -175,12 +188,12 @@ class OpenRouterClient implements AiProviderClient
                     [
                         'type' => 'image_url',
                         'image_url' => [
-                            'url' => 'data:' . $mimeType . ';base64,' . $imageBase64,
+                            'url' => 'data:'.$mimeType.';base64,'.$imageBase64,
                         ],
                     ],
                 ],
             ],
-        ], 4096);
+        ], $maxTokens, $jsonObject);
     }
 
     /**

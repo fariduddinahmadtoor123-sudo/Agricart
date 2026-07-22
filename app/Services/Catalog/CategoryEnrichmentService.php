@@ -11,6 +11,8 @@ use Illuminate\Support\Str;
 
 class CategoryEnrichmentService
 {
+    private const MAX_TOKENS = 8192;
+
     public function __construct(
         private readonly AiConfigurationService $ai,
         private readonly OpenRouterClient $openRouter,
@@ -54,28 +56,37 @@ class CategoryEnrichmentService
 
         $prompt = filled($customPrompt) ? $customPrompt : self::defaultPrompt();
         $prompt = str_replace(':name', $englishName, $prompt);
+        $prompt .= "\n\nImportant: respond with a single valid JSON object only. Do not truncate fields.";
 
-        $result = filled($imagePath) && is_readable($imagePath)
-            ? $this->callWithImage($configuration, $prompt, $imagePath)
-            : $this->callTextOnly($configuration, $prompt, $englishName);
+        $attempts = 0;
+        $lastFailure = __('agricart.categories.ai.invalid_json');
 
-        if (! $result['success']) {
-            return $result;
-        }
+        while ($attempts < 2) {
+            $attempts++;
+            $result = filled($imagePath) && is_readable($imagePath)
+                ? $this->callWithImage($configuration, $prompt, $imagePath)
+                : $this->callTextOnly($configuration, $prompt, $englishName);
 
-        $parsed = $this->parseResponse((string) $result['response']);
+            if (! $result['success']) {
+                return $result;
+            }
 
-        if ($parsed === null) {
-            return [
-                'success' => false,
-                'message' => __('agricart.categories.ai.invalid_json'),
-            ];
+            $parsed = $this->parseResponse((string) $result['response']);
+
+            if ($parsed !== null) {
+                return [
+                    'success' => true,
+                    'message' => __('agricart.categories.ai.enriched'),
+                    'data' => $parsed,
+                ];
+            }
+
+            $lastFailure = __('agricart.categories.ai.invalid_json');
         }
 
         return [
-            'success' => true,
-            'message' => __('agricart.categories.ai.enriched'),
-            'data' => $parsed,
+            'success' => false,
+            'message' => $lastFailure,
         ];
     }
 
@@ -94,9 +105,26 @@ class CategoryEnrichmentService
             $prompt,
             $base64,
             $mime,
+            self::MAX_TOKENS,
+            true,
         );
 
         $this->logPrompt($configuration, $prompt, $result, (int) ((microtime(true) - $start) * 1000));
+
+        // Some models reject response_format; fall back without JSON mode once.
+        if (! $result['success'] && str_contains(mb_strtolower($result['message']), 'response_format')) {
+            $start = microtime(true);
+            $result = $this->openRouter->chatWithImage(
+                $configuration->api_key,
+                $configuration->model_id,
+                $prompt,
+                $base64,
+                $mime,
+                self::MAX_TOKENS,
+                false,
+            );
+            $this->logPrompt($configuration, $prompt.' [fallback-no-json-mode]', $result, (int) ((microtime(true) - $start) * 1000));
+        }
 
         return $result;
     }
@@ -114,7 +142,7 @@ class CategoryEnrichmentService
             ];
         }
 
-        $fullPrompt = $prompt . "\n\nEnglish category name: " . $englishName;
+        $fullPrompt = $prompt."\n\nEnglish category name: ".$englishName;
 
         $start = microtime(true);
         $result = $this->openRouter->sendChat(
@@ -126,10 +154,28 @@ class CategoryEnrichmentService
                     'content' => $fullPrompt,
                 ],
             ],
-            4096,
+            self::MAX_TOKENS,
+            true,
         );
 
         $this->logPrompt($configuration, $fullPrompt, $result, (int) ((microtime(true) - $start) * 1000));
+
+        if (! $result['success'] && str_contains(mb_strtolower($result['message']), 'response_format')) {
+            $start = microtime(true);
+            $result = $this->openRouter->sendChat(
+                $configuration->api_key,
+                $configuration->model_id,
+                [
+                    [
+                        'role' => 'user',
+                        'content' => $fullPrompt,
+                    ],
+                ],
+                self::MAX_TOKENS,
+                false,
+            );
+            $this->logPrompt($configuration, $fullPrompt.' [fallback-no-json-mode]', $result, (int) ((microtime(true) - $start) * 1000));
+        }
 
         return $result;
     }
@@ -157,26 +203,91 @@ class CategoryEnrichmentService
      */
     public function parseResponse(string $response): ?array
     {
+        $candidates = $this->jsonCandidates($response);
+
+        foreach ($candidates as $candidate) {
+            $decoded = json_decode($candidate, true);
+
+            if (! is_array($decoded)) {
+                $decoded = json_decode($this->repairTruncatedJson($candidate), true);
+            }
+
+            if (! is_array($decoded) || $decoded === []) {
+                continue;
+            }
+
+            $normalized = $this->normalizePayload($decoded);
+
+            if ($this->hasUsableContent($normalized)) {
+                return $normalized;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function jsonCandidates(string $response): array
+    {
         $json = trim($response);
+        $json = preg_replace('/^\xEF\xBB\xBF/', '', $json) ?? $json;
 
         if (str_starts_with($json, '```')) {
             $json = preg_replace('/^```(?:json)?\s*/i', '', $json) ?? $json;
             $json = preg_replace('/\s*```$/', '', $json) ?? $json;
+            $json = trim($json);
         }
 
-        $decoded = json_decode($json, true);
+        $candidates = [$json];
 
-        if (! is_array($decoded)) {
-            if (preg_match('/\{[\s\S]*\}/', $response, $matches)) {
-                $decoded = json_decode($matches[0], true);
+        if (preg_match('/\{[\s\S]*\}/', $response, $matches) === 1) {
+            $candidates[] = $matches[0];
+        }
+
+        return array_values(array_unique(array_filter($candidates, fn (string $value): bool => $value !== '')));
+    }
+
+    private function repairTruncatedJson(string $json): string
+    {
+        $json = rtrim($json);
+        $json = preg_replace('/,\s*$/', '', $json) ?? $json;
+
+        // Close an open string if truncation cut mid-value.
+        $quoteCount = substr_count($json, '"') - substr_count($json, '\\"');
+        if ($quoteCount % 2 === 1) {
+            $json .= '"';
+        }
+
+        $json = preg_replace('/,\s*$/', '', $json) ?? $json;
+
+        $opens = substr_count($json, '{') - substr_count($json, '}');
+        $openArrays = substr_count($json, '[') - substr_count($json, ']');
+
+        if ($openArrays > 0) {
+            $json .= str_repeat(']', $openArrays);
+        }
+
+        if ($opens > 0) {
+            $json .= str_repeat('}', $opens);
+        }
+
+        return $json;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function hasUsableContent(array $payload): bool
+    {
+        foreach (['name_en', 'name_ur', 'short_description_en', 'seo_title_en', 'full_description_en'] as $key) {
+            if (filled($payload[$key] ?? null)) {
+                return true;
             }
         }
 
-        if (! is_array($decoded)) {
-            return null;
-        }
-
-        return $this->normalizePayload($decoded);
+        return false;
     }
 
     /**
