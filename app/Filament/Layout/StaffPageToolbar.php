@@ -73,7 +73,7 @@ class StaffPageToolbar extends ClusterPageToolbar
                     ['label' => __('agricart.staff.members.list.col_role'), 'value' => 'role', 'visible' => true],
                     ['label' => __('agricart.staff.members.list.col_status'), 'value' => 'status', 'visible' => true],
                 ],
-                'formKey' => 'users',
+                'formKey' => 'staff',
                 'formContext' => 'staff',
             ],
             'pay-management' => [

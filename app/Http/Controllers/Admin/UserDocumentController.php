@@ -32,17 +32,21 @@ class UserDocumentController extends Controller
         };
         $path = $user->{$field};
 
-        abort_unless(
-            is_string($path)
-            && str_starts_with($path, 'users/cnic/')
-            && Storage::disk('local')->exists($path),
-            404,
-        );
+        abort_unless(is_string($path) && str_starts_with($path, 'users/cnic/'), 404);
 
-        return Storage::disk('local')->response(
+        $disk = match (true) {
+            Storage::disk('local')->exists($path) => 'local',
+            Storage::disk('public')->exists($path) => 'public',
+            default => null,
+        };
+
+        abort_unless($disk !== null, 404);
+
+        return Storage::disk($disk)->response(
             $path,
             basename($path),
             [
+                'Content-Disposition' => 'inline; filename="'.basename($path).'"',
                 'Cache-Control' => 'private, no-store, max-age=0',
                 'Pragma' => 'no-cache',
                 'X-Content-Type-Options' => 'nosniff',

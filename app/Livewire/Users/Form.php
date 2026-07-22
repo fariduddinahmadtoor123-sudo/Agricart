@@ -655,12 +655,18 @@ class Form extends Component
             $this->storedCnicFrontPath = app(\App\Services\Media\OptimizedImageStorage::class)
                 ->store($this->cnicFrontUpload, 'users/cnic', disk: 'local');
             $this->cnicFrontUpload = null;
+            if ($this->userId) {
+                $this->cnicFrontPreviewUrl = $this->secureDocumentUrlForId($this->userId, 'front', $this->storedCnicFrontPath);
+            }
         }
 
         if ($this->cnicBackUpload !== null) {
             $this->storedCnicBackPath = app(\App\Services\Media\OptimizedImageStorage::class)
                 ->store($this->cnicBackUpload, 'users/cnic', disk: 'local');
             $this->cnicBackUpload = null;
+            if ($this->userId) {
+                $this->cnicBackPreviewUrl = $this->secureDocumentUrlForId($this->userId, 'back', $this->storedCnicBackPath);
+            }
         }
     }
 
@@ -673,9 +679,19 @@ class Form extends Component
     {
         $path = $side === 'front' ? $user->cnic_front_path : $user->cnic_back_path;
 
-        return filled($path)
-            ? route('admin.users.documents.show', ['user' => $user, 'side' => $side])
-            : null;
+        return $this->secureDocumentUrlForId($user->id, $side, $path);
+    }
+
+    private function secureDocumentUrlForId(int $userId, string $side, ?string $path): ?string
+    {
+        if (! filled($path)) {
+            return null;
+        }
+
+        return route('admin.users.documents.show', [
+            'user' => $userId,
+            'side' => $side,
+        ], absolute: false);
     }
 
     private function resetForm(): void

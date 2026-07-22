@@ -57,6 +57,23 @@ class PrivateUserDocumentTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_cnic_document_falls_back_to_public_disk_when_missing_on_local(): void
+    {
+        Storage::fake('local');
+        Storage::fake('public');
+
+        $admin = $this->superAdmin();
+        $staff = User::factory()->create([
+            'status' => User::STATUS_ACTIVE,
+            'cnic_front_path' => 'users/cnic/legacy-front.webp',
+        ]);
+        Storage::disk('public')->put($staff->cnic_front_path, 'legacy-public-image');
+
+        $this->actingAs($admin)
+            ->get(route('admin.users.documents.show', ['user' => $staff, 'side' => 'front']))
+            ->assertOk();
+    }
+
     private function superAdmin(): User
     {
         $role = Role::query()->create([

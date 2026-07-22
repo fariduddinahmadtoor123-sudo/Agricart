@@ -282,15 +282,28 @@
 
     <section class="agricart-form-panel__section agricart-user-form__section">
         <h3 class="agricart-form-panel__section-title">{{ __('agricart.users.sections.documents') }}</h3>
+        @php
+            $profileSrc = $profilePhotoPreviewUrl;
+            $cnicFrontSrc = $cnicFrontUpload
+                ? $cnicFrontPreviewUrl
+                : ($userId && filled($storedCnicFrontPath)
+                    ? route('admin.users.documents.show', ['user' => $userId, 'side' => 'front'], absolute: false)
+                    : $cnicFrontPreviewUrl);
+            $cnicBackSrc = $cnicBackUpload
+                ? $cnicBackPreviewUrl
+                : ($userId && filled($storedCnicBackPath)
+                    ? route('admin.users.documents.show', ['user' => $userId, 'side' => 'back'], absolute: false)
+                    : $cnicBackPreviewUrl);
+        @endphp
         <div class="agricart-user-form__documents">
             <div class="agricart-user-form__document">
                 <span class="agricart-form-panel__label">{{ __('agricart.users.fields.profile_photo') }}</span>
-                <label class="agricart-user-form__document-upload">
-                    @if ($profilePhotoPreviewUrl)
-                        <img src="{{ $profilePhotoPreviewUrl }}" alt="" class="agricart-user-form__document-preview" />
+                <label @class(['agricart-user-form__document-upload', 'is-readonly' => $readonly])>
+                    @if ($profileSrc)
+                        <img src="{{ $profileSrc }}" alt="{{ __('agricart.users.fields.profile_photo') }}" class="agricart-user-form__document-preview" loading="lazy" />
                     @else
                         <x-filament::icon :icon="Heroicon::OutlinedPhoto" class="agricart-user-form__document-placeholder" />
-                        <span>{{ __('agricart.users.hints.choose_file') }}</span>
+                        <span>{{ $readonly ? __('agricart.approvals.staff.view.no_document') : __('agricart.users.hints.choose_file') }}</span>
                     @endif
                     @unless ($readonly)
                         <input type="file" wire:model="profilePhotoUpload" accept="image/*" class="agricart-category-form__file-input" />
@@ -300,12 +313,18 @@
 
             <div class="agricart-user-form__document">
                 <span class="agricart-form-panel__label">{{ __('agricart.users.fields.cnic_front') }}</span>
-                <label class="agricart-user-form__document-upload">
-                    @if ($cnicFrontPreviewUrl)
-                        <img src="{{ $cnicFrontPreviewUrl }}" alt="" class="agricart-user-form__document-preview" />
+                <label @class(['agricart-user-form__document-upload', 'is-readonly' => $readonly])>
+                    @if ($cnicFrontSrc)
+                        @if ($readonly)
+                            <a href="{{ $cnicFrontSrc }}" target="_blank" rel="noopener noreferrer" class="agricart-user-form__document-link">
+                                <img src="{{ $cnicFrontSrc }}" alt="{{ __('agricart.users.fields.cnic_front') }}" class="agricart-user-form__document-preview" loading="lazy" />
+                            </a>
+                        @else
+                            <img src="{{ $cnicFrontSrc }}" alt="{{ __('agricart.users.fields.cnic_front') }}" class="agricart-user-form__document-preview" loading="lazy" />
+                        @endif
                     @else
                         <x-filament::icon :icon="Heroicon::OutlinedIdentification" class="agricart-user-form__document-placeholder" />
-                        <span>{{ __('agricart.users.hints.choose_file') }}</span>
+                        <span>{{ $readonly ? __('agricart.approvals.staff.view.no_document') : __('agricart.users.hints.choose_file') }}</span>
                     @endif
                     @unless ($readonly)
                         <input type="file" wire:model="cnicFrontUpload" accept="image/*" class="agricart-category-form__file-input" />
@@ -315,12 +334,18 @@
 
             <div class="agricart-user-form__document">
                 <span class="agricart-form-panel__label">{{ __('agricart.users.fields.cnic_back') }}</span>
-                <label class="agricart-user-form__document-upload">
-                    @if ($cnicBackPreviewUrl)
-                        <img src="{{ $cnicBackPreviewUrl }}" alt="" class="agricart-user-form__document-preview" />
+                <label @class(['agricart-user-form__document-upload', 'is-readonly' => $readonly])>
+                    @if ($cnicBackSrc)
+                        @if ($readonly)
+                            <a href="{{ $cnicBackSrc }}" target="_blank" rel="noopener noreferrer" class="agricart-user-form__document-link">
+                                <img src="{{ $cnicBackSrc }}" alt="{{ __('agricart.users.fields.cnic_back') }}" class="agricart-user-form__document-preview" loading="lazy" />
+                            </a>
+                        @else
+                            <img src="{{ $cnicBackSrc }}" alt="{{ __('agricart.users.fields.cnic_back') }}" class="agricart-user-form__document-preview" loading="lazy" />
+                        @endif
                     @else
                         <x-filament::icon :icon="Heroicon::OutlinedIdentification" class="agricart-user-form__document-placeholder" />
-                        <span>{{ __('agricart.users.hints.choose_file') }}</span>
+                        <span>{{ $readonly ? __('agricart.approvals.staff.view.no_document') : __('agricart.users.hints.choose_file') }}</span>
                     @endif
                     @unless ($readonly)
                         <input type="file" wire:model="cnicBackUpload" accept="image/*" class="agricart-category-form__file-input" />
