@@ -19,25 +19,32 @@ class OptimizedImageStorage
      * Store an upload with industry-standard resize + WebP when the preset allows.
      * Falls back to a normal store() if GD cannot process the file.
      */
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
     public function store(
         TemporaryUploadedFile|UploadedFile $file,
         string $directory,
         ?string $preset = null,
         ?string $disk = null,
+        ?string $originalName = null,
+        ?string $displayName = null,
+        array $metadata = [],
     ): string {
         $disk ??= (string) config('media.disk', 'public');
         $directory = trim($directory, '/');
         $presetKey = $preset ?? $this->presetForDirectory($directory);
         $options = $this->presetOptions($presetKey);
+        $originalName ??= $file->getClientOriginalName();
 
         if (! ($options['convert_webp'] ?? false)) {
-            return $this->storeOriginal($file, $directory, $disk);
+            return $this->storeOriginal($file, $directory, $disk, $originalName, $displayName, $metadata);
         }
 
         $sourcePath = $file->getRealPath();
 
         if (! is_string($sourcePath) || $sourcePath === '' || ! is_readable($sourcePath)) {
-            return $this->storeOriginal($file, $directory, $disk);
+            return $this->storeOriginal($file, $directory, $disk, $originalName, $displayName, $metadata);
         }
 
         try {
@@ -48,21 +55,27 @@ class OptimizedImageStorage
                 (int) ($options['quality'] ?? 82),
             );
         } catch (\Throwable) {
-            return $this->storeOriginal($file, $directory, $disk);
+            return $this->storeOriginal($file, $directory, $disk, $originalName, $displayName, $metadata);
         }
 
+        Storage::disk($disk)->makeDirectory($directory);
         $relative = $directory.'/'.Str::random(40).'.webp';
 
         if (! Storage::disk($disk)->put($relative, $binary)) {
             throw new RuntimeException('Failed to store optimized image.');
         }
 
+        if (! Storage::disk($disk)->exists($relative)) {
+            throw new RuntimeException('Optimized image was not persisted to storage.');
+        }
+
         $this->library->registerPath(
             $relative,
-            $file->getClientOriginalName(),
-            null,
+            $originalName,
+            $displayName,
             $this->librarySource($directory),
             $disk,
+            $metadata,
         );
 
         return $relative;
@@ -234,23 +247,43 @@ class OptimizedImageStorage
         return $binary;
     }
 
+    /**
+     * @param  array<string, mixed>  $metadata
+     */
     private function storeOriginal(
         TemporaryUploadedFile|UploadedFile $file,
         string $directory,
         string $disk,
+        ?string $originalName = null,
+        ?string $displayName = null,
+        array $metadata = [],
     ): string {
-        $path = $file->store($directory, $disk);
+        Storage::disk($disk)->makeDirectory($directory);
 
-        if (! is_string($path) || $path === '') {
+        $extension = strtolower((string) ($file->getClientOriginalExtension() ?: $file->extension() ?: 'jpg'));
+        $extension = preg_replace('/[^a-z0-9]/', '', $extension) ?: 'jpg';
+        $path = $directory.'/'.Str::random(40).'.'.$extension;
+        $contents = $file->get();
+
+        if (! is_string($contents) || $contents === '') {
+            throw new RuntimeException('Failed to read uploaded image.');
+        }
+
+        if (! Storage::disk($disk)->put($path, $contents)) {
             throw new RuntimeException('Failed to store image.');
+        }
+
+        if (! Storage::disk($disk)->exists($path)) {
+            throw new RuntimeException('Uploaded image was not persisted to storage.');
         }
 
         $this->library->registerPath(
             $path,
-            $file->getClientOriginalName(),
-            null,
+            $originalName ?? $file->getClientOriginalName(),
+            $displayName,
             $this->librarySource($directory),
             $disk,
+            $metadata,
         );
 
         return $path;

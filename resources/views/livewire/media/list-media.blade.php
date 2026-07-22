@@ -26,6 +26,20 @@
         @endforeach
     </div>
 
+    @if ($canManage && $usageFilter === 'unused' && $statusFilter !== 'trash' && $stats['unused'] > 0)
+        <div class="agricart-media-library__bulk">
+            <p>{{ __('agricart.media.bulk_unused_help') }}</p>
+            <button
+                type="button"
+                class="agricart-media-library__bulk-btn"
+                wire:click="trashAllUnused"
+                wire:confirm="{{ __('agricart.media.confirm_trash_unused') }}"
+            >
+                {{ __('agricart.media.actions.trash_all_unused') }}
+            </button>
+        </div>
+    @endif
+
     @if ($assets->isEmpty())
         <div class="agricart-media-library__empty">
             <strong>{{ __('agricart.media.empty_title') }}</strong>

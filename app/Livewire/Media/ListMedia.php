@@ -155,6 +155,19 @@ class ListMedia extends Component
         $this->statusType = 'success';
     }
 
+    public function trashAllUnused(MediaLibraryService $library): void
+    {
+        $this->authorizeManage();
+
+        $result = $library->trashUnused();
+        $this->statusMessage = __('agricart.media.messages.trashed_bulk', [
+            'count' => $result['trashed'],
+            'skipped' => $result['skipped'],
+        ]);
+        $this->statusType = $result['trashed'] > 0 ? 'success' : 'danger';
+        $this->resetPage();
+    }
+
     #[On('media-library-updated')]
     public function refreshList(): void
     {

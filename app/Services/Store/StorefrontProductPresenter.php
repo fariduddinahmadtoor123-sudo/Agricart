@@ -210,6 +210,19 @@ class StorefrontProductPresenter
             }
         }
 
+        foreach ($product->controls ?? [] as $control) {
+            $value = $this->localizedControlValue($control);
+
+            if (! filled($value)) {
+                continue;
+            }
+
+            $sections[] = [
+                'title' => $this->localizedControlName($control),
+                'html' => nl2br(e($value)),
+            ];
+        }
+
         if (filled($product->hs_code)) {
             $sections[] = [
                 'title' => __('agricart.categories.fields.hs_code'),

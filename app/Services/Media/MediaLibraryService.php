@@ -41,11 +41,13 @@ class MediaLibraryService
         string $disk = 'public',
         array $metadata = [],
     ): ?MediaAsset {
-        if (! Schema::hasTable('media_assets') || $disk !== 'public') {
+        $path = $this->normalizePath($path);
+        $allowsPrivateDocument = $disk === 'local' && str_starts_with($path, 'users/cnic/');
+
+        if (! Schema::hasTable('media_assets') || ($disk !== 'public' && ! $allowsPrivateDocument)) {
             return null;
         }
 
-        $path = $this->normalizePath($path);
         $storage = Storage::disk($disk);
 
         if ($path === '' || ! $storage->exists($path)) {
@@ -68,8 +70,8 @@ class MediaLibraryService
                 ]
                 : $this->fileFacts($disk, $path);
             $asset->uuid ??= (string) Str::uuid();
-            $asset->visibility = 'public';
-            $asset->original_name = $asset->original_name ?: $this->cleanName($originalName);
+            $asset->visibility = $allowsPrivateDocument ? 'private' : 'public';
+            $asset->original_name = $this->cleanName($originalName) ?: $asset->original_name;
             $asset->display_name = $this->cleanName($displayName)
                 ?: $asset->display_name
                 ?: $asset->original_name
@@ -251,9 +253,50 @@ class MediaLibraryService
             return false;
         }
 
+        if ($this->pathIsReferenced($path)) {
+            return false;
+        }
+
         $asset?->delete();
 
         return Storage::disk($disk)->delete($path);
+    }
+
+    public function canSafelyTrash(MediaAsset $asset): bool
+    {
+        return ! $asset->usages()->exists() && ! $this->pathIsReferenced($asset->path);
+    }
+
+    /**
+     * @return array{trashed: int, skipped: int}
+     */
+    public function trashUnused(?int $limit = null): array
+    {
+        $trashed = 0;
+        $skipped = 0;
+
+        MediaAsset::query()
+            ->whereNull('trashed_at')
+            ->whereDoesntHave('usages')
+            ->orderBy('id')
+            ->chunkById(100, function ($assets) use ($limit, &$trashed, &$skipped): void {
+                foreach ($assets as $asset) {
+                    if ($limit !== null && $trashed >= $limit) {
+                        return;
+                    }
+
+                    if (! $this->canSafelyTrash($asset)) {
+                        $skipped++;
+
+                        continue;
+                    }
+
+                    $this->trash($asset);
+                    $trashed++;
+                }
+            });
+
+        return ['trashed' => $trashed, 'skipped' => $skipped];
     }
 
     /**
@@ -395,8 +438,8 @@ class MediaLibraryService
 
     public function trash(MediaAsset $asset): MediaAsset
     {
-        if ($asset->usages()->exists()) {
-            throw new RuntimeException('This image is still used by one or more records.');
+        if ($asset->usages()->exists() || $this->pathIsReferenced($asset->path)) {
+            throw new RuntimeException(__('agricart.media.messages.still_referenced'));
         }
 
         $asset->forceFill(['trashed_at' => now()])->save();
@@ -413,8 +456,8 @@ class MediaLibraryService
 
     public function permanentlyDelete(MediaAsset $asset): void
     {
-        if ($asset->usages()->exists()) {
-            throw new RuntimeException('Used media cannot be permanently deleted.');
+        if ($asset->usages()->exists() || $this->pathIsReferenced($asset->path)) {
+            throw new RuntimeException(__('agricart.media.messages.still_referenced'));
         }
 
         $disk = $asset->disk;
@@ -424,6 +467,25 @@ class MediaLibraryService
             $asset->delete();
             DB::afterCommit(fn () => Storage::disk($disk)->delete($path));
         });
+    }
+
+    public function pathIsReferenced(string $path): bool
+    {
+        $path = $this->normalizePath($path);
+
+        foreach ($this->modelSpecifications() as [$modelClass, $column]) {
+            if ($modelClass::query()->where($column, $path)->exists()) {
+                return true;
+            }
+        }
+
+        return Product::query()
+            ->whereNotNull('gallery_images')
+            ->cursor()
+            ->contains(function (Product $product) use ($path): bool {
+                return is_array($product->gallery_images)
+                    && in_array($path, $product->gallery_images, true);
+            });
     }
 
     public function pruneTrashed(int $days = 30): int
@@ -484,23 +546,6 @@ class MediaLibraryService
     private function sourceFromPath(string $path): string
     {
         return mb_substr((string) (strtok($path, '/') ?: 'library'), 0, 64);
-    }
-
-    private function pathIsReferenced(string $path): bool
-    {
-        foreach ($this->modelSpecifications() as [$modelClass, $column]) {
-            if ($modelClass::query()->where($column, $path)->exists()) {
-                return true;
-            }
-        }
-
-        return Product::query()
-            ->whereNotNull('gallery_images')
-            ->cursor()
-            ->contains(function (Product $product) use ($path): bool {
-                return is_array($product->gallery_images)
-                    && in_array($path, $product->gallery_images, true);
-            });
     }
 
     private function normalizePath(string $path): string

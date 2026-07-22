@@ -3,6 +3,7 @@
 namespace Tests\Feature\Store;
 
 use App\Enums\ShippingChargeMode;
+use App\Models\CatalogControl;
 use App\Models\Category;
 use App\Models\DeliveryMethod;
 use App\Models\Product;
@@ -103,6 +104,50 @@ class ProductDetailsTabsTest extends TestCase
             ->assertSee('Doorstep delivery in city limits.', false)
             ->assertSee('Pack carefully for fertilizer.', false)
             ->assertSee(__('agricart.storefront.checkout.shipping_modes.calculate_later'), false);
+    }
+
+    public function test_product_controls_render_as_linear_content_tabs_not_side_specs(): void
+    {
+        $category = Category::query()->create([
+            'slug' => 'parts',
+            'code' => 'CAT-PARTS',
+            'status' => 'active',
+            'name_en' => 'Parts',
+            'name_ur' => 'پارٹس',
+        ]);
+
+        $product = Product::query()->create([
+            'category_id' => $category->id,
+            'status' => 'active',
+            'code' => 'PRD-CTL-1',
+            'sku' => 'CTL-1',
+            'name_en' => 'Bearing Kit',
+            'name_ur' => 'بیرنگ کٹ',
+            'slug' => 'bearing-kit',
+            'full_description_en' => 'A durable bearing kit.',
+        ]);
+
+        $control = CatalogControl::query()->create([
+            'code' => 'CTL-WARRANTY',
+            'slug' => 'warranty-policy',
+            'status' => 'active',
+            'name_en' => 'Warranty policy',
+            'name_ur' => 'وارنٹی پالیسی',
+            'value_en' => str_repeat('Long storefront control text. ', 12),
+            'value_ur' => 'تفصیلی وارنٹی معلومات۔',
+        ]);
+
+        $product->controls()->attach($control->id);
+
+        $response = $this->get(route('store.product', $product->slug));
+
+        $response
+            ->assertOk()
+            ->assertSeeInOrder(['Description', 'Warranty policy'])
+            ->assertSee('Long storefront control text.', false)
+            ->assertSee('data-store-pdp-tab="content-1"', false)
+            ->assertDontSee('ag-store-pdp__spec-controls', false)
+            ->assertDontSee('ag-store-pdp__spec-notice', false);
     }
 
     public function test_product_page_hides_delivery_tab_when_no_methods_assigned(): void

@@ -46,7 +46,23 @@ class MediaAsset extends Model
 
     public function url(): ?string
     {
-        if ($this->visibility !== 'public' || blank($this->path)) {
+        if (blank($this->path)) {
+            return null;
+        }
+
+        if (
+            $this->disk === 'local'
+            && str_starts_with($this->path, 'users/cnic/')
+            && filled($this->metadata['user_id'] ?? null)
+            && in_array($this->metadata['side'] ?? null, ['front', 'back'], true)
+        ) {
+            return route('admin.users.documents.show', [
+                'user' => (int) $this->metadata['user_id'],
+                'side' => $this->metadata['side'],
+            ], absolute: false);
+        }
+
+        if ($this->visibility !== 'public') {
             return null;
         }
 

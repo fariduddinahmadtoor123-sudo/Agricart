@@ -67,7 +67,7 @@
     @endif
 
     @php
-        $hasSpecs = $product->brand !== null || $identityFacts !== [] || $product->attributes->isNotEmpty() || $product->controls->isNotEmpty();
+        $hasSpecs = $product->brand !== null || $identityFacts !== [] || $product->attributes->isNotEmpty();
         $hasPricing = $priceTable !== [];
         $hasDescription = $contentSections !== [];
         $hasDelivery = ($deliveryOptions ?? []) !== [];

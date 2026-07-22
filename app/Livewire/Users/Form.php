@@ -573,6 +573,10 @@ class Form extends Component
                 $this->setStatus(__($messageKey, ['name' => $this->name]), 'success');
             }
 
+            $this->bindDocumentMediaNames((int) $this->userId);
+            $this->cnicFrontPreviewUrl = $this->secureDocumentUrlForId((int) $this->userId, 'front', $this->storedCnicFrontPath);
+            $this->cnicBackPreviewUrl = $this->secureDocumentUrlForId((int) $this->userId, 'back', $this->storedCnicBackPath);
+
             return true;
         } catch (ValidationException $exception) {
             $message = collect($exception->errors())->flatten()->first();
@@ -644,16 +648,35 @@ class Form extends Component
 
     private function persistUploadedFiles(): void
     {
+        $storage = app(\App\Services\Media\OptimizedImageStorage::class);
+        $person = $this->documentPersonName();
+
         if ($this->profilePhotoUpload !== null) {
-            $this->storedProfilePhotoPath = app(\App\Services\Media\OptimizedImageStorage::class)
-                ->store($this->profilePhotoUpload, 'users/profile-photos');
+            $label = $person.' — Profile photo';
+            $this->storedProfilePhotoPath = $storage->store(
+                $this->profilePhotoUpload,
+                'users/profile-photos',
+                originalName: $label.'.webp',
+                displayName: $label,
+                metadata: array_filter(['user_id' => $this->userId]),
+            );
             $this->profilePhotoPreviewUrl = Storage::disk('public')->url($this->storedProfilePhotoPath);
             $this->profilePhotoUpload = null;
         }
 
         if ($this->cnicFrontUpload !== null) {
-            $this->storedCnicFrontPath = app(\App\Services\Media\OptimizedImageStorage::class)
-                ->store($this->cnicFrontUpload, 'users/cnic', disk: 'local');
+            $label = $person.' — ID card front';
+            $this->storedCnicFrontPath = $storage->store(
+                $this->cnicFrontUpload,
+                'users/cnic',
+                disk: 'local',
+                originalName: $label.'.jpg',
+                displayName: $label,
+                metadata: array_filter([
+                    'user_id' => $this->userId,
+                    'side' => 'front',
+                ]),
+            );
             $this->cnicFrontUpload = null;
             if ($this->userId) {
                 $this->cnicFrontPreviewUrl = $this->secureDocumentUrlForId($this->userId, 'front', $this->storedCnicFrontPath);
@@ -661,12 +684,68 @@ class Form extends Component
         }
 
         if ($this->cnicBackUpload !== null) {
-            $this->storedCnicBackPath = app(\App\Services\Media\OptimizedImageStorage::class)
-                ->store($this->cnicBackUpload, 'users/cnic', disk: 'local');
+            $label = $person.' — ID card back';
+            $this->storedCnicBackPath = $storage->store(
+                $this->cnicBackUpload,
+                'users/cnic',
+                disk: 'local',
+                originalName: $label.'.jpg',
+                displayName: $label,
+                metadata: array_filter([
+                    'user_id' => $this->userId,
+                    'side' => 'back',
+                ]),
+            );
             $this->cnicBackUpload = null;
             if ($this->userId) {
                 $this->cnicBackPreviewUrl = $this->secureDocumentUrlForId($this->userId, 'back', $this->storedCnicBackPath);
             }
+        }
+    }
+
+    private function documentPersonName(): string
+    {
+        $name = trim($this->name);
+
+        return $name !== '' ? $name : 'Staff';
+    }
+
+    private function bindDocumentMediaNames(int $userId): void
+    {
+        $library = app(\App\Services\Media\MediaLibraryService::class);
+        $person = $this->documentPersonName();
+
+        if (filled($this->storedProfilePhotoPath)) {
+            $library->registerPath(
+                $this->storedProfilePhotoPath,
+                $person.' — Profile photo.webp',
+                $person.' — Profile photo',
+                'users',
+                'public',
+                ['user_id' => $userId],
+            );
+        }
+
+        if (filled($this->storedCnicFrontPath)) {
+            $library->registerPath(
+                $this->storedCnicFrontPath,
+                $person.' — ID card front.jpg',
+                $person.' — ID card front',
+                'users',
+                'local',
+                ['user_id' => $userId, 'side' => 'front'],
+            );
+        }
+
+        if (filled($this->storedCnicBackPath)) {
+            $library->registerPath(
+                $this->storedCnicBackPath,
+                $person.' — ID card back.jpg',
+                $person.' — ID card back',
+                'users',
+                'local',
+                ['user_id' => $userId, 'side' => 'back'],
+            );
         }
     }
 

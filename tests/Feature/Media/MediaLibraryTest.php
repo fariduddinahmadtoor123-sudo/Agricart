@@ -204,6 +204,60 @@ class MediaLibraryTest extends TestCase
         $this->assertDatabaseMissing('media_assets', ['path' => 'categories/orphan.jpg']);
     }
 
+    public function test_path_referenced_without_usage_rows_cannot_be_trashed(): void
+    {
+        Storage::disk('public')->put('products/still-used.jpg', UploadedFile::fake()->image('still-used.jpg')->getContent());
+        $library = app(MediaLibraryService::class);
+        $asset = $library->registerPath('products/still-used.jpg', 'still-used.jpg', sourceModule: 'products');
+        $this->assertInstanceOf(MediaAsset::class, $asset);
+
+        \App\Models\Product::withoutEvents(fn () => \App\Models\Product::query()->create([
+            'code' => 'P-STILL',
+            'slug' => 'still-used-product',
+            'name_en' => 'Still Used',
+            'name_ur' => 'Still Used',
+            'status' => 'active',
+            'image_path' => 'products/still-used.jpg',
+        ]));
+
+        $this->assertTrue($library->pathIsReferenced('products/still-used.jpg'));
+        $this->assertFalse($library->canSafelyTrash($asset));
+
+        try {
+            $library->trash($asset);
+            $this->fail('Path-referenced asset was allowed into trash.');
+        } catch (\RuntimeException) {
+            $this->assertNull($asset->refresh()->trashed_at);
+        }
+    }
+
+    public function test_trash_all_unused_skips_path_referenced_images(): void
+    {
+        Storage::disk('public')->put('media-library/safe-unused.jpg', UploadedFile::fake()->image('safe-unused.jpg')->getContent());
+        Storage::disk('public')->put('products/linked.jpg', UploadedFile::fake()->image('linked.jpg')->getContent());
+        $library = app(MediaLibraryService::class);
+        $safe = $library->registerPath('media-library/safe-unused.jpg', 'safe-unused.jpg', sourceModule: 'media-library');
+        $linked = $library->registerPath('products/linked.jpg', 'linked.jpg', sourceModule: 'products');
+        \App\Models\Product::withoutEvents(fn () => \App\Models\Product::query()->create([
+            'code' => 'P-LINK',
+            'slug' => 'linked-product',
+            'name_en' => 'Linked',
+            'name_ur' => 'Linked',
+            'status' => 'active',
+            'image_path' => 'products/linked.jpg',
+        ]));
+
+        $this->actingAs($this->userWithPermissions(['settings.view', 'settings.media.view', 'settings.media.manage']));
+        Livewire::test(ListMedia::class)
+            ->call('applyFilter', 'usage:unused')
+            ->call('trashAllUnused')
+            ->assertSet('statusType', 'success');
+
+        $this->assertNotNull($safe?->refresh()->trashed_at);
+        $this->assertNull($linked?->refresh()->trashed_at);
+        Storage::disk('public')->assertExists('products/linked.jpg');
+    }
+
     /**
      * @param  list<string>  $permissions
      */
