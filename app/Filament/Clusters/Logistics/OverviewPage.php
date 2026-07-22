@@ -20,8 +20,6 @@ class OverviewPage extends BaseModulePage
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSquares2x2;
 
-    protected static bool $shouldRegisterNavigation = false;
-
     protected string $view = 'filament.pages.logistics.overview';
 
     public function getHeading(): string|Htmlable|null

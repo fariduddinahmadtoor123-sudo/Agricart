@@ -20,8 +20,6 @@ class DeliveryMethodsPage extends BaseModulePage
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTruck;
 
-    protected static bool $shouldRegisterNavigation = false;
-
     protected string $view = 'filament.pages.logistics.delivery-methods';
 
     public function getHeading(): string|Htmlable|null

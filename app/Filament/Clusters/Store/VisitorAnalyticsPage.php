@@ -20,8 +20,6 @@ class VisitorAnalyticsPage extends BaseModulePage
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChartBar;
 
-    protected static bool $shouldRegisterNavigation = false;
-
     protected string $view = 'filament.pages.store.visitor-analytics';
 
     protected static function requiredPermission(): ?string

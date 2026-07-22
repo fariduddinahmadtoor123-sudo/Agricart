@@ -20,8 +20,6 @@ class AiSettingsPage extends BaseModulePage
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedSparkles;
 
-    protected static bool $shouldRegisterNavigation = false;
-
     protected string $view = 'filament.pages.settings.ai-settings';
 
     public function getHeading(): string|Htmlable|null

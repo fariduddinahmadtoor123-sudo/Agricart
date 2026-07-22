@@ -21,8 +21,6 @@ class FooterPage extends BaseModulePage
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
-    protected static bool $shouldRegisterNavigation = false;
-
     protected string $view = 'filament.pages.store.footer';
 
     public function getHeading(): string|Htmlable|null

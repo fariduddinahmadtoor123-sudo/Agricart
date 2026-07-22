@@ -21,8 +21,6 @@ class HeaderPage extends BaseModulePage
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedWindow;
 
-    protected static bool $shouldRegisterNavigation = false;
-
     protected string $view = 'filament.pages.store.header';
 
     public function getHeading(): string|Htmlable|null

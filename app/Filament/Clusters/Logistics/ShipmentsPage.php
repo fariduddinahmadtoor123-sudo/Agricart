@@ -20,8 +20,6 @@ class ShipmentsPage extends BaseModulePage
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArchiveBox;
 
-    protected static bool $shouldRegisterNavigation = false;
-
     protected string $view = 'filament.pages.logistics.shipments';
 
     public function getHeading(): string|Htmlable|null

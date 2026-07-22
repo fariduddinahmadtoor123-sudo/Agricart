@@ -18,4 +18,6 @@ class TaxSystemPage extends BasePlaceholderPage
     protected static ?string $slug = 'tax-system';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedReceiptPercent;
+
+    protected static bool $shouldRegisterNavigation = true;
 }

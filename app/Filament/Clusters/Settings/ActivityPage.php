@@ -20,8 +20,6 @@ class ActivityPage extends BaseModulePage
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClock;
 
-    protected static bool $shouldRegisterNavigation = false;
-
     protected string $view = 'filament.pages.settings.activity';
 
     protected static function requiredPermission(): ?string

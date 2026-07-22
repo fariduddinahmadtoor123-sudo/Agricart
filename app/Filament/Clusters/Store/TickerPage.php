@@ -21,8 +21,6 @@ class TickerPage extends BaseModulePage
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMegaphone;
 
-    protected static bool $shouldRegisterNavigation = false;
-
     protected string $view = 'filament.pages.store.ticker';
 
     public function getHeading(): string|Htmlable|null

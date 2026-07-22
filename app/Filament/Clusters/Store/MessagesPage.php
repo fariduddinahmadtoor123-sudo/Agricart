@@ -20,8 +20,6 @@ class MessagesPage extends BaseModulePage
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedChatBubbleLeftRight;
 
-    protected static bool $shouldRegisterNavigation = false;
-
     protected string $view = 'filament.pages.store.messages';
 
     public function getHeading(): string|Htmlable|null

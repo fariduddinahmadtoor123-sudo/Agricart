@@ -20,8 +20,6 @@ class SystemErrorsPage extends BaseModulePage
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedExclamationTriangle;
 
-    protected static bool $shouldRegisterNavigation = false;
-
     protected string $view = 'filament.pages.settings.system-errors';
 
     protected static function requiredPermission(): ?string

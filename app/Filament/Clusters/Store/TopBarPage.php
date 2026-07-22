@@ -21,8 +21,6 @@ class TopBarPage extends BaseModulePage
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBars3CenterLeft;
 
-    protected static bool $shouldRegisterNavigation = false;
-
     protected string $view = 'filament.pages.store.top-bar';
 
     public function getHeading(): string|Htmlable|null

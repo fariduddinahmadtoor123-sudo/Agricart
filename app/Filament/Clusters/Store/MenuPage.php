@@ -21,8 +21,6 @@ class MenuPage extends BaseModulePage
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBars3;
 
-    protected static bool $shouldRegisterNavigation = false;
-
     protected string $view = 'filament.pages.store.menu';
 
     public function getHeading(): string|Htmlable|null

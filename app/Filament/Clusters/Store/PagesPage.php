@@ -21,8 +21,6 @@ class PagesPage extends BaseModulePage
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
 
-    protected static bool $shouldRegisterNavigation = false;
-
     protected string $view = 'filament.pages.store.pages';
 
     public function getHeading(): string|Htmlable|null

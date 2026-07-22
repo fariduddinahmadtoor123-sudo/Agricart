@@ -21,8 +21,6 @@ class AiLogsPage extends BaseModulePage
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentList;
 
-    protected static bool $shouldRegisterNavigation = false;
-
     protected string $view = 'filament.pages.settings.ai-logs';
 
     public function getHeading(): string|Htmlable|null

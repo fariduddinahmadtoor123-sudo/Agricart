@@ -20,8 +20,6 @@ class MediaLibraryPage extends BaseModulePage
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPhoto;
 
-    protected static bool $shouldRegisterNavigation = false;
-
     protected string $view = 'filament.pages.settings.media-library';
 
     protected static function requiredPermission(): ?string
