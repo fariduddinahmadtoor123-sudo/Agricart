@@ -16,7 +16,7 @@ class ListStaffMembers extends Component
     use WithPagination;
 
     /** @var list<string> */
-    public array $visibleColumns = ['user_number', 'name', 'email', 'role', 'status'];
+    public array $visibleColumns = ['photo', 'user_number', 'name', 'email', 'role', 'status'];
 
     public string $search = '';
 
@@ -128,8 +128,35 @@ class ListStaffMembers extends Component
         );
     }
 
+    public function openView(int $userId): void
+    {
+        if (! $this->canView()) {
+            return;
+        }
+
+        $member = User::query()->find($userId);
+
+        if ($member === null) {
+            return;
+        }
+
+        $this->dispatch(
+            'open-form-panel',
+            title: __('agricart.staff.members.actions.view', ['name' => $member->name]),
+            resource: __('agricart.pages.staff.staff'),
+            formKey: 'users',
+            formContext: 'staff',
+            userId: $userId,
+            mode: 'view',
+        );
+    }
+
     public function openEdit(int $userId): void
     {
+        if (! $this->canEdit()) {
+            return;
+        }
+
         $member = User::query()->find($userId);
 
         if ($member === null) {
@@ -167,9 +194,21 @@ class ListStaffMembers extends Component
 
         return view('livewire.staff.list', [
             'members' => $members,
+            'canView' => $this->canView(),
             'canEdit' => $this->canEdit(),
             'canCreate' => $this->canCreate(),
         ]);
+    }
+
+    public function canView(): bool
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        return StaffPermissions::canViewRoster($user) || StaffPermissions::canManageRoster($user);
     }
 
     public function canEdit(): bool

@@ -1797,6 +1797,8 @@ return [
         'members' => [
             'actions' => [
                 'add' => 'Add Staff',
+                'view' => 'View :name',
+                'view_short' => 'View',
                 'edit' => 'Edit :name',
                 'edit_short' => 'Edit',
                 'activate' => 'Activate',
@@ -1805,6 +1807,7 @@ return [
             'list' => [
                 'empty' => 'No staff on the roster yet.',
                 'empty_hint' => 'Same form as Settings → Users. New staff are saved as Active and appear here. Pending applicants stay under Approvals → Staff.',
+                'col_photo' => 'Photo',
                 'col_user_number' => 'Staff #',
                 'col_name' => 'Name',
                 'col_email' => 'Email',

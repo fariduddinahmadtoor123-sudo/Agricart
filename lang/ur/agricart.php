@@ -1797,6 +1797,8 @@ return [
         'members' => [
             'actions' => [
                 'add' => 'عملہ شامل کریں',
+                'view' => 'دیکھیں — :name',
+                'view_short' => 'دیکھیں',
                 'edit' => 'ترمیم — :name',
                 'edit_short' => 'ترمیم',
                 'activate' => 'فعال کریں',
@@ -1805,6 +1807,7 @@ return [
             'list' => [
                 'empty' => 'ابھی فہرست میں کوئی عملہ نہیں۔',
                 'empty_hint' => 'یہی فارم Settings → Users جیسا ہے۔ نیا عملہ Active محفوظ ہو کر یہاں نظر آئے گا۔ زیرِ التوا درخواستیں Approvals → Staff میں رہیں گی۔',
+                'col_photo' => 'تصویر',
                 'col_user_number' => 'عملہ #',
                 'col_name' => 'نام',
                 'col_email' => 'ای میل',

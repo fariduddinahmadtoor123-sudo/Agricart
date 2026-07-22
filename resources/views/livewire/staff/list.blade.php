@@ -21,6 +21,9 @@
             <table class="agricart-categories__table">
                 <thead>
                     <tr>
+                        @if (in_array('photo', $visibleColumns, true))
+                            <th>{{ __('agricart.staff.members.list.col_photo') }}</th>
+                        @endif
                         @if (in_array('user_number', $visibleColumns, true))
                             <th>{{ __('agricart.staff.members.list.col_user_number') }}</th>
                         @endif
@@ -41,7 +44,20 @@
                 </thead>
                 <tbody>
                     @foreach ($members as $member)
+                        @php
+                            $photoUrl = $member->getFilamentAvatarUrl();
+                            $initial = strtoupper(mb_substr($member->name ?: '?', 0, 1));
+                        @endphp
                         <tr wire:key="staff-member-{{ $member->id }}" class="agricart-categories__row">
+                            @if (in_array('photo', $visibleColumns, true))
+                                <td>
+                                    @if ($photoUrl)
+                                        <img src="{{ $photoUrl }}" alt="" class="agricart-categories__thumb" />
+                                    @else
+                                        <span class="agricart-staff-members__avatar-fallback" aria-hidden="true">{{ $initial }}</span>
+                                    @endif
+                                </td>
+                            @endif
                             @if (in_array('user_number', $visibleColumns, true))
                                 <td><code>{{ $member->user_number ?: '—' }}</code></td>
                             @endif
@@ -67,9 +83,16 @@
                             @endif
                             <td>
                                 <div class="agricart-categories__actions">
-                                    <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $member->id }})">
-                                        {{ __('agricart.staff.members.actions.edit_short') }}
-                                    </button>
+                                    @if ($canView)
+                                        <button type="button" class="agricart-categories__action" wire:click="openView({{ $member->id }})">
+                                            {{ __('agricart.staff.members.actions.view_short') }}
+                                        </button>
+                                    @endif
+                                    @if ($canEdit)
+                                        <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $member->id }})">
+                                            {{ __('agricart.staff.members.actions.edit_short') }}
+                                        </button>
+                                    @endif
                                     @if ($canEdit && auth()->id() !== $member->id && ! ($member->isSuperAdmin() && ! auth()->user()?->isSuperAdmin()))
                                         @if ($member->status === \App\Models\User::STATUS_ACTIVE)
                                             <button type="button" class="agricart-categories__action agricart-staff-members__action-muted" wire:click="deactivate({{ $member->id }})">

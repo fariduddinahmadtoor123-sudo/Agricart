@@ -66,6 +66,7 @@ class StaffPageToolbar extends ClusterPageToolbar
                     ['label' => __('agricart.form_panel.statuses.inactive'), 'value' => 'status:inactive'],
                 ],
                 'columns' => [
+                    ['label' => __('agricart.staff.members.list.col_photo'), 'value' => 'photo', 'visible' => true],
                     ['label' => __('agricart.staff.members.list.col_user_number'), 'value' => 'user_number', 'visible' => true],
                     ['label' => __('agricart.staff.members.list.col_name'), 'value' => 'name', 'visible' => true],
                     ['label' => __('agricart.staff.members.list.col_email'), 'value' => 'email', 'visible' => true],

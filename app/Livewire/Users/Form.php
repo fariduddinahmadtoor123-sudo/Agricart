@@ -8,6 +8,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Services\Access\UserEnrichmentService;
 use App\Services\Access\UserService;
+use App\Services\Staff\StaffPermissions;
 use App\Support\PakistaniBanks;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
@@ -96,7 +97,7 @@ class Form extends Component
     public function openForm(?int $userId = null, string $mode = 'create', string $formContext = 'settings'): void
     {
         $context = $formContext === 'staff' ? 'staff' : 'settings';
-        $this->authorizeUserForm($context, $userId);
+        $this->authorizeUserForm($context, $userId, $mode);
         $this->formContext = $context;
         $this->resetForm();
         $this->mode = $mode;
@@ -431,7 +432,7 @@ class Form extends Component
 
     public function render(): View
     {
-        $authorized = $this->canManageForm();
+        $authorized = $this->canAccessFormOptions();
         $statuses = $this->formContext === 'staff'
             ? [User::STATUS_ACTIVE, User::STATUS_INACTIVE]
             : UserService::statuses();
@@ -741,11 +742,38 @@ class Form extends Component
         return $user->hasPermission('settings.users.manage');
     }
 
-    private function authorizeUserForm(string $context, ?int $userId): void
+    private function canAccessFormOptions(): bool
     {
-        $permissions = $context === 'staff'
-            ? ($userId ? ['staff.edit'] : ['staff.create', 'staff.edit'])
-            : ['settings.users.manage'];
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        if ($this->formContext === 'staff') {
+            return StaffPermissions::canViewRoster($user) || StaffPermissions::canManageRoster($user);
+        }
+
+        return $user->hasPermission('settings.users.manage');
+    }
+
+    private function authorizeUserForm(string $context, ?int $userId, ?string $mode = null): void
+    {
+        $mode ??= $this->mode;
+
+        if ($context === 'staff') {
+            $permissions = match (true) {
+                $mode === 'view' => ['staff.view', 'staff.edit', 'staff.create'],
+                $userId !== null => ['staff.edit'],
+                default => ['staff.create', 'staff.edit'],
+            };
+        } else {
+            $permissions = ['settings.users.manage'];
+        }
 
         $this->authorizeAny($permissions);
     }

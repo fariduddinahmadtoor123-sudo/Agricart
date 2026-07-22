@@ -4237,6 +4237,20 @@ body.agricart-form-panel-open {
     color: rgb(var(--gray-500));
 }
 
+.agricart-staff-members__avatar-fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 1px solid var(--agricart-border);
+    background: rgb(var(--gray-50));
+    color: var(--agricart-muted);
+    font-size: 0.8125rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
 .agricart-categories__action.is-danger {
     color: var(--agricart-danger);
 }
@@ -7958,7 +7972,7 @@ span.agricart-sales-channels__switch.is-readonly {
     align-items: center;
     justify-content: center;
     gap: 0.25rem;
-    min-height: 5.5rem;
+    min-height: 8rem;
     padding: 0.5rem;
     border: 1px dashed var(--agricart-border);
     background: var(--agricart-bg);
@@ -7971,8 +7985,10 @@ span.agricart-sales-channels__switch.is-readonly {
 
 .agricart-user-form__document-preview {
     width: 100%;
-    height: 4.5rem;
-    object-fit: cover;
+    max-height: 10rem;
+    height: auto;
+    object-fit: contain;
+    object-position: center;
 }
 
 .agricart-user-form__document-placeholder {
