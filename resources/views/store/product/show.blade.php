@@ -71,10 +71,11 @@
         $hasPricing = $priceTable !== [];
         $hasDescription = $contentSections !== [];
         $hasDelivery = ($deliveryOptions ?? []) !== [];
+        $hasBrandAbout = $presenter->hasBrandAbout($product);
         $isActive = $product->status === 'active';
         $firstTabKey = $hasDescription
             ? 'content-0'
-            : ($hasDelivery ? 'delivery' : ($hasPricing ? 'pricing' : null));
+            : ($hasBrandAbout ? 'brand' : ($hasDelivery ? 'delivery' : ($hasPricing ? 'pricing' : null)));
     @endphp
 
     <article class="ag-store-pdp">
@@ -168,7 +169,7 @@
             </div>
         </div>
 
-        @if ($hasPricing || $hasDescription || $hasDelivery)
+        @if ($hasPricing || $hasDescription || $hasDelivery || $hasBrandAbout)
             <div class="ag-store-pdp__tabs" data-store-pdp-tabs>
                 <div class="ag-store-pdp__tablist" role="tablist" aria-label="{{ __('agricart.storefront.product.sections.details') }}">
                     @foreach ($contentSections as $section)
@@ -186,6 +187,20 @@
                             {{ $section['title'] }}
                         </button>
                     @endforeach
+                    @if ($hasBrandAbout)
+                        <button
+                            type="button"
+                            @class(['ag-store-pdp__tab', 'is-active' => $firstTabKey === 'brand'])
+                            id="store-pdp-tab-brand"
+                            role="tab"
+                            aria-selected="{{ $firstTabKey === 'brand' ? 'true' : 'false' }}"
+                            aria-controls="store-pdp-panel-brand"
+                            tabindex="{{ $firstTabKey === 'brand' ? '0' : '-1' }}"
+                            data-store-pdp-tab="brand"
+                        >
+                            {{ __('agricart.storefront.product.tabs.about_brand') }}
+                        </button>
+                    @endif
                     @if ($hasDelivery)
                         <button
                             type="button"
@@ -230,6 +245,23 @@
                         <div class="ag-store-pdp__prose">{!! $section['html'] !!}</div>
                     </div>
                 @endforeach
+
+                @if ($hasBrandAbout)
+                    <div
+                        @class(['ag-store-pdp__panel', 'is-active' => $firstTabKey === 'brand'])
+                        id="store-pdp-panel-brand"
+                        role="tabpanel"
+                        aria-labelledby="store-pdp-tab-brand"
+                        tabindex="0"
+                        data-store-pdp-panel="brand"
+                        @if ($firstTabKey !== 'brand') hidden @endif
+                    >
+                        @include('store.components.product-brand-about', [
+                            'product' => $product,
+                            'presenter' => $presenter,
+                        ])
+                    </div>
+                @endif
 
                 @if ($hasDelivery)
                     <div

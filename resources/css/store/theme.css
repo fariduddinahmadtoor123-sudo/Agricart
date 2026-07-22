@@ -1696,6 +1696,60 @@
     line-height: 1.65;
 }
 
+.ag-store-pdp__brand-about {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.ag-store-pdp__brand-about-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--agricart-border, #ebedf0);
+}
+
+.ag-store-pdp__brand-about-logo {
+    width: 3.5rem;
+    height: 3.5rem;
+    object-fit: contain;
+    border: 1px solid var(--agricart-border, #ebedf0);
+    background: #fff;
+    border-radius: 0;
+}
+
+.ag-store-pdp__brand-about-meta {
+    display: grid;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.ag-store-pdp__brand-about-name {
+    margin: 0;
+    font-family: Arial, sans-serif !important;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--agricart-text, #0f172a);
+}
+
+.ag-store-pdp__brand-about-link {
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--agricart-primary, #83b735);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
+.ag-store-pdp__brand-about-link:hover {
+    color: color-mix(in srgb, var(--agricart-primary, #83b735) 80%, #0f172a);
+}
+
+.ag-store-pdp__brand-about-body {
+    margin: 0;
+}
+
 .ag-store-pdp__spec-list {
     margin: 0;
     padding: 0;

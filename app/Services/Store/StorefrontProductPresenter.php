@@ -230,6 +230,34 @@ class StorefrontProductPresenter
         return $sections;
     }
 
+    public function localizedBrandDescription(Product $product): ?string
+    {
+        $brand = $product->brand;
+
+        if ($brand === null) {
+            return null;
+        }
+
+        if (app()->getLocale() === 'ur' && filled($brand->description_ur)) {
+            return $brand->description_ur;
+        }
+
+        if (filled($brand->description_en)) {
+            return $brand->description_en;
+        }
+
+        if (filled($brand->description_ur)) {
+            return $brand->description_ur;
+        }
+
+        return null;
+    }
+
+    public function hasBrandAbout(Product $product): bool
+    {
+        return filled($this->localizedBrandDescription($product));
+    }
+
     private function tierLabel(string $tierKey): string
     {
         $definition = QuantityPricingEngine::PRICE_TIER_TYPES[$tierKey] ?? null;

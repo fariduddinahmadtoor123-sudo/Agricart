@@ -2744,6 +2744,7 @@ return [
                 'specifications' => 'Specifications',
                 'pricing' => 'Quantity pricing',
                 'delivery' => 'Delivery',
+                'about_brand' => 'About the brand',
             ],
             'sections' => [
                 'details' => 'Product details',
@@ -2754,7 +2755,9 @@ return [
                 'benefits' => 'Benefits',
                 'warnings' => 'Warnings',
                 'buying_guide' => 'Buying guide',
+                'about_brand' => 'About the brand',
             ],
+            'brand_website' => 'Visit brand website',
             'delivery' => [
                 'lead' => 'These delivery options are available for this product. You choose one at checkout.',
                 'payments' => 'Payment options:',

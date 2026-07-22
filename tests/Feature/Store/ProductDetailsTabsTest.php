@@ -19,6 +19,96 @@ class ProductDetailsTabsTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_product_page_shows_about_brand_tab_when_brand_has_description(): void
+    {
+        $category = Category::query()->create([
+            'slug' => 'sprayers',
+            'code' => 'CAT-SPRAY',
+            'status' => 'active',
+            'name_en' => 'Sprayers',
+            'name_ur' => 'سپرے',
+        ]);
+
+        $brand = \App\Models\Brand::query()->create([
+            'code' => 'BRD-ACME',
+            'slug' => 'acme-farm',
+            'status' => 'active',
+            'name_en' => 'Acme Farm',
+            'name_ur' => 'ایکمی فارم',
+            'description_en' => 'Acme builds durable farm equipment for Pakistan.',
+            'description_ur' => 'ایکمی پاکستان کے لیے مضبوط زرعی آلات بناتا ہے۔',
+            'website_url' => 'https://example.com/acme',
+            'image_path' => 'brands/acme.webp',
+            'ai_status' => 'none',
+        ]);
+
+        $product = Product::query()->create([
+            'category_id' => $category->id,
+            'brand_id' => $brand->id,
+            'status' => 'active',
+            'code' => 'PRD-BRAND-1',
+            'sku' => 'SPRAY-1',
+            'name_en' => 'Acme Boom Sprayer',
+            'name_ur' => 'ایکمی بوم سپرے',
+            'slug' => 'acme-boom-sprayer',
+            'full_description_en' => 'A reliable boom sprayer.',
+        ]);
+
+        $response = $this->get(route('store.product', $product->slug));
+
+        $response
+            ->assertOk()
+            ->assertSee('data-store-pdp-tab="brand"', false)
+            ->assertSee('aria-controls="store-pdp-panel-brand"', false)
+            ->assertSee(__('agricart.storefront.product.tabs.about_brand'), false)
+            ->assertSee('Acme builds durable farm equipment for Pakistan.', false)
+            ->assertSee('Acme Farm', false)
+            ->assertSee(__('agricart.storefront.product.brand_website'), false)
+            ->assertSee('https://example.com/acme', false);
+    }
+
+    public function test_product_page_hides_about_brand_tab_without_brand_description(): void
+    {
+        $category = Category::query()->create([
+            'slug' => 'hose',
+            'code' => 'CAT-HOSE',
+            'status' => 'active',
+            'name_en' => 'Hose',
+            'name_ur' => 'ہوز',
+        ]);
+
+        $brand = \App\Models\Brand::query()->create([
+            'code' => 'BRD-PLAIN',
+            'slug' => 'plain-brand',
+            'status' => 'active',
+            'name_en' => 'Plain Brand',
+            'name_ur' => 'سادہ برانڈ',
+            'description_en' => null,
+            'description_ur' => null,
+            'image_path' => 'brands/plain.webp',
+            'ai_status' => 'none',
+        ]);
+
+        $product = Product::query()->create([
+            'category_id' => $category->id,
+            'brand_id' => $brand->id,
+            'status' => 'active',
+            'code' => 'PRD-NO-BRAND-INFO',
+            'sku' => 'HOSE-1',
+            'name_en' => 'Plain Hose',
+            'name_ur' => 'سادہ ہوز',
+            'slug' => 'plain-hose',
+            'full_description_en' => 'A simple hose.',
+        ]);
+
+        $response = $this->get(route('store.product', $product->slug));
+
+        $response
+            ->assertOk()
+            ->assertDontSee('data-store-pdp-tab="brand"', false)
+            ->assertDontSee(__('agricart.storefront.product.tabs.about_brand'), false);
+    }
+
     public function test_product_content_sections_render_as_individual_accessible_tabs(): void
     {
         $category = Category::query()->create([
