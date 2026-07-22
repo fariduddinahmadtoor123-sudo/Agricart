@@ -7,6 +7,7 @@ use App\Models\Customer;
 use App\Models\User;
 use App\Services\Contacts\CustomerEnrichmentService;
 use App\Services\Contacts\CustomerService;
+use App\Support\LivewireImagePreview;
 use App\Support\PakistaniCities;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
@@ -138,10 +139,12 @@ class Form extends Component
     public function updatedProfilePhotoUpload(): void
     {
         if ($this->profilePhotoUpload === null) {
+            $this->profilePhotoPreviewUrl = null;
+
             return;
         }
 
-        $this->profilePhotoPreviewUrl = $this->profilePhotoUpload->temporaryUrl();
+        $this->profilePhotoPreviewUrl = LivewireImagePreview::url($this->profilePhotoUpload);
     }
 
     public function addPhoneRow(): void

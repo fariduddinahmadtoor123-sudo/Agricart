@@ -8,6 +8,7 @@ use App\Models\Supplier;
 use App\Models\User;
 use App\Services\Contacts\SupplierEnrichmentService;
 use App\Services\Contacts\SupplierService;
+use App\Support\LivewireImagePreview;
 use App\Support\PakistaniBanks;
 use App\Support\PakistaniCities;
 use Illuminate\Contracts\View\View;
@@ -174,7 +175,9 @@ class Form extends Component
             'profilePhotoUpload' => ['nullable', 'image', 'max:5120'],
         ]);
 
-        $this->profilePhotoPreviewUrl = $this->profilePhotoUpload?->temporaryUrl();
+        $this->profilePhotoPreviewUrl = $this->profilePhotoUpload instanceof TemporaryUploadedFile
+            ? LivewireImagePreview::url($this->profilePhotoUpload)
+            : null;
     }
 
     public function updatedCardFrontUpload(): void
@@ -183,7 +186,9 @@ class Form extends Component
             'cardFrontUpload' => ['nullable', 'image', 'max:5120'],
         ]);
 
-        $this->cardFrontPreviewUrl = $this->cardFrontUpload?->temporaryUrl();
+        $this->cardFrontPreviewUrl = $this->cardFrontUpload instanceof TemporaryUploadedFile
+            ? LivewireImagePreview::url($this->cardFrontUpload)
+            : null;
     }
 
     public function updatedCardBackUpload(): void
@@ -192,7 +197,9 @@ class Form extends Component
             'cardBackUpload' => ['nullable', 'image', 'max:5120'],
         ]);
 
-        $this->cardBackPreviewUrl = $this->cardBackUpload?->temporaryUrl();
+        $this->cardBackPreviewUrl = $this->cardBackUpload instanceof TemporaryUploadedFile
+            ? LivewireImagePreview::url($this->cardBackUpload)
+            : null;
     }
 
     public function updatedEnriching(): void

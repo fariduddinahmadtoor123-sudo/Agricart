@@ -7,6 +7,7 @@ use App\Services\Access\UserService;
 use App\Services\Media\MediaLibraryService;
 use App\Services\Media\OptimizedImageStorage;
 use App\Support\FriendlyError;
+use App\Support\LivewireImagePreview;
 use App\Support\PakistaniBanks;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\RateLimiter;
@@ -79,19 +80,25 @@ class RegisterForm extends Component
     public function updatedProfilePhotoUpload(): void
     {
         $this->validateOnly('profilePhotoUpload', ['profilePhotoUpload' => ['nullable', 'image', 'max:5120']]);
-        $this->profilePhotoPreviewUrl = $this->profilePhotoUpload?->temporaryUrl();
+        $this->profilePhotoPreviewUrl = $this->profilePhotoUpload instanceof TemporaryUploadedFile
+            ? LivewireImagePreview::url($this->profilePhotoUpload)
+            : null;
     }
 
     public function updatedCnicFrontUpload(): void
     {
         $this->validateOnly('cnicFrontUpload', ['cnicFrontUpload' => ['nullable', 'image', 'max:5120']]);
-        $this->cnicFrontPreviewUrl = $this->cnicFrontUpload?->temporaryUrl();
+        $this->cnicFrontPreviewUrl = $this->cnicFrontUpload instanceof TemporaryUploadedFile
+            ? LivewireImagePreview::url($this->cnicFrontUpload)
+            : null;
     }
 
     public function updatedCnicBackUpload(): void
     {
         $this->validateOnly('cnicBackUpload', ['cnicBackUpload' => ['nullable', 'image', 'max:5120']]);
-        $this->cnicBackPreviewUrl = $this->cnicBackUpload?->temporaryUrl();
+        $this->cnicBackPreviewUrl = $this->cnicBackUpload instanceof TemporaryUploadedFile
+            ? LivewireImagePreview::url($this->cnicBackUpload)
+            : null;
     }
 
     public function addPhoneRow(): void

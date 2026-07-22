@@ -20,6 +20,23 @@ class PublicStaffRegistrationTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_staff_registration_document_uploads_set_inline_preview_urls(): void
+    {
+        Storage::fake('public');
+        Storage::fake('local');
+
+        $component = Livewire::test(RegisterForm::class)
+            ->set('profilePhotoUpload', UploadedFile::fake()->image('Abdul Hadi Profile Picture.jpeg', 400, 400))
+            ->set('cnicFrontUpload', UploadedFile::fake()->image('Abdul Hadi Nation Card Front Side.jpeg', 800, 500))
+            ->set('cnicBackUpload', UploadedFile::fake()->image('Abdul Hadi Nation Card Backside.jpeg', 800, 500));
+
+        foreach (['profilePhotoPreviewUrl', 'cnicFrontPreviewUrl', 'cnicBackPreviewUrl'] as $property) {
+            $preview = $component->get($property);
+            $this->assertIsString($preview);
+            $this->assertStringStartsWith('data:image/jpeg;base64,', $preview);
+        }
+    }
+
     public function test_public_staff_application_is_pending_and_visible_in_approvals(): void
     {
         Storage::fake('public');
