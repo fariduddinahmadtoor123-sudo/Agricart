@@ -4,8 +4,8 @@ namespace App\Filament\Layout;
 
 use App\Filament\Clusters\Sales\OverviewPage;
 use App\Models\OnlineSaleOrder;
+use App\Models\OnlineSaleOrderStaffAssignment;
 use App\Models\Sale;
-use App\Models\Supplier;
 use App\Models\User;
 use App\Services\Sales\SaleQuotationService;
 use App\Services\Sales\SaleService;
@@ -162,17 +162,14 @@ class SalesPageToolbar extends ClusterPageToolbar
                 'formKey' => 'online-orders',
                 'addLabel' => null,
                 'compactAddButton' => false,
-                'filterGroups' => static::orderDispatchFilterGroups(),
+                'hideFilters' => true,
+                'filterGroups' => [],
                 'filters' => [],
                 'columns' => [
                     ['label' => __('online_sale_orders.list.col_number'), 'value' => 'order_number', 'visible' => true],
+                    ['label' => __('online_sale_orders.list.col_invoice_number'), 'value' => 'invoice_number', 'visible' => true],
                     ['label' => __('online_sale_orders.list.col_customer'), 'value' => 'customer', 'visible' => true],
                     ['label' => __('online_sale_orders.list.col_total'), 'value' => 'total_amount', 'visible' => true],
-                    ['label' => __('online_sale_orders.list.col_queue_document'), 'value' => 'queue_document', 'visible' => true],
-                    ['label' => __('order_dispatch.list.col_packing_progress'), 'value' => 'packing_progress', 'visible' => true],
-                    ['label' => __('order_dispatch.list.col_fulfillment'), 'value' => 'fulfillment_status', 'visible' => true],
-                    ['label' => __('order_dispatch.list.col_staff'), 'value' => 'assigned_user', 'visible' => true],
-                    ['label' => __('order_dispatch.list.col_suppliers'), 'value' => 'suppliers', 'visible' => true],
                     ['label' => __('online_sale_orders.list.col_order_date'), 'value' => 'order_date', 'visible' => true],
                     ['label' => __('online_sale_orders.list.col_created'), 'value' => 'created_at', 'visible' => false],
                 ],
@@ -184,14 +181,92 @@ class SalesPageToolbar extends ClusterPageToolbar
                 'formKey' => 'online-orders',
                 'addLabel' => null,
                 'compactAddButton' => false,
-                'hideFilters' => true,
                 'hideColumns' => true,
                 'searchPlaceholder' => __('forwarded_orders.list.search'),
+                'filterGroups' => static::forwardedOrdersFilterGroups(),
+                'filters' => [],
+                'columns' => [],
+            ],
+            'inbox' => [
+                ...$config,
+                'livewirePrefix' => 'staff-inbox',
+                'interactive' => true,
+                'formKey' => 'online-orders',
+                'addLabel' => null,
+                'compactAddButton' => false,
+                'hideColumns' => true,
+                'searchPlaceholder' => __('staff_inbox.list.search'),
+                'filterGroups' => [
+                    [
+                        'label' => __('staff_inbox.filters.all'),
+                        'filters' => [
+                            ['label' => __('staff_inbox.filters.all'), 'value' => 'status:all'],
+                            ['label' => __('staff_inbox.filters.unread'), 'value' => 'status:unread'],
+                        ],
+                    ],
+                ],
                 'filters' => [],
                 'columns' => [],
             ],
             default => $config,
         };
+    }
+
+    /**
+     * @return list<array{label: string, filters: list<array{label: string, value: string}>}>
+     */
+    protected static function forwardedOrdersFilterGroups(): array
+    {
+        $fromIds = OnlineSaleOrderStaffAssignment::query()
+            ->whereNotNull('sent_at')
+            ->whereNotNull('assigned_by_id')
+            ->distinct()
+            ->pluck('assigned_by_id');
+
+        $toIds = OnlineSaleOrderStaffAssignment::query()
+            ->whereNotNull('sent_at')
+            ->distinct()
+            ->pluck('user_id');
+
+        $fromFilters = User::query()
+            ->whereIn('id', $fromIds)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (User $user): array => [
+                'label' => (string) $user->name,
+                'value' => 'from:'.$user->id,
+            ])
+            ->values()
+            ->all();
+
+        $toFilters = User::query()
+            ->whereIn('id', $toIds)
+            ->orderBy('name')
+            ->get(['id', 'name'])
+            ->map(fn (User $user): array => [
+                'label' => (string) $user->name,
+                'value' => 'to:'.$user->id,
+            ])
+            ->values()
+            ->all();
+
+        $groups = [];
+
+        if ($fromFilters !== []) {
+            $groups[] = [
+                'label' => __('forwarded_orders.filters.from'),
+                'filters' => $fromFilters,
+            ];
+        }
+
+        if ($toFilters !== []) {
+            $groups[] = [
+                'label' => __('forwarded_orders.filters.to'),
+                'filters' => $toFilters,
+            ];
+        }
+
+        return $groups;
     }
 
     /**
@@ -335,54 +410,6 @@ class SalesPageToolbar extends ClusterPageToolbar
             [
                 'label' => __('pos.filters.payment'),
                 'filters' => $paymentFilters,
-            ],
-        ];
-    }
-
-    /**
-     * @return list<array{label: string, filters: list<array{label: string, value: string}>}>
-     */
-    protected static function orderDispatchFilterGroups(): array
-    {
-        $staffFilters = [];
-
-        foreach (User::query()->where('status', User::STATUS_ACTIVE)->orderBy('name')->get() as $user) {
-            $staffFilters[] = [
-                'label' => $user->name,
-                'value' => 'staff:' . $user->id,
-            ];
-        }
-
-        $supplierFilters = [];
-
-        foreach (Supplier::query()->where('status', 'active')->orderBy('business_name_en')->get() as $supplier) {
-            $supplierFilters[] = [
-                'label' => $supplier->displayBusinessName(),
-                'value' => 'supplier:' . $supplier->id,
-            ];
-        }
-
-        $fulfillmentFilters = [];
-
-        foreach (OnlineSaleOrder::FULFILLMENT_STATUSES as $status) {
-            $fulfillmentFilters[] = [
-                'label' => __('order_dispatch.fulfillment_statuses.' . $status),
-                'value' => 'fulfillment:' . $status,
-            ];
-        }
-
-        return [
-            [
-                'label' => __('order_dispatch.filters.staff'),
-                'filters' => $staffFilters,
-            ],
-            [
-                'label' => __('order_dispatch.filters.supplier'),
-                'filters' => $supplierFilters,
-            ],
-            [
-                'label' => __('order_dispatch.filters.fulfillment'),
-                'filters' => $fulfillmentFilters,
             ],
         ];
     }

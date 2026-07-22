@@ -122,17 +122,22 @@ class Form extends Component
 
     public string $statusType = 'success';
 
+    /** False until openForm has finished loading — prevents quotation chrome flashing on mount. */
+    public bool $formReady = false;
+
     private bool $recalculatingTotals = false;
 
     #[On('online-order-form-open')]
     public function openForm(?int $orderId = null, string $mode = 'view'): void
     {
+        $this->formReady = false;
         $this->resetForm();
         $this->orderId = $orderId;
         $this->mode = $mode;
 
         if ($orderId) {
             $this->loadOrder($orderId);
+            $this->formReady = true;
         }
     }
 
@@ -351,10 +356,18 @@ class Form extends Component
         return $this->order_status === OnlineSaleOrder::STATUS_CONVERTED;
     }
 
+    /**
+     * Quotation chrome (bank / payment verification). Never treat an unloaded form as a quotation.
+     */
+    public function isQuotationForm(): bool
+    {
+        return $this->formReady && $this->orderId !== null && ! $this->isInvoice();
+    }
+
     public function showFulfillmentSection(): bool
     {
-        // Fulfillment / suppliers only on the dispatch queue (after Send to Queue).
-        return $this->isInvoice() && $this->isQueued();
+        // Assignment / supplier picking moved off this form (Queue → staff inbox forward).
+        return false;
     }
 
     public function isQueued(): bool
@@ -672,54 +685,8 @@ class Form extends Component
             $customer = OnlineSaleOrder::query()->with('customer')->find($this->orderId)?->customer;
         }
 
-        $staffOptions = User::query()
-            ->where('status', User::STATUS_ACTIVE)
-            ->orderBy('name')
-            ->get()
-            ->map(fn (User $user): array => [
-                'id' => $user->id,
-                'label' => $user->name,
-            ])
-            ->all();
-
-        $suggestedSuppliers = [];
-
-        if ($this->orderId) {
-            $orderModel = OnlineSaleOrder::query()->with(['supplierAssignments.supplier'])->find($this->orderId);
-
-            if ($orderModel !== null) {
-                $dispatch = app(OnlineOrderDispatchService::class);
-                $suggested = $dispatch->suggestSuppliersForOrder($orderModel)->keyBy('id');
-
-                foreach ($orderModel->supplierAssignments as $assignment) {
-                    $suggested->put($assignment->supplier_id, $assignment->supplier);
-                }
-
-                foreach ($suggested as $supplier) {
-                    $assignment = $orderModel->supplierAssignments->firstWhere('supplier_id', $supplier->id);
-                    $isAssigned = $assignment !== null
-                        || in_array($supplier->id, $this->selectedSupplierIds, true);
-                    $suggestedSuppliers[] = [
-                        'id' => $supplier->id,
-                        'label' => $supplier->displayBusinessName(),
-                        'is_assigned' => $isAssigned,
-                        'status' => $assignment?->status,
-                        'proof_url' => $assignment?->shippingProofUrl(),
-                    ];
-                }
-            }
-        }
-
         return view('livewire.online-sale-orders.form', [
             'selectedCustomer' => $customer,
-            'staffOptions' => $staffOptions,
-            'suggestedSuppliers' => $suggestedSuppliers,
-            'supplierStatusOptions' => collect(OnlineSaleOrderSupplierAssignment::ADMIN_STATUSES)
-                ->mapWithKeys(fn (string $status): array => [$status => __('order_dispatch.supplier_statuses.' . $status)])
-                ->all(),
-            'fulfillmentStatusOptions' => collect(OnlineSaleOrder::FULFILLMENT_STATUSES)
-                ->mapWithKeys(fn (string $status): array => [$status => __('order_dispatch.fulfillment_statuses.' . $status)])
-                ->all(),
             'paymentOptions' => collect(['paid', 'partial'])
                 ->mapWithKeys(fn (string $status): array => [$status => __('pos.payment_statuses.' . $status)])
                 ->all(),
@@ -947,8 +914,10 @@ class Form extends Component
             'supplierAssignmentRows',
             'rows',
             'statusMessage',
+            'formReady',
         ]);
         $this->statusType = 'success';
         $this->amount_paid = '0';
+        $this->formReady = false;
     }
 }

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 class OnlineSaleOrderStaffAssignment extends Model
 {
@@ -22,6 +23,11 @@ class OnlineSaleOrderStaffAssignment extends Model
         'status',
         'sent_at',
         'released_at',
+        'carrier_name',
+        'tracking_number',
+        'shipping_reference',
+        'shipping_proof_path',
+        'shipped_at',
         'assigned_by_id',
     ];
 
@@ -33,12 +39,25 @@ class OnlineSaleOrderStaffAssignment extends Model
         return [
             'sent_at' => 'datetime',
             'released_at' => 'datetime',
+            'shipped_at' => 'datetime',
         ];
     }
 
     public function isReleased(): bool
     {
         return $this->released_at !== null;
+    }
+
+    public function isShipped(): bool
+    {
+        return $this->shipped_at !== null;
+    }
+
+    public function shippingProofUrl(): ?string
+    {
+        return filled($this->shipping_proof_path)
+            ? Storage::disk('public')->url($this->shipping_proof_path)
+            : null;
     }
 
     /**

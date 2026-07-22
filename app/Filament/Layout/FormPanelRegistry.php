@@ -54,6 +54,7 @@ final class FormPanelRegistry
             'secret-coding' => ['component' => 'secret-codings.form', 'permission' => 'marketplace.view'],
             'sales-channel' => ['component' => 'sales-channels.form', 'permission' => 'marketplace.view'],
             'delivery-methods' => ['component' => 'delivery-methods.form', 'permission' => 'logistics.view'],
+            'logistics-ship' => ['component' => 'logistics.ship-form', 'permission' => 'logistics.view'],
         ];
     }
 

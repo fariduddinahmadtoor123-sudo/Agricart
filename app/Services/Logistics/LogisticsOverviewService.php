@@ -4,6 +4,7 @@ namespace App\Services\Logistics;
 
 use App\Filament\Clusters\Logistics\DeliveryMethodsPage;
 use App\Filament\Clusters\Logistics\ShipmentsPage;
+use App\Filament\Clusters\Logistics\ShippedOrdersPage;
 use App\Models\DeliveryMethod;
 use App\Models\OnlineSaleOrder;
 
@@ -16,18 +17,8 @@ class LogisticsOverviewService
     {
         $total = DeliveryMethod::query()->count();
         $active = DeliveryMethod::query()->where('status', DeliveryMethod::STATUS_ACTIVE)->count();
-        $pending = OnlineSaleOrder::query()
-            ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
-            ->whereNotNull('queued_at')
-            ->where(function ($query): void {
-                $query->whereNull('fulfillment_status')
-                    ->orWhere('fulfillment_status', '!=', OnlineSaleOrder::FULFILLMENT_DELIVERED);
-            })
-            ->where(function ($query): void {
-                $query->whereHas('supplierAssignments', fn ($inner) => $inner->whereNotNull('released_at'))
-                    ->orWhereHas('staffAssignments', fn ($inner) => $inner->whereNotNull('released_at'));
-            })
-            ->count();
+        $pending = OnlineSaleOrder::query()->logisticsPending()->count();
+        $shipped = OnlineSaleOrder::query()->logisticsShipped()->count();
 
         return [
             [
@@ -43,6 +34,13 @@ class LogisticsOverviewService
                 'count' => $pending,
                 'active' => null,
                 'url' => ShipmentsPage::getUrl(),
+            ],
+            [
+                'key' => 'shipped_orders',
+                'label' => __('agricart.logistics.overview.cards.shipped_orders'),
+                'count' => $shipped,
+                'active' => null,
+                'url' => ShippedOrdersPage::getUrl(),
             ],
         ];
     }

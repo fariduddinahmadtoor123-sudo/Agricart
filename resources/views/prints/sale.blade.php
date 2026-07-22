@@ -97,120 +97,19 @@
             <button type="button" onclick="window.close()">{{ __('pos.print.close_button') }}</button>
         </div>
 
-        <article @class(['invoice', 'invoice--a4' => ! $isReceipt, 'invoice--receipt' => $isReceipt])>
-            <header class="invoice__head">
-                @if ($storeLogoUrl)
-                    <img src="{{ $storeLogoUrl }}" alt="" class="invoice__logo" />
-                @endif
-                @if (filled($storeName))
-                    <h1 class="invoice__store">{{ $storeName }}</h1>
-                @endif
-                <p class="invoice__title">{{ __('pos.print.heading') }}</p>
-                <p class="invoice__meta">
-                    <strong>{{ $sale->sale_number }}</strong>
-                    · {{ $sale->sale_date?->format('d M Y') }}
-                    @if (filled($storePhone)) · {{ $storePhone }} @endif
-                </p>
-                @if ($sale->customer)
-                    <p class="invoice__meta">{{ __('pos.print.customer') }}: {{ $sale->customer->displayLabel() }}</p>
-                @endif
-                @if ($sale->cashier)
-                    <p class="invoice__meta">{{ __('pos.print.cashier') }}: {{ $sale->cashier->name }}</p>
-                @endif
-            </header>
-
-            @if ($isReceipt)
-                <div class="receipt-items">
-                    @foreach ($sale->items as $index => $item)
-                        <article class="receipt-item">
-                            <p class="receipt-item__name">{{ $index + 1 }}. {{ $item->displayName($locale) }}</p>
-                            <div class="receipt-item__grid">
-                                <div class="receipt-item__field">
-                                    <span>{{ __('pos.fields.brand') }}</span>
-                                    <strong>{{ $item->displayBrand($locale) }}</strong>
-                                </div>
-                                <div class="receipt-item__field">
-                                    <span>{{ __('pos.fields.quantity') }}</span>
-                                    <strong>{{ $item->quantity }}</strong>
-                                </div>
-                                <div class="receipt-item__field">
-                                    <span>{{ __('pos.fields.unit_price') }}</span>
-                                    <strong>{{ $formatAmount((string) $item->unit_price) }}</strong>
-                                </div>
-                                <div class="receipt-item__field receipt-item__field--total">
-                                    <span>{{ __('pos.fields.line_total') }}</span>
-                                    <strong>{{ $formatAmount((string) $item->line_total) }}</strong>
-                                </div>
-                            </div>
-                        </article>
-                    @endforeach
-                </div>
-            @else
-                <table class="invoice__table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>{{ __('pos.fields.brand') }}</th>
-                            <th class="name">{{ __('pos.fields.product_name') }}</th>
-                            <th>{{ __('pos.fields.quantity') }}</th>
-                            <th>{{ __('pos.fields.unit_price') }}</th>
-                            <th>{{ __('pos.fields.line_total') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($sale->items as $index => $item)
-                            <tr>
-                                <td>{{ $index + 1 }}</td>
-                                <td>{{ $item->displayBrand($locale) }}</td>
-                                <td class="name">{{ $item->displayName($locale) }}</td>
-                                <td>{{ $item->quantity }}</td>
-                                <td>{{ $formatAmount((string) $item->unit_price) }}</td>
-                                <td>{{ $formatAmount((string) $item->line_total) }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            @endif
-
-            @if ($sale->print_controls)
-                <section class="invoice__controls">
-                    <h2>{{ __('pos.print.controls_heading') }}</h2>
-                    @php $printedControls = false; @endphp
-                    @foreach ($sale->items as $item)
-                        @php $list = $controlsByProduct[$item->product_id] ?? []; @endphp
-                        @if ($list !== [])
-                            @php $printedControls = true; @endphp
-                            <p><strong>{{ $item->displayName($locale) }}</strong>: {{ implode(' · ', $list) }}</p>
-                        @endif
-                    @endforeach
-                    @if (! $printedControls)
-                        <p class="invoice__meta">{{ __('pos.print.no_controls') }}</p>
-                    @endif
-                </section>
-            @endif
-
-            @if (filled($sale->notes))
-                <div class="invoice__notes">
-                    <strong>{{ __('pos.fields.notes') }}:</strong> {{ $sale->notes }}
-                </div>
-            @endif
-
-            <footer class="invoice__payment">
-                <div class="invoice__payment-row"><span>{{ __('pos.fields.subtotal') }}</span><span>{{ $formatAmount((string) $sale->subtotal) }}</span></div>
-                @if ((float) $sale->discount_amount > 0)
-                    <div class="invoice__payment-row"><span>{{ __('pos.fields.discount') }}</span><span>- {{ $formatAmount((string) $sale->discount_amount) }}</span></div>
-                @endif
-                <div class="invoice__payment-row is-grand"><span>{{ __('pos.fields.total') }}</span><span>{{ $formatAmount((string) $sale->total_amount) }}</span></div>
-                <div class="invoice__payment-row"><span>{{ __('pos.fields.payment_method') }}</span><span>{{ __('pos.payment_methods.' . $sale->payment_method) }}</span></div>
-                <div class="invoice__payment-row"><span>{{ __('pos.fields.payment_status') }}</span><span>{{ __('pos.payment_statuses.' . $sale->payment_status) }}</span></div>
-                <div class="invoice__payment-row"><span>{{ __('pos.fields.amount_paid') }}</span><span>{{ $formatAmount((string) $sale->amount_paid) }}</span></div>
-                <div class="invoice__payment-row"><span>{{ __('pos.fields.balance_due') }}</span><span>{{ $formatAmount((string) $balanceDue) }}</span></div>
-            </footer>
-
-            @if (filled($storeMessage))
-                <p class="invoice__message">{{ $storeMessage }}</p>
-            @endif
-        </article>
+        @include('prints.partials.sale-invoice-article', [
+            'sale' => $sale,
+            'locale' => $locale,
+            'storeName' => $storeName,
+            'storePhone' => $storePhone,
+            'storeAddress' => $storeAddress ?? '',
+            'storeMessage' => $storeMessage,
+            'storeLogoUrl' => $storeLogoUrl,
+            'balanceDue' => $balanceDue,
+            'controlsByProduct' => $controlsByProduct,
+            'formatAmount' => $formatAmount,
+            'isReceipt' => $isReceipt,
+        ])
     </div>
 
     @if ($autoprint)

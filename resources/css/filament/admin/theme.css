@@ -756,6 +756,17 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
     white-space: nowrap;
 }
 
+.agricart-topbar-actions__inbox-btn {
+    position: relative;
+    text-decoration: none;
+}
+
+.agricart-topbar-actions__inbox-btn.is-unread {
+    color: var(--agricart-primary);
+    border-color: color-mix(in oklab, var(--agricart-primary) 45%, var(--agricart-border));
+    background-color: color-mix(in oklab, var(--agricart-primary) 10%, white);
+}
+
 .agricart-topbar-actions__quick-btn {
     display: inline-flex;
     align-items: center;
@@ -2010,6 +2021,12 @@ body.agricart-form-panel-open {
     display: grid;
     gap: 0.75rem;
     padding: 0.25rem 0 1rem;
+}
+
+.agricart-online-order__form-loading {
+    display: grid;
+    gap: 0.65rem;
+    padding: 1.25rem 0.15rem 0.5rem;
 }
 
 .agricart-form-panel__loading-bar {
@@ -3597,6 +3614,16 @@ body.agricart-form-panel-open {
     display: flex;
     gap: 0.375rem;
     flex-wrap: wrap;
+}
+
+.agricart-order-dispatch .agricart-categories__actions {
+    flex-wrap: nowrap;
+    white-space: nowrap;
+    align-items: center;
+}
+
+.agricart-order-dispatch .agricart-categories__action {
+    flex: 0 0 auto;
 }
 
 .agricart-categories__action {
@@ -13442,6 +13469,13 @@ body.agricart-price-tags-panel-open {
     gap: 0.35rem;
 }
 
+.agricart-order-forward__identity em {
+    display: block;
+    font-style: normal;
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
 .agricart-order-forward__channels .agricart-categories__action:disabled {
     opacity: 0.45;
     cursor: not-allowed;
@@ -13455,6 +13489,184 @@ body.agricart-price-tags-panel-open {
     .agricart-order-forward__channels {
         width: 100%;
     }
+}
+
+.agricart-staff-inbox__thread {
+    border: 1px solid #ebedf0;
+    background: #fff;
+    padding: 1rem;
+}
+
+.agricart-staff-inbox__thread-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.agricart-staff-inbox__thread-head h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #0f172a;
+}
+
+.agricart-staff-inbox__thread-head p {
+    margin: 0.25rem 0 0;
+    color: #64748b;
+    font-size: 0.875rem;
+}
+
+.agricart-inbox-invoice {
+    margin-bottom: 0;
+    border: 1px solid #ebedf0;
+    background: #f4f5f7;
+}
+
+.agricart-inbox-invoice__sheet {
+    padding: 1rem;
+    overflow-x: auto;
+}
+
+.agricart-inbox-invoice .invoice {
+    width: 100%;
+    max-width: 210mm;
+    margin-inline: auto;
+    background: #fff;
+    border: 1px solid #d1d5db;
+    padding: 1rem;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 0.875rem;
+    line-height: 1.45;
+    color: #111827;
+}
+
+.agricart-inbox-invoice .invoice__head {
+    text-align: center;
+    border-bottom: 2px solid #111827;
+    padding-bottom: 0.55rem;
+    margin-bottom: 0.55rem;
+}
+
+.agricart-inbox-invoice .invoice__logo {
+    max-height: 3.25rem;
+    margin: 0 auto 0.35rem;
+    display: block;
+}
+
+.agricart-inbox-invoice .invoice__store {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 800;
+}
+
+.agricart-inbox-invoice .invoice__title {
+    margin: 0.25rem 0 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #374151;
+}
+
+.agricart-inbox-invoice .invoice__meta {
+    margin: 0.2rem 0 0;
+    font-size: 0.8125rem;
+    color: #4b5563;
+}
+
+.agricart-inbox-invoice .invoice__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+    margin-top: 0.35rem;
+}
+
+.agricart-inbox-invoice .invoice__table th,
+.agricart-inbox-invoice .invoice__table td {
+    border: 1px solid #9ca3af;
+    padding: 0.35rem 0.3rem;
+    vertical-align: top;
+    text-align: center;
+}
+
+.agricart-inbox-invoice .invoice__table th {
+    background: #f3f4f6;
+    font-weight: 700;
+}
+
+.agricart-inbox-invoice .invoice__table .name {
+    text-align: start !important;
+    min-width: 10rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.agricart-inbox-invoice .invoice__payment {
+    margin-top: 0.75rem;
+    padding-top: 0.55rem;
+    border-top: 2px solid #111827;
+    font-size: 0.875rem;
+}
+
+.agricart-inbox-invoice .invoice__payment-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin: 0.15rem 0;
+}
+
+.agricart-inbox-invoice .invoice__payment-row.is-grand {
+    font-weight: 800;
+    font-size: 1rem;
+    margin-top: 0.35rem;
+}
+
+.agricart-inbox-invoice .invoice__message {
+    margin-top: 0.55rem;
+    text-align: center;
+    font-size: 0.75rem;
+    color: #374151;
+    border-top: 1px dashed #d1d5db;
+    padding-top: 0.35rem;
+}
+
+.agricart-inbox-invoice .invoice__notes {
+    margin-top: 0.65rem;
+    padding: 0.55rem 0.65rem;
+    border: 2px solid #f59e0b;
+    background: #fffbeb;
+    font-size: 0.9rem;
+}
+
+.agricart-inbox-invoice .invoice__controls {
+    margin-top: 0.65rem;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid #93c5fd;
+    background: #eff6ff;
+    font-size: 0.8125rem;
+}
+
+.agricart-staff-inbox__footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid #ebedf0;
+}
+
+.agricart-staff-inbox__footer .agricart-categories__action--primary {
+    min-height: 2.25rem;
+    padding-inline: 1rem;
+    font-weight: 700;
+}
+
+.agricart-staff-inbox .agricart-categories__row.is-unread {
+    background: color-mix(in oklab, var(--agricart-primary) 6%, white);
+}
+
+.agricart-staff-inbox .agricart-categories__row.is-unread td:first-child {
+    font-weight: 700;
+    box-shadow: inset 3px 0 0 #83b735;
 }
 
 .agricart-forwarded-orders__groups {

@@ -20,6 +20,7 @@ class OnlineSaleOrderPrintController extends Controller
         $order->load([
             'items' => fn ($query) => $query->orderBy('sort_order'),
             'customer',
+            'sale',
             'assignedUser',
             'supplierAssignments.supplier',
         ]);
@@ -50,6 +51,7 @@ class OnlineSaleOrderPrintController extends Controller
             'company' => $company,
             'storeName' => (string) ($company->localized('business_name') ?? ''),
             'storePhone' => (string) (($company->primaryPhone() ?? [])['phone_number'] ?? ''),
+            'storeAddress' => $company->formattedPrimaryAddress() ?? '',
             'storeMessage' => (string) ($company->localized('tagline') ?? ''),
             'storeLogoUrl' => $company->displayLogoUrl(),
             'receiptProfile' => $receiptProfile,

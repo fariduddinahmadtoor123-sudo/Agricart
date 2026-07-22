@@ -13,4 +13,16 @@ return [
         'footer' => 'If you did not place this order, please contact us.',
         'sms' => ':store: Order :number received. Total :total. Track in your account.',
     ],
+    'order_shipped' => [
+        'subject' => 'Order :number shipped — :store',
+        'heading' => 'Order :number is on the way',
+        'intro' => 'Your order has been handed to the carrier / transport. Use the details below to track it.',
+        'col_carrier' => 'Carrier',
+        'col_tracking' => 'Tracking ID',
+        'col_bilty' => 'Bilty / reference',
+        'hint' => 'For courier tracking IDs, check the carrier website. For bilty shipments, call the phone number printed on the bilty.',
+        'view_order' => 'View order',
+        'footer' => 'Questions? Reply to this email or contact the store.',
+        'sms' => ':store: Order :number shipped. Ref :ref. Details in your account.',
+    ],
 ];

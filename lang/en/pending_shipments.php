@@ -6,10 +6,10 @@ return [
         'print_invoice' => 'Print invoice',
     ],
 
-    'list' => [
-        'note' => 'Orders released from Sales → Forwarded. Enter carrier, tracking, and bilty here.',
+        'list' => [
+        'note' => 'Orders released from Sales → Forwarded. Open Ship to enter carrier, tracking, bilty, or proof — then the customer is notified.',
         'empty' => 'No pending shipments.',
-        'empty_hint' => 'When someone marks goods released on Forwarded, the order appears here until delivered.',
+        'empty_hint' => 'When someone marks goods released on Forwarded, the order appears here until you record the handoff.',
         'no_results' => 'No shipments match your search or filters.',
         'clear_filters' => 'Clear filters',
         'col_shipping' => 'Carrier / tracking / bilty',

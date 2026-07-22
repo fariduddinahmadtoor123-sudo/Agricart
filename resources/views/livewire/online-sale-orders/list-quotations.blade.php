@@ -1,8 +1,4 @@
 <div class="agricart-categories agricart-purchases">
-    <div class="agricart-online-order__list-note" role="note">
-        {{ __('online_sale_orders.list.quotations_note') }}
-    </div>
-
     @if ($activeFilters !== [])
         <div class="agricart-list-filters">
             @foreach ($activeFilters as $filter)
@@ -28,9 +24,6 @@
     @if ($orders->isEmpty())
         <div class="agricart-categories__empty">
             <p>{{ $hasListConstraints ? __('online_sale_orders.list.no_results') : __('online_sale_orders.list.quotations_empty') }}</p>
-            @unless ($hasListConstraints)
-                <p class="agricart-categories__empty-hint">{{ __('online_sale_orders.list.quotations_empty_hint') }}</p>
-            @endunless
         </div>
     @else
         <div class="agricart-categories__table-wrap">

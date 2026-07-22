@@ -23,10 +23,10 @@ class DynamicForm extends Component
         $component = FormPanelRegistry::component($formKey, $user, $mode);
         abort_unless($component !== null, 403);
 
-        if ($this->component !== $component) {
-            $this->component = $component;
-            $this->instance++;
-        }
+        // Always remount so the panel never paints a previous order's UI
+        // (e.g. quotation bank fields) for a millisecond before openForm runs.
+        $this->component = $component;
+        $this->instance++;
 
         $this->dispatch('form-panel-mounted', formKey: $formKey);
     }

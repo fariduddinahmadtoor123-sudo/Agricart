@@ -124,7 +124,7 @@ class OnlineQuotationInvoiceSplitTest extends TestCase
             ->assertDontSee('Suppliers (by product category)', false);
     }
 
-    public function test_queued_invoice_form_shows_fulfillment(): void
+    public function test_queued_invoice_form_hides_fulfillment_and_suppliers(): void
     {
         $admin = $this->superAdmin();
         $invoice = $this->makeOrder(OnlineSaleOrder::STATUS_CONVERTED, 'ONL-I-QUEUED');
@@ -132,10 +132,11 @@ class OnlineQuotationInvoiceSplitTest extends TestCase
 
         Livewire::actingAs($admin)
             ->test(Form::class)
-            ->call('openForm', $invoice->id, 'edit')
+            ->call('openForm', $invoice->id, 'view')
             ->assertSet('order_status', OnlineSaleOrder::STATUS_CONVERTED)
-            ->assertSee('Assigned staff', false)
-            ->assertDontSee(__('online_sale_orders.sections.customer_payment'), false);
+            ->assertDontSee('Assigned staff', false)
+            ->assertDontSee('Suppliers (by product category)', false)
+            ->assertDontSee(__('order_dispatch.sections.fulfillment'), false);
     }
 
     public function test_quotations_list_highlights_payment_notified_and_sorts_them_first(): void

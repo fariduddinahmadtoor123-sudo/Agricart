@@ -1,74 +1,67 @@
 <div class="agricart-categories agricart-forwarded-orders">
-    <div class="agricart-online-order__list-note" role="note">
-        {{ __('forwarded_orders.list.note') }}
-    </div>
+    @if ($activeFilters !== [])
+        <div class="agricart-list-filters">
+            @foreach ($activeFilters as $filter)
+                <button
+                    type="button"
+                    class="agricart-list-filters__chip"
+                    wire:click="removeFilter('{{ $filter['field'] }}')"
+                    wire:key="forwarded-filter-{{ $filter['field'] }}"
+                >
+                    <span>{{ $filter['label'] }}</span>
+                    <span aria-hidden="true">×</span>
+                </button>
+            @endforeach
 
-    @if ($statusMessage !== '')
-        <p class="agricart-order-forward__status" role="status">{{ $statusMessage }}</p>
+            @if ($hasListConstraints)
+                <button type="button" class="agricart-list-filters__clear" wire:click="clearFilters">
+                    {{ __('forwarded_orders.list.clear_filters') }}
+                </button>
+            @endif
+        </div>
     @endif
 
-    @if ($groups === [])
+    @if ($rows->isEmpty())
         <div class="agricart-categories__empty">
-            <p>{{ filled($search) ? __('forwarded_orders.list.no_results') : __('forwarded_orders.list.empty') }}</p>
-            @unless (filled($search))
+            <p>{{ $hasListConstraints ? __('forwarded_orders.list.no_results') : __('forwarded_orders.list.empty') }}</p>
+            @unless ($hasListConstraints)
                 <p class="agricart-categories__empty-hint">{{ __('forwarded_orders.list.empty_hint') }}</p>
             @endunless
         </div>
     @else
-        <ul class="agricart-forwarded-orders__groups">
-            @foreach ($groups as $group)
-                <li wire:key="fwd-group-{{ $group['key'] }}" class="agricart-forwarded-orders__group">
-                    <button
-                        type="button"
-                        class="agricart-forwarded-orders__group-head"
-                        wire:click="toggleGroup(@js($group['key']))"
-                        aria-expanded="{{ $expandedKey === $group['key'] ? 'true' : 'false' }}"
-                    >
-                        <div class="agricart-forwarded-orders__identity">
-                            <strong>{{ $group['name'] }}</strong>
-                            <span>
-                                {{ $group['type'] === 'supplier'
-                                    ? __('forwarded_orders.list.recipient_supplier')
-                                    : __('forwarded_orders.list.recipient_staff') }}
-                            </span>
-                            @if (filled($group['phone']))
-                                <span>{{ $group['phone'] }}</span>
-                            @endif
-                        </div>
-                        <div class="agricart-forwarded-orders__counts">
-                            <span>{{ __('forwarded_orders.list.orders_count', ['count' => $group['order_count']]) }}</span>
-                            <span>{{ __('forwarded_orders.list.lines_count', ['count' => $group['line_count']]) }}</span>
-                            <span aria-hidden="true">{{ $expandedKey === $group['key'] ? '−' : '+' }}</span>
-                        </div>
-                    </button>
+        <div class="agricart-categories__table-wrap">
+            <table class="agricart-categories__table">
+                <thead>
+                    <tr>
+                        <th>{{ __('forwarded_orders.list.col_order') }}</th>
+                        <th>{{ __('forwarded_orders.list.col_invoice') }}</th>
+                        <th>{{ __('forwarded_orders.list.col_from') }}</th>
+                        <th>{{ __('forwarded_orders.list.col_to') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($rows as $row)
+                        <tr wire:key="forwarded-row-{{ $row->id }}">
+                            <td>
+                                <code>{{ $row->order?->order_number ?? '—' }}</code>
+                            </td>
+                            <td>
+                                @if (filled($row->order?->sale?->sale_number))
+                                    <code>{{ $row->order->sale->sale_number }}</code>
+                                @else
+                                    —
+                                @endif
+                            </td>
+                            <td>{{ $row->assignedBy?->name ?? '—' }}</td>
+                            <td>{{ $row->user?->name ?? '—' }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
 
-                    @if ($expandedKey === $group['key'])
-                        <ul class="agricart-forwarded-orders__orders">
-                            @foreach ($group['orders'] as $row)
-                                <li wire:key="fwd-asg-{{ $row['assignment_type'] }}-{{ $row['assignment_id'] }}" class="agricart-forwarded-orders__order">
-                                    <div class="agricart-forwarded-orders__order-meta">
-                                        <code>{{ $row['order_number'] }}</code>
-                                        <span>{{ __('forwarded_orders.list.document_'.$row['document']) }}</span>
-                                    </div>
-                                    <ul class="agricart-forwarded-orders__lines">
-                                        @foreach ($row['lines'] as $line)
-                                            <li>{{ $line }}</li>
-                                        @endforeach
-                                    </ul>
-                                    @if ($canEdit)
-                                        <button
-                                            type="button"
-                                            class="agricart-categories__action is-primary"
-                                            wire:click="markReleased('{{ $row['assignment_type'] }}', {{ $row['assignment_id'] }})"
-                                            wire:confirm="{{ __('forwarded_orders.actions.release_confirm') }}"
-                                        >{{ __('forwarded_orders.actions.mark_released') }}</button>
-                                    @endif
-                                </li>
-                            @endforeach
-                        </ul>
-                    @endif
-                </li>
-            @endforeach
-        </ul>
+        <div class="agricart-categories__pagination">
+            {{ $rows->links() }}
+        </div>
     @endif
 </div>

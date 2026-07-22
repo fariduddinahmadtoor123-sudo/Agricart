@@ -7,8 +7,10 @@ use App\Models\CatalogControl;
 use App\Models\Category;
 use App\Models\DeliveryMethod;
 use App\Models\Product;
+use App\Models\SalesChannel;
 use App\Services\Logistics\DeliveryMethodService;
 use App\Services\Sales\SaleService;
+use App\Services\SalesChannels\SalesChannelService;
 use App\Services\Store\StorefrontProductPresenter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -181,5 +183,46 @@ class ProductDetailsTabsTest extends TestCase
         $response
             ->assertOk()
             ->assertDontSee('data-store-pdp-tab="delivery"', false);
+    }
+
+    public function test_hidden_prices_still_show_quantity_pricing_tab(): void
+    {
+        $category = Category::query()->create([
+            'slug' => 'filters',
+            'code' => 'CAT-FILTERS',
+            'status' => 'active',
+            'name_en' => 'Filters',
+            'name_ur' => 'فلٹرز',
+        ]);
+
+        $product = Product::query()->create([
+            'category_id' => $category->id,
+            'status' => 'active',
+            'code' => 'PRD-QTY-1',
+            'sku' => 'MESH-1',
+            'name_en' => 'Boom Arm Filter Mesh',
+            'name_ur' => 'بوم آرم فلٹر میش',
+            'slug' => 'boom-arm-filter-mesh',
+            'retail_price' => 250,
+            'stock_qty' => 20,
+        ]);
+
+        // Disabled channel (or maintenance) sets show_prices=false; full maintenance returns 503.
+        $channel = SalesChannel::onlineStore();
+        $channel->update(['is_enabled' => false, 'maintenance_mode' => false]);
+        app(SalesChannelService::class)->clearCache();
+
+        $this->assertFalse(app(SalesChannelService::class)->onlineStoreShowsPrices());
+
+        $response = $this->get(route('store.product', $product->slug));
+
+        $response
+            ->assertOk()
+            ->assertSee('data-store-pdp-tab="pricing"', false)
+            ->assertSee(__('agricart.storefront.product.tabs.pricing'), false)
+            ->assertSee('ag-store-pdp__price-table', false)
+            ->assertDontSee('ag-store-pdp__price-box', false)
+            ->assertSee('ag-store-pdp__offline-msg', false)
+            ->assertDontSee(__('agricart.storefront.product.add_to_cart'), false);
     }
 }

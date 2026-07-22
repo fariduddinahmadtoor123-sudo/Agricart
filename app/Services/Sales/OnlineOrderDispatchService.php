@@ -83,7 +83,7 @@ class OnlineOrderDispatchService
      */
     public function suggestSuppliersForItemIds(OnlineSaleOrder $order, array $itemIds): Collection
     {
-        $categoryIds = $this->categoryIdsForItemIds($order, $itemIds);
+        $categoryIds = $this->categoryIdsForSupplierMatch($order, $itemIds);
 
         if ($categoryIds === []) {
             return collect();
@@ -96,6 +96,23 @@ class OnlineOrderDispatchService
             })
             ->orderBy('business_name_en')
             ->get();
+    }
+
+    /**
+     * Product category + ancestors + descendants (so Boom root ↔ Boom child links both match).
+     *
+     * @param  list<int>  $itemIds
+     * @return list<int>
+     */
+    public function categoryIdsForSupplierMatch(OnlineSaleOrder $order, array $itemIds): array
+    {
+        $base = $this->categoryIdsForItemIds($order, $itemIds);
+
+        if ($base === []) {
+            return [];
+        }
+
+        return array_values(array_unique(array_merge($base, $this->descendantCategoryIds($base))));
     }
 
     /**
@@ -124,6 +141,47 @@ class OnlineOrderDispatchService
             ->pluck('online_sale_order_item_id')
             ->map(fn ($id): int => (int) $id)
             ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Lines already sent to a specific supplier (for WhatsApp / email resend).
+     *
+     * @return list<int>
+     */
+    public function itemIdsAssignedToSupplier(OnlineSaleOrder $order, int $supplierId): array
+    {
+        $assignment = $order->supplierAssignments()
+            ->where('supplier_id', $supplierId)
+            ->where('status', '!=', OnlineSaleOrderSupplierAssignment::STATUS_DECLINED)
+            ->with('lines')
+            ->first();
+
+        if ($assignment === null) {
+            return [];
+        }
+
+        return $assignment->lines
+            ->pluck('online_sale_order_item_id')
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function remainingUnassignedItemIds(OnlineSaleOrder $order): array
+    {
+        $order->loadMissing('items');
+        $assigned = $this->assignedItemIds($order);
+
+        return $order->items
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->reject(fn (int $id): bool => in_array($id, $assigned, true))
             ->values()
             ->all();
     }
@@ -372,6 +430,150 @@ class OnlineOrderDispatchService
         $this->syncOrderFulfillmentFromSuppliers($order->fresh('supplierAssignments'));
     }
 
+    /**
+     * Logistics handoff: mark released parcels as shipped with carrier / tracking / bilty / proof.
+     *
+     * @param  array<int|string, array<string, mixed>>  $supplierRows
+     * @param  array<int|string, array<string, mixed>>  $staffRows
+     * @param  array<int|string, \Illuminate\Http\UploadedFile|\Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null>  $supplierProofUploads
+     * @param  array<int|string, \Illuminate\Http\UploadedFile|\Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null>  $staffProofUploads
+     * @return array{newly_shipped: bool}
+     */
+    public function shipLogisticsHandoff(
+        OnlineSaleOrder $order,
+        array $supplierRows,
+        array $staffRows = [],
+        array $supplierProofUploads = [],
+        array $staffProofUploads = [],
+    ): array {
+        $order->loadMissing(['supplierAssignments.supplier', 'staffAssignments.user']);
+
+        $supplierWasShipped = $order->supplierAssignments
+            ->filter(fn (OnlineSaleOrderSupplierAssignment $a): bool => $a->shipped_at !== null)
+            ->pluck('supplier_id')
+            ->all();
+        $staffWasShipped = $order->staffAssignments
+            ->filter(fn (OnlineSaleOrderStaffAssignment $a): bool => $a->shipped_at !== null)
+            ->pluck('id')
+            ->all();
+
+        $normalizedSupplierRows = [];
+
+        foreach ($supplierRows as $supplierId => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $supplierId = (int) $supplierId;
+            $assignment = $order->supplierAssignments->firstWhere('supplier_id', $supplierId);
+
+            if ($assignment === null || $assignment->released_at === null) {
+                continue;
+            }
+
+            $normalizedSupplierRows[$supplierId] = [
+                ...$row,
+                'status' => OnlineSaleOrderSupplierAssignment::STATUS_SHIPPED,
+            ];
+        }
+
+        if ($normalizedSupplierRows !== []) {
+            $this->applySupplierFulfillmentUpdates($order, $normalizedSupplierRows, $supplierProofUploads);
+        }
+
+        foreach ($staffRows as $assignmentId => $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $assignmentId = (int) $assignmentId;
+            $assignment = $order->staffAssignments->firstWhere('id', $assignmentId);
+
+            if ($assignment === null || $assignment->released_at === null) {
+                continue;
+            }
+
+            $upload = $staffProofUploads[$assignmentId] ?? $staffProofUploads[(string) $assignmentId] ?? null;
+            $this->applyStaffShipmentUpdate($assignment, $row, $upload);
+        }
+
+        $order = $order->fresh(['supplierAssignments', 'staffAssignments']);
+        $this->syncOrderFulfillmentFromLogistics($order);
+
+        $supplierNowShipped = $order->supplierAssignments
+            ->filter(fn (OnlineSaleOrderSupplierAssignment $a): bool => $a->shipped_at !== null)
+            ->pluck('supplier_id')
+            ->all();
+        $staffNowShipped = $order->staffAssignments
+            ->filter(fn (OnlineSaleOrderStaffAssignment $a): bool => $a->shipped_at !== null)
+            ->pluck('id')
+            ->all();
+
+        $newlyShipped = array_diff($supplierNowShipped, $supplierWasShipped) !== []
+            || array_diff($staffNowShipped, $staffWasShipped) !== [];
+
+        if ($newlyShipped && $order->shipping_customer_notified_at === null) {
+            app(\App\Services\Store\OnlineStoreOrderNotifier::class)->orderShipped($order);
+            $order->shipping_customer_notified_at = now();
+            $order->save();
+        }
+
+        return ['newly_shipped' => $newlyShipped];
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     * @param  \Illuminate\Http\UploadedFile|\Livewire\Features\SupportFileUploads\TemporaryUploadedFile|null  $upload
+     */
+    public function applyStaffShipmentUpdate(
+        OnlineSaleOrderStaffAssignment $assignment,
+        array $row,
+        mixed $upload = null,
+    ): void {
+        $tracking = trim((string) ($row['tracking_number'] ?? ''));
+        $reference = trim((string) ($row['shipping_reference'] ?? ''));
+        $hasExistingProof = filled($assignment->shipping_proof_path);
+
+        if ($tracking === '' && $reference === '' && ! $hasExistingProof && $upload === null) {
+            throw ValidationException::withMessages([
+                'staff_fulfillment' => [__('order_dispatch.validation.shipped_proof_required')],
+            ]);
+        }
+
+        $assignment->carrier_name = $this->nullableString($row['carrier_name'] ?? null);
+        $assignment->tracking_number = $this->nullableString($row['tracking_number'] ?? null);
+        $assignment->shipping_reference = $this->nullableString($row['shipping_reference'] ?? null);
+
+        if ($assignment->shipped_at === null) {
+            $assignment->shipped_at = now();
+        }
+
+        if ($upload !== null) {
+            $path = $upload->store('online-orders/shipping-proofs/'.$assignment->online_sale_order_id, 'public');
+            $assignment->shipping_proof_path = $path;
+        }
+
+        $assignment->save();
+    }
+
+    public function syncOrderFulfillmentFromLogistics(OnlineSaleOrder $order): void
+    {
+        $order->loadMissing(['supplierAssignments', 'staffAssignments']);
+
+        $supplierShipped = $order->supplierAssignments
+            ->contains(fn (OnlineSaleOrderSupplierAssignment $a): bool => $a->status === OnlineSaleOrderSupplierAssignment::STATUS_SHIPPED
+                || $a->shipped_at !== null);
+
+        $staffShipped = $order->staffAssignments
+            ->contains(fn (OnlineSaleOrderStaffAssignment $a): bool => $a->shipped_at !== null);
+
+        if (($supplierShipped || $staffShipped)
+            && $order->fulfillment_status !== OnlineSaleOrder::FULFILLMENT_DELIVERED) {
+            $order->fulfillment_status = OnlineSaleOrder::FULFILLMENT_TRANSIT;
+            $order->save();
+        }
+    }
+
     public function syncOrderFulfillmentFromSuppliers(OnlineSaleOrder $order): void
     {
         $assignments = $order->supplierAssignments;
@@ -528,185 +730,14 @@ class OnlineOrderDispatchService
      */
     public function orderStillNeedsForward(OnlineSaleOrder $order): bool
     {
-        $progress = $this->packingProgress($order);
-        $remaining = (int) ($progress['remaining'] ?? 0);
-        $sent = (int) ($progress['sent'] ?? 0);
-
-        if ($order->queue_document === OnlineSaleOrder::QUEUE_DOCUMENT_PACKING_LIST) {
-            return $remaining > 0;
-        }
-
-        // Invoice document: staff forward required; if packing was started, finish it too.
-        if (! $this->hasStaffSentAssignment($order)) {
-            return true;
-        }
-
-        if ($sent > 0) {
-            return $remaining > 0;
-        }
-
-        return false;
+        // Queue exits once the order is forwarded to at least one staff member (in-app inbox).
+        return ! $this->hasStaffSentAssignment($order);
     }
 
     public function orderHasReleasedAssignments(OnlineSaleOrder $order): bool
     {
         return $order->supplierAssignments()->whereNotNull('released_at')->exists()
             || $order->staffAssignments()->whereNotNull('released_at')->exists();
-    }
-
-    /**
-     * Recipients with at least one unreleased forward (for Forwarded outbox).
-     *
-     * @return list<array{
-     *   key: string,
-     *   type: 'supplier'|'staff',
-     *   id: int,
-     *   name: string,
-     *   phone: string|null,
-     *   order_count: int,
-     *   line_count: int,
-     *   orders: list<array{order_id: int, order_number: string, document: string, assignment_id: int, assignment_type: string, lines: list<string>}>
-     * }>
-     */
-    public function forwardedRecipientGroups(?string $search = null): array
-    {
-        $needle = mb_strtolower(trim((string) $search));
-
-        $supplierAssignments = OnlineSaleOrderSupplierAssignment::query()
-            ->awaitingRelease()
-            ->with(['supplier', 'order.items', 'lines.orderItem'])
-            ->whereHas('order', function ($query): void {
-                $query->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
-                    ->whereNotNull('queued_at');
-            })
-            ->get();
-
-        $staffAssignments = OnlineSaleOrderStaffAssignment::query()
-            ->awaitingRelease()
-            ->with(['user', 'order.items'])
-            ->whereHas('order', function ($query): void {
-                $query->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
-                    ->whereNotNull('queued_at');
-            })
-            ->get();
-
-        $groups = [];
-
-        foreach ($supplierAssignments as $assignment) {
-            $supplier = $assignment->supplier;
-
-            if ($supplier === null) {
-                continue;
-            }
-
-            $key = 'supplier:'.$supplier->id;
-            $name = $supplier->displayBusinessName();
-            $phone = $supplier->primaryMobile();
-
-            if ($needle !== '' && ! str_contains(mb_strtolower($name), $needle)
-                && ! str_contains(mb_strtolower((string) $phone), $needle)
-                && ! str_contains(mb_strtolower((string) $assignment->order?->order_number), $needle)) {
-                continue;
-            }
-
-            if (! isset($groups[$key])) {
-                $groups[$key] = [
-                    'key' => $key,
-                    'type' => 'supplier',
-                    'id' => $supplier->id,
-                    'name' => $name,
-                    'phone' => $phone,
-                    'order_count' => 0,
-                    'line_count' => 0,
-                    'orders' => [],
-                ];
-            }
-
-            $lineLabels = $assignment->lines
-                ->map(function ($line) use ($assignment): string {
-                    $item = $line->orderItem;
-                    if ($item === null) {
-                        return '—';
-                    }
-
-                    return sprintf(
-                        '%s × %s',
-                        $item->displayName($assignment->order?->locale ?? 'en'),
-                        $item->quantity ?? '1',
-                    );
-                })
-                ->values()
-                ->all();
-
-            $groups[$key]['order_count']++;
-            $groups[$key]['line_count'] += max(1, count($lineLabels));
-            $groups[$key]['orders'][] = [
-                'order_id' => (int) $assignment->online_sale_order_id,
-                'order_number' => (string) ($assignment->order?->order_number ?? ''),
-                'document' => 'packing',
-                'assignment_id' => $assignment->id,
-                'assignment_type' => 'supplier',
-                'lines' => $lineLabels !== [] ? $lineLabels : [
-                    __('forwarded_orders.list.all_items'),
-                ],
-            ];
-        }
-
-        foreach ($staffAssignments as $assignment) {
-            $staff = $assignment->user;
-
-            if ($staff === null) {
-                continue;
-            }
-
-            $key = 'staff:'.$staff->id;
-            $name = (string) $staff->name;
-            $phone = $this->primaryPhoneForUser($staff);
-
-            if ($needle !== '' && ! str_contains(mb_strtolower($name), $needle)
-                && ! str_contains(mb_strtolower((string) $phone), $needle)
-                && ! str_contains(mb_strtolower((string) $assignment->order?->order_number), $needle)) {
-                continue;
-            }
-
-            if (! isset($groups[$key])) {
-                $groups[$key] = [
-                    'key' => $key,
-                    'type' => 'staff',
-                    'id' => $staff->id,
-                    'name' => $name,
-                    'phone' => $phone,
-                    'order_count' => 0,
-                    'line_count' => 0,
-                    'orders' => [],
-                ];
-            }
-
-            $lineLabels = ($assignment->order?->items ?? collect())
-                ->map(fn ($item): string => sprintf(
-                    '%s × %s',
-                    $item->displayName($assignment->order?->locale ?? 'en'),
-                    $item->quantity ?? '1',
-                ))
-                ->values()
-                ->all();
-
-            $groups[$key]['order_count']++;
-            $groups[$key]['line_count'] += max(1, count($lineLabels));
-            $groups[$key]['orders'][] = [
-                'order_id' => (int) $assignment->online_sale_order_id,
-                'order_number' => (string) ($assignment->order?->order_number ?? ''),
-                'document' => $assignment->document,
-                'assignment_id' => $assignment->id,
-                'assignment_type' => 'staff',
-                'lines' => $lineLabels,
-            ];
-        }
-
-        $list = array_values($groups);
-        usort($list, fn (array $a, array $b): int => strcasecmp($a['name'], $b['name']));
-
-        return $list;
     }
 
     /**
@@ -909,6 +940,15 @@ class OnlineOrderDispatchService
         }
 
         if ($document === 'invoice') {
+            $order->loadMissing('sale');
+
+            if ($order->sale_id !== null && $order->sale !== null) {
+                return route('admin.sales.print', [
+                    'sale' => $order->sale,
+                    'autoprint' => 0,
+                ]);
+            }
+
             return route('admin.online-sale-orders.print', $params);
         }
 
@@ -1063,5 +1103,35 @@ class OnlineOrderDispatchService
         }
 
         return $ids;
+    }
+
+    /**
+     * @param  list<int>  $categoryIds
+     * @return list<int>
+     */
+    private function descendantCategoryIds(array $categoryIds): array
+    {
+        $categoryIds = array_values(array_unique(array_filter(array_map('intval', $categoryIds))));
+
+        if ($categoryIds === []) {
+            return [];
+        }
+
+        $found = [];
+        $frontier = $categoryIds;
+
+        while ($frontier !== []) {
+            $children = Category::query()
+                ->whereIn('parent_id', $frontier)
+                ->pluck('id')
+                ->map(fn ($id): int => (int) $id)
+                ->all();
+
+            $new = array_values(array_diff($children, $found, $categoryIds));
+            $found = array_merge($found, $children);
+            $frontier = $new;
+        }
+
+        return array_values(array_unique($found));
     }
 }

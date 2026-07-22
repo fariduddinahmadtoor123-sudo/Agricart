@@ -1,10 +1,13 @@
 @php
+    use App\Filament\Clusters\Sales\InboxPage;
     use App\Filament\Layout\TopbarActions;
     use Filament\Support\Icons\Heroicon;
 
     $user = TopbarActions::user();
     $serverLocale = app()->getLocale();
     $aiState = TopbarActions::aiConnectionState();
+    $showInbox = InboxPage::canAccess();
+    $inboxUrl = $showInbox ? InboxPage::getUrl() : null;
 @endphp
 
 <script>
@@ -42,6 +45,7 @@
         notificationSummary: {
             total: 0,
             items: [],
+            inbox_unread: 0,
         },
         aiLabels: {
             connected: @js(__('agricart.topbar.ai_connected')),
@@ -54,7 +58,7 @@
             window.setInterval(() => this.tick(), 1000);
             window.addEventListener('ai-settings-saved', () => this.refreshAiStatus());
             this.refreshNotifications();
-            this.notificationTimer = window.setInterval(() => this.refreshNotifications(), 60000);
+            this.notificationTimer = window.setInterval(() => this.refreshNotifications(), 30000);
         },
         destroy() {
             if (this.notificationTimer) {
@@ -86,6 +90,7 @@
                 this.notificationSummary = {
                     total: Number(data.total ?? 0),
                     items: Array.isArray(data.items) ? data.items : [],
+                    inbox_unread: Number(data.inbox_unread ?? 0),
                 };
             } catch (error) {
                 //
@@ -99,6 +104,9 @@
             if (this.notificationsOpen) {
                 this.refreshNotifications();
             }
+        },
+        inboxUnread() {
+            return Number(this.notificationSummary.inbox_unread ?? 0);
         },
         async refreshAiStatus() {
             try {
@@ -298,6 +306,25 @@
                 x-text="clockTime"
             ></time>
         </div>
+
+        @if ($showInbox && $inboxUrl)
+            <a
+                href="{{ $inboxUrl }}"
+                wire:navigate
+                class="agricart-topbar-actions__icon-btn agricart-topbar-actions__inbox-btn"
+                x-bind:class="{ 'is-unread': inboxUnread() > 0 }"
+                aria-label="{{ __('agricart.topbar.inbox') }}"
+                title="{{ __('agricart.topbar.inbox') }}"
+            >
+                <x-filament::icon :icon="Heroicon::OutlinedInbox" class="agricart-topbar-actions__icon-btn-icon" />
+                <span
+                    class="agricart-topbar-actions__notification-badge"
+                    x-show="inboxUnread() > 0"
+                    x-text="inboxUnread() > 99 ? '99+' : inboxUnread()"
+                    x-cloak
+                ></span>
+            </a>
+        @endif
 
         @if (TopbarActions::showPurchaseButton())
             <a

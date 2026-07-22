@@ -207,7 +207,7 @@ return [
             'online-quotations' => 'آن لائن کوٹیشنز', 'online-orders' => 'Ready for Queue', 'order-dispatch' => 'آن لائن آرڈرز ان کیو', 'forwarded-orders' => 'فارورڈڈ', 'sales-quotations' => 'سیل کوٹیشنز', 'sales-returns' => 'سیل ریٹرنز',
         ],
         'store' => ['overview' => 'جائزہ', 'top-bar' => 'اوپر پٹی', 'ticker' => 'ٹکر', 'header' => 'ہیڈر', 'menu' => 'مینیو', 'pages' => 'صفحات', 'footer' => 'فٹر', 'items' => 'اشیاء', 'messages' => 'پیغامات', 'visitor-analytics' => 'وزیٹر اینالیٹکس'],
-        'logistics' => ['overview' => 'جائزہ', 'delivery-methods' => 'ڈیلیوری طریقے', 'shipments' => 'زیر التوا'],
+        'logistics' => ['overview' => 'جائزہ', 'delivery-methods' => 'ڈیلیوری طریقے', 'shipments' => 'زیر التوا', 'shipped' => 'بھیجے گئے'],
         'service' => ['overview' => 'جائزہ', 'requests' => 'درخواستیں'],
         'reports' => [
             'overview' => 'جائزہ',
@@ -289,6 +289,7 @@ return [
         'image_upload_aria' => 'تلاش کے لیے تصویر اپ لوڈ',
         'purchase' => 'خریداری',
         'pos' => 'POS',
+        'inbox' => 'ان باکس',
         'language' => 'زبان',
         'ai_assistant' => 'AI معاون',
         'ai_panel_resource' => 'Agricart کے بارے میں کچھ بھی پوچھیں',
@@ -303,12 +304,14 @@ return [
         'no_pending_requests' => 'کوئی زیر التوا درخواست نہیں۔ تمام کام مکمل ہے۔',
         'loading_notifications' => 'زیر التوا درخواستیں چیک ہو رہی ہیں…',
         'notification_items' => [
+            'staff_inbox' => 'عملہ ان باکس',
             'staff_approvals' => 'عملہ منظوری کی درخواستیں',
             'customer_messages' => 'نئے کسٹمر پیغامات',
             'online_orders' => 'جائزے کے منتظر آن لائن کوٹیشنز',
             'system_errors' => 'خطرناک سسٹم ایررز',
         ],
         'notification_counts' => [
+            'staff_inbox' => ':count ان پڑھا عملہ پیغام|:count ان پڑھے عملہ پیغامات',
             'staff_approvals' => ':count درخواست منظوری کی منتظر ہے|:count درخواستیں منظوری کی منتظر ہیں',
             'customer_messages' => ':count نیا کسٹمر پیغام|:count نئے کسٹمر پیغامات',
             'online_orders' => ':count کوٹیشن جائزے کا منتظر ہے|:count کوٹیشنز جائزے کے منتظر ہیں',
@@ -578,6 +581,7 @@ return [
             'cards' => [
                 'delivery_methods' => 'ڈیلیوری طریقے',
                 'pending_shipments' => 'زیر التوا شپمنٹ',
+                'shipped_orders' => 'بھیجے گئے آرڈرز',
             ],
             'active_count' => ':count فعال',
         ],

@@ -41,6 +41,7 @@ class TopbarNotificationTest extends TestCase
         $this->getJson(route('admin.notifications.summary'))
             ->assertOk()
             ->assertJsonPath('total', 4)
+            ->assertJsonPath('inbox_unread', 0)
             ->assertJsonPath('items.0.key', 'staff_approvals')
             ->assertJsonPath('items.0.count', 2)
             ->assertJsonPath('items.1.key', 'customer_messages')

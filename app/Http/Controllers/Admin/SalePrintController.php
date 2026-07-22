@@ -23,6 +23,7 @@ class SalePrintController extends Controller
             'items' => fn ($query) => $query->orderBy('sort_order'),
             'customer',
             'cashier',
+            'onlineSaleOrder',
         ]);
 
         $localeQuery = request()->query('locale');

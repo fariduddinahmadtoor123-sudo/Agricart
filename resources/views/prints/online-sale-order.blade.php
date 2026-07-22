@@ -101,7 +101,6 @@
             <a href="{{ route('admin.online-sale-orders.print', array_merge(['order' => $order], $layoutQuery, ['paper' => 'receipt', 'locale' => $locale, 'autoprint' => 0])) }}" @class(['is-active' => $isReceipt])>{{ __('pos.print.layout_receipt') }}</a>
             <a href="{{ route('admin.online-sale-orders.print', array_merge(['order' => $order], $layoutQuery, ['paper' => $paper, 'locale' => 'en', 'autoprint' => 0])) }}" @class(['is-active' => $locale === 'en'])>{{ __('pos.locales.en') }}</a>
             <a href="{{ route('admin.online-sale-orders.print', array_merge(['order' => $order], $layoutQuery, ['paper' => $paper, 'locale' => 'ur', 'autoprint' => 0])) }}" @class(['is-active' => $locale === 'ur'])>{{ __('pos.locales.ur') }}</a>
-            <a href="{{ route('admin.online-sale-orders.packing-slip', array_merge(['order' => $order], $layoutQuery, ['locale' => $locale, 'autoprint' => 0])) }}">{{ __('order_dispatch.actions.packing_slip') }}</a>
             <button type="button" class="is-primary" onclick="window.print()">{{ __('pos.print.print_button') }}</button>
             <button type="button" onclick="window.close()">{{ __('pos.print.close_button') }}</button>
         </div>
@@ -114,24 +113,36 @@
                 @if (filled($storeName))
                     <h1 class="invoice__store">{{ $storeName }}</h1>
                 @endif
-                <p class="invoice__title">{{ __('online_sale_orders.print.heading') }}</p>
+                @if (filled($storeAddress))
+                    <p class="invoice__meta">{{ $storeAddress }}</p>
+                @endif
+                <p class="invoice__title">{{ __('pos.print.heading') }}</p>
                 <p class="invoice__meta">
                     <strong>{{ $order->order_number }}</strong>
+                    @if (filled($order->sale?->sale_number))
+                        · {{ $order->sale->sale_number }}
+                    @endif
                     · {{ $order->order_date?->format('d M Y') }}
                     @if (filled($storePhone)) · {{ $storePhone }} @endif
                 </p>
                 @php
                     $customerName = $order->customer?->displayLabel() ?: $order->ship_contact_name;
                     $customerPhone = filled($order->ship_phone) ? $order->ship_phone : $order->customer?->primaryPhone();
-                    $customerLine = collect([
-                        $customerName,
-                        $customerPhone,
+                    $customerAddress = collect([
                         $order->ship_address,
                         $order->ship_city,
-                    ])->filter()->implode(' · ');
+                        $order->ship_state,
+                        $order->ship_country,
+                    ])->filter()->implode(', ');
                 @endphp
-                @if (filled($customerLine))
-                    <p class="invoice__meta">{{ __('pos.print.customer') }}: {{ $customerLine }}</p>
+                @if (filled($customerName))
+                    <p class="invoice__meta">{{ __('pos.print.customer') }}: {{ $customerName }}</p>
+                @endif
+                @if (filled($customerPhone))
+                    <p class="invoice__meta">{{ __('online_sale_orders.print.phone') }}: {{ $customerPhone }}</p>
+                @endif
+                @if (filled($customerAddress))
+                    <p class="invoice__meta">{{ __('online_sale_orders.print.ship_to') }}: {{ $customerAddress }}</p>
                 @endif
             </header>
 

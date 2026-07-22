@@ -3,6 +3,7 @@
 namespace App\Services\Notifications;
 
 use App\Filament\Clusters\Approvals\StaffPage;
+use App\Filament\Clusters\Sales\InboxPage;
 use App\Filament\Clusters\Sales\OnlineQuotationsPage;
 use App\Filament\Clusters\Settings\SystemErrorsPage;
 use App\Filament\Clusters\Store\MessagesPage;
@@ -10,17 +11,23 @@ use App\Models\OnlineSaleOrder;
 use App\Models\StoreInquiry;
 use App\Models\SystemError;
 use App\Models\User;
+use App\Services\Staff\StaffMessagingService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 
 class TopbarNotificationService
 {
     /**
-     * @return array{total: int, items: list<array{key: string, label: string, meta: string, count: int, url: string}>}
+     * @return array{total: int, items: list<array{key: string, label: string, meta: string, count: int, url: string}>, inbox_unread: int}
      */
     public function summary(): array
     {
         $items = array_values(array_filter([
+            $this->item(
+                key: 'staff_inbox',
+                count: $this->unreadStaffInbox(),
+                pageClass: InboxPage::class,
+            ),
             $this->item(
                 key: 'staff_approvals',
                 count: User::query()->where('status', User::STATUS_PENDING)->count(),
@@ -53,7 +60,19 @@ class TopbarNotificationService
         return [
             'total' => array_sum(array_column($items, 'count')),
             'items' => $items,
+            'inbox_unread' => $this->unreadStaffInbox(),
         ];
+    }
+
+    private function unreadStaffInbox(): int
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User || ! Schema::hasTable('staff_message_thread_participants')) {
+            return 0;
+        }
+
+        return app(StaffMessagingService::class)->unreadCountFor($user);
     }
 
     private function unreadCriticalSystemErrors(): int

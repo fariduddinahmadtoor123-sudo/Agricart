@@ -207,7 +207,7 @@ return [
             'online-quotations' => 'Online Quotations', 'online-orders' => 'Ready for Queue', 'order-dispatch' => 'Online Orders in Queue', 'forwarded-orders' => 'Forwarded', 'sales-quotations' => 'Sale Quotations', 'sales-returns' => 'Sale Returns',
         ],
         'store' => ['overview' => 'Overview', 'top-bar' => 'Top Bar', 'ticker' => 'Ticker', 'header' => 'Header', 'menu' => 'Menu', 'pages' => 'Pages', 'footer' => 'Footer', 'items' => 'Items', 'messages' => 'Messages', 'visitor-analytics' => 'Visitor Analytics'],
-        'logistics' => ['overview' => 'Overview', 'delivery-methods' => 'Delivery Methods', 'shipments' => 'Pending'],
+        'logistics' => ['overview' => 'Overview', 'delivery-methods' => 'Delivery Methods', 'shipments' => 'Pending', 'shipped' => 'Shipped'],
         'service' => ['overview' => 'Overview', 'requests' => 'Requests'],
         'reports' => [
             'overview' => 'Overview',
@@ -289,6 +289,7 @@ return [
         'image_upload_aria' => 'Upload image for search',
         'purchase' => 'Purchase',
         'pos' => 'POS',
+        'inbox' => 'Inbox',
         'language' => 'Language',
         'ai_assistant' => 'AI Assistant',
         'ai_panel_resource' => 'Ask anything about Agricart',
@@ -303,12 +304,14 @@ return [
         'no_pending_requests' => 'No pending requests. You are all caught up.',
         'loading_notifications' => 'Checking pending requests…',
         'notification_items' => [
+            'staff_inbox' => 'Staff inbox',
             'staff_approvals' => 'Staff approval requests',
             'customer_messages' => 'New customer messages',
             'online_orders' => 'Online quotations requiring review',
             'system_errors' => 'Critical system errors',
         ],
         'notification_counts' => [
+            'staff_inbox' => ':count unread staff message|:count unread staff messages',
             'staff_approvals' => ':count application requires approval|:count applications require approval',
             'customer_messages' => ':count unread customer message|:count unread customer messages',
             'online_orders' => ':count quotation requires review|:count quotations require review',
@@ -578,6 +581,7 @@ return [
             'cards' => [
                 'delivery_methods' => 'Delivery methods',
                 'pending_shipments' => 'Pending shipments',
+                'shipped_orders' => 'Shipped orders',
             ],
             'active_count' => ':count active',
         ],

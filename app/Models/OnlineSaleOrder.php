@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\ShippingChargeMode;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -131,6 +132,7 @@ class OnlineSaleOrder extends Model
         'queue_document',
         'converted_by_id',
         'notification_dispatched_at',
+        'shipping_customer_notified_at',
         'assigned_user_id',
     ];
 
@@ -150,8 +152,57 @@ class OnlineSaleOrder extends Model
             'converted_at' => 'datetime',
             'queued_at' => 'datetime',
             'notification_dispatched_at' => 'datetime',
+            'shipping_customer_notified_at' => 'datetime',
             'payment_proof_reviewed_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Released for logistics handoff but not yet shipped (Pending list).
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeLogisticsPending(Builder $query): Builder
+    {
+        return $query
+            ->where('order_status', self::STATUS_CONVERTED)
+            ->whereNotNull('queued_at')
+            ->where(function ($inner): void {
+                $inner->whereNull('fulfillment_status')
+                    ->orWhere('fulfillment_status', '!=', self::FULFILLMENT_DELIVERED);
+            })
+            ->where(function ($inner): void {
+                $inner->whereHas(
+                    'supplierAssignments',
+                    fn ($assignment) => $assignment->whereNotNull('released_at')->whereNull('shipped_at'),
+                )->orWhereHas(
+                    'staffAssignments',
+                    fn ($assignment) => $assignment->whereNotNull('released_at')->whereNull('shipped_at'),
+                );
+            });
+    }
+
+    /**
+     * At least one parcel handed to carrier / bilty recorded (Shipped list).
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeLogisticsShipped(Builder $query): Builder
+    {
+        return $query
+            ->where('order_status', self::STATUS_CONVERTED)
+            ->whereNotNull('queued_at')
+            ->where(function ($inner): void {
+                $inner->whereHas(
+                    'supplierAssignments',
+                    fn ($assignment) => $assignment->whereNotNull('shipped_at'),
+                )->orWhereHas(
+                    'staffAssignments',
+                    fn ($assignment) => $assignment->whereNotNull('shipped_at'),
+                );
+            });
     }
 
     public function isInDispatchQueue(): bool
@@ -182,7 +233,7 @@ class OnlineSaleOrder extends Model
      */
     public function customerShippingParcels(): array
     {
-        $this->loadMissing('supplierAssignments');
+        $this->loadMissing(['supplierAssignments', 'staffAssignments']);
 
         $parcels = [];
 
@@ -191,22 +242,50 @@ class OnlineSaleOrder extends Model
                 continue;
             }
 
-            $carrier = filled($assignment->carrier_name) ? trim((string) $assignment->carrier_name) : null;
-            $tracking = filled($assignment->tracking_number) ? trim((string) $assignment->tracking_number) : null;
-            $bilty = filled($assignment->shipping_reference) ? trim((string) $assignment->shipping_reference) : null;
+            $parcel = $this->parcelFromAssignment(
+                $assignment->carrier_name,
+                $assignment->tracking_number,
+                $assignment->shipping_reference,
+            );
 
-            if ($carrier === null && $tracking === null && $bilty === null) {
-                continue;
+            if ($parcel !== null) {
+                $parcels[] = $parcel;
             }
+        }
 
-            $parcels[] = [
-                'carrier' => $carrier,
-                'tracking' => $tracking,
-                'bilty' => $bilty,
-            ];
+        foreach ($this->staffAssignments as $assignment) {
+            $parcel = $this->parcelFromAssignment(
+                $assignment->carrier_name,
+                $assignment->tracking_number,
+                $assignment->shipping_reference,
+            );
+
+            if ($parcel !== null) {
+                $parcels[] = $parcel;
+            }
         }
 
         return $parcels;
+    }
+
+    /**
+     * @return array{carrier: string|null, tracking: string|null, bilty: string|null}|null
+     */
+    private function parcelFromAssignment(mixed $carrierName, mixed $trackingNumber, mixed $shippingReference): ?array
+    {
+        $carrier = filled($carrierName) ? trim((string) $carrierName) : null;
+        $tracking = filled($trackingNumber) ? trim((string) $trackingNumber) : null;
+        $bilty = filled($shippingReference) ? trim((string) $shippingReference) : null;
+
+        if ($carrier === null && $tracking === null && $bilty === null) {
+            return null;
+        }
+
+        return [
+            'carrier' => $carrier,
+            'tracking' => $tracking,
+            'bilty' => $bilty,
+        ];
     }
 
     public function customer(): BelongsTo

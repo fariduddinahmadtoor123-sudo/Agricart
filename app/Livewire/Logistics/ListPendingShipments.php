@@ -140,12 +140,11 @@ class ListPendingShipments extends Component
 
         $this->dispatch(
             'open-form-panel',
-            title: __('pending_shipments.actions.open') . ': ' . $order->order_number,
+            title: __('logistics_ship.actions.ship') . ': ' . $order->order_number,
             resource: __('agricart.pages.logistics.shipments'),
-            formKey: 'online-orders',
+            formKey: 'logistics-ship',
             orderId: $orderId,
             mode: $canUpdate ? 'edit' : 'view',
-            onlineOrderContext: 'queue',
         );
     }
 
@@ -166,16 +165,7 @@ class ListPendingShipments extends Component
 
         $orders = OnlineSaleOrder::query()
             ->with(['customer', 'supplierAssignments', 'staffAssignments'])
-            ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
-            ->whereNotNull('queued_at')
-            ->where(function ($query): void {
-                $query->whereNull('fulfillment_status')
-                    ->orWhere('fulfillment_status', '!=', OnlineSaleOrder::FULFILLMENT_DELIVERED);
-            })
-            ->where(function ($query): void {
-                $query->whereHas('supplierAssignments', fn ($inner) => $inner->whereNotNull('released_at'))
-                    ->orWhereHas('staffAssignments', fn ($inner) => $inner->whereNotNull('released_at'));
-            })
+            ->logisticsPending()
             ->when(filled($this->search), function ($query): void {
                 $needle = '%' . $this->search . '%';
                 $query->where(function ($inner) use ($needle): void {
@@ -214,18 +204,7 @@ class ListPendingShipments extends Component
 
     private function pendingOrder(int $orderId): ?OnlineSaleOrder
     {
-        return OnlineSaleOrder::query()
-            ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
-            ->whereNotNull('queued_at')
-            ->where(function ($query): void {
-                $query->whereNull('fulfillment_status')
-                    ->orWhere('fulfillment_status', '!=', OnlineSaleOrder::FULFILLMENT_DELIVERED);
-            })
-            ->where(function ($query): void {
-                $query->whereHas('supplierAssignments', fn ($inner) => $inner->whereNotNull('released_at'))
-                    ->orWhereHas('staffAssignments', fn ($inner) => $inner->whereNotNull('released_at'));
-            })
-            ->find($orderId);
+        return OnlineSaleOrder::query()->logisticsPending()->find($orderId);
     }
 
     private function userCan(string $ability): bool

@@ -36,9 +36,8 @@ class ProductController extends Controller
         $buyPrice = $channels->onlineStoreShowsPrices()
             ? $presenter->priceForQuantity($product, $defaultQty)
             : null;
-        $priceTable = $channels->onlineStoreShowsPrices()
-            ? $presenter->quantityPriceTable($product)
-            : [];
+        // Quantity pricing is catalog info — always show when tiers exist; buy price stays gated.
+        $priceTable = $presenter->quantityPriceTable($product);
 
         return view('store.product.show', [
             ...$layout->layoutData(),

@@ -10,9 +10,9 @@ use App\Models\Customer;
 use App\Models\OnlineSaleOrder;
 use App\Models\OnlineSaleOrderItem;
 use App\Models\OnlineSaleOrderStaffAssignment;
-use App\Models\OnlineSaleOrderSupplierAssignment;
 use App\Models\Product;
 use App\Models\Role;
+use App\Models\Sale;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Services\Logistics\LogisticsOverviewService;
@@ -26,17 +26,16 @@ class ForwardedOrdersPipelineTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_packing_complete_leaves_queue_and_appears_on_forwarded(): void
+    public function test_staff_inbox_forward_leaves_queue_and_appears_on_forwarded(): void
     {
-        [$admin, $order, $supplier] = $this->seedPackingOrder();
-        $itemId = (int) $order->items->first()->id;
+        [$admin, $order] = $this->seedInvoiceOrder();
+        $staff = $this->makeStaff($admin, 'Queue Staff', 'queue-staff@test.test');
 
         Livewire::actingAs($admin)
             ->test(ListOrderDispatch::class)
             ->assertSee($order->order_number, false)
             ->call('openForward', $order->id)
-            ->set('forwardSelectedItemIds', [$itemId])
-            ->call('forwardWhatsApp', 'supplier', $supplier->id);
+            ->call('forwardToInbox', $staff->id);
 
         Livewire::actingAs($admin)
             ->test(ListOrderDispatch::class)
@@ -44,29 +43,10 @@ class ForwardedOrdersPipelineTest extends TestCase
 
         Livewire::actingAs($admin)
             ->test(ListForwardedOrders::class)
-            ->assertSee('Tor Hardware', false)
-            ->call('toggleGroup', 'supplier:'.$supplier->id)
-            ->assertSee($order->order_number, false);
-    }
-
-    public function test_partial_forward_stays_on_queue_and_shows_on_forwarded(): void
-    {
-        [$admin, $order, $supplier] = $this->seedTwoLineOrder();
-        $firstId = (int) $order->items->first()->id;
-
-        Livewire::actingAs($admin)
-            ->test(ListOrderDispatch::class)
-            ->call('openForward', $order->id)
-            ->set('forwardSelectedItemIds', [$firstId])
-            ->call('forwardWhatsApp', 'supplier', $supplier->id);
-
-        Livewire::actingAs($admin)
-            ->test(ListOrderDispatch::class)
-            ->assertSee($order->order_number, false);
-
-        Livewire::actingAs($admin)
-            ->test(ListForwardedOrders::class)
-            ->assertSee('Tor Hardware', false);
+            ->assertSee($order->order_number, false)
+            ->assertSee('INV-FWD-1', false)
+            ->assertSee($admin->name, false)
+            ->assertSee('Queue Staff', false);
     }
 
     public function test_mark_released_moves_to_logistics_pending(): void
@@ -80,17 +60,11 @@ class ForwardedOrdersPipelineTest extends TestCase
             ->test(ListPendingShipments::class)
             ->assertDontSee($order->order_number, false);
 
-        Livewire::actingAs($admin)
-            ->test(ListForwardedOrders::class)
-            ->call('markReleased', 'supplier', $assignment->id);
+        $dispatch->markSupplierReleased($assignment);
 
         $assignment->refresh();
         $this->assertNotNull($assignment->released_at);
         $this->assertSame(OnlineSaleOrder::FULFILLMENT_READY, $order->fresh()->fulfillment_status);
-
-        Livewire::actingAs($admin)
-            ->test(ListForwardedOrders::class)
-            ->assertDontSee($order->order_number, false);
 
         Livewire::actingAs($admin)
             ->test(ListPendingShipments::class)
@@ -103,24 +77,12 @@ class ForwardedOrdersPipelineTest extends TestCase
     public function test_staff_invoice_forward_creates_assignment_and_leaves_invoice_queue(): void
     {
         [$admin, $order] = $this->seedInvoiceOrder();
-        $staff = User::factory()->create([
-            'role_id' => $admin->role_id,
-            'status' => User::STATUS_ACTIVE,
-            'name' => 'Invoice Staff',
-            'email' => 'invoice-staff@test.test',
-            'phone_numbers' => [[
-                'contact_person' => 'Invoice Staff',
-                'contact_person_ur' => 'Invoice Staff',
-                'phone_number' => '03009998877',
-            ]],
-        ]);
+        $staff = $this->makeStaff($admin, 'Invoice Staff', 'invoice-staff@test.test');
 
         Livewire::actingAs($admin)
             ->test(ListOrderDispatch::class)
             ->call('openForward', $order->id)
-            ->set('forwardDocument', 'invoice')
-            ->call('forwardWhatsApp', 'staff', $staff->id)
-            ->assertDispatched('online-sale-orders-open-external');
+            ->call('forwardToInbox', $staff->id);
 
         $this->assertTrue(
             OnlineSaleOrderStaffAssignment::query()
@@ -137,9 +99,12 @@ class ForwardedOrdersPipelineTest extends TestCase
 
         Livewire::actingAs($admin)
             ->test(ListForwardedOrders::class)
+            ->assertSee($order->order_number, false)
             ->assertSee('Invoice Staff', false)
-            ->call('toggleGroup', 'staff:'.$staff->id)
-            ->assertSee($order->order_number, false);
+            ->call('applyFilter', 'to:'.$staff->id)
+            ->assertSee('Invoice Staff', false)
+            ->call('applyFilter', 'from:'.$admin->id)
+            ->assertSee($admin->name, false);
     }
 
     /**
@@ -148,14 +113,6 @@ class ForwardedOrdersPipelineTest extends TestCase
     private function seedPackingOrder(): array
     {
         return $this->seedOrder('ONL-FWD-OUT-1', OnlineSaleOrder::QUEUE_DOCUMENT_PACKING_LIST, 1);
-    }
-
-    /**
-     * @return array{0: User, 1: OnlineSaleOrder, 2: Supplier}
-     */
-    private function seedTwoLineOrder(): array
-    {
-        return $this->seedOrder('ONL-FWD-OUT-2', OnlineSaleOrder::QUEUE_DOCUMENT_PACKING_LIST, 2);
     }
 
     /**
@@ -212,9 +169,23 @@ class ForwardedOrdersPipelineTest extends TestCase
             'is_active' => true,
         ]);
 
+        $sale = Sale::query()->create([
+            'sale_number' => 'INV-FWD-1',
+            'customer_id' => $customer->id,
+            'cashier_id' => $admin->id,
+            'status' => Sale::STATUS_COMPLETED,
+            'payment_status' => 'paid',
+            'payment_method' => 'cash',
+            'subtotal' => 100 * $lines,
+            'total_amount' => 100 * $lines,
+            'amount_paid' => 100 * $lines,
+            'sale_date' => now()->toDateString(),
+        ]);
+
         $order = OnlineSaleOrder::query()->create([
             'order_number' => $number,
             'customer_id' => $customer->id,
+            'sale_id' => $sale->id,
             'order_date' => now()->toDateString(),
             'locale' => 'en',
             'order_status' => OnlineSaleOrder::STATUS_CONVERTED,
@@ -254,6 +225,21 @@ class ForwardedOrdersPipelineTest extends TestCase
         return [$admin, $order->fresh('items'), $supplier];
     }
 
+    private function makeStaff(User $admin, string $name, string $email): User
+    {
+        return User::factory()->create([
+            'role_id' => $admin->role_id,
+            'status' => User::STATUS_ACTIVE,
+            'name' => $name,
+            'email' => $email,
+            'phone_numbers' => [[
+                'contact_person' => $name,
+                'contact_person_ur' => $name,
+                'phone_number' => '03009998877',
+            ]],
+        ]);
+    }
+
     private function superAdmin(): User
     {
         $role = Role::query()->create([
@@ -265,6 +251,7 @@ class ForwardedOrdersPipelineTest extends TestCase
         return User::factory()->create([
             'role_id' => $role->id,
             'status' => User::STATUS_ACTIVE,
+            'name' => 'Forward Admin',
             'email' => 'fwd-pipeline@test.test',
             'phone_numbers' => [[
                 'contact_person' => 'Admin',
