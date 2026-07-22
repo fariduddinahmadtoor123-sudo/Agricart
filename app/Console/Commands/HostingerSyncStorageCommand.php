@@ -39,9 +39,32 @@ class HostingerSyncStorageCommand extends Command
 
         $resolvedSource = realpath($source);
         $resolvedTarget = realpath($target);
+        $resolvedLaravelStorage = realpath(storage_path());
 
         if (is_string($resolvedSource) && is_string($resolvedTarget) && strcasecmp($resolvedSource, $resolvedTarget) === 0) {
             $this->components->info('Verified public_html/storage link points to storage/app/public; no mirror is needed.');
+
+            return self::SUCCESS;
+        }
+
+        // Direct Git checkout inside public_html: HOSTINGER_PUBLIC_HTML/storage is the
+        // Laravel storage root (contains app/private, framework, logs). Never mirror or
+        // --delete-stale against that tree — it would wipe CNIC docs and backups.
+        if (
+            is_string($resolvedTarget)
+            && is_string($resolvedLaravelStorage)
+            && (
+                strcasecmp($resolvedTarget, $resolvedLaravelStorage) === 0
+                || (
+                    is_string($resolvedSource)
+                    && str_starts_with(
+                        strtolower(rtrim($resolvedSource, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR),
+                        strtolower(rtrim($resolvedTarget, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR),
+                    )
+                )
+            )
+        ) {
+            $this->components->info('Laravel storage root detected as sync target; skipping media mirror (use storage:link).');
 
             return self::SUCCESS;
         }
@@ -113,7 +136,7 @@ class HostingerSyncStorageCommand extends Command
             foreach (File::allFiles($target) as $file) {
                 $relative = str_replace('\\', '/', $file->getRelativePathname());
 
-                if (isset($approved[$relative])) {
+                if (isset($approved[$relative]) || $this->isProtectedMirrorPath($relative)) {
                     continue;
                 }
 
@@ -151,6 +174,17 @@ class HostingerSyncStorageCommand extends Command
             $prefix = trim(str_replace('\\', '/', (string) $prefix), '/');
 
             if ($prefix !== '' && ($relative === $prefix || str_starts_with($relative, $prefix.'/'))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isProtectedMirrorPath(string $relative): bool
+    {
+        foreach (['app/', 'framework/', 'logs/', 'debugbar/', 'pail/'] as $prefix) {
+            if ($relative === rtrim($prefix, '/') || str_starts_with($relative, $prefix)) {
                 return true;
             }
         }
