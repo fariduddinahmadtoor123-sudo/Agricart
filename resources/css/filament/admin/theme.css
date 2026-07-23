@@ -3617,12 +3617,15 @@ body.agricart-form-panel-open {
 
 .agricart-brand-review__actions {
     display: inline-flex;
-    gap: 0.35rem;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    max-width: 22rem;
+    justify-content: flex-end;
 }
 
 .agricart-brand-review__btn {
-    min-width: 3.5rem;
-    padding: 0.4rem 0.65rem;
+    min-width: 1.85rem;
+    padding: 0.35rem 0.4rem;
     border: 1px solid var(--agricart-border, #ebedf0);
     background: #fff;
     font-family: Arial, sans-serif !important;
@@ -3637,16 +3640,46 @@ body.agricart-form-panel-open {
     cursor: not-allowed;
 }
 
-.agricart-brand-review__btn--pass.is-active {
+.agricart-brand-review__btn--positive.is-active {
     border-color: var(--agricart-primary, #83b735);
     background: color-mix(in srgb, var(--agricart-primary, #83b735) 18%, #fff);
     color: #166534;
 }
 
-.agricart-brand-review__btn--fail.is-active {
+.agricart-brand-review__btn--neutral.is-active {
+    border-color: #ca8a04;
+    background: color-mix(in srgb, #eab308 16%, #fff);
+    color: #854d0e;
+}
+
+.agricart-brand-review__btn--needs_improvement.is-active {
     border-color: #dc2626;
     background: color-mix(in srgb, #dc2626 12%, #fff);
     color: #991b1b;
+}
+
+.agricart-brand-review__band {
+    margin: 0.35rem 0 0;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.agricart-brand-review__band--positive {
+    color: #166534;
+}
+
+.agricart-brand-review__band--neutral {
+    color: #854d0e;
+}
+
+.agricart-brand-review__band--needs_improvement {
+    color: #991b1b;
+}
+
+.agricart-brand-review__band-score {
+    font-weight: 600;
+    color: var(--agricart-muted, #64748b);
 }
 
 .agricart-brand-review__toolbar {

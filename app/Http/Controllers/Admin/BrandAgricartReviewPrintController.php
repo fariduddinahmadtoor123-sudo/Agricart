@@ -88,7 +88,7 @@ class BrandAgricartReviewPrintController extends Controller
             'criteria' => $criteria,
             'reviewComplete' => BrandAgricartReviewCriteria::isComplete($criteria),
             'score' => BrandAgricartReviewCriteria::score($criteria),
-            'totalChecks' => BrandAgricartReviewCriteria::count(),
+            'totalChecks' => BrandAgricartReviewCriteria::scoreMax(),
             'fullReview' => $fullReview,
             'revision' => $revision,
             'notice' => $notice,

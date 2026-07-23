@@ -12,7 +12,14 @@
 
     <div class="agricart-review-messages__list">
         @foreach ($criteriaKeys as $key)
-            @php($row = $messages[$key] ?? ['high_en' => '', 'high_ur' => '', 'low_en' => '', 'low_ur' => ''])
+            @php($row = $messages[$key] ?? [
+                'positive_en' => '',
+                'positive_ur' => '',
+                'neutral_en' => '',
+                'neutral_ur' => '',
+                'needs_improvement_en' => '',
+                'needs_improvement_ur' => '',
+            ])
             <section class="agricart-review-messages__card" wire:key="review-msg-{{ $key }}">
                 <header class="agricart-review-messages__card-head">
                     <h4 class="agricart-review-messages__card-title">
@@ -24,42 +31,61 @@
                     <p class="agricart-form-panel__hint">{{ __('agricart.brands.review_criteria.'.$key.'.check') }}</p>
                 </header>
 
-                <div class="agricart-review-messages__grid">
+                <div class="agricart-review-messages__grid agricart-review-messages__grid--bands">
                     <div class="agricart-form-panel__field">
-                        <label class="agricart-form-panel__label">{{ __('agricart.brands.review_messages.high_en') }}</label>
+                        <label class="agricart-form-panel__label">{{ __('agricart.brands.review_messages.positive_en') }}</label>
                         <textarea
                             rows="2"
                             class="agricart-brand-form__textarea"
-                            wire:model="messages.{{ $key }}.high_en"
+                            wire:model="messages.{{ $key }}.positive_en"
                             @disabled(! $canManage)
                         ></textarea>
                     </div>
                     <div class="agricart-form-panel__field">
-                        <label class="agricart-form-panel__label">{{ __('agricart.brands.review_messages.high_ur') }}</label>
+                        <label class="agricart-form-panel__label">{{ __('agricart.brands.review_messages.positive_ur') }}</label>
                         <textarea
                             rows="2"
                             dir="rtl"
                             class="agricart-brand-form__textarea"
-                            wire:model="messages.{{ $key }}.high_ur"
+                            wire:model="messages.{{ $key }}.positive_ur"
                             @disabled(! $canManage)
                         ></textarea>
                     </div>
                     <div class="agricart-form-panel__field">
-                        <label class="agricart-form-panel__label">{{ __('agricart.brands.review_messages.low_en') }}</label>
+                        <label class="agricart-form-panel__label">{{ __('agricart.brands.review_messages.neutral_en') }}</label>
                         <textarea
                             rows="2"
                             class="agricart-brand-form__textarea"
-                            wire:model="messages.{{ $key }}.low_en"
+                            wire:model="messages.{{ $key }}.neutral_en"
                             @disabled(! $canManage)
                         ></textarea>
                     </div>
                     <div class="agricart-form-panel__field">
-                        <label class="agricart-form-panel__label">{{ __('agricart.brands.review_messages.low_ur') }}</label>
+                        <label class="agricart-form-panel__label">{{ __('agricart.brands.review_messages.neutral_ur') }}</label>
                         <textarea
                             rows="2"
                             dir="rtl"
                             class="agricart-brand-form__textarea"
-                            wire:model="messages.{{ $key }}.low_ur"
+                            wire:model="messages.{{ $key }}.neutral_ur"
+                            @disabled(! $canManage)
+                        ></textarea>
+                    </div>
+                    <div class="agricart-form-panel__field">
+                        <label class="agricart-form-panel__label">{{ __('agricart.brands.review_messages.needs_improvement_en') }}</label>
+                        <textarea
+                            rows="2"
+                            class="agricart-brand-form__textarea"
+                            wire:model="messages.{{ $key }}.needs_improvement_en"
+                            @disabled(! $canManage)
+                        ></textarea>
+                    </div>
+                    <div class="agricart-form-panel__field">
+                        <label class="agricart-form-panel__label">{{ __('agricart.brands.review_messages.needs_improvement_ur') }}</label>
+                        <textarea
+                            rows="2"
+                            dir="rtl"
+                            class="agricart-brand-form__textarea"
+                            wire:model="messages.{{ $key }}.needs_improvement_ur"
                             @disabled(! $canManage)
                         ></textarea>
                     </div>

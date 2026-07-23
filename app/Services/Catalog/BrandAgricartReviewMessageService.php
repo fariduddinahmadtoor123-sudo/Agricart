@@ -10,9 +10,16 @@ use Illuminate\Validation\ValidationException;
 
 class BrandAgricartReviewMessageService
 {
-    /**
-     * Ensure every checklist key has a DB row (seeded from factory defaults when missing).
-     */
+    /** @var list<string> */
+    private const TEXT_KEYS = [
+        'positive_en',
+        'positive_ur',
+        'neutral_en',
+        'neutral_ur',
+        'needs_improvement_en',
+        'needs_improvement_ur',
+    ];
+
     public function ensureSeeded(): void
     {
         $existing = BrandAgricartReviewMessage::query()
@@ -40,15 +47,7 @@ class BrandAgricartReviewMessageService
     }
 
     /**
-     * @return list<array{
-     *     criterion_key: string,
-     *     label: string,
-     *     label_ur: string,
-     *     high_en: string,
-     *     high_ur: string,
-     *     low_en: string,
-     *     low_ur: string
-     * }>
+     * @return list<array<string, string>>
      */
     public function listManaged(): array
     {
@@ -62,22 +61,21 @@ class BrandAgricartReviewMessageService
 
         foreach (BrandAgricartReviewCriteria::keys() as $key) {
             $message = $byKey->get($key);
-            $fallback = BrandAgricartReviewMessageDefaults::for($key) ?? [
-                'high_en' => '',
-                'high_ur' => '',
-                'low_en' => '',
-                'low_ur' => '',
-            ];
+            $fallback = BrandAgricartReviewMessageDefaults::for($key) ?? array_fill_keys(self::TEXT_KEYS, '');
 
-            $rows[] = [
+            $row = [
                 'criterion_key' => $key,
                 'label' => BrandAgricartReviewCriteria::label($key, 'en'),
                 'label_ur' => (string) __('agricart.brands.review_criteria.'.$key.'.label_ur', [], 'ur'),
-                'high_en' => filled($message?->high_en) ? (string) $message->high_en : $fallback['high_en'],
-                'high_ur' => filled($message?->high_ur) ? (string) $message->high_ur : $fallback['high_ur'],
-                'low_en' => filled($message?->low_en) ? (string) $message->low_en : $fallback['low_en'],
-                'low_ur' => filled($message?->low_ur) ? (string) $message->low_ur : $fallback['low_ur'],
             ];
+
+            foreach (self::TEXT_KEYS as $field) {
+                $row[$field] = filled($message?->{$field})
+                    ? (string) $message->{$field}
+                    : (string) ($fallback[$field] ?? '');
+            }
+
+            $rows[] = $row;
         }
 
         return $rows;
@@ -86,39 +84,31 @@ class BrandAgricartReviewMessageService
     /**
      * @return array{en: string, ur: string}
      */
-    public function suggestionFor(string $criterionKey, bool $pass): array
+    public function suggestionFor(string $criterionKey, int $rating): array
     {
         $this->ensureSeeded();
+
+        $band = BrandAgricartReviewCriteria::bandForRating($rating)
+            ?? BrandAgricartReviewCriteria::BAND_NEUTRAL;
 
         $message = BrandAgricartReviewMessage::query()
             ->where('criterion_key', $criterionKey)
             ->first();
 
-        $fallback = BrandAgricartReviewMessageDefaults::for($criterionKey) ?? [
-            'high_en' => '',
-            'high_ur' => '',
-            'low_en' => '',
-            'low_ur' => '',
-        ];
+        $fallback = BrandAgricartReviewMessageDefaults::for($criterionKey) ?? array_fill_keys(self::TEXT_KEYS, '');
 
-        if ($pass) {
-            return [
-                'en' => trim((string) (filled($message?->high_en) ? $message->high_en : $fallback['high_en'])),
-                'ur' => trim((string) (filled($message?->high_ur) ? $message->high_ur : $fallback['high_ur'])),
-            ];
-        }
+        $enKey = $band.'_en';
+        $urKey = $band.'_ur';
 
         return [
-            'en' => trim((string) (filled($message?->low_en) ? $message->low_en : $fallback['low_en'])),
-            'ur' => trim((string) (filled($message?->low_ur) ? $message->low_ur : $fallback['low_ur'])),
+            'en' => trim((string) (filled($message?->{$enKey}) ? $message->{$enKey} : ($fallback[$enKey] ?? ''))),
+            'ur' => trim((string) (filled($message?->{$urKey}) ? $message->{$urKey} : ($fallback[$urKey] ?? ''))),
         ];
     }
 
     /**
-     * Fill empty reason_en/ur for answered Pass/Fail rows from manageable defaults.
-     *
      * @param  array<string, mixed>  $criteria
-     * @return array<string, array{pass: bool|null, reason_en: string, reason_ur: string}>
+     * @return array<string, array{rating: int|null, reason_en: string, reason_ur: string}>
      */
     public function fillMissingReasons(array $criteria): array
     {
@@ -127,7 +117,7 @@ class BrandAgricartReviewMessageService
         foreach (BrandAgricartReviewCriteria::keys() as $key) {
             $detail = $detailed[$key];
 
-            if ($detail['pass'] === null) {
+            if ($detail['rating'] === null) {
                 continue;
             }
 
@@ -135,7 +125,7 @@ class BrandAgricartReviewMessageService
                 continue;
             }
 
-            $suggestion = $this->suggestionFor($key, (bool) $detail['pass']);
+            $suggestion = $this->suggestionFor($key, (int) $detail['rating']);
 
             if ($detail['reason_en'] === '' && $suggestion['en'] !== '') {
                 $detailed[$key]['reason_en'] = $suggestion['en'];
@@ -150,15 +140,23 @@ class BrandAgricartReviewMessageService
     }
 
     /**
-     * Persist Pass (high) or Fail (low) default messages for one criterion.
-     *
      * @param  array{en: string, ur: string}  $text
      */
-    public function saveOutcomeDefault(string $criterionKey, bool $pass, array $text): void
+    public function saveBandDefault(string $criterionKey, string $band, array $text): void
     {
         if (! in_array($criterionKey, BrandAgricartReviewCriteria::keys(), true)) {
             throw ValidationException::withMessages([
                 'criterion_key' => [__('agricart.brands.review_messages.invalid_criterion')],
+            ]);
+        }
+
+        if (! in_array($band, [
+            BrandAgricartReviewCriteria::BAND_POSITIVE,
+            BrandAgricartReviewCriteria::BAND_NEUTRAL,
+            BrandAgricartReviewCriteria::BAND_NEEDS_IMPROVEMENT,
+        ], true)) {
+            throw ValidationException::withMessages([
+                'band' => [__('agricart.brands.review_messages.invalid_band')],
             ]);
         }
 
@@ -180,33 +178,21 @@ class BrandAgricartReviewMessageService
         $this->ensureSeeded();
 
         $row = BrandAgricartReviewMessage::query()->firstOrNew(['criterion_key' => $criterionKey]);
-
-        if ($pass) {
-            $row->high_en = $en;
-            $row->high_ur = $ur;
-        } else {
-            $row->low_en = $en;
-            $row->low_ur = $ur;
-        }
+        $fallback = BrandAgricartReviewMessageDefaults::for($criterionKey) ?? array_fill_keys(self::TEXT_KEYS, '');
 
         if (! $row->exists) {
-            $fallback = BrandAgricartReviewMessageDefaults::for($criterionKey) ?? [
-                'high_en' => '',
-                'high_ur' => '',
-                'low_en' => '',
-                'low_ur' => '',
-            ];
-            $row->high_en ??= $fallback['high_en'];
-            $row->high_ur ??= $fallback['high_ur'];
-            $row->low_en ??= $fallback['low_en'];
-            $row->low_ur ??= $fallback['low_ur'];
+            foreach (self::TEXT_KEYS as $field) {
+                $row->{$field} = $fallback[$field] ?? '';
+            }
         }
 
+        $row->{$band.'_en'} = $en;
+        $row->{$band.'_ur'} = $ur;
         $row->save();
     }
 
     /**
-     * @param  array<string, array{high_en: string, high_ur: string, low_en: string, low_ur: string}>  $rows
+     * @param  array<string, array<string, string>>  $rows
      */
     public function saveAll(array $rows): void
     {
@@ -220,35 +206,31 @@ class BrandAgricartReviewMessageService
                     continue;
                 }
 
-                $highEn = trim((string) ($payload['high_en'] ?? ''));
-                $highUr = trim((string) ($payload['high_ur'] ?? ''));
-                $lowEn = trim((string) ($payload['low_en'] ?? ''));
-                $lowUr = trim((string) ($payload['low_ur'] ?? ''));
+                $data = [];
 
-                if ($highEn === '' || $highUr === '' || $lowEn === '' || $lowUr === '') {
-                    throw ValidationException::withMessages([
-                        $key => [__('agricart.brands.review_messages.all_fields_required', [
-                            'label' => BrandAgricartReviewCriteria::label($key),
-                        ])],
-                    ]);
-                }
+                foreach (self::TEXT_KEYS as $field) {
+                    $value = trim((string) ($payload[$field] ?? ''));
 
-                foreach ([$highEn, $highUr, $lowEn, $lowUr] as $value) {
+                    if ($value === '') {
+                        throw ValidationException::withMessages([
+                            $key => [__('agricart.brands.review_messages.all_fields_required', [
+                                'label' => BrandAgricartReviewCriteria::label($key),
+                            ])],
+                        ]);
+                    }
+
                     if (mb_strlen($value) > 2000) {
                         throw ValidationException::withMessages([
                             $key => [__('agricart.brands.review_messages.too_long')],
                         ]);
                     }
+
+                    $data[$field] = $value;
                 }
 
                 BrandAgricartReviewMessage::query()->updateOrCreate(
                     ['criterion_key' => $key],
-                    [
-                        'high_en' => $highEn,
-                        'high_ur' => $highUr,
-                        'low_en' => $lowEn,
-                        'low_ur' => $lowUr,
-                    ],
+                    $data,
                 );
             }
         });

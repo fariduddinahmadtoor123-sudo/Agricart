@@ -32,11 +32,11 @@ class BrandAgricartReviewPrintTest extends TestCase
     {
         $criteria = [];
         foreach (BrandAgricartReviewCriteria::keys() as $index => $key) {
-            $pass = $index < 9;
+            $rating = $index < 9 ? 9 : 3;
             $criteria[$key] = [
-                'pass' => $pass,
-                'reason_en' => $pass ? 'Pass EN '.$key : 'Fail EN '.$key,
-                'reason_ur' => $pass ? 'پاس اردو '.$key : 'فیل اردو '.$key,
+                'rating' => $rating,
+                'reason_en' => $rating >= 8 ? 'Positive EN '.$key : 'Needs improvement EN '.$key,
+                'reason_ur' => $rating >= 8 ? 'مثبت اردو '.$key : 'بہتری اردو '.$key,
             ];
         }
 
@@ -48,7 +48,7 @@ class BrandAgricartReviewPrintTest extends TestCase
             'name_ur' => 'پرنٹ برانڈ',
             'description_en' => 'English brand story for dealers.',
             'description_ur' => 'ڈیلرز کے لیے اردو برانڈ کہانی۔',
-            'agricart_rating' => 9,
+            'agricart_rating' => 8,
             'agricart_rating_criteria' => $criteria,
             'agricart_rating_reason_en' => 'Polished English summary.',
             'agricart_rating_reason_ur' => 'پالش شدہ اردو خلاصہ۔',
@@ -60,16 +60,16 @@ class BrandAgricartReviewPrintTest extends TestCase
         $en->assertOk()
             ->assertSee('Print Brand', false)
             ->assertSee('English brand story for dealers.', false)
-            ->assertSee('Pass EN product_quality', false)
+            ->assertSee('Positive EN product_quality', false)
             ->assertSee('Polished English summary.', false)
-            ->assertSee('9', false)
-            ->assertSee('/ 11', false);
+            ->assertSee('Positive', false)
+            ->assertSee('/ 10', false);
 
         $ur = $this->get(route('admin.brands.print', ['brand' => $brand, 'locale' => 'ur']));
         $ur->assertOk()
             ->assertSee('پرنٹ برانڈ', false)
             ->assertSee('ڈیلرز کے لیے اردو برانڈ کہانی۔', false)
-            ->assertSee('پاس اردو product_quality', false)
+            ->assertSee('مثبت اردو product_quality', false)
             ->assertSee('پالش شدہ اردو خلاصہ۔', false)
             ->assertSee('dir="rtl"', false);
     }

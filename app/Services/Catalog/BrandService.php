@@ -144,7 +144,7 @@ class BrandService
             'status' => ['nullable', 'string', 'in:active,inactive'],
             'inactive_reason_en' => ['nullable', 'string', 'max:2000'],
             'inactive_reason_ur' => ['nullable', 'string', 'max:2000'],
-            'agricart_rating' => ['nullable', 'integer', 'min:0', 'max:'.BrandAgricartReviewCriteria::count()],
+            'agricart_rating' => ['nullable', 'integer', 'min:0', 'max:'.BrandAgricartReviewCriteria::scoreMax()],
             'agricart_rating_criteria' => ['nullable', 'array'],
             'agricart_rating_reason_en' => ['nullable', 'string', 'max:20000'],
             'agricart_rating_reason_ur' => ['nullable', 'string', 'max:20000'],
@@ -161,7 +161,12 @@ class BrandService
 
         foreach (BrandAgricartReviewCriteria::keys() as $criterionKey) {
             $rules['agricart_rating_criteria.'.$criterionKey] = ['nullable', 'array'];
-            $rules['agricart_rating_criteria.'.$criterionKey.'.pass'] = ['nullable', 'boolean'];
+            $rules['agricart_rating_criteria.'.$criterionKey.'.rating'] = [
+                'nullable',
+                'integer',
+                'min:'.BrandAgricartReviewCriteria::MIN_RATING,
+                'max:'.BrandAgricartReviewCriteria::MAX_RATING,
+            ];
             $rules['agricart_rating_criteria.'.$criterionKey.'.reason_en'] = ['nullable', 'string', 'max:2000'];
             $rules['agricart_rating_criteria.'.$criterionKey.'.reason_ur'] = ['nullable', 'string', 'max:2000'];
         }

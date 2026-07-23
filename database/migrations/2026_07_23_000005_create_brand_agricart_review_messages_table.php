@@ -32,10 +32,10 @@ return new class extends Migration
 
             DB::table('brand_agricart_review_messages')->insert([
                 'criterion_key' => $key,
-                'high_en' => $defaults['high_en'],
-                'high_ur' => $defaults['high_ur'],
-                'low_en' => $defaults['low_en'],
-                'low_ur' => $defaults['low_ur'],
+                'high_en' => $defaults['positive_en'] ?? $defaults['high_en'] ?? '',
+                'high_ur' => $defaults['positive_ur'] ?? $defaults['high_ur'] ?? '',
+                'low_en' => $defaults['needs_improvement_en'] ?? $defaults['low_en'] ?? '',
+                'low_ur' => $defaults['needs_improvement_ur'] ?? $defaults['low_ur'] ?? '',
                 'created_at' => $now,
                 'updated_at' => $now,
             ]);

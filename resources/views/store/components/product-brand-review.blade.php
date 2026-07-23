@@ -34,7 +34,7 @@
     @if ($rating !== null)
         <div class="ag-store-pdp__brand-review-score" aria-label="{{ __('agricart.storefront.product.brand_review.score_aria', ['score' => $rating]) }}">
             <span class="ag-store-pdp__brand-review-score-value">{{ $rating }}</span>
-            <span class="ag-store-pdp__brand-review-score-of">/ {{ BrandAgricartReviewCriteria::count() }}</span>
+            <span class="ag-store-pdp__brand-review-score-of">/ {{ BrandAgricartReviewCriteria::scoreMax() }}</span>
         </div>
     @endif
 
@@ -45,13 +45,18 @@
             @foreach (BrandAgricartReviewCriteria::keys() as $criterionKey)
                 @php
                     $detail = $criteria[$criterionKey];
-                    $passed = $detail['pass'] === true;
+                    $band = BrandAgricartReviewCriteria::bandForRating($detail['rating']) ?? BrandAgricartReviewCriteria::BAND_NEUTRAL;
                     $itemReason = $locale === 'ur' && filled($detail['reason_ur'])
                         ? $detail['reason_ur']
                         : ($detail['reason_en'] ?: $detail['reason_ur']);
                 @endphp
-                <li @class(['ag-store-pdp__brand-review-criterion', 'is-pass' => $passed, 'is-fail' => ! $passed])>
-                    <span class="ag-store-pdp__brand-review-mark" aria-hidden="true">{{ $passed ? '✓' : '✗' }}</span>
+                <li @class([
+                    'ag-store-pdp__brand-review-criterion',
+                    'is-positive' => $band === BrandAgricartReviewCriteria::BAND_POSITIVE,
+                    'is-neutral' => $band === BrandAgricartReviewCriteria::BAND_NEUTRAL,
+                    'is-needs-improvement' => $band === BrandAgricartReviewCriteria::BAND_NEEDS_IMPROVEMENT,
+                ])>
+                    <span class="ag-store-pdp__brand-review-mark" aria-hidden="true">{{ $detail['rating'] }}</span>
                     <span class="ag-store-pdp__brand-review-criterion-body">
                         <span class="ag-store-pdp__brand-review-criterion-label">
                             {{ __('agricart.brands.review_criteria.'.$criterionKey.'.label') }}
@@ -61,9 +66,8 @@
                         </span>
                         <span class="ag-store-pdp__brand-review-criterion-check">{{ __('agricart.brands.review_criteria.'.$criterionKey.'.check') }}</span>
                         <span class="ag-store-pdp__brand-review-criterion-result">
-                            {{ $passed
-                                ? __('agricart.storefront.product.brand_review.pass')
-                                : __('agricart.storefront.product.brand_review.fail') }}
+                            {{ __('agricart.storefront.product.brand_review.'.$band) }}
+                            ({{ $detail['rating'] }}/{{ BrandAgricartReviewCriteria::MAX_RATING }})
                         </span>
                         @if (filled($itemReason))
                             <span class="ag-store-pdp__brand-review-criterion-reason" @if ($locale === 'ur') dir="rtl" @endif>

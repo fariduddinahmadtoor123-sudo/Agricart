@@ -11,9 +11,11 @@ class BrandAgricartReviewMessage extends Model
      */
     protected $fillable = [
         'criterion_key',
-        'high_en',
-        'high_ur',
-        'low_en',
-        'low_ur',
+        'positive_en',
+        'positive_ur',
+        'neutral_en',
+        'neutral_ur',
+        'needs_improvement_en',
+        'needs_improvement_ur',
     ];
 }

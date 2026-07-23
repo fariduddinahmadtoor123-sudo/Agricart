@@ -40,21 +40,22 @@ class BrandAgricartReviewMessagesTest extends TestCase
 
         $this->assertDatabaseHas('brand_agricart_review_messages', [
             'criterion_key' => 'product_availability',
-            'high_en' => 'Products remain consistently available throughout the year.',
-            'low_en' => 'Product availability becomes limited during peak seasons.',
+            'positive_en' => 'Products remain consistently available throughout the year.',
+            'neutral_en' => 'Products are generally available, with occasional supply fluctuations.',
+            'needs_improvement_en' => 'Product availability becomes limited during peak seasons.',
         ]);
 
         $this->assertDatabaseHas('brand_agricart_review_messages', [
             'criterion_key' => 'product_quality',
-            'low_en' => 'Product quality is not consistently maintained.',
+            'needs_improvement_en' => 'Product quality is not consistently maintained.',
         ]);
     }
 
     public function test_settings_manager_can_update_default_messages(): void
     {
         Livewire::test(ManageBrandReviewMessages::class)
-            ->set('messages.product_availability.high_en', 'Always stocked for peak season demand.')
-            ->set('messages.product_availability.high_ur', 'سیزن کی مانگ کے لیے ہمیشہ اسٹاک موجود۔')
+            ->set('messages.product_availability.positive_en', 'Always stocked for peak season demand.')
+            ->set('messages.product_availability.positive_ur', 'سیزن کی مانگ کے لیے ہمیشہ اسٹاک موجود۔')
             ->call('save')
             ->assertSet('statusType', 'success');
 
@@ -62,11 +63,22 @@ class BrandAgricartReviewMessagesTest extends TestCase
             ->where('criterion_key', 'product_availability')
             ->firstOrFail();
 
-        $this->assertSame('Always stocked for peak season demand.', $row->high_en);
+        $this->assertSame('Always stocked for peak season demand.', $row->positive_en);
 
         $suggestion = app(BrandAgricartReviewMessageService::class)
-            ->suggestionFor('product_availability', true);
+            ->suggestionFor('product_availability', 9);
 
         $this->assertSame('Always stocked for peak season demand.', $suggestion['en']);
+    }
+
+    public function test_neutral_band_uses_neutral_message(): void
+    {
+        $suggestion = app(BrandAgricartReviewMessageService::class)
+            ->suggestionFor('product_quality', 6);
+
+        $this->assertSame(
+            'Delivers satisfactory product quality for most applications.',
+            $suggestion['en'],
+        );
     }
 }

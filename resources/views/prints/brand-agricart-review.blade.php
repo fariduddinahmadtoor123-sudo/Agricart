@@ -167,8 +167,9 @@
             font-weight: 800;
             white-space: nowrap;
         }
-        .criteria__result.is-pass { color: #3f6212; }
-        .criteria__result.is-fail { color: #991b1b; }
+        .criteria__result.is-positive { color: #3f6212; }
+        .criteria__result.is-neutral { color: #854d0e; }
+        .criteria__result.is-needs-improvement { color: #991b1b; }
         .sheet__empty {
             margin: 0;
             font-size: 0.84rem;
@@ -271,7 +272,8 @@
                             @foreach (\App\Support\Catalog\BrandAgricartReviewCriteria::keys() as $key)
                                 @php
                                     $detail = $criteria[$key];
-                                    $passed = $detail['pass'] === true;
+                                    $band = \App\Support\Catalog\BrandAgricartReviewCriteria::bandForRating($detail['rating'])
+                                        ?? \App\Support\Catalog\BrandAgricartReviewCriteria::BAND_NEUTRAL;
                                     $label = $locale === 'ur'
                                         ? (string) __('agricart.brands.review_criteria.'.$key.'.label_ur', [], 'ur')
                                         : (string) __('agricart.brands.review_criteria.'.$key.'.label', [], 'en');
@@ -284,10 +286,9 @@
                                 @endphp
                                 <tr>
                                     <td>{{ $label }}</td>
-                                    <td class="criteria__result {{ $passed ? 'is-pass' : 'is-fail' }}">
-                                        {{ $passed
-                                            ? __('agricart.brands.review_actions.pass')
-                                            : __('agricart.brands.review_actions.fail') }}
+                                    <td class="criteria__result is-{{ str_replace('_', '-', $band) }}">
+                                        {{ __('agricart.brands.review_actions.'.$band) }}
+                                        ({{ $detail['rating'] }}/{{ \App\Support\Catalog\BrandAgricartReviewCriteria::MAX_RATING }})
                                     </td>
                                     <td>{{ $reason }}</td>
                                 </tr>

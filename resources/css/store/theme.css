@@ -1829,12 +1829,17 @@
     border-radius: 0;
 }
 
-.ag-store-pdp__brand-review-criterion.is-pass {
+.ag-store-pdp__brand-review-criterion.is-positive {
     border-color: color-mix(in srgb, var(--agricart-primary, #83b735) 45%, var(--agricart-border, #ebedf0));
     background: color-mix(in srgb, var(--agricart-primary, #83b735) 8%, #fff);
 }
 
-.ag-store-pdp__brand-review-criterion.is-fail {
+.ag-store-pdp__brand-review-criterion.is-neutral {
+    border-color: color-mix(in srgb, #eab308 45%, var(--agricart-border, #ebedf0));
+    background: color-mix(in srgb, #eab308 10%, #fff);
+}
+
+.ag-store-pdp__brand-review-criterion.is-needs-improvement {
     border-color: color-mix(in srgb, #dc2626 35%, var(--agricart-border, #ebedf0));
     background: color-mix(in srgb, #dc2626 6%, #fff);
 }
@@ -1846,11 +1851,15 @@
     line-height: 1.2;
 }
 
-.ag-store-pdp__brand-review-criterion.is-pass .ag-store-pdp__brand-review-mark {
+.ag-store-pdp__brand-review-criterion.is-positive .ag-store-pdp__brand-review-mark {
     color: var(--agricart-primary, #83b735);
 }
 
-.ag-store-pdp__brand-review-criterion.is-fail .ag-store-pdp__brand-review-mark {
+.ag-store-pdp__brand-review-criterion.is-neutral .ag-store-pdp__brand-review-mark {
+    color: #854d0e;
+}
+
+.ag-store-pdp__brand-review-criterion.is-needs-improvement .ag-store-pdp__brand-review-mark {
     color: #dc2626;
 }
 

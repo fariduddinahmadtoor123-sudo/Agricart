@@ -151,18 +151,23 @@
                     <div class="agricart-brand-review__header">
                         <div>
                             <h4 class="agricart-brand-review__title">{{ __('agricart.brands.fields.agricart_rating') }}</h4>
-                            <p class="agricart-form-panel__hint">{{ __('agricart.brands.hints.agricart_rating', ['total' => \App\Support\Catalog\BrandAgricartReviewCriteria::count()]) }}</p>
+                            <p class="agricart-form-panel__hint">{{ __('agricart.brands.hints.agricart_rating', ['total' => \App\Support\Catalog\BrandAgricartReviewCriteria::scoreMax()]) }}</p>
                         </div>
                         <div class="agricart-brand-review__score" aria-live="polite">
                             <span class="agricart-brand-review__score-value">{{ filled($agricart_rating) ? $agricart_rating : '—' }}</span>
-                            <span class="agricart-brand-review__score-of">/ {{ \App\Support\Catalog\BrandAgricartReviewCriteria::count() }}</span>
+                            <span class="agricart-brand-review__score-of">/ {{ \App\Support\Catalog\BrandAgricartReviewCriteria::scoreMax() }}</span>
                         </div>
                     </div>
 
                     <div class="agricart-brand-review__list" role="list">
                         @foreach (\App\Support\Catalog\BrandAgricartReviewCriteria::keys() as $criterionKey)
-                            @php($criterion = $agricart_rating_criteria[$criterionKey] ?? ['pass' => null, 'reason_en' => '', 'reason_ur' => ''])
-                            @php($criterionValue = $criterion['pass'] ?? null)
+                            @php
+                                $criterion = $agricart_rating_criteria[$criterionKey] ?? ['rating' => null, 'reason_en' => '', 'reason_ur' => ''];
+                                $criterionRating = $criterion['rating'] ?? null;
+                                $criterionBand = \App\Support\Catalog\BrandAgricartReviewCriteria::bandForRating(
+                                    is_numeric($criterionRating) ? (int) $criterionRating : null,
+                                );
+                            @endphp
                             <div class="agricart-brand-review__row" role="listitem" wire:key="brand-criterion-{{ $criterionKey }}">
                                 <div class="agricart-brand-review__copy">
                                     <p class="agricart-brand-review__label">
@@ -170,22 +175,27 @@
                                         <span class="agricart-brand-review__label-ur" dir="rtl">{{ __('agricart.brands.review_criteria.'.$criterionKey.'.label_ur') }}</span>
                                     </p>
                                     <p class="agricart-brand-review__check">{{ __('agricart.brands.review_criteria.'.$criterionKey.'.check') }}</p>
+                                    @if ($criterionBand)
+                                        <p class="agricart-brand-review__band agricart-brand-review__band--{{ $criterionBand }}">
+                                            {{ __('agricart.brands.review_actions.'.$criterionBand) }}
+                                            <span class="agricart-brand-review__band-score">({{ $criterionRating }}/{{ \App\Support\Catalog\BrandAgricartReviewCriteria::MAX_RATING }})</span>
+                                        </p>
+                                    @endif
                                 </div>
-                                <div class="agricart-brand-review__actions">
-                                    <button
-                                        type="button"
-                                        class="agricart-brand-review__btn agricart-brand-review__btn--pass {{ $criterionValue === true ? 'is-active' : '' }}"
-                                        wire:click="setAgricartCriterion('{{ $criterionKey }}', 'pass')"
-                                        @disabled($this->isReadonly())
-                                    >{{ __('agricart.brands.review_actions.pass') }}</button>
-                                    <button
-                                        type="button"
-                                        class="agricart-brand-review__btn agricart-brand-review__btn--fail {{ $criterionValue === false ? 'is-active' : '' }}"
-                                        wire:click="setAgricartCriterion('{{ $criterionKey }}', 'fail')"
-                                        @disabled($this->isReadonly())
-                                    >{{ __('agricart.brands.review_actions.fail') }}</button>
+                                <div class="agricart-brand-review__actions" role="group" aria-label="{{ __('agricart.brands.fields.agricart_rating') }}">
+                                    @for ($rating = 1; $rating <= 10; $rating++)
+                                        @php
+                                            $btnBand = \App\Support\Catalog\BrandAgricartReviewCriteria::bandForRating($rating);
+                                        @endphp
+                                        <button
+                                            type="button"
+                                            class="agricart-brand-review__btn agricart-brand-review__btn--{{ $btnBand }} {{ (int) $criterionRating === $rating ? 'is-active' : '' }}"
+                                            wire:click="setAgricartCriterion('{{ $criterionKey }}', {{ $rating }})"
+                                            @disabled($this->isReadonly())
+                                        >{{ $rating }}</button>
+                                    @endfor
                                 </div>
-                                @if ($criterionValue !== null)
+                                @if ($criterionRating !== null)
                                     <div class="agricart-brand-review__reasons">
                                         <p class="agricart-form-panel__hint agricart-brand-review__suggest-hint">
                                             {{ __('agricart.brands.review_messages.suggested_hint') }}

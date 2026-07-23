@@ -68,7 +68,7 @@ class Form extends Component
 
     public string $agricart_rating = '';
 
-    /** @var array<string, array{pass: bool|null, reason_en: string, reason_ur: string}> */
+    /** @var array<string, array{rating: int|null, reason_en: string, reason_ur: string}> */
     public array $agricart_rating_criteria = [];
 
     /** @var array<string, bool> */
@@ -106,7 +106,7 @@ class Form extends Component
         $this->saveCriterionMessageAsDefault = $this->emptySaveAsDefaultFlags();
     }
 
-    public function setAgricartCriterion(string $key, string $value): void
+    public function setAgricartCriterion(string $key, int|string $value): void
     {
         $this->authorizeAction($this->mutationAction());
 
@@ -116,15 +116,21 @@ class Form extends Component
 
         $this->preserveAgricartAiReview = false;
         $this->agricart_rating_criteria = BrandAgricartReviewCriteria::normalizeDetailed($this->agricart_rating_criteria);
-        $pass = match ($value) {
-            'pass' => true,
-            'fail' => false,
-            default => null,
-        };
-        $this->agricart_rating_criteria[$key]['pass'] = $pass;
 
-        if ($pass !== null) {
-            $suggestion = app(BrandAgricartReviewMessageService::class)->suggestionFor($key, $pass);
+        $rating = null;
+
+        if ($value !== '' && $value !== 'clear' && $value !== null) {
+            $asInt = (int) $value;
+
+            if ($asInt >= BrandAgricartReviewCriteria::MIN_RATING && $asInt <= BrandAgricartReviewCriteria::MAX_RATING) {
+                $rating = BrandAgricartReviewCriteria::clampRating($asInt);
+            }
+        }
+
+        $this->agricart_rating_criteria[$key]['rating'] = $rating;
+
+        if ($rating !== null) {
+            $suggestion = app(BrandAgricartReviewMessageService::class)->suggestionFor($key, $rating);
             $this->agricart_rating_criteria[$key]['reason_en'] = $suggestion['en'];
             $this->agricart_rating_criteria[$key]['reason_ur'] = $suggestion['ur'];
         } else {
@@ -779,11 +785,17 @@ class Form extends Component
 
             $detail = $criteria[$key] ?? null;
 
-            if (! is_array($detail) || $detail['pass'] === null) {
+            if (! is_array($detail) || $detail['rating'] === null) {
                 continue;
             }
 
-            $service->saveOutcomeDefault($key, (bool) $detail['pass'], [
+            $band = BrandAgricartReviewCriteria::bandForRating((int) $detail['rating']);
+
+            if ($band === null) {
+                continue;
+            }
+
+            $service->saveBandDefault($key, $band, [
                 'en' => (string) ($detail['reason_en'] ?? ''),
                 'ur' => (string) ($detail['reason_ur'] ?? ''),
             ]);
@@ -793,7 +805,7 @@ class Form extends Component
     }
 
     /**
-     * Ensure Pass/Fail rows always have bilingual reasons (from manageable defaults) before save.
+     * Ensure rated rows always have bilingual reasons (from manageable defaults) before save.
      */
     private function fillMissingAgricartReasonsFromSuggestions(): void
     {

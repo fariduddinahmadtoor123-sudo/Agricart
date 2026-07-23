@@ -268,7 +268,7 @@ class BrandFormIntegrityTest extends TestCase
         $this->assertSame('inactive', $draftProduct->fresh()->status);
     }
 
-    public function test_agricart_checklist_auto_scores_and_requires_all_ten(): void
+    public function test_agricart_checklist_auto_scores_and_requires_all_fields(): void
     {
         Storage::fake('public');
 
@@ -276,7 +276,7 @@ class BrandFormIntegrityTest extends TestCase
 
         Livewire::test(Form::class)
             ->call('openForm', $brand->id, 'edit')
-            ->call('setAgricartCriterion', 'product_quality', 'pass')
+            ->call('setAgricartCriterion', 'product_quality', 9)
             ->call('saveAndClose')
             ->assertSet('statusType', 'danger');
 
@@ -285,13 +285,14 @@ class BrandFormIntegrityTest extends TestCase
         $component = Livewire::test(Form::class)->call('openForm', $brand->id, 'edit');
 
         foreach (\App\Support\Catalog\BrandAgricartReviewCriteria::keys() as $index => $key) {
-            $pass = $index < 8;
+            $rating = $index < 8 ? 10 : 1;
             $component
-                ->call('setAgricartCriterion', $key, $pass ? 'pass' : 'fail')
-                ->set('agricart_rating_criteria.'.$key.'.reason_en', $pass ? 'Pass reason '.$key : 'Fail reason '.$key)
-                ->set('agricart_rating_criteria.'.$key.'.reason_ur', $pass ? 'پاس وجہ '.$key : 'فیل وجہ '.$key);
+                ->call('setAgricartCriterion', $key, $rating)
+                ->set('agricart_rating_criteria.'.$key.'.reason_en', $rating >= 8 ? 'Positive reason '.$key : 'Needs improvement '.$key)
+                ->set('agricart_rating_criteria.'.$key.'.reason_ur', $rating >= 8 ? 'مثبت وجہ '.$key : 'بہتری وجہ '.$key);
         }
 
+        // Average of eight 10s and three 1s ≈ 7.55 → 8 / 10
         $component
             ->assertSet('agricart_rating', '8')
             ->call('saveAndClose')
@@ -299,11 +300,11 @@ class BrandFormIntegrityTest extends TestCase
 
         $brand->refresh();
         $this->assertSame(8, $brand->agricart_rating);
-        $this->assertTrue($brand->agricart_rating_criteria['product_quality']['pass']);
-        $this->assertSame('Pass reason product_quality', $brand->agricart_rating_criteria['product_quality']['reason_en']);
-        $this->assertFalse($brand->agricart_rating_criteria['overall_market_acceptance']['pass']);
+        $this->assertSame(10, $brand->agricart_rating_criteria['product_quality']['rating']);
+        $this->assertSame('Positive reason product_quality', $brand->agricart_rating_criteria['product_quality']['reason_en']);
+        $this->assertSame(1, $brand->agricart_rating_criteria['overall_market_acceptance']['rating']);
         $this->assertStringContainsString('Product Quality', (string) $brand->agricart_rating_reason_en);
-        $this->assertStringContainsString('8 / 11', (string) $brand->agricart_rating_reason_en);
+        $this->assertStringContainsString('8 / 10', (string) $brand->agricart_rating_reason_en);
     }
 
     public function test_saving_brand_persists_editable_site_review_notice(): void
@@ -341,7 +342,7 @@ class BrandFormIntegrityTest extends TestCase
         $this->assertSame('active', $brand->status);
     }
 
-    public function test_pass_fail_auto_fills_manageable_suggested_messages_and_can_save_as_default(): void
+    public function test_rating_auto_fills_manageable_suggested_messages_and_can_save_as_default(): void
     {
         Storage::fake('public');
 
@@ -349,7 +350,7 @@ class BrandFormIntegrityTest extends TestCase
 
         Livewire::test(Form::class)
             ->call('openForm', $brand->id, 'edit')
-            ->call('setAgricartCriterion', 'product_quality', 'pass')
+            ->call('setAgricartCriterion', 'product_quality', 9)
             ->assertSet(
                 'agricart_rating_criteria.product_quality.reason_en',
                 'Consistently delivers high-quality products.',
@@ -358,16 +359,16 @@ class BrandFormIntegrityTest extends TestCase
                 'agricart_rating_criteria.product_quality.reason_ur',
                 'مسلسل اعلیٰ معیار کی مصنوعات فراہم کرتا ہے۔',
             )
-            ->call('setAgricartCriterion', 'value_for_money', 'fail')
-            ->call('setAgricartCriterion', 'market_reputation', 'pass')
-            ->call('setAgricartCriterion', 'durability', 'pass')
-            ->call('setAgricartCriterion', 'performance', 'pass')
-            ->call('setAgricartCriterion', 'innovation_technology', 'pass')
-            ->call('setAgricartCriterion', 'warranty_after_sales', 'pass')
-            ->call('setAgricartCriterion', 'spare_parts_availability', 'pass')
-            ->call('setAgricartCriterion', 'brand_reliability', 'pass')
-            ->call('setAgricartCriterion', 'product_availability', 'pass')
-            ->call('setAgricartCriterion', 'overall_market_acceptance', 'pass')
+            ->call('setAgricartCriterion', 'value_for_money', 3)
+            ->call('setAgricartCriterion', 'market_reputation', 9)
+            ->call('setAgricartCriterion', 'durability', 9)
+            ->call('setAgricartCriterion', 'performance', 9)
+            ->call('setAgricartCriterion', 'innovation_technology', 9)
+            ->call('setAgricartCriterion', 'warranty_after_sales', 9)
+            ->call('setAgricartCriterion', 'spare_parts_availability', 9)
+            ->call('setAgricartCriterion', 'brand_reliability', 9)
+            ->call('setAgricartCriterion', 'product_availability', 9)
+            ->call('setAgricartCriterion', 'overall_market_acceptance', 9)
             ->set('agricart_rating_criteria.product_quality.reason_en', 'Custom high quality line for this brand.')
             ->set('agricart_rating_criteria.product_quality.reason_ur', 'اس برانڈ کے لیے حسبِ ضرورت معیار کی لائن۔')
             ->set('saveCriterionMessageAsDefault.product_quality', true)
@@ -378,11 +379,11 @@ class BrandFormIntegrityTest extends TestCase
             ->where('criterion_key', 'product_quality')
             ->firstOrFail();
 
-        $this->assertSame('Custom high quality line for this brand.', $message->high_en);
-        $this->assertSame('اس برانڈ کے لیے حسبِ ضرورت معیار کی لائن۔', $message->high_ur);
+        $this->assertSame('Custom high quality line for this brand.', $message->positive_en);
+        $this->assertSame('اس برانڈ کے لیے حسبِ ضرورت معیار کی لائن۔', $message->positive_ur);
 
         $suggestion = app(\App\Services\Catalog\BrandAgricartReviewMessageService::class)
-            ->suggestionFor('product_quality', true);
+            ->suggestionFor('product_quality', 9);
 
         $this->assertSame(
             'Custom high quality line for this brand.',
@@ -398,10 +399,10 @@ class BrandFormIntegrityTest extends TestCase
         $component = Livewire::test(Form::class)->call('openForm', $brand->id, 'edit');
 
         foreach (\App\Support\Catalog\BrandAgricartReviewCriteria::keys() as $index => $key) {
-            $component->call('setAgricartCriterion', $key, $index < 9 ? 'pass' : 'fail');
+            $component->call('setAgricartCriterion', $key, $index < 9 ? 9 : 3);
         }
 
-        // Simulate Livewire wiping reason text after Pass/Fail (previous bug).
+        // Simulate Livewire wiping reason text after rating change (previous bug).
         foreach (\App\Support\Catalog\BrandAgricartReviewCriteria::keys() as $key) {
             $component
                 ->set('agricart_rating_criteria.'.$key.'.reason_en', '')
@@ -413,7 +414,8 @@ class BrandFormIntegrityTest extends TestCase
             ->assertSet('statusType', 'success');
 
         $brand->refresh();
-        $this->assertSame(9, $brand->agricart_rating);
+        // Nine 9s + two 3s → average ≈ 7.91 → 8
+        $this->assertSame(8, $brand->agricart_rating);
         $this->assertSame(
             'Consistently delivers high-quality products.',
             $brand->agricart_rating_criteria['product_quality']['reason_en'],
@@ -487,12 +489,13 @@ class BrandFormIntegrityTest extends TestCase
             ->set('name_ur', 'ٹیسٹ برانڈ');
 
         foreach (\App\Support\Catalog\BrandAgricartReviewCriteria::keys() as $index => $key) {
-            $component->call('setAgricartCriterion', $key, $index < 7 ? 'pass' : 'fail');
+            $component->call('setAgricartCriterion', $key, $index < 7 ? 9 : 3);
         }
 
         $component
             ->call('generateAgricartReviewWithAi')
             ->assertSet('statusType', 'success')
+            // Seven 9s + four 3s → average ≈ 6.82 → 7
             ->assertSet('agricart_rating', '7')
             ->assertSet('agricart_rating_reason_en', 'Polished Agricart review for TestBrand in English.')
             ->assertSet('agricart_rating_reason_ur', 'ٹیسٹ برانڈ کے لیے پالش شدہ ایگری کارٹ ریویو۔')
@@ -507,7 +510,7 @@ class BrandFormIntegrityTest extends TestCase
         $this->assertSame('AI EN reason for product_quality', $brand->agricart_rating_criteria['product_quality']['reason_en']);
     }
 
-    public function test_agricart_review_ai_requires_all_pass_fail_outcomes(): void
+    public function test_agricart_review_ai_requires_all_ratings(): void
     {
         Storage::fake('public');
 
@@ -515,7 +518,7 @@ class BrandFormIntegrityTest extends TestCase
 
         Livewire::test(Form::class)
             ->call('openForm', $brand->id, 'edit')
-            ->call('setAgricartCriterion', 'product_quality', 'pass')
+            ->call('setAgricartCriterion', 'product_quality', 9)
             ->call('generateAgricartReviewWithAi')
             ->assertSet('statusType', 'warning');
     }

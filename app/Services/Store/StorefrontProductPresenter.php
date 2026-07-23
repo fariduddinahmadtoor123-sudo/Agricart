@@ -262,7 +262,7 @@ class StorefrontProductPresenter
     {
         $rating = $product->brand?->agricart_rating;
 
-        $maxScore = \App\Support\Catalog\BrandAgricartReviewCriteria::count();
+        $maxScore = \App\Support\Catalog\BrandAgricartReviewCriteria::scoreMax();
 
         if (! is_int($rating) || $rating < 0 || $rating > $maxScore) {
             return false;

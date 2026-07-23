@@ -3,11 +3,17 @@
 namespace App\Support\Catalog;
 
 /**
- * Fixed Agricart brand review checklist (10 criteria → score out of 10).
+ * Fixed Agricart brand review checklist (11 criteria).
  *
  * Stored shape per key:
- * { "pass": true|false, "reason_en": "...", "reason_ur": "..." }
- * Legacy boolean values are accepted and upgraded on normalize.
+ * { "rating": 1-10, "reason_en": "...", "reason_ur": "..." }
+ *
+ * Outcome bands (labels only — derived from rating):
+ * - positive: 8–10
+ * - neutral: 5–7
+ * - needs_improvement: 1–4
+ *
+ * Legacy { pass: bool } rows are upgraded on normalize (true→9, false→3).
  */
 final class BrandAgricartReviewCriteria
 {
@@ -25,6 +31,16 @@ final class BrandAgricartReviewCriteria
         'overall_market_acceptance',
     ];
 
+    public const BAND_POSITIVE = 'positive';
+
+    public const BAND_NEUTRAL = 'neutral';
+
+    public const BAND_NEEDS_IMPROVEMENT = 'needs_improvement';
+
+    public const MAX_RATING = 10;
+
+    public const MIN_RATING = 1;
+
     /**
      * @return list<string>
      */
@@ -39,12 +55,20 @@ final class BrandAgricartReviewCriteria
     }
 
     /**
-     * @return array{pass: bool|null, reason_en: string, reason_ur: string}
+     * Overall score is an average of field ratings → out of 10.
+     */
+    public static function scoreMax(): int
+    {
+        return self::MAX_RATING;
+    }
+
+    /**
+     * @return array{rating: int|null, reason_en: string, reason_ur: string}
      */
     public static function emptyDetail(): array
     {
         return [
-            'pass' => null,
+            'rating' => null,
             'reason_en' => '',
             'reason_ur' => '',
         ];
@@ -52,7 +76,7 @@ final class BrandAgricartReviewCriteria
 
     /**
      * @param  array<string, mixed>|null  $raw
-     * @return array<string, array{pass: bool|null, reason_en: string, reason_ur: string}>
+     * @return array<string, array{rating: int|null, reason_en: string, reason_ur: string}>
      */
     public static function normalizeDetailed(?array $raw): array
     {
@@ -66,25 +90,22 @@ final class BrandAgricartReviewCriteria
     }
 
     /**
-     * Legacy bool-only map for score helpers that still expect true/false/null.
-     *
      * @param  array<string, mixed>|null  $raw
-     * @return array<string, bool|null>
+     * @return array<string, int|null>
      */
     public static function normalize(?array $raw): array
     {
         $out = [];
 
         foreach (self::normalizeDetailed($raw) as $key => $detail) {
-            $out[$key] = $detail['pass'];
+            $out[$key] = $detail['rating'];
         }
 
         return $out;
     }
 
     /**
-     * @param  array<string, mixed>|null  $raw
-     * @return array{pass: bool|null, reason_en: string, reason_ur: string}
+     * @return array{rating: int|null, reason_en: string, reason_ur: string}
      */
     public static function normalizeOne(mixed $value): array
     {
@@ -92,16 +113,23 @@ final class BrandAgricartReviewCriteria
             return self::emptyDetail();
         }
 
-        if (is_bool($value) || $value === 0 || $value === 1 || $value === '0' || $value === '1'
-            || $value === 'pass' || $value === 'fail' || $value === 'true' || $value === 'false') {
-            $pass = match (true) {
-                $value === true, $value === 1, $value === '1', $value === 'pass', $value === 'true' => true,
-                $value === false, $value === 0, $value === '0', $value === 'fail', $value === 'false' => false,
+        if (is_bool($value) || $value === 'pass' || $value === 'fail' || $value === 'true' || $value === 'false') {
+            $rating = match (true) {
+                $value === true, $value === 'pass', $value === 'true' => 9,
+                $value === false, $value === 'fail', $value === 'false' => 3,
                 default => null,
             };
 
             return [
-                'pass' => $pass,
+                'rating' => $rating,
+                'reason_en' => '',
+                'reason_ur' => '',
+            ];
+        }
+
+        if (is_int($value) || (is_string($value) && ctype_digit($value))) {
+            return [
+                'rating' => self::clampRating((int) $value),
                 'reason_en' => '',
                 'reason_ur' => '',
             ];
@@ -111,20 +139,57 @@ final class BrandAgricartReviewCriteria
             return self::emptyDetail();
         }
 
-        $passRaw = $value['pass'] ?? $value['result'] ?? null;
-        $pass = null;
+        $rating = null;
 
-        if ($passRaw === true || $passRaw === 1 || $passRaw === '1' || $passRaw === 'pass' || $passRaw === 'true') {
-            $pass = true;
-        } elseif ($passRaw === false || $passRaw === 0 || $passRaw === '0' || $passRaw === 'fail' || $passRaw === 'false') {
-            $pass = false;
+        if (array_key_exists('rating', $value) && $value['rating'] !== null && $value['rating'] !== '') {
+            $rating = self::clampRating((int) $value['rating']);
+        } elseif (array_key_exists('pass', $value) || array_key_exists('result', $value)) {
+            $passRaw = $value['pass'] ?? $value['result'] ?? null;
+
+            if ($passRaw === true || $passRaw === 1 || $passRaw === '1' || $passRaw === 'pass' || $passRaw === 'true') {
+                $rating = 9;
+            } elseif ($passRaw === false || $passRaw === 0 || $passRaw === '0' || $passRaw === 'fail' || $passRaw === 'false') {
+                $rating = 3;
+            }
         }
 
         return [
-            'pass' => $pass,
+            'rating' => $rating,
             'reason_en' => trim((string) ($value['reason_en'] ?? '')),
             'reason_ur' => trim((string) ($value['reason_ur'] ?? '')),
         ];
+    }
+
+    public static function clampRating(int $rating): int
+    {
+        return max(self::MIN_RATING, min(self::MAX_RATING, $rating));
+    }
+
+    /**
+     * @return self::BAND_*|null
+     */
+    public static function bandForRating(?int $rating): ?string
+    {
+        if ($rating === null) {
+            return null;
+        }
+
+        $rating = self::clampRating($rating);
+
+        if ($rating >= 8) {
+            return self::BAND_POSITIVE;
+        }
+
+        if ($rating >= 5) {
+            return self::BAND_NEUTRAL;
+        }
+
+        return self::BAND_NEEDS_IMPROVEMENT;
+    }
+
+    public static function bandLabel(string $band, string $locale = 'en'): string
+    {
+        return (string) __('agricart.brands.review_actions.'.$band, [], $locale);
     }
 
     /**
@@ -133,7 +198,7 @@ final class BrandAgricartReviewCriteria
     public static function isComplete(array $criteria): bool
     {
         foreach (self::normalizeDetailed($criteria) as $detail) {
-            if ($detail['pass'] === null) {
+            if ($detail['rating'] === null) {
                 return false;
             }
 
@@ -146,14 +211,12 @@ final class BrandAgricartReviewCriteria
     }
 
     /**
-     * True when every checklist item has Pass or Fail (reasons may still be empty).
-     *
      * @param  array<string, mixed>  $criteria
      */
     public static function allOutcomesSet(array $criteria): bool
     {
         foreach (self::normalizeDetailed($criteria) as $detail) {
-            if ($detail['pass'] === null) {
+            if ($detail['rating'] === null) {
                 return false;
             }
         }
@@ -167,7 +230,7 @@ final class BrandAgricartReviewCriteria
     public static function hasAnyAnswer(array $criteria): bool
     {
         foreach (self::normalizeDetailed($criteria) as $detail) {
-            if ($detail['pass'] !== null) {
+            if ($detail['rating'] !== null) {
                 return true;
             }
         }
@@ -176,30 +239,35 @@ final class BrandAgricartReviewCriteria
     }
 
     /**
+     * Overall Agricart score = average of answered field ratings (1–10), rounded.
+     *
      * @param  array<string, mixed>|null  $criteria
      */
     public static function score(?array $criteria): ?int
     {
         $detailed = self::normalizeDetailed($criteria);
+        $sum = 0;
+        $n = 0;
 
-        if (! self::hasAnyAnswer($detailed)) {
+        foreach ($detailed as $detail) {
+            if ($detail['rating'] === null) {
+                continue;
+            }
+
+            $sum += $detail['rating'];
+            $n++;
+        }
+
+        if ($n === 0) {
             return null;
         }
 
-        $passes = 0;
-
-        foreach ($detailed as $detail) {
-            if ($detail['pass'] === true) {
-                $passes++;
-            }
-        }
-
-        return $passes;
+        return (int) round($sum / $n);
     }
 
     /**
      * @param  array<string, mixed>|null  $criteria
-     * @return array<string, array{pass: bool, reason_en: string, reason_ur: string}>|null
+     * @return array<string, array{rating: int, reason_en: string, reason_ur: string}>|null
      */
     public static function forStorage(?array $criteria): ?array
     {
@@ -212,12 +280,12 @@ final class BrandAgricartReviewCriteria
         $stored = [];
 
         foreach ($detailed as $key => $detail) {
-            if ($detail['pass'] === null) {
+            if ($detail['rating'] === null) {
                 continue;
             }
 
             $stored[$key] = [
-                'pass' => $detail['pass'],
+                'rating' => $detail['rating'],
                 'reason_en' => $detail['reason_en'],
                 'reason_ur' => $detail['reason_ur'],
             ];
@@ -227,8 +295,6 @@ final class BrandAgricartReviewCriteria
     }
 
     /**
-     * Build bilingual Agricart review copy from the 10 checks + reasons.
-     *
      * @param  array<string, mixed>|null  $criteria
      * @return array{en: string|null, ur: string|null}
      */
@@ -241,7 +307,7 @@ final class BrandAgricartReviewCriteria
         }
 
         $score = self::score($detailed) ?? 0;
-        $total = self::count();
+        $total = self::scoreMax();
 
         $enLines = [
             __('agricart.brands.review_compose.intro_en', ['score' => $score, 'total' => $total]),
@@ -254,21 +320,16 @@ final class BrandAgricartReviewCriteria
 
         foreach (self::KEYS as $key) {
             $detail = $detailed[$key];
-            $resultEn = $detail['pass']
-                ? __('agricart.brands.review_actions.pass')
-                : __('agricart.brands.review_actions.fail');
-            $resultUr = $detail['pass']
-                ? __('agricart.brands.review_actions.pass', [], 'ur')
-                : __('agricart.brands.review_actions.fail', [], 'ur');
+            $band = self::bandForRating($detail['rating']) ?? self::BAND_NEUTRAL;
 
             $enLines[] = __('agricart.brands.review_compose.line_en', [
                 'label' => __('agricart.brands.review_criteria.'.$key.'.label', [], 'en'),
-                'result' => $resultEn,
+                'result' => self::bandLabel($band, 'en').' ('.$detail['rating'].'/'.self::MAX_RATING.')',
                 'reason' => $detail['reason_en'],
             ]);
             $urLines[] = __('agricart.brands.review_compose.line_ur', [
                 'label' => __('agricart.brands.review_criteria.'.$key.'.label_ur', [], 'ur'),
-                'result' => $resultUr,
+                'result' => self::bandLabel($band, 'ur').' ('.$detail['rating'].'/'.self::MAX_RATING.')',
                 'reason' => $detail['reason_ur'],
             ]);
         }

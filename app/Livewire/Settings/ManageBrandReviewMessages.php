@@ -12,7 +12,16 @@ use Livewire\Component;
 
 class ManageBrandReviewMessages extends Component
 {
-    /** @var array<string, array{high_en: string, high_ur: string, low_en: string, low_ur: string}> */
+    /**
+     * @var array<string, array{
+     *     positive_en: string,
+     *     positive_ur: string,
+     *     neutral_en: string,
+     *     neutral_ur: string,
+     *     needs_improvement_en: string,
+     *     needs_improvement_ur: string
+     * }>
+     */
     public array $messages = [];
 
     public ?string $statusMessage = null;
@@ -79,10 +88,12 @@ class ManageBrandReviewMessages extends Component
 
         foreach ($service->listManaged() as $row) {
             $this->messages[$row['criterion_key']] = [
-                'high_en' => $row['high_en'],
-                'high_ur' => $row['high_ur'],
-                'low_en' => $row['low_en'],
-                'low_ur' => $row['low_ur'],
+                'positive_en' => $row['positive_en'],
+                'positive_ur' => $row['positive_ur'],
+                'neutral_en' => $row['neutral_en'],
+                'neutral_ur' => $row['neutral_ur'],
+                'needs_improvement_en' => $row['needs_improvement_en'],
+                'needs_improvement_ur' => $row['needs_improvement_ur'],
             ];
         }
     }

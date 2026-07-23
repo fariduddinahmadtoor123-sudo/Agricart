@@ -16,7 +16,7 @@ class BrandAgricartReviewAiService
     ) {}
 
     /**
-     * Generate per-criterion reasons + polished bilingual Agricart review from Pass/Fail outcomes.
+     * Generate per-criterion reasons + polished bilingual Agricart review from 1–10 ratings.
      *
      * @param  array<string, mixed>  $criteria
      * @return array{success: bool, message: string, data?: array{criteria: array<string, array{reason_en: string, reason_ur: string}>, review_en: string, review_ur: string}}
@@ -81,20 +81,22 @@ class BrandAgricartReviewAiService
     }
 
     /**
-     * @param  array<string, array{pass: bool|null, reason_en: string, reason_ur: string}>  $detailed
+     * @param  array<string, array{rating: int|null, reason_en: string, reason_ur: string}>  $detailed
      */
     private function buildPrompt(string $brandNameEn, string $brandNameUr, array $detailed): string
     {
         $score = BrandAgricartReviewCriteria::score($detailed) ?? 0;
-        $total = BrandAgricartReviewCriteria::count();
+        $total = BrandAgricartReviewCriteria::scoreMax();
         $lines = [];
 
         foreach (BrandAgricartReviewCriteria::KEYS as $key) {
             $detail = $detailed[$key];
-            $outcome = $detail['pass'] ? 'PASS' : 'FAIL';
+            $rating = (int) $detail['rating'];
+            $band = BrandAgricartReviewCriteria::bandForRating($rating) ?? BrandAgricartReviewCriteria::BAND_NEUTRAL;
+            $bandLabel = strtoupper(str_replace('_', ' ', $band));
             $label = BrandAgricartReviewCriteria::label($key, 'en');
             $hint = BrandAgricartReviewCriteria::checkHint($key, 'en');
-            $line = "- {$key}: {$outcome} — {$label}. Check: {$hint}";
+            $line = "- {$key}: RATING {$rating}/10 ({$bandLabel}) — {$label}. Check: {$hint}";
 
             if ($detail['reason_en'] !== '' || $detail['reason_ur'] !== '') {
                 $line .= ' Existing notes (improve or keep spirit):'
@@ -113,14 +115,18 @@ You write Agricart brand reviews for a Pakistani agriculture retail business (fa
 
 Brand English name: {$brandNameEn}
 Brand Urdu name: {$urduName}
-Agricart checklist score: {$score} / {$total}
+Agricart overall score (average of field ratings): {$score} / {$total}
 
-Fixed Pass/Fail outcomes (do NOT change Pass/Fail — only explain them):
+Fixed 1–10 ratings and outcome bands (do NOT change ratings — only explain them):
+- 8–10 = Positive
+- 5–7 = Neutral
+- 1–4 = Needs Improvement
+
 {$checklist}
 
 Tasks:
-1. For EVERY checklist key, write a short, specific reason in English and Urdu explaining why it Passed or Failed for this brand in Pakistan's agri market. 1–3 sentences each. Be honest: Pass = clear strength; Fail = real weakness or gap. Do not invent fake certifications, awards, or numbers.
-2. Write one polished overall Agricart review in English and one in Urdu (paragraph style, not a bullet dump). Reflect the real Pass/Fail pattern: praise strengths, clearly mention Fail areas, end with a fair buying guidance tone for farmers/retailers. Urdu must be natural Pakistani Urdu (not transliteration of English).
+1. For EVERY checklist key, write a short, specific reason in English and Urdu matching that field's rating band for this brand in Pakistan's agri market. 1–3 sentences each. Be fair and professional: Positive = clear strength; Neutral = acceptable with room to grow; Needs Improvement = real weakness without harsh language. Do not invent fake certifications, awards, or numbers.
+2. Write one polished overall Agricart review in English and one in Urdu (paragraph style, not a bullet dump). Reflect the real rating pattern: praise strengths, note neutral areas calmly, clearly mention needs-improvement areas, end with fair buying guidance for farmers/retailers. Urdu must be natural Pakistani Urdu (not transliteration of English).
 
 Return ONLY valid JSON (no markdown) with this exact shape:
 {
