@@ -27,6 +27,11 @@ class BrandService
 
             return DB::transaction(function () use ($validated): Brand {
                 $brand = Brand::query()->create($validated);
+
+                if ($brand->status === 'inactive') {
+                    $this->deactivateProductsForBrand($brand);
+                }
+
                 CatalogCache::forgetOverviewStats();
 
                 return $brand;
@@ -48,10 +53,15 @@ class BrandService
                 }
 
                 return DB::transaction(function () use ($brand, $validated): Brand {
+                    $wasActive = $brand->status === 'active';
                     $brand->update($validated);
 
                     if ($brand->wasChanged(['name_en', 'name_ur'])) {
                         $this->refreshProductLabelsForBrand($brand);
+                    }
+
+                    if ($wasActive && $brand->status === 'inactive') {
+                        $this->deactivateProductsForBrand($brand);
                     }
 
                     CatalogCache::forgetOverviewStats();
@@ -131,6 +141,9 @@ class BrandService
                 Rule::unique('brands', 'slug')->ignore($exceptId),
             ],
             'status' => ['nullable', 'string', 'in:active,inactive'],
+            'inactive_reason_en' => ['nullable', 'string', 'max:2000'],
+            'inactive_reason_ur' => ['nullable', 'string', 'max:2000'],
+            'agricart_rating' => ['nullable', 'integer', 'min:1', 'max:10'],
             'name_en' => ['required', 'string', 'max:255'],
             'name_ur' => ['required', 'string', 'max:255'],
             'image_path' => [$exceptId ? 'nullable' : 'required', 'string', 'max:255'],
@@ -139,6 +152,13 @@ class BrandService
             'website_url' => ['nullable', 'url:http,https', 'max:255'],
             'ai_status' => ['nullable', 'string', 'in:none,pending,enriched,failed,manual'],
         ];
+
+        $status = (string) ($data['status'] ?? 'active');
+
+        if ($status === 'inactive') {
+            $rules['inactive_reason_en'] = ['required', 'string', 'max:2000'];
+            $rules['inactive_reason_ur'] = ['required', 'string', 'max:2000'];
+        }
 
         $validator = validator($data, $rules);
 
@@ -150,11 +170,28 @@ class BrandService
         $validated['status'] = $validated['status'] ?? 'active';
         $validated['ai_status'] = $validated['ai_status'] ?? 'none';
 
+        if ($validated['status'] === 'active') {
+            $validated['inactive_reason_en'] = null;
+            $validated['inactive_reason_ur'] = null;
+        }
+
+        if (array_key_exists('agricart_rating', $validated) && $validated['agricart_rating'] === '') {
+            $validated['agricart_rating'] = null;
+        }
+
         if ($exceptId && empty($validated['image_path'])) {
             unset($validated['image_path']);
         }
 
         return $validated;
+    }
+
+    private function deactivateProductsForBrand(Brand $brand): void
+    {
+        Product::query()
+            ->where('brand_id', $brand->id)
+            ->where('status', '!=', 'inactive')
+            ->update(['status' => 'inactive']);
     }
 
     private function slugExists(string $slug, ?int $exceptId): bool

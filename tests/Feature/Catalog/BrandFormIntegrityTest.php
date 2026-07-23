@@ -217,6 +217,72 @@ class BrandFormIntegrityTest extends TestCase
         ));
     }
 
+    public function test_inactive_brand_requires_bilingual_reason_and_deactivates_products(): void
+    {
+        Storage::fake('public');
+
+        $brand = $this->brand('cascade-brand', 'Cascade Brand');
+        $activeProduct = Product::query()->create([
+            'brand_id' => $brand->id,
+            'slug' => 'cascade-active-product',
+            'code' => 'PRD-CASCADE-A',
+            'status' => 'active',
+            'name_en' => 'Cascade Active',
+            'name_ur' => 'کیسکیڈ فعال',
+        ]);
+        $draftProduct = Product::query()->create([
+            'brand_id' => $brand->id,
+            'slug' => 'cascade-draft-product',
+            'code' => 'PRD-CASCADE-D',
+            'status' => 'draft',
+            'name_en' => 'Cascade Draft',
+            'name_ur' => 'کیسکیڈ ڈرافٹ',
+        ]);
+
+        Livewire::test(Form::class)
+            ->call('openForm', $brand->id, 'edit')
+            ->set('status', 'inactive')
+            ->call('saveAndClose')
+            ->assertSet('statusType', 'danger');
+
+        $this->assertSame('active', $brand->fresh()->status);
+        $this->assertSame('active', $activeProduct->fresh()->status);
+
+        Livewire::test(Form::class)
+            ->call('openForm', $brand->id, 'edit')
+            ->set('status', 'inactive')
+            ->set('inactive_reason_en', 'Supplier stopped delivery')
+            ->set('inactive_reason_ur', 'سپلائر نے سپلائی بند کر دی')
+            ->set('agricart_rating', '8')
+            ->call('saveAndClose')
+            ->assertSet('statusType', 'success');
+
+        $brand->refresh();
+        $this->assertSame('inactive', $brand->status);
+        $this->assertSame('Supplier stopped delivery', $brand->inactive_reason_en);
+        $this->assertSame('سپلائر نے سپلائی بند کر دی', $brand->inactive_reason_ur);
+        $this->assertSame(8, $brand->agricart_rating);
+        $this->assertSame('inactive', $activeProduct->fresh()->status);
+        $this->assertSame('inactive', $draftProduct->fresh()->status);
+    }
+
+    public function test_brand_can_save_without_agricart_rating(): void
+    {
+        Storage::fake('public');
+
+        Livewire::test(Form::class)
+            ->call('openForm')
+            ->set('name_en', 'Unrated Brand')
+            ->set('name_ur', 'بغیر ریٹنگ برانڈ')
+            ->set('imageUpload', UploadedFile::fake()->image('unrated.jpg'))
+            ->call('saveAndClose')
+            ->assertSet('statusType', 'success');
+
+        $brand = Brand::query()->where('name_en', 'Unrated Brand')->firstOrFail();
+        $this->assertNull($brand->agricart_rating);
+        $this->assertSame('active', $brand->status);
+    }
+
     public function test_ai_parser_ignores_non_string_brand_fields(): void
     {
         $parsed = app(BrandEnrichmentService::class)->parseResponse(json_encode([

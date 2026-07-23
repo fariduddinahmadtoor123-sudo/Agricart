@@ -333,6 +333,9 @@ class CatalogPortableArchiveService
                 'code' => $brand->code,
                 'slug' => $brand->slug,
                 'status' => $brand->status,
+                'inactive_reason_en' => $brand->inactive_reason_en,
+                'inactive_reason_ur' => $brand->inactive_reason_ur,
+                'agricart_rating' => $brand->agricart_rating,
                 'name_en' => $brand->name_en,
                 'name_ur' => $brand->name_ur,
                 'description_en' => $brand->description_en,
@@ -592,10 +595,16 @@ class CatalogPortableArchiveService
                 $media++;
             }
 
+            $rating = $row['agricart_rating'] ?? null;
+            $rating = is_numeric($rating) ? max(1, min(10, (int) $rating)) : null;
+
             $data = $this->masterPayload($row, [
                 'description_en' => $row['description_en'] ?? null,
                 'description_ur' => $row['description_ur'] ?? null,
                 'website_url' => $row['website_url'] ?? null,
+                'inactive_reason_en' => $row['inactive_reason_en'] ?? null,
+                'inactive_reason_ur' => $row['inactive_reason_ur'] ?? null,
+                'agricart_rating' => $rating,
                 'image_path' => $imagePath ?: 'brands/placeholder.webp',
             ]);
 

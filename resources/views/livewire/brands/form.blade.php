@@ -139,11 +139,24 @@
             <div class="agricart-form-panel__field">
                 <label class="agricart-form-panel__label">{{ __('agricart.brands.fields.status') }}</label>
                 <x-filament::input.wrapper>
-                    <select wire:model="status" class="fi-select-input" @disabled($this->isReadonly())>
+                    <select wire:model.live="status" class="fi-select-input" @disabled($this->isReadonly())>
                         <option value="active">{{ __('agricart.form_panel.statuses.active') }}</option>
                         <option value="inactive">{{ __('agricart.form_panel.statuses.inactive') }}</option>
                     </select>
                 </x-filament::input.wrapper>
+                <p class="agricart-form-panel__hint">{{ __('agricart.brands.hints.status') }}</p>
+            </div>
+            <div class="agricart-form-panel__field">
+                <label class="agricart-form-panel__label">{{ __('agricart.brands.fields.agricart_rating') }}</label>
+                <x-filament::input.wrapper>
+                    <select wire:model="agricart_rating" class="fi-select-input" @disabled($this->isReadonly())>
+                        <option value="">{{ __('agricart.brands.fields.agricart_rating_none') }}</option>
+                        @for ($score = 10; $score >= 1; $score--)
+                            <option value="{{ $score }}">{{ __('agricart.brands.fields.agricart_rating_value', ['score' => $score]) }}</option>
+                        @endfor
+                    </select>
+                </x-filament::input.wrapper>
+                <p class="agricart-form-panel__hint">{{ __('agricart.brands.hints.agricart_rating') }}</p>
             </div>
             <div class="agricart-form-panel__field">
                 <label class="agricart-form-panel__label">{{ __('agricart.brands.fields.ai_status') }}</label>
@@ -151,6 +164,35 @@
                     <input type="text" value="{{ __('agricart.categories.ai_status.' . ($ai_status ?: 'none')) }}" class="fi-input" readonly />
                 </x-filament::input.wrapper>
             </div>
+            @if ($status === 'inactive')
+                <div class="agricart-form-panel__field agricart-form-panel__field--full">
+                    <label class="agricart-form-panel__label">
+                        {{ __('agricart.brands.fields.inactive_reason_en') }}
+                        <span class="agricart-form-panel__required">*</span>
+                    </label>
+                    <textarea
+                        rows="3"
+                        wire:model="inactive_reason_en"
+                        class="agricart-brand-form__textarea"
+                        @disabled($this->isReadonly())
+                        placeholder="{{ __('agricart.brands.hints.inactive_reason_en') }}"
+                    ></textarea>
+                </div>
+                <div class="agricart-form-panel__field agricart-form-panel__field--full">
+                    <label class="agricart-form-panel__label">
+                        {{ __('agricart.brands.fields.inactive_reason_ur') }}
+                        <span class="agricart-form-panel__required">*</span>
+                    </label>
+                    <textarea
+                        rows="3"
+                        wire:model="inactive_reason_ur"
+                        dir="rtl"
+                        class="agricart-brand-form__textarea"
+                        @disabled($this->isReadonly())
+                        placeholder="{{ __('agricart.brands.hints.inactive_reason_ur') }}"
+                    ></textarea>
+                </div>
+            @endif
         </div>
     </section>
 </div>

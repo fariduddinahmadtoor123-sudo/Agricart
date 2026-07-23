@@ -14,6 +14,9 @@ class Brand extends Model
         'code',
         'slug',
         'status',
+        'inactive_reason_en',
+        'inactive_reason_ur',
+        'agricart_rating',
         'name_en',
         'name_ur',
         'image_path',
@@ -30,6 +33,7 @@ class Brand extends Model
     {
         return [
             'ai_status' => CategoryAiStatus::class,
+            'agricart_rating' => 'integer',
         ];
     }
 }
