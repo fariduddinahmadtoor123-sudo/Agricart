@@ -274,6 +274,11 @@
                     </div>
                 @endif
 
+                <x-communication.record-panels
+                    linkable-type="product_review"
+                    :linkable-id="$selectedReview->id"
+                />
+
                 @if ($canEdit)
                     <footer class="agricart-store-messages__panel-actions">
                         @if ($selectedReview->status !== \App\Models\ProductReview::STATUS_APPROVED)

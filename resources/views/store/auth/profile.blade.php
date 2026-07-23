@@ -10,6 +10,7 @@
                 <p class="ag-store-customer-auth__lead">{{ __('agricart.customer.auth.profile_lead') }}</p>
                 <p class="ag-store-account__nav">
                     <a href="{{ route('store.customer.orders') }}" class="ag-store-orders__link">{{ __('agricart.customer.auth.my_orders') }}</a>
+                    <a href="{{ route('store.customer.inbox') }}" class="ag-store-orders__link">{{ __('agricart.customer.auth.agricart_inbox') }}</a>
                 </p>
             </header>
 

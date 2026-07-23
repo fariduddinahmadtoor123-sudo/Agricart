@@ -624,4 +624,11 @@
     <div class="agricart-product-form__details">
         @include('livewire.products.partials.additional-sections')
     </div>
+
+    @if ($productId)
+        <x-communication.record-panels
+            linkable-type="product"
+            :linkable-id="$productId"
+        />
+    @endif
 </div>

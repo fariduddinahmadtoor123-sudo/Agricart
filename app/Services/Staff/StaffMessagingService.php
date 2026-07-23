@@ -7,6 +7,7 @@ use App\Models\StaffMessage;
 use App\Models\StaffMessageThread;
 use App\Models\StaffMessageThreadParticipant;
 use App\Models\User;
+use App\Services\Communication\StaffOpsBridge;
 use App\Services\Sales\OnlineOrderDispatchService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +17,7 @@ class StaffMessagingService
 {
     public function __construct(
         private readonly OnlineOrderDispatchService $dispatch,
+        private readonly StaffOpsBridge $staffOpsBridge,
     ) {}
 
     public function forwardOrderToStaff(
@@ -59,7 +61,7 @@ class StaffMessagingService
 
             $this->bumpUnreadCache();
 
-            return $thread->fresh(['messages.sender', 'participants.user', 'latestMessage']);
+            return $thread->fresh(['messages.sender', 'participants.user', 'latestMessage']) ?? $thread;
         });
     }
 
@@ -97,9 +99,12 @@ class StaffMessagingService
                 ->update(['last_read_at' => $now]);
         }
 
+        $thread->loadMissing(['participants.user']);
+        $this->staffOpsBridge->mirrorStaffMessage($thread, $message, $sender, $markSenderRead);
+
         $this->bumpUnreadCache();
 
-        return $message->fresh(['sender']);
+        return $message->fresh(['sender']) ?? $message;
     }
 
     public function markThreadRead(StaffMessageThread $thread, User $user): void
@@ -110,6 +115,8 @@ class StaffMessagingService
             ->where('thread_id', $thread->id)
             ->where('user_id', $user->id)
             ->update(['last_read_at' => now()]);
+
+        $this->staffOpsBridge->markReadFromLegacy($thread, $user);
 
         $this->bumpUnreadCache();
     }

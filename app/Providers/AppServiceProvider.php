@@ -63,6 +63,12 @@ class AppServiceProvider extends ServiceProvider
                 default => new LogSmsSender,
             };
         });
+
+        $this->app->singleton(\App\Services\Communication\ChannelRegistry::class);
+        $this->app->bind(\App\Contracts\Communication\NotifierPort::class, \App\Services\Communication\Ports\NullNotifier::class);
+        $this->app->bind(\App\Contracts\Communication\PresencePort::class, \App\Services\Communication\Ports\NullPresence::class);
+        $this->app->bind(\App\Contracts\Communication\AiAssistPort::class, \App\Services\Communication\Ports\NullAiAssist::class);
+        $this->app->bind(\App\Contracts\Communication\CallSessionPort::class, \App\Services\Communication\Ports\NullCallSession::class);
     }
 
     /**

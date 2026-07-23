@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\ReorderPrintController;
 use App\Http\Controllers\Admin\SalePrintController;
 use App\Http\Controllers\Admin\SaleQuotationPrintController;
 use App\Http\Controllers\Admin\SaleReturnPrintController;
+use App\Http\Controllers\Admin\CommunicationAttachmentController;
 use App\Http\Controllers\Admin\TopbarNotificationController;
 use App\Http\Controllers\Admin\UserDocumentController;
 use App\Http\Controllers\Admin\VisitorAnalyticsExportController;
@@ -27,6 +28,7 @@ use App\Http\Controllers\Store\CartController;
 use App\Http\Controllers\Store\CategoryController;
 use App\Http\Controllers\Store\CheckoutController;
 use App\Http\Controllers\Store\CustomerAuthController;
+use App\Http\Controllers\Store\CustomerInboxController;
 use App\Http\Controllers\Store\CustomerLogoutController;
 use App\Http\Controllers\Store\CustomerOrderController;
 use App\Http\Controllers\Store\CustomerOrderPaymentController;
@@ -94,6 +96,14 @@ Route::middleware([
         Route::post('/account/orders/{order}/payment-proof', [CustomerOrderPaymentController::class, 'store'])
             ->middleware('throttle:customer-payment-proof')
             ->name('store.customer.orders.payment-proof');
+        Route::get('/account/inbox', [CustomerInboxController::class, 'index'])->name('store.customer.inbox');
+        Route::post('/account/inbox', [CustomerInboxController::class, 'store'])
+            ->middleware('throttle:20,1')
+            ->name('store.customer.inbox.store');
+        Route::get('/account/inbox/{conversation}', [CustomerInboxController::class, 'show'])->name('store.customer.inbox.show');
+        Route::post('/account/inbox/{conversation}/reply', [CustomerInboxController::class, 'reply'])
+            ->middleware('throttle:30,1')
+            ->name('store.customer.inbox.reply');
         Route::get('/account/reviews/{slug}/create', [CustomerProductReviewController::class, 'create'])
             ->name('store.customer.reviews.create');
         Route::post('/account/reviews/{slug}', [CustomerProductReviewController::class, 'store'])
@@ -161,6 +171,8 @@ Route::middleware('web')->get('/ai/status', function () {
 Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
     Route::get('/notifications/summary', TopbarNotificationController::class)
         ->name('admin.notifications.summary');
+    Route::get('/communication/attachments/{attachment}', [CommunicationAttachmentController::class, 'show'])
+        ->name('admin.communication.attachments.show');
     Route::get('/users/{user}/documents/{side}', UserDocumentController::class)
         ->whereIn('side', ['front', 'back'])
         ->name('admin.users.documents.show');

@@ -12,7 +12,7 @@ class MessagesPage extends BaseModulePage
 {
     protected static ?string $cluster = StoreCluster::class;
 
-    protected static ?string $navigationLabel = 'Messages';
+    protected static ?string $navigationLabel = 'Agricart Inbox';
 
     protected static ?int $navigationSort = 9;
 

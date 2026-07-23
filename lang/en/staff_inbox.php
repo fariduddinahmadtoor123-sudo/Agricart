@@ -20,6 +20,9 @@ return [
         'print_packing' => 'Print / Download packing list',
         'invoice_preview' => 'Invoice',
         'activity' => 'Messages',
+        'no_messages' => 'No messages in this thread yet.',
+        'forward_tag' => 'Order forward',
+        'bridged_to_platform' => 'Synced to Communication Platform (#:id)',
         'order_label' => 'Order :order',
     ],
 

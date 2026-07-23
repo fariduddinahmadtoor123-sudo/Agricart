@@ -10,7 +10,10 @@
                     <h1 class="ag-store-customer-auth__title">{{ __('agricart.customer.orders.heading') }}</h1>
                     <p class="ag-store-customer-auth__lead">{{ __('agricart.customer.orders.lead') }}</p>
                 </div>
-                <a href="{{ route('store.customer.account') }}" class="ag-store-orders__head-link">{{ __('agricart.customer.auth.my_profile') }}</a>
+                <div class="ag-store-orders__head-links">
+                    <a href="{{ route('store.customer.inbox') }}" class="ag-store-orders__head-link">{{ __('agricart.customer.auth.agricart_inbox') }}</a>
+                    <a href="{{ route('store.customer.account') }}" class="ag-store-orders__head-link">{{ __('agricart.customer.auth.my_profile') }}</a>
+                </div>
             </header>
 
             @if ($orders->isEmpty())

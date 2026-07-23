@@ -180,6 +180,28 @@ class PermissionRegistry
             'label_ur' => 'میڈیا لائبریری مینج کریں',
         ];
 
+        $groups['comms'] = [
+            'label_en' => 'Communication',
+            'label_ur' => 'مواصلات',
+            'hint_en' => 'Generic Communication Platform access. Channel keys are configurable — add new channels without changing core code.',
+            'hint_ur' => 'عمومی مواصلاتی پلیٹ فارم۔ نئے چینلز کنفیگ/ڈیٹابیس سے شامل ہوں، کور کوڈ بدلے بغیر۔',
+            'permissions' => [
+                ['key' => 'comms.access', 'label_en' => 'Access Communication Platform', 'label_ur' => 'مواصلاتی پلیٹ فارم رسائی'],
+                ['key' => 'comms.channel.customer_support.access', 'label_en' => 'Customer Support channel', 'label_ur' => 'کسٹمر سپورٹ چینل'],
+                ['key' => 'comms.channel.staff_ops.access', 'label_en' => 'Staff Operations channel', 'label_ur' => 'اسٹاف آپریشنز چینل'],
+                ['key' => 'comms.channel.supplier.access', 'label_en' => 'Supplier channel', 'label_ur' => 'سپلائر چینل'],
+                ['key' => 'comms.channel.brand.access', 'label_en' => 'Brand channel', 'label_ur' => 'برانڈ چینل'],
+                ['key' => 'comms.channel.internal_notes.access', 'label_en' => 'Internal Notes channel', 'label_ur' => 'اندرونی نوٹس چینل'],
+                ['key' => 'comms.channel.system.access', 'label_en' => 'System Notifications channel', 'label_ur' => 'سسٹم نوٹیفکیشن چینل'],
+                ['key' => 'comms.channel.task.access', 'label_en' => 'Task Communication channel', 'label_ur' => 'ٹاسک مواصلات چینل'],
+                ['key' => 'comms.conversation.manage', 'label_en' => 'Manage conversations', 'label_ur' => 'گفتگو کا انتظام'],
+                ['key' => 'comms.message.post', 'label_en' => 'Post messages', 'label_ur' => 'پیغامات بھیجیں'],
+                ['key' => 'comms.attachment.upload', 'label_en' => 'Upload attachments', 'label_ur' => 'اٹیچمنٹس اپلوڈ'],
+                ['key' => 'comms.link.manage', 'label_en' => 'Manage record links', 'label_ur' => 'ریکارڈ لنکس کا انتظام'],
+                ['key' => 'comms.task.manage', 'label_en' => 'Manage communication tasks', 'label_ur' => 'مواصلاتی ٹاسکس کا انتظام'],
+            ],
+        ];
+
         return $groups;
     }
 

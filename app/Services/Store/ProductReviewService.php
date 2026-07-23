@@ -294,7 +294,10 @@ class ProductReviewService
             'moderated_at' => now(),
         ]);
 
-        return $review->fresh();
+        $fresh = $review->fresh(['product', 'customer']);
+        app(AgricartInboxService::class)->notifyReviewStatus($fresh, $status);
+
+        return $fresh;
     }
 
     public function setAdminReply(ProductReview $review, ?string $reply, User $moderator): ProductReview

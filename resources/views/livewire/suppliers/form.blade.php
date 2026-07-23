@@ -416,4 +416,12 @@
             </div>
         </div>
     </div>
+
+    @if ($supplierId)
+        <x-communication.record-panels
+            linkable-type="supplier"
+            :linkable-id="$supplierId"
+            thread-profile="supplier"
+        />
+    @endif
 </div>

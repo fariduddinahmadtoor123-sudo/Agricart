@@ -21,6 +21,13 @@
         <a href="{{ route('store.customer.orders') }}" class="ag-store-header__user-link">
             {{ __('agricart.customer.auth.my_orders') }}
         </a>
+        <a href="{{ route('store.customer.inbox') }}" class="ag-store-header__user-link">
+            {{ __('agricart.customer.auth.agricart_inbox') }}
+            @php($inboxUnread = app(\App\Services\Store\AgricartInboxService::class)->unreadCountForCustomer($customer))
+            @if ($inboxUnread > 0)
+                <span class="ag-store-header__user-badge">{{ $inboxUnread > 99 ? '99+' : $inboxUnread }}</span>
+            @endif
+        </a>
         <a href="{{ route('store.customer.account') }}" class="ag-store-header__user-link">
             {{ __('agricart.customer.auth.my_profile') }}
         </a>

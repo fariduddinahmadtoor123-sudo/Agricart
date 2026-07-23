@@ -394,4 +394,12 @@
             @endif
         </div>
     </section>
+
+    @if ($brandId)
+        <x-communication.record-panels
+            linkable-type="brand"
+            :linkable-id="$brandId"
+            thread-profile="brand"
+        />
+    @endif
 </div>

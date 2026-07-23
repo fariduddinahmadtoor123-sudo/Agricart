@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
         $this->call(DeliveryMethodSeeder::class);
         $this->call(AttributeSeeder::class);
         $this->call(RolesAndPermissionsSeeder::class);
+        $this->call(CommunicationChannelSeeder::class);
         $this->call(QuantityControlSeeder::class);
     }
 }

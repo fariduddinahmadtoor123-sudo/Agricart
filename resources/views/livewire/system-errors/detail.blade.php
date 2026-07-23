@@ -1,13 +1,54 @@
 <div
     class="agricart-system-error-detail"
-    x-data="{ copied: false }"
+    x-data="{
+        copied: false,
+        async copyReport() {
+            const text = (this.$refs.reportText?.textContent || '').trim();
+            if (! text) {
+                return;
+            }
+
+            const markCopied = () => {
+                this.copied = true;
+                window.setTimeout(() => { this.copied = false }, 1800);
+            };
+
+            try {
+                if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+                    await navigator.clipboard.writeText(text);
+                    markCopied();
+                    return;
+                }
+            } catch (e) {
+                // Fall through to execCommand fallback (common on http:// hosts).
+            }
+
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.setAttribute('readonly', '');
+            textarea.style.position = 'fixed';
+            textarea.style.top = '0';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+
+            try {
+                if (document.execCommand('copy')) {
+                    markCopied();
+                }
+            } finally {
+                document.body.removeChild(textarea);
+            }
+        }
+    }"
 >
     @if ($error)
         <div class="agricart-system-error-detail__actions">
             <button
                 type="button"
                 class="agricart-system-error-detail__copy"
-                x-on:click="navigator.clipboard.writeText(@js($report)).then(() => { copied = true; window.setTimeout(() => copied = false, 1800) })"
+                x-on:click="copyReport()"
             >
                 <span x-show="! copied">{{ __('agricart.system_errors.actions.copy_report') }}</span>
                 <span x-show="copied" x-cloak>{{ __('agricart.system_errors.actions.copied') }}</span>
@@ -23,6 +64,8 @@
                 </button>
             @endif
         </div>
+
+        <pre class="agricart-system-error-detail__report-source" hidden x-ref="reportText">{{ $report }}</pre>
 
         <div class="agricart-system-error-detail__meta">
             <div><span>{{ __('agricart.system_errors.detail.reference') }}</span><code>{{ $error->reference }}</code></div>
@@ -72,12 +115,14 @@
             <button
                 type="button"
                 class="agricart-system-error-detail__copy"
-                x-on:click="navigator.clipboard.writeText(@js($report)).then(() => { copied = true; window.setTimeout(() => copied = false, 1800) })"
+                x-on:click="copyReport()"
             >
                 <span x-show="! copied">{{ __('agricart.system_errors.actions.copy_report') }}</span>
                 <span x-show="copied" x-cloak>{{ __('agricart.system_errors.actions.copied') }}</span>
             </button>
         </div>
+
+        <pre class="agricart-system-error-detail__report-source" hidden x-ref="reportText">{{ $report }}</pre>
 
         <div class="agricart-system-error-detail__meta">
             <div><span>{{ __('agricart.system_errors.columns.file') }}</span><strong>{{ $fileEntry['file'] }}</strong></div>

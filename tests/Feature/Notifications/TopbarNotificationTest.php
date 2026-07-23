@@ -3,6 +3,8 @@
 namespace Tests\Feature\Notifications;
 
 use App\Filament\Clusters\Approvals\StaffPage;
+use App\Models\AgricartConversation;
+use App\Models\AgricartMessage;
 use App\Models\Category;
 use App\Models\Customer;
 use App\Models\OnlineSaleOrder;
@@ -10,7 +12,6 @@ use App\Models\Permission;
 use App\Models\Product;
 use App\Models\ProductReview;
 use App\Models\Role;
-use App\Models\StoreInquiry;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -25,17 +26,28 @@ class TopbarNotificationTest extends TestCase
         $this->actingAs($this->superAdmin());
 
         User::factory()->count(2)->create(['status' => User::STATUS_PENDING]);
-        StoreInquiry::query()->create([
-            'name' => 'Customer',
-            'phone' => '03001234567',
-            'message' => 'Please contact me.',
-            'status' => StoreInquiry::STATUS_NEW,
+        $conversation = AgricartConversation::query()->create([
+            'subject' => 'Contact message',
+            'topic' => AgricartConversation::TOPIC_CONTACT,
+            'status' => AgricartConversation::STATUS_OPEN,
+            'guest_name' => 'Customer',
+            'guest_phone' => '03001234567',
+            'last_message_at' => now(),
         ]);
-        StoreInquiry::query()->create([
-            'name' => 'Read Customer',
-            'phone' => '03007654321',
-            'message' => 'Already reviewed.',
-            'status' => StoreInquiry::STATUS_READ,
+        AgricartMessage::query()->create([
+            'agricart_conversation_id' => $conversation->id,
+            'sender_type' => AgricartMessage::SENDER_CUSTOMER,
+            'body' => 'Please contact me.',
+            'is_system' => false,
+        ]);
+        AgricartConversation::query()->create([
+            'subject' => 'Already read contact',
+            'topic' => AgricartConversation::TOPIC_CONTACT,
+            'status' => AgricartConversation::STATUS_OPEN,
+            'guest_name' => 'Read Customer',
+            'guest_phone' => '03007654321',
+            'last_message_at' => now()->subHour(),
+            'admin_last_read_at' => now(),
         ]);
         OnlineSaleOrder::query()->create([
             'order_number' => 'WEB-00001',
@@ -118,11 +130,13 @@ class TopbarNotificationTest extends TestCase
         $this->actingAs($viewer);
 
         User::factory()->create(['status' => User::STATUS_PENDING]);
-        StoreInquiry::query()->create([
-            'name' => 'Customer',
-            'phone' => '03001234567',
-            'message' => 'Hidden without Store access.',
-            'status' => StoreInquiry::STATUS_NEW,
+        AgricartConversation::query()->create([
+            'subject' => 'Hidden without Store access',
+            'topic' => AgricartConversation::TOPIC_CONTACT,
+            'status' => AgricartConversation::STATUS_OPEN,
+            'guest_name' => 'Customer',
+            'guest_phone' => '03001234567',
+            'last_message_at' => now(),
         ]);
 
         $notificationResponse = $this->getJson(route('admin.notifications.summary'));

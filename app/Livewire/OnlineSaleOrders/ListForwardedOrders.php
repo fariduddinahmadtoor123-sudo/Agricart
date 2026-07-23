@@ -4,8 +4,10 @@ namespace App\Livewire\OnlineSaleOrders;
 
 use App\Models\OnlineSaleOrderStaffAssignment;
 use App\Models\User;
+use App\Services\Sales\OnlineOrderDispatchService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -113,6 +115,42 @@ class ListForwardedOrders extends Component
             || filled($this->toUserFilter);
     }
 
+    public function markReleased(int $assignmentId): void
+    {
+        if (! $this->userCan('edit')) {
+            session()->flash('forwarded_orders_status', __('forwarded_orders.messages.release_denied'));
+
+            return;
+        }
+
+        $assignment = OnlineSaleOrderStaffAssignment::query()
+            ->whereKey($assignmentId)
+            ->whereNotNull('sent_at')
+            ->first();
+
+        if ($assignment === null) {
+            session()->flash('forwarded_orders_status', __('forwarded_orders.messages.release_failed'));
+
+            return;
+        }
+
+        if ($assignment->released_at !== null) {
+            return;
+        }
+
+        try {
+            app(OnlineOrderDispatchService::class)->markStaffReleased($assignment);
+        } catch (ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first();
+            session()->flash('forwarded_orders_status', is_string($message) ? $message : __('forwarded_orders.messages.release_failed'));
+
+            return;
+        }
+
+        session()->flash('forwarded_orders_status', __('forwarded_orders.messages.released'));
+        $this->dispatch('forwarded-orders-saved');
+    }
+
     public function render(): View
     {
         $rows = $this->historyQuery()
@@ -124,7 +162,23 @@ class ListForwardedOrders extends Component
             'rows' => $rows,
             'activeFilters' => $this->activeFilters(),
             'hasListConstraints' => $this->hasListConstraints(),
+            'canRelease' => $this->userCan('edit'),
         ]);
+    }
+
+    private function userCan(string $action): bool
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        return $user->hasPermission('sales.'.$action);
     }
 
     /**

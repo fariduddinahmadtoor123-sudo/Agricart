@@ -362,7 +362,10 @@ class OnlineSaleOrderService
             app(OnlineOrderDispatchService::class)->enterDispatchQueueIfPaid($order->fresh());
             app(BankAccountService::class)->recordOnlineOrderReceiptIfApplicable($order->fresh());
 
-            return $order->fresh(['items', 'customer', 'paymentProofReviewedBy']);
+            $fresh = $order->fresh(['items', 'customer', 'paymentProofReviewedBy']);
+            app(\App\Services\Store\AgricartInboxService::class)->notifyPaymentProofVerified($fresh);
+
+            return $fresh;
         });
     }
 
@@ -380,7 +383,10 @@ class OnlineSaleOrderService
         $order->payment_proof_reviewed_by_id = $reviewer->id;
         $order->save();
 
-        return $order->fresh(['paymentProofReviewedBy']);
+        $fresh = $order->fresh(['paymentProofReviewedBy', 'customer']);
+        app(\App\Services\Store\AgricartInboxService::class)->notifyPaymentProofRejected($fresh);
+
+        return $fresh;
     }
 
     /**
@@ -406,6 +412,8 @@ class OnlineSaleOrderService
             'supplier_ids' => ['nullable', 'array'],
             'supplier_ids.*' => ['integer', 'exists:suppliers,id'],
         ])->validate();
+
+        $previousFulfillment = (string) ($order->fulfillment_status ?? '');
 
         $order->fill([
             'fulfillment_status' => $validated['fulfillment_status'] ?? $order->fulfillment_status,
@@ -444,7 +452,10 @@ class OnlineSaleOrderService
             );
         }
 
-        return $order->fresh(['items', 'customer', 'sale', 'supplierAssignments.supplier', 'assignedUser']);
+        $order = $order->fresh(['items', 'customer', 'sale', 'supplierAssignments.supplier', 'assignedUser']);
+        $this->notifyInboxIfDelivered($order, $previousFulfillment);
+
+        return $order;
     }
 
     public function updateAdmin(OnlineSaleOrder $order, array $payload): OnlineSaleOrder
@@ -498,6 +509,8 @@ class OnlineSaleOrderService
             $orderStatus = OnlineSaleOrder::STATUS_PAYMENT_RECEIVED;
         }
 
+        $previousFulfillment = (string) ($order->fulfillment_status ?? '');
+
         $order->fill([
             'order_status' => $orderStatus,
             'fulfillment_status' => $validated['fulfillment_status'] ?? $order->fulfillment_status,
@@ -543,6 +556,7 @@ class OnlineSaleOrderService
         $order = $order->fresh(['items', 'customer', 'sale', 'supplierAssignments.supplier', 'assignedUser']);
 
         app(BankAccountService::class)->recordOnlineOrderReceiptIfApplicable($order);
+        $this->notifyInboxIfDelivered($order, $previousFulfillment);
 
         return $order;
     }
@@ -770,5 +784,18 @@ class OnlineSaleOrderService
         }
 
         return $sum;
+    }
+
+    private function notifyInboxIfDelivered(OnlineSaleOrder $order, string $previousFulfillment): void
+    {
+        if ($order->fulfillment_status !== OnlineSaleOrder::FULFILLMENT_DELIVERED) {
+            return;
+        }
+
+        if ($previousFulfillment === OnlineSaleOrder::FULFILLMENT_DELIVERED) {
+            return;
+        }
+
+        app(\App\Services\Store\AgricartInboxService::class)->notifyOrderDelivered($order);
     }
 }

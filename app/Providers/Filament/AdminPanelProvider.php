@@ -79,6 +79,10 @@ class AdminPanelProvider extends PanelProvider
                 fn (): View => view('filament.components.form-panel.index'),
             )
             ->renderHook(
+                PanelsRenderHook::BODY_END,
+                fn (): View => view('filament.components.staff-messenger.float'),
+            )
+            ->renderHook(
                 PanelsRenderHook::SCRIPTS_AFTER,
                 fn (): View => view('filament.components.agricart-scripts'),
             )

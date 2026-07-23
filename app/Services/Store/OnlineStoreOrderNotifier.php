@@ -9,6 +9,10 @@ use App\Notifications\Store\OnlineOrderShippedNotification;
 
 class OnlineStoreOrderNotifier
 {
+    public function __construct(
+        private readonly AgricartInboxService $inbox,
+    ) {}
+
     public function orderPlaced(OnlineSaleOrder $order): void
     {
         $order->loadMissing('customer');
@@ -18,6 +22,8 @@ class OnlineStoreOrderNotifier
         if (! $customer instanceof Customer) {
             return;
         }
+
+        $this->inbox->notifyOrderPlaced($order);
 
         $customer->notify(new OnlineOrderPlacedNotification($order));
     }
@@ -31,6 +37,8 @@ class OnlineStoreOrderNotifier
         if (! $customer instanceof Customer) {
             return;
         }
+
+        $this->inbox->notifyOrderShipped($order);
 
         $customer->notify(new OnlineOrderShippedNotification($order));
     }

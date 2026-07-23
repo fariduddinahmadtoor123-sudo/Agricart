@@ -208,6 +208,28 @@ class SalesPageToolbar extends ClusterPageToolbar
                 'filters' => [],
                 'columns' => [],
             ],
+            'tasks' => [
+                ...$config,
+                'livewirePrefix' => 'task-inbox',
+                'interactive' => true,
+                'formKey' => null,
+                'addLabel' => null,
+                'compactAddButton' => false,
+                'hideColumns' => true,
+                'searchPlaceholder' => __('communication.tasks.search'),
+                'filterGroups' => [
+                    [
+                        'label' => __('communication.tasks.filters.label'),
+                        'filters' => [
+                            ['label' => __('communication.tasks.filters.open'), 'value' => 'status:open'],
+                            ['label' => __('communication.tasks.filters.done'), 'value' => 'status:done'],
+                            ['label' => __('communication.tasks.filters.all'), 'value' => 'status:all'],
+                        ],
+                    ],
+                ],
+                'filters' => [],
+                'columns' => [],
+            ],
             default => $config,
         };
     }

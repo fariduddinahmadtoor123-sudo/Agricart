@@ -7,10 +7,21 @@ return [
         'no_results' => 'تلاش یا فلٹر کے مطابق کوئی فارورڈ نہیں۔',
         'search' => 'آرڈر، انوائس، یا اسٹاف تلاش…',
         'clear_filters' => 'فلٹر صاف کریں',
+        'release_hint' => 'پیکنگ کے بعد Mark released دبائیں — آرڈر Logistics Pending میں چلا جائے گا۔',
         'col_order' => 'آرڈر نمبر',
         'col_invoice' => 'انوائس نمبر',
         'col_from' => 'فارورڈ کیا',
         'col_to' => 'فارورڈ کیا گیا',
+        'col_status' => 'حالت',
+        'col_actions' => 'اقدامات',
+        'status_open' => 'زیرِ انتظار',
+        'status_released' => 'ریلیز',
+    ],
+
+    'actions' => [
+        'mark_released' => 'ریلیز کریں',
+        'open_packing' => 'پیکنگ کھولیں',
+        'release_confirm' => 'اس فارورڈ کو ریلیز کر کے Logistics Pending میں بھیجیں؟',
     ],
 
     'filters' => [

@@ -25,4 +25,54 @@ class DashboardPageToolbar extends ClusterPageToolbar
     {
         return 'dashboard';
     }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public static function config(): ?array
+    {
+        $config = parent::config();
+
+        if ($config === null) {
+            return null;
+        }
+
+        return match ($config['resourceSlug']) {
+            'overview' => [
+                ...$config,
+                'livewirePrefix' => 'dashboard-overview',
+                'interactive' => false,
+            ],
+            'summary' => [
+                ...$config,
+                'livewirePrefix' => 'dashboard-summary',
+                'interactive' => false,
+            ],
+            'notes' => [
+                ...$config,
+                'livewirePrefix' => 'staff-notes',
+                'interactive' => true,
+                'formKey' => null,
+                'addLabel' => null,
+                'compactAddButton' => false,
+                'hideColumns' => true,
+                'searchPlaceholder' => __('staff_notes.list.search'),
+                'filterGroups' => [
+                    [
+                        'label' => __('staff_notes.filters.label'),
+                        'filters' => [
+                            ['label' => __('staff_notes.filters.open'), 'value' => 'status:open'],
+                            ['label' => __('staff_notes.filters.mine'), 'value' => 'status:mine'],
+                            ['label' => __('staff_notes.filters.created'), 'value' => 'status:created'],
+                            ['label' => __('staff_notes.filters.done'), 'value' => 'status:done'],
+                            ['label' => __('staff_notes.filters.all'), 'value' => 'status:all'],
+                        ],
+                    ],
+                ],
+                'filters' => [],
+                'columns' => [],
+            ],
+            default => $config,
+        };
+    }
 }

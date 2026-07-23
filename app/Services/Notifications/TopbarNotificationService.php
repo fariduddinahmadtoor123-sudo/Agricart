@@ -10,10 +10,10 @@ use App\Filament\Clusters\Store\MessagesPage;
 use App\Filament\Clusters\Store\ReviewsPage;
 use App\Models\OnlineSaleOrder;
 use App\Models\ProductReview;
-use App\Models\StoreInquiry;
 use App\Models\SystemError;
 use App\Models\User;
 use App\Services\Staff\StaffMessagingService;
+use App\Services\Store\AgricartInboxService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 
@@ -37,7 +37,7 @@ class TopbarNotificationService
             ),
             $this->item(
                 key: 'customer_messages',
-                count: StoreInquiry::query()->where('status', StoreInquiry::STATUS_NEW)->count(),
+                count: $this->unreadAgricartInbox(),
                 pageClass: MessagesPage::class,
             ),
             $this->item(
@@ -91,6 +91,21 @@ class TopbarNotificationService
         return ProductReview::query()
             ->where('status', ProductReview::STATUS_PENDING)
             ->count();
+    }
+
+    private function unreadAgricartInbox(): int
+    {
+        if (! Schema::hasTable('agricart_conversations')) {
+            if (! Schema::hasTable('store_inquiries')) {
+                return 0;
+            }
+
+            return \App\Models\StoreInquiry::query()
+                ->where('status', \App\Models\StoreInquiry::STATUS_NEW)
+                ->count();
+        }
+
+        return app(AgricartInboxService::class)->unreadCountForAdmin();
     }
 
     private function unreadCriticalSystemErrors(): int
