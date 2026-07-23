@@ -22,6 +22,7 @@ class StorefrontWhatsAppRemovedTest extends TestCase
             ->assertOk()
             ->assertSee('data-store-message-open', false)
             ->assertSee('ag-store-message-float', false)
+            ->assertSee(__('agricart.storefront.contact.fab_label'), false)
             ->assertDontSee('ag-store-whatsapp-float', false)
             ->assertDontSee('https://wa.me/', false)
             ->assertDontSee('api.whatsapp.com', false);

@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\SalePrintController;
 use App\Http\Controllers\Admin\SaleQuotationPrintController;
 use App\Http\Controllers\Admin\SaleReturnPrintController;
 use App\Http\Controllers\Admin\CommunicationAttachmentController;
+use App\Http\Controllers\Admin\StaffMessengerController;
 use App\Http\Controllers\Admin\TopbarNotificationController;
 use App\Http\Controllers\Admin\UserDocumentController;
 use App\Http\Controllers\Admin\VisitorAnalyticsExportController;
@@ -171,6 +172,12 @@ Route::middleware('web')->get('/ai/status', function () {
 Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
     Route::get('/notifications/summary', TopbarNotificationController::class)
         ->name('admin.notifications.summary');
+    Route::get('/messenger/staff', [StaffMessengerController::class, 'staff'])
+        ->name('admin.messenger.staff');
+    Route::get('/messenger/peers/{peer}/messages', [StaffMessengerController::class, 'messages'])
+        ->name('admin.messenger.messages');
+    Route::post('/messenger/send', [StaffMessengerController::class, 'send'])
+        ->name('admin.messenger.send');
     Route::get('/communication/attachments/{attachment}', [CommunicationAttachmentController::class, 'show'])
         ->name('admin.communication.attachments.show');
     Route::get('/users/{user}/documents/{side}', UserDocumentController::class)

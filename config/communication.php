@@ -140,8 +140,7 @@ return [
             'allows_tasks' => true,
             'visibility' => 'participants',
             'settings' => [
-                'permission' => 'comms.channel.staff_ops.access',
-                'fallback_permissions' => ['sales.view', 'staff.view'],
+                // Private Messenger / staff DMs: every active admin user (no comms.* permission).
                 'allow_any_admin' => true,
             ],
             'sort_order' => 20,

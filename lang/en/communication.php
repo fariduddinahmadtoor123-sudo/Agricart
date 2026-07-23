@@ -112,6 +112,8 @@ return [
         'offline' => 'Offline',
         'start' => 'Message',
         'idle_hint' => 'Type a name above to choose who you want to message. The chat box opens here.',
+        'staff_available' => ':count active staff available to message.',
+        'matches' => ':count match(es)',
         'empty_people' => 'No active staff match that search.',
         'empty_thread' => 'Say hello — send the first message.',
         'dm_subject' => ':a ↔ :b',

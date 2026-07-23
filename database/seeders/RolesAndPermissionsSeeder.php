@@ -11,21 +11,7 @@ class RolesAndPermissionsSeeder extends Seeder
 {
     public function run(): void
     {
-        $permissionIds = [];
-
-        foreach (PermissionRegistry::flatPermissions() as $definition) {
-            $permission = Permission::query()->updateOrCreate(
-                ['key' => $definition['key']],
-                [
-                    'group_key' => $definition['group_key'],
-                    'label_en' => $definition['label_en'],
-                    'label_ur' => $definition['label_ur'],
-                    'sort_order' => $definition['sort_order'],
-                ],
-            );
-
-            $permissionIds[] = $permission->id;
-        }
+        $permissionIds = PermissionRegistry::syncToDatabase();
 
         $superAdmin = Role::query()->updateOrCreate(
             ['slug' => 'super-admin'],

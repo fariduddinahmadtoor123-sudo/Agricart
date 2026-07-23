@@ -106,8 +106,16 @@ class RoleService
      */
     private function syncPermissions(Role $role, array $permissionKeys): void
     {
+        // Registry may gain new keys (e.g. Communication) before a seeder is re-run.
+        PermissionRegistry::syncToDatabase();
+
+        $keys = array_values(array_unique(array_filter(
+            $permissionKeys,
+            fn (mixed $key): bool => is_string($key) && $key !== '',
+        )));
+
         $permissionIds = Permission::query()
-            ->whereIn('key', array_values(array_unique($permissionKeys)))
+            ->whereIn('key', $keys)
             ->pluck('id')
             ->all();
 

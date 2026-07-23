@@ -183,12 +183,11 @@ class PermissionRegistry
         $groups['comms'] = [
             'label_en' => 'Communication',
             'label_ur' => 'مواصلات',
-            'hint_en' => 'Generic Communication Platform access. Channel keys are configurable — add new channels without changing core code.',
-            'hint_ur' => 'عمومی مواصلاتی پلیٹ فارم۔ نئے چینلز کنفیگ/ڈیٹابیس سے شامل ہوں، کور کوڈ بدلے بغیر۔',
+            'hint_en' => 'Optional channels (support, notes, tasks). Private Messenger between staff is always on for every active admin — it is not controlled by these toggles.',
+            'hint_ur' => 'اختیاری چینلز (سپورٹ، نوٹس، ٹاسکس)۔ اسٹاف پرائیویٹ میسنجر ہر ایکٹو ایڈمن کے لیے ہمیشہ کھلا ہے — ان پرمیشنز سے نہیں بند ہوتا۔',
             'permissions' => [
                 ['key' => 'comms.access', 'label_en' => 'Access Communication Platform', 'label_ur' => 'مواصلاتی پلیٹ فارم رسائی'],
                 ['key' => 'comms.channel.customer_support.access', 'label_en' => 'Customer Support channel', 'label_ur' => 'کسٹمر سپورٹ چینل'],
-                ['key' => 'comms.channel.staff_ops.access', 'label_en' => 'Staff Operations channel', 'label_ur' => 'اسٹاف آپریشنز چینل'],
                 ['key' => 'comms.channel.supplier.access', 'label_en' => 'Supplier channel', 'label_ur' => 'سپلائر چینل'],
                 ['key' => 'comms.channel.brand.access', 'label_en' => 'Brand channel', 'label_ur' => 'برانڈ چینل'],
                 ['key' => 'comms.channel.internal_notes.access', 'label_en' => 'Internal Notes channel', 'label_ur' => 'اندرونی نوٹس چینل'],
@@ -226,5 +225,31 @@ class PermissionRegistry
         }
 
         return $flat;
+    }
+
+    /**
+     * Ensure every registry permission exists in the database (safe to call often).
+     *
+     * @return list<int> Permission IDs
+     */
+    public static function syncToDatabase(): array
+    {
+        $ids = [];
+
+        foreach (self::flatPermissions() as $definition) {
+            $permission = \App\Models\Permission::query()->updateOrCreate(
+                ['key' => $definition['key']],
+                [
+                    'group_key' => $definition['group_key'],
+                    'label_en' => $definition['label_en'],
+                    'label_ur' => $definition['label_ur'],
+                    'sort_order' => $definition['sort_order'],
+                ],
+            );
+
+            $ids[] = (int) $permission->id;
+        }
+
+        return $ids;
     }
 }

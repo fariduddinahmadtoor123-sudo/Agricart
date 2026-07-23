@@ -130,6 +130,47 @@ class DirectStaffMessengerService
     }
 
     /**
+     * Lightweight staff picker rows (no DM lookups) for messenger search.
+     *
+     * @return list<array{id: int, name: string, email: string, online: bool}>
+     */
+    public function searchableStaff(User $user, ?string $query = null, int $limit = 20): array
+    {
+        $onlineIds = $this->onlineUserIds();
+        $needle = trim((string) $query);
+
+        $staffQuery = User::query()
+            ->where('status', User::STATUS_ACTIVE)
+            ->whereNotNull('role_id')
+            ->whereKeyNot($user->id)
+            ->with('role')
+            ->orderBy('name')
+            ->limit(100);
+
+        if ($needle !== '') {
+            $like = '%'.addcslashes($needle, '%_\\').'%';
+            $staffQuery->where(function ($builder) use ($like): void {
+                $builder->where('name', 'like', $like)
+                    ->orWhere('email', 'like', $like);
+            });
+        }
+
+        return $staffQuery
+            ->get(['id', 'name', 'email', 'role_id', 'status'])
+            ->filter(fn (User $peer): bool => $peer->canUseAdmin())
+            ->unique('id')
+            ->take($limit)
+            ->map(fn (User $peer): array => [
+                'id' => (int) $peer->id,
+                'name' => (string) $peer->name,
+                'email' => (string) $peer->email,
+                'online' => $onlineIds->contains($peer->id),
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
      * @return Collection<int, array{user: User, online: bool, unread: int, last_body: ?string, last_at: ?string}>
      */
     public function directory(User $user): Collection
@@ -150,35 +191,35 @@ class DirectStaffMessengerService
             ->filter(fn (User $peer): bool => $peer->status === User::STATUS_ACTIVE && $peer->canUseAdmin())
             ->unique('id')
             ->map(function (User $peer) use ($user, $onlineIds): array {
-            $pair = $this->pairKey($user->id, $peer->id);
-            $conversation = $this->findDm($pair);
-            $unread = 0;
-            $lastBody = null;
-            $lastAt = null;
+                $pair = $this->pairKey($user->id, $peer->id);
+                $conversation = $this->findDm($pair);
+                $unread = 0;
+                $lastBody = null;
+                $lastAt = null;
 
-            if ($conversation !== null) {
-                $unread = $this->reads->isUnreadFor($conversation, ActorRef::user($user->id)) ? 1 : 0;
-                $last = Message::query()
-                    ->where('conversation_id', $conversation->id)
-                    ->whereNull('deleted_at')
-                    ->latest('id')
-                    ->first();
-                $lastBody = $last?->body;
-                $lastAt = $last?->created_at?->toIso8601String();
-            }
+                if ($conversation !== null) {
+                    $unread = $this->reads->isUnreadFor($conversation, ActorRef::user($user->id)) ? 1 : 0;
+                    $last = Message::query()
+                        ->where('conversation_id', $conversation->id)
+                        ->whereNull('deleted_at')
+                        ->latest('id')
+                        ->first();
+                    $lastBody = $last?->body;
+                    $lastAt = $last?->created_at?->toIso8601String();
+                }
 
-            return [
-                'user' => $peer,
-                'online' => $onlineIds->contains($peer->id),
-                'unread' => $unread,
-                'last_body' => $lastBody,
-                'last_at' => $lastAt,
-            ];
-        })->sortBy([
-            fn (array $row): int => $row['unread'] > 0 ? 0 : 1,
-            fn (array $row): int => $row['online'] ? 0 : 1,
-            fn (array $row): string => mb_strtolower((string) $row['user']->name),
-        ])->values();
+                return [
+                    'user' => $peer,
+                    'online' => $onlineIds->contains($peer->id),
+                    'unread' => $unread,
+                    'last_body' => $lastBody,
+                    'last_at' => $lastAt,
+                ];
+            })->sortBy([
+                fn (array $row): int => $row['unread'] > 0 ? 0 : 1,
+                fn (array $row): int => $row['online'] ? 0 : 1,
+                fn (array $row): string => mb_strtolower((string) $row['user']->name),
+            ])->values();
     }
 
     public function totalUnread(User $user): int

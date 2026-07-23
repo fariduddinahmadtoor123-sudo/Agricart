@@ -30,7 +30,11 @@ class CommunicationAuthorizer
                 return;
             }
 
-            if (($channel->settings['allow_any_admin'] ?? false) === true && $user->canUseAdmin()) {
+            // Staff messenger / staff_ops DMs: equal access for every active admin — no role toggles.
+            if ($user->canUseAdmin() && (
+                $channel->key === DirectStaffMessengerService::CHANNEL_KEY
+                || ($channel->settings['allow_any_admin'] ?? false) === true
+            )) {
                 return;
             }
 

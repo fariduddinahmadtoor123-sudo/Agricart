@@ -7,6 +7,7 @@
         data-store-message-open
     >
         @include('store.components.icons.chat')
+        <span class="ag-store-message-float__label">{{ __('agricart.storefront.contact.fab_label') }}</span>
     </button>
 </div>
 
@@ -16,7 +17,8 @@
     @if ($errors->storeMessage->any() || session('store_message_sent')) data-open="true" @endif
 >
     <div class="ag-store-message-dialog__header">
-        <div>
+        <div class="ag-store-message-dialog__brand">
+            <strong class="ag-store-message-dialog__eyebrow">{{ __('agricart.storefront.contact.fab_label') }}</strong>
             <h2>{{ __('agricart.storefront.contact.title') }}</h2>
             <p>{{ __('agricart.storefront.contact.lead') }}</p>
         </div>

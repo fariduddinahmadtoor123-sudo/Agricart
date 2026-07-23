@@ -36,6 +36,8 @@ class Form extends Component
     #[On('role-form-open')]
     public function openForm(?int $roleId = null, string $mode = 'create'): void
     {
+        PermissionRegistry::syncToDatabase();
+
         $this->resetForm();
         $this->mode = $mode;
         $this->roleId = $roleId;

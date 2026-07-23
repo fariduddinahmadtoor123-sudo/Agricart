@@ -1,9 +1,8 @@
 @if ($authUser)
     <div
         class="agricart-staff-messenger"
-        @if ($open && $peerId) wire:poll.8s @elseif ($open) wire:poll.30s @else wire:poll.45s @endif
-        x-data="{ picking: false }"
-        x-on:staff-messenger-scroll.window="$nextTick(() => { const el = $refs.messages; if (el) el.scrollTop = el.scrollHeight })"
+        wire:key="agricart-staff-messenger-root"
+        @if ($open && $peerId) wire:poll.15s @endif
     >
         @if ($open)
             <section
@@ -17,104 +16,131 @@
                         <strong>{{ __('communication.messenger.title') }}</strong>
                         <span>{{ __('communication.messenger.lead') }}</span>
                     </div>
-                    <button type="button" class="agricart-staff-messenger__close" wire:click="toggle" aria-label="{{ __('communication.messenger.close') }}">×</button>
+                    <button
+                        type="button"
+                        class="agricart-staff-messenger__close"
+                        wire:click="close"
+                        title="{{ __('communication.messenger.close') }}"
+                        aria-label="{{ __('communication.messenger.close') }}"
+                    >×</button>
                 </header>
 
                 @if ($errorMessage)
                     <p class="agricart-staff-messenger__error agricart-staff-messenger__error--banner" role="alert">{{ $errorMessage }}</p>
                 @endif
 
-                <div class="agricart-staff-messenger__search" wire:key="messenger-search">
-                    <label class="sr-only" for="agricart-staff-messenger-search">{{ __('communication.messenger.search') }}</label>
-                    <input
-                        id="agricart-staff-messenger-search"
-                        type="search"
-                        class="fi-input"
-                        wire:model.live.debounce.250ms="staffSearch"
-                        placeholder="{{ __('communication.messenger.search') }}"
-                        autocomplete="off"
-                        @focus="picking = true"
-                        @blur="setTimeout(() => picking = false, 180)"
-                    />
-
-                    @if ($peerId === null && $suggestions->isNotEmpty())
-                        <ul class="agricart-staff-messenger__suggestions" role="listbox" aria-label="{{ __('communication.messenger.search') }}">
-                            @foreach ($suggestions as $row)
-                                @php $personId = (int) $row['user']->id; @endphp
-                                <li wire:key="staff-suggest-{{ $personId }}" role="option">
-                                    <button
-                                        type="button"
-                                        class="agricart-staff-messenger__person"
-                                        x-on:mousedown.prevent="$wire.selectPeer({{ $personId }})"
-                                    >
-                                        <span @class(['agricart-staff-messenger__dot', 'is-online' => $row['online']])></span>
-                                        <span class="agricart-staff-messenger__person-text">
-                                            <strong>{{ $row['user']->name }}</strong>
-                                            <span>{{ $row['user']->email }}</span>
-                                        </span>
-                                        <span class="agricart-staff-messenger__hint">{{ __('communication.messenger.start') }}</span>
-                                    </button>
-                                </li>
-                            @endforeach
-                        </ul>
-                    @elseif ($peerId === null && trim($staffSearch) !== '')
-                        <p class="agricart-staff-messenger__empty agricart-staff-messenger__empty--inline">{{ __('communication.messenger.empty_people') }}</p>
-                    @endif
-                </div>
-
-                @if ($peerId && $peer)
-                    <div class="agricart-staff-messenger__peer-bar">
-                        <div class="agricart-staff-messenger__peer">
-                            <strong>{{ $peer->name }}</strong>
-                            <span>{{ $peerOnline ? __('communication.messenger.online') : __('communication.messenger.offline') }} · {{ $peer->email }}</span>
+                @if ($peerId)
+                    <div class="agricart-staff-messenger__chat" wire:key="messenger-chat-{{ $peerId }}">
+                        <div class="agricart-staff-messenger__peer-bar">
+                            <div class="agricart-staff-messenger__peer">
+                                <strong>{{ $peerName !== '' ? $peerName : __('communication.messenger.title') }}</strong>
+                                <span>
+                                    {{ $peerOnline ? __('communication.messenger.online') : __('communication.messenger.offline') }}
+                                    @if ($peerEmail !== '')
+                                        · {{ $peerEmail }}
+                                    @endif
+                                </span>
+                            </div>
+                            <button type="button" class="agricart-staff-messenger__change" wire:click="clearPeer">
+                                {{ __('communication.messenger.change') }}
+                            </button>
                         </div>
-                        <button type="button" class="agricart-staff-messenger__change" wire:click="clearPeer">
-                            {{ __('communication.messenger.change') }}
-                        </button>
+
+                        <ol class="agricart-staff-messenger__messages" data-staff-messenger-messages>
+                            @forelse ($messages as $message)
+                                @php
+                                    $isMine = $message->participant
+                                        && $message->participant->actor_type === 'user'
+                                        && (int) $message->participant->actor_id === (int) $authUser->id;
+                                @endphp
+                                <li
+                                    wire:key="dm-{{ $message->id }}"
+                                    @class(['agricart-staff-messenger__bubble', 'is-mine' => $isMine])
+                                >
+                                    <p>{{ $message->body }}</p>
+                                    <time>{{ $message->created_at?->timezone(config('app.timezone'))->format('H:i') }}</time>
+                                </li>
+                            @empty
+                                <li class="agricart-staff-messenger__empty">{{ __('communication.messenger.empty_thread') }}</li>
+                            @endforelse
+                        </ol>
+
+                        <form class="agricart-staff-messenger__compose" wire:submit.prevent="send">
+                            <input
+                                type="text"
+                                class="agricart-staff-messenger__input"
+                                wire:model="messageText"
+                                placeholder="{{ __('communication.messenger.placeholder') }}"
+                                maxlength="5000"
+                                autocomplete="off"
+                                autofocus
+                                wire:loading.attr="disabled"
+                                wire:target="send"
+                            />
+                            @error('body') <p class="agricart-staff-messenger__error">{{ $message }}</p> @enderror
+                            <button
+                                type="submit"
+                                class="agricart-staff-messenger__send"
+                                wire:loading.attr="disabled"
+                                wire:target="send"
+                            >{{ __('communication.messenger.send') }}</button>
+                        </form>
                     </div>
-
-                    <ol class="agricart-staff-messenger__messages" x-ref="messages" wire:key="dm-list-{{ $peerId }}">
-                        @forelse ($messages as $message)
-                            @php
-                                $isMine = $message->participant
-                                    && $message->participant->actor_type === 'user'
-                                    && (int) $message->participant->actor_id === (int) $authUser->id;
-                            @endphp
-                            <li
-                                wire:key="dm-{{ $message->id }}"
-                                @class(['agricart-staff-messenger__bubble', 'is-mine' => $isMine])
-                            >
-                                <p>{{ $message->body }}</p>
-                                <time>{{ $message->created_at?->timezone(config('app.timezone'))->format('H:i') }}</time>
-                            </li>
-                        @empty
-                            <li class="agricart-staff-messenger__empty">{{ __('communication.messenger.empty_thread') }}</li>
-                        @endforelse
-                    </ol>
-
-                    <form class="agricart-staff-messenger__compose" wire:submit.prevent="send">
-                        <input
-                            type="text"
-                            class="fi-input"
-                            wire:model="messageText"
-                            placeholder="{{ __('communication.messenger.placeholder') }}"
-                            maxlength="5000"
-                            autocomplete="off"
-                            autofocus
-                            wire:loading.attr="disabled"
-                            wire:target="send"
-                        />
-                        @error('body') <p class="agricart-staff-messenger__error">{{ $message }}</p> @enderror
-                        <button
-                            type="submit"
-                            class="agricart-categories__action is-primary"
-                            wire:loading.attr="disabled"
-                            wire:target="send"
-                        >{{ __('communication.messenger.send') }}</button>
-                    </form>
                 @else
-                    <div class="agricart-staff-messenger__idle">
-                        <p>{{ __('communication.messenger.idle_hint') }}</p>
+                    <div class="agricart-staff-messenger__picker" wire:key="messenger-picker" data-staff-messenger-picker>
+                        <div class="agricart-staff-messenger__search">
+                            <label class="sr-only" for="agricart-staff-messenger-search">{{ __('communication.messenger.search') }}</label>
+                            <input
+                                id="agricart-staff-messenger-search"
+                                type="search"
+                                class="agricart-staff-messenger__input"
+                                placeholder="{{ __('communication.messenger.search') }}"
+                                autocomplete="off"
+                                autofocus
+                                oninput="window.agricartFilterStaffMessenger && window.agricartFilterStaffMessenger(this)"
+                            />
+                            <p class="agricart-staff-messenger__search-meta" data-staff-messenger-meta>
+                                {{ __('communication.messenger.staff_available', ['count' => $staffCount]) }}
+                            </p>
+                        </div>
+
+                        <div class="agricart-staff-messenger__results">
+                            @if ($staffCount === 0)
+                                <p class="agricart-staff-messenger__empty agricart-staff-messenger__empty--pad">
+                                    {{ __('communication.messenger.empty_people') }}
+                                </p>
+                            @else
+                                <ul class="agricart-staff-messenger__people" role="listbox">
+                                    @foreach ($staffDirectory as $row)
+                                        <li
+                                            wire:key="staff-row-{{ $row['id'] }}"
+                                            role="option"
+                                            data-staff-row
+                                            data-name="{{ \Illuminate\Support\Str::lower($row['name']) }}"
+                                            data-email="{{ \Illuminate\Support\Str::lower($row['email']) }}"
+                                        >
+                                            <button
+                                                type="button"
+                                                class="agricart-staff-messenger__person"
+                                                wire:click.prevent="selectPeer({{ (int) $row['id'] }})"
+                                                wire:loading.attr="disabled"
+                                                wire:target="selectPeer"
+                                            >
+                                                <span @class(['agricart-staff-messenger__dot', 'is-online' => ! empty($row['online'])])></span>
+                                                <span class="agricart-staff-messenger__person-text">
+                                                    <strong>{{ $row['name'] }}</strong>
+                                                    <span>{{ $row['email'] }}</span>
+                                                </span>
+                                                <span class="agricart-staff-messenger__hint">{{ __('communication.messenger.start') }}</span>
+                                            </button>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                                <p class="agricart-staff-messenger__empty agricart-staff-messenger__empty--pad" data-staff-messenger-no-match hidden>
+                                    {{ __('communication.messenger.empty_people') }}
+                                </p>
+                            @endif
+                        </div>
                     </div>
                 @endif
             </section>
@@ -137,4 +163,39 @@
             <span class="agricart-staff-messenger__fab-label">{{ __('communication.messenger.fab_label') }}</span>
         </button>
     </div>
+
+    @once
+        <script>
+            window.agricartFilterStaffMessenger = function (input) {
+                const root = input.closest('[data-staff-messenger-picker]');
+                if (!root) return;
+
+                const needle = String(input.value || '').trim().toLowerCase();
+                const rows = root.querySelectorAll('[data-staff-row]');
+                const empty = root.querySelector('[data-staff-messenger-no-match]');
+                const meta = root.querySelector('[data-staff-messenger-meta]');
+                let visible = 0;
+
+                rows.forEach((row) => {
+                    const hay = (row.getAttribute('data-name') || '') + ' ' + (row.getAttribute('data-email') || '');
+                    const show = needle === '' || hay.indexOf(needle) !== -1;
+                    row.hidden = !show;
+                    if (show) visible++;
+                });
+
+                if (empty) {
+                    empty.hidden = !(needle !== '' && visible === 0);
+                }
+
+                if (meta) {
+                    const total = rows.length;
+                    const availableTpl = {!! \Illuminate\Support\Js::from(__('communication.messenger.staff_available', ['count' => ':count'])) !!};
+                    const matchesTpl = {!! \Illuminate\Support\Js::from(__('communication.messenger.matches', ['count' => ':count'])) !!};
+                    meta.textContent = needle === ''
+                        ? availableTpl.replace(':count', String(total))
+                        : availableTpl.replace(':count', String(total)) + ' · ' + matchesTpl.replace(':count', String(visible));
+                }
+            };
+        </script>
+    @endonce
 @endif

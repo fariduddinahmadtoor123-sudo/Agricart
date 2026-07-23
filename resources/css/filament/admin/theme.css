@@ -14521,16 +14521,27 @@ body.agricart-price-tags-panel-open {
     color: #0f172a;
 }
 
+.agricart-staff-messenger [x-cloak],
+.agricart-staff-messenger__panel[x-cloak] {
+    display: none !important;
+}
+
 .agricart-staff-messenger {
     position: fixed;
     right: 1rem;
     bottom: 1rem;
-    z-index: 60;
+    z-index: 100;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     gap: 0.75rem;
     font-family: Arial, sans-serif;
+    pointer-events: none;
+}
+
+.agricart-staff-messenger__panel,
+.agricart-staff-messenger__fab {
+    pointer-events: auto;
 }
 
 .agricart-staff-messenger__fab {
@@ -14623,47 +14634,78 @@ body.agricart-price-tags-panel-open {
 
 .agricart-staff-messenger__back,
 .agricart-staff-messenger__close {
-    border: 0;
-    background: transparent;
+    border: 1px solid #ebedf0;
+    background: #fff;
     color: #0f172a;
-    font-size: 1.25rem;
+    font-size: 1.35rem;
     line-height: 1;
     cursor: pointer;
-    padding: 0.15rem 0.35rem;
+    padding: 0;
+    width: 2rem;
+    height: 2rem;
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    position: relative;
+    z-index: 2;
+    border-radius: 0 !important;
+}
+
+.agricart-staff-messenger__close:hover,
+.agricart-staff-messenger__back:hover {
+    border-color: #83b735;
+    background: color-mix(in oklab, #83b735 10%, #fff);
+}
+
+.agricart-staff-messenger__picker,
+.agricart-staff-messenger__chat {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .agricart-staff-messenger__search {
-    position: relative;
-    display: block;
-    padding: 0.65rem 0.75rem 0;
+    display: grid;
+    gap: 0.4rem;
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid #ebedf0;
     flex: 0 0 auto;
-    z-index: 2;
+    background: #fff;
 }
 
-.agricart-staff-messenger__suggestions {
-    list-style: none;
-    margin: 0.35rem 0 0;
-    padding: 0;
-    display: grid;
-    gap: 0.35rem;
-    max-height: 12rem;
-    overflow: auto;
+.agricart-staff-messenger__input {
+    width: 100%;
     border: 1px solid #ebedf0;
     background: #fff;
-    box-shadow: 0 0.35rem 0.85rem rgb(15 23 42 / 10%);
+    color: #0f172a;
+    font-family: Arial, sans-serif;
+    font-size: 0.875rem;
+    padding: 0.55rem 0.65rem;
+    border-radius: 0 !important;
 }
 
-.agricart-staff-messenger__suggestions .agricart-staff-messenger__person {
-    border: 0;
-    border-bottom: 1px solid #ebedf0;
+.agricart-staff-messenger__input:focus {
+    outline: none;
+    border-color: #83b735;
 }
 
-.agricart-staff-messenger__suggestions li:last-child .agricart-staff-messenger__person {
-    border-bottom: 0;
+.agricart-staff-messenger__search-meta {
+    margin: 0;
+    font-size: 0.75rem;
+    color: #64748b;
 }
 
-.agricart-staff-messenger__empty--inline {
-    padding: 0.55rem 0.15rem 0;
+.agricart-staff-messenger__results {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.agricart-staff-messenger__empty--pad {
+    padding: 1rem 0.75rem;
 }
 
 .agricart-staff-messenger__peer-bar {
@@ -14705,7 +14747,15 @@ body.agricart-price-tags-panel-open {
     line-height: 1.45;
 }
 
-.agricart-staff-messenger__people,
+.agricart-staff-messenger__people {
+    list-style: none;
+    margin: 0;
+    padding: 0.65rem 0.75rem;
+    display: grid;
+    gap: 0.45rem;
+    align-content: start;
+}
+
 .agricart-staff-messenger__messages {
     list-style: none;
     margin: 0;
@@ -14830,7 +14880,30 @@ body.agricart-price-tags-panel-open {
     gap: 0.45rem;
     padding: 0.65rem 0.75rem;
     border-top: 1px solid #ebedf0;
+    background: #fff;
     flex: 0 0 auto;
+}
+
+.agricart-staff-messenger__send {
+    border: 1px solid #83b735;
+    background: #83b735;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    padding: 0.55rem 0.85rem;
+    cursor: pointer;
+    border-radius: 0 !important;
+    white-space: nowrap;
+}
+
+.agricart-staff-messenger__send:hover {
+    background: color-mix(in oklab, #83b735 85%, #0f172a);
+}
+
+.agricart-staff-messenger__send:disabled {
+    opacity: 0.6;
+    cursor: wait;
 }
 
 .agricart-staff-messenger__compose .agricart-categories__action.is-primary {

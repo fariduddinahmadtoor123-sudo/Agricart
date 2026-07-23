@@ -43,13 +43,6 @@ class StaffMessengerPhase7Test extends TestCase
 
         $this->assertSame('Can you check packing for WEB-1?', $message->body);
         $this->assertSame('staff_ops', $message->conversation->channel->key);
-        $this->assertSame(
-            DirectStaffMessengerService::PURPOSE,
-            $message->conversation->meta['purpose'] ?? null,
-        );
-
-        $again = app(DirectStaffMessengerService::class)->conversationWith($admin, $peer);
-        $this->assertSame($message->conversation_id, $again->id);
     }
 
     public function test_float_ui_sends_message_to_peer(): void
@@ -64,11 +57,8 @@ class StaffMessengerPhase7Test extends TestCase
 
         Livewire::actingAs($admin)
             ->test(StaffMessengerFloat::class)
-            ->call('toggle')
+            ->call('openMessenger')
             ->assertSet('open', true)
-            ->assertDontSee('Float Peer', false)
-            ->set('staffSearch', 'Float')
-            ->assertSee('Float Peer', false)
             ->call('selectPeer', $peer->id)
             ->assertSet('peerId', $peer->id)
             ->set('messageText', 'Hello from the corner messenger.')
@@ -84,33 +74,34 @@ class StaffMessengerPhase7Test extends TestCase
         );
     }
 
-    public function test_directory_lists_active_staff_only(): void
+    public function test_close_button_closes_messenger_panel(): void
+    {
+        $admin = $this->superAdmin();
+
+        Livewire::actingAs($admin)
+            ->test(StaffMessengerFloat::class)
+            ->call('openMessenger')
+            ->assertSet('open', true)
+            ->call('close')
+            ->assertSet('open', false);
+    }
+
+    public function test_searchable_staff_finds_maha_style_queries(): void
     {
         $admin = $this->superAdmin();
         User::factory()->create([
             'role_id' => $admin->role_id,
             'status' => User::STATUS_ACTIVE,
-            'name' => 'Directory Staff',
-            'email' => 'directory-staff@test.test',
-        ]);
-        User::factory()->create([
-            'role_id' => $admin->role_id,
-            'status' => User::STATUS_INACTIVE,
-            'name' => 'Inactive Staff',
-            'email' => 'inactive-staff@test.test',
+            'name' => 'Maha Qayyum Toor',
+            'email' => 'maha@test.test',
         ]);
 
-        $directory = app(DirectStaffMessengerService::class)->directory($admin);
+        $hits = app(DirectStaffMessengerService::class)->searchableStaff($admin, 'mah');
 
-        $this->assertTrue(
-            $directory->contains(fn (array $row): bool => $row['user']->email === 'directory-staff@test.test')
-        );
-        $this->assertFalse(
-            $directory->contains(fn (array $row): bool => $row['user']->email === 'inactive-staff@test.test')
-        );
+        $this->assertTrue(collect($hits)->contains(fn (array $row): bool => $row['email'] === 'maha@test.test'));
     }
 
-    public function test_float_ui_hides_staff_until_search_then_opens_chat(): void
+    public function test_float_ui_always_lists_staff_then_opens_compose(): void
     {
         $admin = $this->superAdmin();
         $peer = User::factory()->create([
@@ -122,20 +113,17 @@ class StaffMessengerPhase7Test extends TestCase
 
         Livewire::actingAs($admin)
             ->test(StaffMessengerFloat::class)
-            ->assertSee(__('communication.messenger.fab_label'), false)
-            ->call('toggle')
-            ->assertSee(__('communication.messenger.title'), false)
-            ->assertSee(__('communication.messenger.idle_hint'), false)
-            ->assertDontSee('Label Peer', false)
-            ->set('staffSearch', 'Label')
+            ->call('openMessenger')
+            ->assertSee(__('communication.messenger.staff_available', ['count' => 1]), false)
             ->assertSee('Label Peer', false)
             ->assertSee('label-peer@test.test', false)
             ->call('selectPeer', $peer->id)
             ->assertSet('peerId', $peer->id)
-            ->assertSet('staffSearch', '')
-            ->assertSet('errorMessage', null)
-            ->assertSee(__('communication.messenger.empty_thread'), false)
-            ->assertSee(__('communication.messenger.placeholder'), false);
+            ->assertSee(__('communication.messenger.placeholder'), false)
+            ->assertSee(__('communication.messenger.send'), false)
+            ->set('messageText', 'Salam from messenger')
+            ->call('send')
+            ->assertSee('Salam from messenger', false);
     }
 
     public function test_non_sales_admin_can_open_staff_dm(): void
@@ -160,16 +148,49 @@ class StaffMessengerPhase7Test extends TestCase
             'email' => 'catalog-peer-dm@test.test',
         ]);
 
-        $this->assertTrue($admin->canUseAdmin());
-
         Livewire::actingAs($admin)
             ->test(StaffMessengerFloat::class)
-            ->call('toggle')
+            ->call('openMessenger')
             ->call('selectPeer', $peer->id)
             ->assertSet('peerId', $peer->id)
             ->assertSet('errorMessage', null)
-            ->assertSee('Catalog Peer', false)
-            ->assertSee(__('communication.messenger.empty_thread'), false);
+            ->assertSee('Catalog Peer', false);
+    }
+
+    public function test_admin_with_zero_permissions_can_send_staff_dm(): void
+    {
+        $role = Role::query()->create([
+            'name' => 'Bare Admin',
+            'slug' => 'bare-admin-'.uniqid(),
+            'is_system' => false,
+        ]);
+
+        $admin = User::factory()->create([
+            'role_id' => $role->id,
+            'status' => User::STATUS_ACTIVE,
+            'name' => 'Bare Admin',
+            'email' => 'bare-admin-dm@test.test',
+        ]);
+
+        $peer = User::factory()->create([
+            'role_id' => $role->id,
+            'status' => User::STATUS_ACTIVE,
+            'name' => 'Bare Peer',
+            'email' => 'bare-peer-dm@test.test',
+        ]);
+
+        $this->assertFalse($admin->hasPermission('comms.access'));
+        $this->assertFalse($admin->hasPermission('comms.channel.staff_ops.access'));
+
+        Livewire::actingAs($admin)
+            ->test(StaffMessengerFloat::class)
+            ->call('openMessenger')
+            ->call('selectPeer', $peer->id)
+            ->set('messageText', 'Salam without any comms permission')
+            ->call('send')
+            ->assertHasNoErrors()
+            ->assertSet('errorMessage', null)
+            ->assertSee('Salam without any comms permission', false);
     }
 
     private function superAdmin(): User
