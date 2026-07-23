@@ -1887,6 +1887,13 @@
     font-weight: 700;
 }
 
+.ag-store-pdp__brand-review-criterion-reason {
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: var(--agricart-text, #0f172a);
+}
+
 .ag-store-pdp__brand-review-notes-title {
     margin: 0 0 0.35rem;
     font-family: Arial, sans-serif !important;

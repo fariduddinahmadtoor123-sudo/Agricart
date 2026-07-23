@@ -609,6 +609,9 @@ class CatalogPortableArchiveService
 
             if ($criteria !== null) {
                 $rating = BrandAgricartReviewCriteria::score($criteria);
+                $composed = BrandAgricartReviewCriteria::composeReview($criteria);
+            } else {
+                $composed = ['en' => null, 'ur' => null];
             }
 
             $data = $this->masterPayload($row, [
@@ -619,8 +622,8 @@ class CatalogPortableArchiveService
                 'inactive_reason_ur' => $row['inactive_reason_ur'] ?? null,
                 'agricart_rating' => $rating,
                 'agricart_rating_criteria' => $criteria,
-                'agricart_rating_reason_en' => $rating === null ? null : ($row['agricart_rating_reason_en'] ?? null),
-                'agricart_rating_reason_ur' => $rating === null ? null : ($row['agricart_rating_reason_ur'] ?? null),
+                'agricart_rating_reason_en' => $rating === null ? null : ($composed['en'] ?? $row['agricart_rating_reason_en'] ?? null),
+                'agricart_rating_reason_ur' => $rating === null ? null : ($composed['ur'] ?? $row['agricart_rating_reason_ur'] ?? null),
                 'agricart_rating_revision_en' => $rating === null ? null : ($row['agricart_rating_revision_en'] ?? null),
                 'agricart_rating_revision_ur' => $rating === null ? null : ($row['agricart_rating_revision_ur'] ?? null),
                 'image_path' => $imagePath ?: 'brands/placeholder.webp',

@@ -269,11 +269,6 @@ class BrandFormIntegrityTest extends TestCase
         Storage::fake('public');
 
         $brand = $this->brand('rated-brand', 'Rated Brand');
-        $criteria = [];
-
-        foreach (\App\Support\Catalog\BrandAgricartReviewCriteria::keys() as $index => $key) {
-            $criteria[$key] = $index < 8;
-        }
 
         Livewire::test(Form::class)
             ->call('openForm', $brand->id, 'edit')
@@ -285,22 +280,26 @@ class BrandFormIntegrityTest extends TestCase
 
         $component = Livewire::test(Form::class)->call('openForm', $brand->id, 'edit');
 
-        foreach ($criteria as $key => $pass) {
-            $component->call('setAgricartCriterion', $key, $pass ? 'pass' : 'fail');
+        foreach (\App\Support\Catalog\BrandAgricartReviewCriteria::keys() as $index => $key) {
+            $pass = $index < 8;
+            $component
+                ->call('setAgricartCriterion', $key, $pass ? 'pass' : 'fail')
+                ->set('agricart_rating_criteria.'.$key.'.reason_en', $pass ? 'Pass reason '.$key : 'Fail reason '.$key)
+                ->set('agricart_rating_criteria.'.$key.'.reason_ur', $pass ? 'پاس وجہ '.$key : 'فیل وجہ '.$key);
         }
 
         $component
-            ->set('agricart_rating_reason_en', 'Strong overall partner')
-            ->set('agricart_rating_reason_ur', 'مجموعی طور پر مضبوط پارٹنر')
             ->assertSet('agricart_rating', '8')
             ->call('saveAndClose')
             ->assertSet('statusType', 'success');
 
         $brand->refresh();
         $this->assertSame(8, $brand->agricart_rating);
-        $this->assertTrue($brand->agricart_rating_criteria['product_quality']);
-        $this->assertFalse($brand->agricart_rating_criteria['overall_market_acceptance']);
-        $this->assertSame('Strong overall partner', $brand->agricart_rating_reason_en);
+        $this->assertTrue($brand->agricart_rating_criteria['product_quality']['pass']);
+        $this->assertSame('Pass reason product_quality', $brand->agricart_rating_criteria['product_quality']['reason_en']);
+        $this->assertFalse($brand->agricart_rating_criteria['overall_market_acceptance']['pass']);
+        $this->assertStringContainsString('Product Quality', (string) $brand->agricart_rating_reason_en);
+        $this->assertStringContainsString('8 / 10', (string) $brand->agricart_rating_reason_en);
     }
 
     public function test_saving_brand_persists_editable_site_review_notice(): void

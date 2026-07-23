@@ -86,16 +86,16 @@ class ProductDetailsTabsTest extends TestCase
             'description_en' => 'Maker of pumps.',
             'agricart_rating' => 8,
             'agricart_rating_criteria' => [
-                'product_quality' => true,
-                'value_for_money' => true,
-                'market_reputation' => true,
-                'durability' => true,
-                'performance' => true,
-                'innovation_technology' => true,
-                'warranty_after_sales' => true,
-                'spare_parts_availability' => true,
-                'brand_reliability' => false,
-                'overall_market_acceptance' => false,
+                'product_quality' => ['pass' => true, 'reason_en' => 'Solid build.', 'reason_ur' => 'مضبوط بناتا ہے۔'],
+                'value_for_money' => ['pass' => true, 'reason_en' => 'Fair price.', 'reason_ur' => 'مناسب قیمت۔'],
+                'market_reputation' => ['pass' => true, 'reason_en' => 'Trusted by dealers.', 'reason_ur' => 'ڈیلرز اعتماد کرتے ہیں۔'],
+                'durability' => ['pass' => true, 'reason_en' => 'Lasts seasons.', 'reason_ur' => 'موسم چلتا ہے۔'],
+                'performance' => ['pass' => true, 'reason_en' => 'Meets claims.', 'reason_ur' => 'دعوے پورے کرتا ہے۔'],
+                'innovation_technology' => ['pass' => true, 'reason_en' => 'Updates models.', 'reason_ur' => 'ماڈل اپڈیٹ کرتا ہے۔'],
+                'warranty_after_sales' => ['pass' => true, 'reason_en' => 'Service centers work.', 'reason_ur' => 'سروس سینٹر کام کرتے ہیں۔'],
+                'spare_parts_availability' => ['pass' => true, 'reason_en' => 'Parts easy to find.', 'reason_ur' => 'پارٹس ملتے ہیں۔'],
+                'brand_reliability' => ['pass' => false, 'reason_en' => 'Sometimes delays supply.', 'reason_ur' => 'کبھی سپلائی تاخیر۔'],
+                'overall_market_acceptance' => ['pass' => false, 'reason_en' => 'Still niche in some areas.', 'reason_ur' => 'کچھ علاقوں میں محدود۔'],
             ],
             'agricart_rating_reason_en' => 'Steady sales and low return rate.',
             'agricart_rating_reason_ur' => 'سیل مستحکم اور ریٹرن کم ہے۔',
@@ -127,7 +127,8 @@ class ProductDetailsTabsTest extends TestCase
             ->assertSee(__('agricart.storefront.product.brand_review.eyebrow'), false)
             ->assertSee(__('agricart.storefront.product.brand_review.fairness'), false)
             ->assertSee(__('agricart.brands.review_criteria.product_quality.label'), false)
-            ->assertSee('Steady sales and low return rate.', false)
+            ->assertSee('Solid build.', false)
+            ->assertSee('Sometimes delays supply.', false)
             ->assertSee('Spare parts and service improved', false)
             ->assertSee('independent editorial opinion', false)
             ->assertSee('8', false);

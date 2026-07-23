@@ -161,7 +161,8 @@
 
                     <div class="agricart-brand-review__list" role="list">
                         @foreach (\App\Support\Catalog\BrandAgricartReviewCriteria::keys() as $criterionKey)
-                            @php($criterionValue = $agricart_rating_criteria[$criterionKey] ?? null)
+                            @php($criterion = $agricart_rating_criteria[$criterionKey] ?? ['pass' => null, 'reason_en' => '', 'reason_ur' => ''])
+                            @php($criterionValue = $criterion['pass'] ?? null)
                             <div class="agricart-brand-review__row" role="listitem" wire:key="brand-criterion-{{ $criterionKey }}">
                                 <div class="agricart-brand-review__copy">
                                     <p class="agricart-brand-review__label">
@@ -184,6 +185,37 @@
                                         @disabled($this->isReadonly())
                                     >{{ __('agricart.brands.review_actions.fail') }}</button>
                                 </div>
+                                @if ($criterionValue !== null)
+                                    <div class="agricart-brand-review__reasons">
+                                        <div class="agricart-form-panel__field">
+                                            <label class="agricart-form-panel__label">
+                                                {{ __('agricart.brands.fields.criterion_reason_en') }}
+                                                <span class="agricart-form-panel__required">*</span>
+                                            </label>
+                                            <textarea
+                                                rows="2"
+                                                wire:model.live.debounce.400ms="agricart_rating_criteria.{{ $criterionKey }}.reason_en"
+                                                class="agricart-brand-form__textarea"
+                                                @disabled($this->isReadonly())
+                                                placeholder="{{ __('agricart.brands.hints.criterion_reason_en') }}"
+                                            ></textarea>
+                                        </div>
+                                        <div class="agricart-form-panel__field">
+                                            <label class="agricart-form-panel__label">
+                                                {{ __('agricart.brands.fields.criterion_reason_ur') }}
+                                                <span class="agricart-form-panel__required">*</span>
+                                            </label>
+                                            <textarea
+                                                rows="2"
+                                                wire:model.live.debounce.400ms="agricart_rating_criteria.{{ $criterionKey }}.reason_ur"
+                                                dir="rtl"
+                                                class="agricart-brand-form__textarea"
+                                                @disabled($this->isReadonly())
+                                                placeholder="{{ __('agricart.brands.hints.criterion_reason_ur') }}"
+                                            ></textarea>
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                         @endforeach
                     </div>
@@ -197,23 +229,22 @@
                     <div class="agricart-brand-review__notes">
                         <div class="agricart-form-panel__field agricart-form-panel__field--full">
                             <label class="agricart-form-panel__label">{{ __('agricart.brands.fields.agricart_rating_reason_en') }}</label>
+                            <p class="agricart-form-panel__hint">{{ __('agricart.brands.hints.agricart_rating_auto') }}</p>
                             <textarea
-                                rows="2"
+                                rows="8"
                                 wire:model="agricart_rating_reason_en"
                                 class="agricart-brand-form__textarea"
-                                @disabled($this->isReadonly())
-                                placeholder="{{ __('agricart.brands.hints.agricart_rating_reason_en') }}"
+                                readonly
                             ></textarea>
                         </div>
                         <div class="agricart-form-panel__field agricart-form-panel__field--full">
                             <label class="agricart-form-panel__label">{{ __('agricart.brands.fields.agricart_rating_reason_ur') }}</label>
                             <textarea
-                                rows="2"
+                                rows="8"
                                 wire:model="agricart_rating_reason_ur"
                                 dir="rtl"
                                 class="agricart-brand-form__textarea"
-                                @disabled($this->isReadonly())
-                                placeholder="{{ __('agricart.brands.hints.agricart_rating_reason_ur') }}"
+                                readonly
                             ></textarea>
                         </div>
                         <div class="agricart-form-panel__field agricart-form-panel__field--full">

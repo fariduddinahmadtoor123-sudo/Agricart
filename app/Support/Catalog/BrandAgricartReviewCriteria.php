@@ -4,6 +4,10 @@ namespace App\Support\Catalog;
 
 /**
  * Fixed Agricart brand review checklist (10 criteria → score out of 10).
+ *
+ * Stored shape per key:
+ * { "pass": true|false, "reason_en": "...", "reason_ur": "..." }
+ * Legacy boolean values are accepted and upgraded on normalize.
  */
 final class BrandAgricartReviewCriteria
 {
@@ -34,7 +38,34 @@ final class BrandAgricartReviewCriteria
     }
 
     /**
-     * Normalize stored/posted map to known keys only (true|false|null).
+     * @return array{pass: bool|null, reason_en: string, reason_ur: string}
+     */
+    public static function emptyDetail(): array
+    {
+        return [
+            'pass' => null,
+            'reason_en' => '',
+            'reason_ur' => '',
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $raw
+     * @return array<string, array{pass: bool|null, reason_en: string, reason_ur: string}>
+     */
+    public static function normalizeDetailed(?array $raw): array
+    {
+        $out = [];
+
+        foreach (self::KEYS as $key) {
+            $out[$key] = self::normalizeOne(is_array($raw) ? ($raw[$key] ?? null) : null);
+        }
+
+        return $out;
+    }
+
+    /**
+     * Legacy bool-only map for score helpers that still expect true/false/null.
      *
      * @param  array<string, mixed>|null  $raw
      * @return array<string, bool|null>
@@ -43,38 +74,69 @@ final class BrandAgricartReviewCriteria
     {
         $out = [];
 
-        foreach (self::KEYS as $key) {
-            if (! is_array($raw) || ! array_key_exists($key, $raw)) {
-                $out[$key] = null;
-
-                continue;
-            }
-
-            $value = $raw[$key];
-
-            if ($value === null || $value === '') {
-                $out[$key] = null;
-            } elseif ($value === true || $value === 1 || $value === '1' || $value === 'pass' || $value === 'true') {
-                $out[$key] = true;
-            } elseif ($value === false || $value === 0 || $value === '0' || $value === 'fail' || $value === 'false') {
-                $out[$key] = false;
-            } else {
-                $out[$key] = null;
-            }
+        foreach (self::normalizeDetailed($raw) as $key => $detail) {
+            $out[$key] = $detail['pass'];
         }
 
         return $out;
     }
 
     /**
-     * @param  array<string, bool|null>  $criteria
+     * @param  array<string, mixed>|null  $raw
+     * @return array{pass: bool|null, reason_en: string, reason_ur: string}
+     */
+    public static function normalizeOne(mixed $value): array
+    {
+        if ($value === null || $value === '') {
+            return self::emptyDetail();
+        }
+
+        if (is_bool($value) || $value === 0 || $value === 1 || $value === '0' || $value === '1'
+            || $value === 'pass' || $value === 'fail' || $value === 'true' || $value === 'false') {
+            $pass = match (true) {
+                $value === true, $value === 1, $value === '1', $value === 'pass', $value === 'true' => true,
+                $value === false, $value === 0, $value === '0', $value === 'fail', $value === 'false' => false,
+                default => null,
+            };
+
+            return [
+                'pass' => $pass,
+                'reason_en' => '',
+                'reason_ur' => '',
+            ];
+        }
+
+        if (! is_array($value)) {
+            return self::emptyDetail();
+        }
+
+        $passRaw = $value['pass'] ?? $value['result'] ?? null;
+        $pass = null;
+
+        if ($passRaw === true || $passRaw === 1 || $passRaw === '1' || $passRaw === 'pass' || $passRaw === 'true') {
+            $pass = true;
+        } elseif ($passRaw === false || $passRaw === 0 || $passRaw === '0' || $passRaw === 'fail' || $passRaw === 'false') {
+            $pass = false;
+        }
+
+        return [
+            'pass' => $pass,
+            'reason_en' => trim((string) ($value['reason_en'] ?? '')),
+            'reason_ur' => trim((string) ($value['reason_ur'] ?? '')),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $criteria
      */
     public static function isComplete(array $criteria): bool
     {
-        $normalized = self::normalize($criteria);
+        foreach (self::normalizeDetailed($criteria) as $detail) {
+            if ($detail['pass'] === null) {
+                return false;
+            }
 
-        foreach ($normalized as $value) {
-            if ($value === null) {
+            if ($detail['reason_en'] === '' || $detail['reason_ur'] === '') {
                 return false;
             }
         }
@@ -83,12 +145,12 @@ final class BrandAgricartReviewCriteria
     }
 
     /**
-     * @param  array<string, bool|null>  $criteria
+     * @param  array<string, mixed>  $criteria
      */
     public static function hasAnyAnswer(array $criteria): bool
     {
-        foreach (self::normalize($criteria) as $value) {
-            if ($value !== null) {
+        foreach (self::normalizeDetailed($criteria) as $detail) {
+            if ($detail['pass'] !== null) {
                 return true;
             }
         }
@@ -97,22 +159,20 @@ final class BrandAgricartReviewCriteria
     }
 
     /**
-     * Pass count = Agricart score out of 10 (null when nothing answered).
-     *
-     * @param  array<string, bool|null>  $criteria
+     * @param  array<string, mixed>|null  $criteria
      */
     public static function score(?array $criteria): ?int
     {
-        $normalized = self::normalize($criteria);
+        $detailed = self::normalizeDetailed($criteria);
 
-        if (! self::hasAnyAnswer($normalized)) {
+        if (! self::hasAnyAnswer($detailed)) {
             return null;
         }
 
         $passes = 0;
 
-        foreach ($normalized as $value) {
-            if ($value === true) {
+        foreach ($detailed as $detail) {
+            if ($detail['pass'] === true) {
                 $passes++;
             }
         }
@@ -121,28 +181,85 @@ final class BrandAgricartReviewCriteria
     }
 
     /**
-     * Persistable map (omit nulls so empty review stores null/empty).
-     *
-     * @param  array<string, bool|null>  $criteria
-     * @return array<string, bool>|null
+     * @param  array<string, mixed>|null  $criteria
+     * @return array<string, array{pass: bool, reason_en: string, reason_ur: string}>|null
      */
     public static function forStorage(?array $criteria): ?array
     {
-        $normalized = self::normalize($criteria);
+        $detailed = self::normalizeDetailed($criteria);
 
-        if (! self::hasAnyAnswer($normalized)) {
+        if (! self::hasAnyAnswer($detailed)) {
             return null;
         }
 
         $stored = [];
 
-        foreach ($normalized as $key => $value) {
-            if ($value !== null) {
-                $stored[$key] = $value;
+        foreach ($detailed as $key => $detail) {
+            if ($detail['pass'] === null) {
+                continue;
             }
+
+            $stored[$key] = [
+                'pass' => $detail['pass'],
+                'reason_en' => $detail['reason_en'],
+                'reason_ur' => $detail['reason_ur'],
+            ];
         }
 
         return $stored;
+    }
+
+    /**
+     * Build bilingual Agricart review copy from the 10 checks + reasons.
+     *
+     * @param  array<string, mixed>|null  $criteria
+     * @return array{en: string|null, ur: string|null}
+     */
+    public static function composeReview(?array $criteria): array
+    {
+        $detailed = self::normalizeDetailed($criteria);
+
+        if (! self::isComplete($detailed)) {
+            return ['en' => null, 'ur' => null];
+        }
+
+        $score = self::score($detailed) ?? 0;
+        $total = self::count();
+
+        $enLines = [
+            __('agricart.brands.review_compose.intro_en', ['score' => $score, 'total' => $total]),
+            '',
+        ];
+        $urLines = [
+            __('agricart.brands.review_compose.intro_ur', ['score' => $score, 'total' => $total]),
+            '',
+        ];
+
+        foreach (self::KEYS as $key) {
+            $detail = $detailed[$key];
+            $resultEn = $detail['pass']
+                ? __('agricart.brands.review_actions.pass')
+                : __('agricart.brands.review_actions.fail');
+            $resultUr = $detail['pass']
+                ? __('agricart.brands.review_actions.pass', [], 'ur')
+                : __('agricart.brands.review_actions.fail', [], 'ur');
+
+            $enLines[] = __('agricart.brands.review_compose.line_en', [
+                'label' => __('agricart.brands.review_criteria.'.$key.'.label', [], 'en'),
+                'result' => $resultEn,
+                'reason' => $detail['reason_en'],
+            ]);
+            $urLines[] = __('agricart.brands.review_compose.line_ur', [
+                'label' => __('agricart.brands.review_criteria.'.$key.'.label_ur', [], 'ur'),
+                'result' => $resultUr,
+                'reason' => $detail['reason_ur'],
+            ]);
+        }
+
+        return [
+            'en' => implode("\n", $enLines),
+            'ur' => implode("\n", $urLines),
+        ];
     }
 
     public static function label(string $key, string $locale = 'en'): string

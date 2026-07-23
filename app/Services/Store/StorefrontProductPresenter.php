@@ -266,7 +266,7 @@ class StorefrontProductPresenter
             return false;
         }
 
-        $criteria = \App\Support\Catalog\BrandAgricartReviewCriteria::normalize(
+        $criteria = \App\Support\Catalog\BrandAgricartReviewCriteria::normalizeDetailed(
             $product->brand?->agricart_rating_criteria,
         );
 

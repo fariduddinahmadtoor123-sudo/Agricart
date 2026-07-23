@@ -160,7 +160,10 @@ class BrandService
         ];
 
         foreach (BrandAgricartReviewCriteria::keys() as $criterionKey) {
-            $rules['agricart_rating_criteria.'.$criterionKey] = ['nullable', 'boolean'];
+            $rules['agricart_rating_criteria.'.$criterionKey] = ['nullable', 'array'];
+            $rules['agricart_rating_criteria.'.$criterionKey.'.pass'] = ['nullable', 'boolean'];
+            $rules['agricart_rating_criteria.'.$criterionKey.'.reason_en'] = ['nullable', 'string', 'max:2000'];
+            $rules['agricart_rating_criteria.'.$criterionKey.'.reason_ur'] = ['nullable', 'string', 'max:2000'];
         }
 
         $status = (string) ($data['status'] ?? 'active');
@@ -170,7 +173,7 @@ class BrandService
             $rules['inactive_reason_ur'] = ['required', 'string', 'max:2000'];
         }
 
-        $criteria = BrandAgricartReviewCriteria::normalize(
+        $criteria = BrandAgricartReviewCriteria::normalizeDetailed(
             is_array($data['agricart_rating_criteria'] ?? null) ? $data['agricart_rating_criteria'] : null,
         );
 
@@ -225,6 +228,10 @@ class BrandService
             $validated['agricart_rating_reason_ur'] = null;
             $validated['agricart_rating_revision_en'] = null;
             $validated['agricart_rating_revision_ur'] = null;
+        } else {
+            $composed = BrandAgricartReviewCriteria::composeReview($criteria);
+            $validated['agricart_rating_reason_en'] = $composed['en'];
+            $validated['agricart_rating_reason_ur'] = $composed['ur'];
         }
 
         if ($exceptId && empty($validated['image_path'])) {

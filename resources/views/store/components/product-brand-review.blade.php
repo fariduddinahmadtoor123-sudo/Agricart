@@ -7,7 +7,7 @@
     $reason = $presenter->localizedAgricartRatingReason($product);
     $revision = $presenter->localizedAgricartRatingRevision($product);
     $notice = $presenter->brandReviewNoticeText();
-    $criteria = BrandAgricartReviewCriteria::normalize($product->brand?->agricart_rating_criteria);
+    $criteria = BrandAgricartReviewCriteria::normalizeDetailed($product->brand?->agricart_rating_criteria);
     $locale = app()->getLocale();
 @endphp
 
@@ -43,7 +43,13 @@
     @if (BrandAgricartReviewCriteria::isComplete($criteria))
         <ul class="ag-store-pdp__brand-review-criteria">
             @foreach (BrandAgricartReviewCriteria::keys() as $criterionKey)
-                @php($passed = $criteria[$criterionKey] === true)
+                @php
+                    $detail = $criteria[$criterionKey];
+                    $passed = $detail['pass'] === true;
+                    $itemReason = $locale === 'ur' && filled($detail['reason_ur'])
+                        ? $detail['reason_ur']
+                        : ($detail['reason_en'] ?: $detail['reason_ur']);
+                @endphp
                 <li @class(['ag-store-pdp__brand-review-criterion', 'is-pass' => $passed, 'is-fail' => ! $passed])>
                     <span class="ag-store-pdp__brand-review-mark" aria-hidden="true">{{ $passed ? '✓' : '✗' }}</span>
                     <span class="ag-store-pdp__brand-review-criterion-body">
@@ -59,6 +65,11 @@
                                 ? __('agricart.storefront.product.brand_review.pass')
                                 : __('agricart.storefront.product.brand_review.fail') }}
                         </span>
+                        @if (filled($itemReason))
+                            <span class="ag-store-pdp__brand-review-criterion-reason" @if ($locale === 'ur') dir="rtl" @endif>
+                                {{ $itemReason }}
+                            </span>
+                        @endif
                     </span>
                 </li>
             @endforeach

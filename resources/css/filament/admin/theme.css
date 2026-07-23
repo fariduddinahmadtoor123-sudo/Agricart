@@ -3578,11 +3578,18 @@ body.agricart-form-panel-open {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 0.65rem 0.85rem;
-    align-items: center;
+    align-items: start;
     padding: 0.65rem 0.75rem;
     border: 1px solid var(--agricart-border, #ebedf0);
     background: #fff;
     border-radius: 0;
+}
+
+.agricart-brand-review__reasons {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
 }
 
 .agricart-brand-review__label {
@@ -3670,6 +3677,10 @@ body.agricart-form-panel-open {
 
 @media (max-width: 40rem) {
     .agricart-brand-review__row {
+        grid-template-columns: 1fr;
+    }
+
+    .agricart-brand-review__reasons {
         grid-template-columns: 1fr;
     }
 }
