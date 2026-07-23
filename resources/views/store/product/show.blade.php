@@ -72,10 +72,15 @@
         $hasDescription = $contentSections !== [];
         $hasDelivery = ($deliveryOptions ?? []) !== [];
         $hasBrandAbout = $presenter->hasBrandAbout($product);
+        $hasBrandReview = $presenter->hasAgricartBrandReview($product);
         $isActive = $product->status === 'active';
         $firstTabKey = $hasDescription
             ? 'content-0'
-            : ($hasBrandAbout ? 'brand' : ($hasDelivery ? 'delivery' : ($hasPricing ? 'pricing' : null)));
+            : ($hasBrandAbout
+                ? 'brand'
+                : ($hasBrandReview
+                    ? 'brand-review'
+                    : ($hasDelivery ? 'delivery' : ($hasPricing ? 'pricing' : null))));
     @endphp
 
     <article class="ag-store-pdp">
@@ -169,7 +174,7 @@
             </div>
         </div>
 
-        @if ($hasPricing || $hasDescription || $hasDelivery || $hasBrandAbout)
+        @if ($hasPricing || $hasDescription || $hasDelivery || $hasBrandAbout || $hasBrandReview)
             <div class="ag-store-pdp__tabs" data-store-pdp-tabs>
                 <div class="ag-store-pdp__tablist" role="tablist" aria-label="{{ __('agricart.storefront.product.sections.details') }}">
                     @foreach ($contentSections as $section)
@@ -199,6 +204,20 @@
                             data-store-pdp-tab="brand"
                         >
                             {{ __('agricart.storefront.product.tabs.about_brand') }}
+                        </button>
+                    @endif
+                    @if ($hasBrandReview)
+                        <button
+                            type="button"
+                            @class(['ag-store-pdp__tab', 'is-active' => $firstTabKey === 'brand-review'])
+                            id="store-pdp-tab-brand-review"
+                            role="tab"
+                            aria-selected="{{ $firstTabKey === 'brand-review' ? 'true' : 'false' }}"
+                            aria-controls="store-pdp-panel-brand-review"
+                            tabindex="{{ $firstTabKey === 'brand-review' ? '0' : '-1' }}"
+                            data-store-pdp-tab="brand-review"
+                        >
+                            {{ __('agricart.storefront.product.tabs.agricart_brand_review') }}
                         </button>
                     @endif
                     @if ($hasDelivery)
@@ -257,6 +276,23 @@
                         @if ($firstTabKey !== 'brand') hidden @endif
                     >
                         @include('store.components.product-brand-about', [
+                            'product' => $product,
+                            'presenter' => $presenter,
+                        ])
+                    </div>
+                @endif
+
+                @if ($hasBrandReview)
+                    <div
+                        @class(['ag-store-pdp__panel', 'is-active' => $firstTabKey === 'brand-review'])
+                        id="store-pdp-panel-brand-review"
+                        role="tabpanel"
+                        aria-labelledby="store-pdp-tab-brand-review"
+                        tabindex="0"
+                        data-store-pdp-panel="brand-review"
+                        @if ($firstTabKey !== 'brand-review') hidden @endif
+                    >
+                        @include('store.components.product-brand-review', [
                             'product' => $product,
                             'presenter' => $presenter,
                         ])

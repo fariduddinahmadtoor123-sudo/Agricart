@@ -1329,6 +1329,8 @@ return [
             'agricart_rating' => 'ایگری کارٹ ریویو',
             'agricart_rating_none' => 'ابھی ریٹنگ نہیں',
             'agricart_rating_value' => ':score / 10',
+            'agricart_rating_reason_en' => 'اس سکور کی وجہ (انگریزی)',
+            'agricart_rating_reason_ur' => 'اس سکور کی وجہ (اردو)',
             'ai_status' => 'AI حالت',
             'ai_message' => 'AI کو پیغام',
         ],
@@ -1339,7 +1341,9 @@ return [
             'status' => 'غیر فعال برانڈ کی مصنوعات محفوظ رہتی ہیں، مگر وہ خود بخود غیر فعال ہو جاتی ہیں۔',
             'inactive_reason_en' => 'Explain why this brand is being deactivated (English).',
             'inactive_reason_ur' => 'اس برانڈ کو غیر فعال کرنے کی وجہ اردو میں لکھیں۔',
-            'agricart_rating' => 'اختیاری — تجربہ، سیل، یا پارٹنر فیڈبیک کی بنیاد پر 10 میں سے ایگری کارٹ سکور۔ بغیر ریٹنگ بھی برانڈ محفوظ ہو سکتا ہے۔',
+            'agricart_rating' => 'اختیاری — 10 میں سے سکور۔ اگر سکور دیں تو انگریزی اور اردو میں وجہ بھی لکھیں۔',
+            'agricart_rating_reason_en' => 'e.g. Strong after-sales support and consistent quality on our shelf.',
+            'agricart_rating_reason_ur' => 'مثلاً: سیل کے بعد سروس اچھی ہے اور معیار مستحکم ہے۔',
         ],
         'image' => [
             'upload' => 'برانڈ تصویر اپلوڈ کریں',
@@ -2754,6 +2758,7 @@ return [
                 'pricing' => 'مقدار کی قیمتیں',
                 'delivery' => 'ڈیلیوری',
                 'about_brand' => 'برانڈ کے بارے میں',
+                'agricart_brand_review' => 'ایگری کارٹ ریویو',
             ],
             'sections' => [
                 'details' => 'پروڈکٹ تفصیلات',
@@ -2767,6 +2772,11 @@ return [
                 'about_brand' => 'برانڈ کے بارے میں',
             ],
             'brand_website' => 'برانڈ ویب سائٹ دیکھیں',
+            'brand_review' => [
+                'eyebrow' => 'ایگری کارٹ برانڈ سکور',
+                'out_of' => '/ 10',
+                'score_aria' => 'ایگری کارٹ نے اس برانڈ کو 10 میں سے :score دیا',
+            ],
             'delivery' => [
                 'lead' => 'اس پروڈکٹ کے لیے یہ ڈیلیوری اختیارات دستیاب ہیں۔ چیک آؤٹ پر آپ ایک منتخب کریں گے۔',
                 'payments' => 'ادائیگی کے اختیارات:',

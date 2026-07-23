@@ -144,6 +144,8 @@ class BrandService
             'inactive_reason_en' => ['nullable', 'string', 'max:2000'],
             'inactive_reason_ur' => ['nullable', 'string', 'max:2000'],
             'agricart_rating' => ['nullable', 'integer', 'min:1', 'max:10'],
+            'agricart_rating_reason_en' => ['nullable', 'string', 'max:2000'],
+            'agricart_rating_reason_ur' => ['nullable', 'string', 'max:2000'],
             'name_en' => ['required', 'string', 'max:255'],
             'name_ur' => ['required', 'string', 'max:255'],
             'image_path' => [$exceptId ? 'nullable' : 'required', 'string', 'max:255'],
@@ -158,6 +160,18 @@ class BrandService
         if ($status === 'inactive') {
             $rules['inactive_reason_en'] = ['required', 'string', 'max:2000'];
             $rules['inactive_reason_ur'] = ['required', 'string', 'max:2000'];
+        }
+
+        $rating = $data['agricart_rating'] ?? null;
+        if ($rating === '' || $rating === null) {
+            $rating = null;
+        } else {
+            $rating = (int) $rating;
+        }
+
+        if ($rating !== null) {
+            $rules['agricart_rating_reason_en'] = ['required', 'string', 'max:2000'];
+            $rules['agricart_rating_reason_ur'] = ['required', 'string', 'max:2000'];
         }
 
         $validator = validator($data, $rules);
@@ -177,6 +191,12 @@ class BrandService
 
         if (array_key_exists('agricart_rating', $validated) && $validated['agricart_rating'] === '') {
             $validated['agricart_rating'] = null;
+        }
+
+        if (empty($validated['agricart_rating'])) {
+            $validated['agricart_rating'] = null;
+            $validated['agricart_rating_reason_en'] = null;
+            $validated['agricart_rating_reason_ur'] = null;
         }
 
         if ($exceptId && empty($validated['image_path'])) {

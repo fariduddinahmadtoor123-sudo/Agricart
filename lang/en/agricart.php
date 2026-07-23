@@ -1329,6 +1329,8 @@ return [
             'agricart_rating' => 'Agricart review',
             'agricart_rating_none' => 'Not rated yet',
             'agricart_rating_value' => ':score / 10',
+            'agricart_rating_reason_en' => 'Why this score (English)',
+            'agricart_rating_reason_ur' => 'Why this score (Urdu)',
             'ai_status' => 'AI status',
             'ai_message' => 'Message to AI',
         ],
@@ -1339,7 +1341,9 @@ return [
             'status' => 'Inactive brands keep their products, but those products are set inactive automatically.',
             'inactive_reason_en' => 'Explain why this brand is being deactivated (English).',
             'inactive_reason_ur' => 'اس برانڈ کو غیر فعال کرنے کی وجہ اردو میں لکھیں۔',
-            'agricart_rating' => 'Optional Agricart score out of 10 from our experience, sales, or partner feedback. Brand can still save without a rating.',
+            'agricart_rating' => 'Optional Agricart score out of 10. If you set a score, explain why in English and Urdu.',
+            'agricart_rating_reason_en' => 'e.g. Strong after-sales support and consistent quality on our shelf.',
+            'agricart_rating_reason_ur' => 'مثلاً: سیل کے بعد سروس اچھی ہے اور معیار مستحکم ہے۔',
         ],
         'image' => [
             'upload' => 'Upload brand image',
@@ -2754,6 +2758,7 @@ return [
                 'pricing' => 'Quantity pricing',
                 'delivery' => 'Delivery',
                 'about_brand' => 'About the brand',
+                'agricart_brand_review' => 'Agricart review',
             ],
             'sections' => [
                 'details' => 'Product details',
@@ -2767,6 +2772,11 @@ return [
                 'about_brand' => 'About the brand',
             ],
             'brand_website' => 'Visit brand website',
+            'brand_review' => [
+                'eyebrow' => 'Agricart brand score',
+                'out_of' => '/ 10',
+                'score_aria' => 'Agricart rated this brand :score out of 10',
+            ],
             'delivery' => [
                 'lead' => 'These delivery options are available for this product. You choose one at checkout.',
                 'payments' => 'Payment options:',

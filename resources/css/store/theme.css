@@ -1750,6 +1750,58 @@
     margin: 0;
 }
 
+.ag-store-pdp__brand-review {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.ag-store-pdp__brand-review-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--agricart-border, #ebedf0);
+}
+
+.ag-store-pdp__brand-review-eyebrow {
+    margin: 0;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--agricart-muted, #64748b);
+}
+
+.ag-store-pdp__brand-review-score {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid var(--agricart-border, #ebedf0);
+    background: color-mix(in srgb, var(--agricart-primary, #83b735) 12%, #fff);
+    border-radius: 0;
+    width: fit-content;
+}
+
+.ag-store-pdp__brand-review-score-value {
+    font-family: Arial, sans-serif !important;
+    font-size: 1.75rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--agricart-primary, #83b735);
+}
+
+.ag-store-pdp__brand-review-score-of {
+    font-family: Arial, sans-serif !important;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--agricart-muted, #64748b);
+}
+
+.ag-store-pdp__brand-review-body {
+    margin: 0;
+}
+
 .ag-store-pdp__spec-list {
     margin: 0;
     padding: 0;

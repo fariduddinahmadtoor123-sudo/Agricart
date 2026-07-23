@@ -336,6 +336,8 @@ class CatalogPortableArchiveService
                 'inactive_reason_en' => $brand->inactive_reason_en,
                 'inactive_reason_ur' => $brand->inactive_reason_ur,
                 'agricart_rating' => $brand->agricart_rating,
+                'agricart_rating_reason_en' => $brand->agricart_rating_reason_en,
+                'agricart_rating_reason_ur' => $brand->agricart_rating_reason_ur,
                 'name_en' => $brand->name_en,
                 'name_ur' => $brand->name_ur,
                 'description_en' => $brand->description_en,
@@ -605,6 +607,8 @@ class CatalogPortableArchiveService
                 'inactive_reason_en' => $row['inactive_reason_en'] ?? null,
                 'inactive_reason_ur' => $row['inactive_reason_ur'] ?? null,
                 'agricart_rating' => $rating,
+                'agricart_rating_reason_en' => $rating === null ? null : ($row['agricart_rating_reason_en'] ?? null),
+                'agricart_rating_reason_ur' => $rating === null ? null : ($row['agricart_rating_reason_ur'] ?? null),
                 'image_path' => $imagePath ?: 'brands/placeholder.webp',
             ]);
 

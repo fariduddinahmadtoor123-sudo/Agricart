@@ -254,6 +254,8 @@ class BrandFormIntegrityTest extends TestCase
             ->set('inactive_reason_en', 'Supplier stopped delivery')
             ->set('inactive_reason_ur', 'سپلائر نے سپلائی بند کر دی')
             ->set('agricart_rating', '8')
+            ->set('agricart_rating_reason_en', 'Reliable quality and steady sales')
+            ->set('agricart_rating_reason_ur', 'معیار قابلِ اعتماد ہے اور سیل مستحکم ہے')
             ->call('saveAndClose')
             ->assertSet('statusType', 'success');
 
@@ -262,8 +264,37 @@ class BrandFormIntegrityTest extends TestCase
         $this->assertSame('Supplier stopped delivery', $brand->inactive_reason_en);
         $this->assertSame('سپلائر نے سپلائی بند کر دی', $brand->inactive_reason_ur);
         $this->assertSame(8, $brand->agricart_rating);
+        $this->assertSame('Reliable quality and steady sales', $brand->agricart_rating_reason_en);
+        $this->assertSame('معیار قابلِ اعتماد ہے اور سیل مستحکم ہے', $brand->agricart_rating_reason_ur);
         $this->assertSame('inactive', $activeProduct->fresh()->status);
         $this->assertSame('inactive', $draftProduct->fresh()->status);
+    }
+
+    public function test_agricart_rating_requires_bilingual_reason(): void
+    {
+        Storage::fake('public');
+
+        $brand = $this->brand('rated-brand', 'Rated Brand');
+
+        Livewire::test(Form::class)
+            ->call('openForm', $brand->id, 'edit')
+            ->set('agricart_rating', '9')
+            ->call('saveAndClose')
+            ->assertSet('statusType', 'danger');
+
+        $this->assertNull($brand->fresh()->agricart_rating);
+
+        Livewire::test(Form::class)
+            ->call('openForm', $brand->id, 'edit')
+            ->set('agricart_rating', '9')
+            ->set('agricart_rating_reason_en', 'Excellent partner feedback')
+            ->set('agricart_rating_reason_ur', 'پارٹنر فیڈبیک بہترین ہے')
+            ->call('saveAndClose')
+            ->assertSet('statusType', 'success');
+
+        $brand->refresh();
+        $this->assertSame(9, $brand->agricart_rating);
+        $this->assertSame('Excellent partner feedback', $brand->agricart_rating_reason_en);
     }
 
     public function test_brand_can_save_without_agricart_rating(): void

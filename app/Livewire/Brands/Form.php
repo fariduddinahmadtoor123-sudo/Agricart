@@ -63,6 +63,10 @@ class Form extends Component
 
     public string $agricart_rating = '';
 
+    public string $agricart_rating_reason_en = '';
+
+    public string $agricart_rating_reason_ur = '';
+
     #[Locked]
     public string $ai_status = 'none';
 
@@ -271,6 +275,16 @@ class Form extends Component
             }
         }
 
+        if (filled($this->agricart_rating)) {
+            if (! filled(trim($this->agricart_rating_reason_en))) {
+                $missing[] = __('agricart.brands.fields.agricart_rating_reason_en');
+            }
+
+            if (! filled(trim($this->agricart_rating_reason_ur))) {
+                $missing[] = __('agricart.brands.fields.agricart_rating_reason_ur');
+            }
+        }
+
         if ($missing !== []) {
             $this->setStatus(
                 __('agricart.brands.messages.required_fields', ['fields' => implode(', ', $missing)]),
@@ -360,6 +374,8 @@ class Form extends Component
             'inactive_reason_en' => $this->inactive_reason_en ?: null,
             'inactive_reason_ur' => $this->inactive_reason_ur ?: null,
             'agricart_rating' => filled($this->agricart_rating) ? (int) $this->agricart_rating : null,
+            'agricart_rating_reason_en' => $this->agricart_rating_reason_en ?: null,
+            'agricart_rating_reason_ur' => $this->agricart_rating_reason_ur ?: null,
             'name_en' => $this->name_en,
             'name_ur' => $this->name_ur,
             'image_path' => $this->storedImagePath,
@@ -430,6 +446,8 @@ class Form extends Component
         $this->inactive_reason_en = $brand->inactive_reason_en ?? '';
         $this->inactive_reason_ur = $brand->inactive_reason_ur ?? '';
         $this->agricart_rating = $brand->agricart_rating !== null ? (string) $brand->agricart_rating : '';
+        $this->agricart_rating_reason_en = $brand->agricart_rating_reason_en ?? '';
+        $this->agricart_rating_reason_ur = $brand->agricart_rating_reason_ur ?? '';
         $this->ai_status = $brand->ai_status?->value ?? 'none';
         $this->storedImagePath = $brand->image_path;
         $this->imagePreviewUrl = filled($brand->image_path)
@@ -457,6 +475,8 @@ class Form extends Component
         $this->inactive_reason_en = '';
         $this->inactive_reason_ur = '';
         $this->agricart_rating = '';
+        $this->agricart_rating_reason_en = '';
+        $this->agricart_rating_reason_ur = '';
         $this->ai_status = 'none';
         $this->saving = false;
         $this->enriching = false;

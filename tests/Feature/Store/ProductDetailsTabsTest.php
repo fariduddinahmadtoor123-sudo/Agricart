@@ -67,6 +67,54 @@ class ProductDetailsTabsTest extends TestCase
             ->assertSee('https://example.com/acme', false);
     }
 
+    public function test_product_page_shows_agricart_brand_review_tab(): void
+    {
+        $category = Category::query()->create([
+            'slug' => 'pumps',
+            'code' => 'CAT-PUMP',
+            'status' => 'active',
+            'name_en' => 'Pumps',
+            'name_ur' => 'پمپ',
+        ]);
+
+        $brand = \App\Models\Brand::query()->create([
+            'code' => 'BRD-REVIEW',
+            'slug' => 'review-brand',
+            'status' => 'active',
+            'name_en' => 'Review Brand',
+            'name_ur' => 'ریویو برانڈ',
+            'description_en' => 'Maker of pumps.',
+            'agricart_rating' => 8,
+            'agricart_rating_reason_en' => 'Steady sales and low return rate.',
+            'agricart_rating_reason_ur' => 'سیل مستحکم اور ریٹرن کم ہے۔',
+            'image_path' => 'brands/review.webp',
+            'ai_status' => 'none',
+        ]);
+
+        $product = Product::query()->create([
+            'category_id' => $category->id,
+            'brand_id' => $brand->id,
+            'status' => 'active',
+            'code' => 'PRD-REVIEW-1',
+            'sku' => 'PUMP-1',
+            'name_en' => 'Review Pump',
+            'name_ur' => 'ریویو پمپ',
+            'slug' => 'review-pump',
+            'full_description_en' => 'A pump with brand review.',
+        ]);
+
+        $response = $this->get(route('store.product', $product->slug));
+
+        $response
+            ->assertOk()
+            ->assertSee('data-store-pdp-tab="brand"', false)
+            ->assertSee('data-store-pdp-tab="brand-review"', false)
+            ->assertSee(__('agricart.storefront.product.tabs.agricart_brand_review'), false)
+            ->assertSee(__('agricart.storefront.product.brand_review.eyebrow'), false)
+            ->assertSee('Steady sales and low return rate.', false)
+            ->assertSee('8', false);
+    }
+
     public function test_product_page_hides_about_brand_tab_without_brand_description(): void
     {
         $category = Category::query()->create([

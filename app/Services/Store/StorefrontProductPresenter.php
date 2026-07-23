@@ -258,6 +258,36 @@ class StorefrontProductPresenter
         return filled($this->localizedBrandDescription($product));
     }
 
+    public function hasAgricartBrandReview(Product $product): bool
+    {
+        $rating = $product->brand?->agricart_rating;
+
+        return is_int($rating) && $rating >= 1 && $rating <= 10;
+    }
+
+    public function localizedAgricartRatingReason(Product $product): ?string
+    {
+        $brand = $product->brand;
+
+        if ($brand === null) {
+            return null;
+        }
+
+        if (app()->getLocale() === 'ur' && filled($brand->agricart_rating_reason_ur)) {
+            return $brand->agricart_rating_reason_ur;
+        }
+
+        if (filled($brand->agricart_rating_reason_en)) {
+            return $brand->agricart_rating_reason_en;
+        }
+
+        if (filled($brand->agricart_rating_reason_ur)) {
+            return $brand->agricart_rating_reason_ur;
+        }
+
+        return null;
+    }
+
     private function tierLabel(string $tierKey): string
     {
         $definition = QuantityPricingEngine::PRICE_TIER_TYPES[$tierKey] ?? null;

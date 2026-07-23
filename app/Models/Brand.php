@@ -17,6 +17,8 @@ class Brand extends Model
         'inactive_reason_en',
         'inactive_reason_ur',
         'agricart_rating',
+        'agricart_rating_reason_en',
+        'agricart_rating_reason_ur',
         'name_en',
         'name_ur',
         'image_path',
