@@ -1289,8 +1289,16 @@
 
 .ag-store-product-card__brand {
     margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.5rem;
     font-size: 0.75rem;
     color: var(--agricart-muted);
+}
+
+.ag-store-product-card__brand-name {
+    min-width: 0;
 }
 
 .ag-store-product-card__price {
@@ -2001,9 +2009,17 @@
     width: 1.75rem;
     height: 1.75rem;
     object-fit: contain;
-    border-radius: 0.25rem;
+    border-radius: 0;
     border: 1px solid color-mix(in oklab, var(--agricart-border) 80%, transparent);
     background: #fff;
+}
+
+.ag-store-pdp__spec-brand-meta {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.2rem;
+    min-width: 0;
 }
 
 .ag-store-pdp__spec-brand-name {
@@ -2013,6 +2029,70 @@
     text-transform: uppercase;
     color: var(--agricart-primary);
     line-height: 1.3;
+}
+
+.ag-store-brand-rating {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.3rem 0.4rem;
+    font-family: Arial, sans-serif !important;
+    line-height: 1;
+}
+
+.ag-store-brand-rating__stars {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.02rem;
+}
+
+.ag-store-brand-rating__star {
+    position: relative;
+    display: inline-block;
+    font-size: 0.8125rem;
+    line-height: 1;
+    color: #d1d5db;
+}
+
+.ag-store-brand-rating__star.is-full {
+    color: var(--agricart-accent, #fbbc34);
+}
+
+.ag-store-brand-rating__star.is-half {
+    color: #d1d5db;
+}
+
+.ag-store-brand-rating__star.is-half::before {
+    content: '★';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 50%;
+    overflow: hidden;
+    color: var(--agricart-accent, #fbbc34);
+}
+
+.ag-store-brand-rating__score,
+.ag-store-brand-rating__percent {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: var(--agricart-text, #0f172a);
+}
+
+.ag-store-brand-rating__percent {
+    color: var(--agricart-primary, #83b735);
+}
+
+.ag-store-brand-rating--compact .ag-store-brand-rating__star {
+    font-size: 0.6875rem;
+}
+
+.ag-store-brand-rating--compact .ag-store-brand-rating__percent {
+    font-size: 0.6875rem;
+}
+
+.ag-store-product-card__brand .ag-store-brand-rating {
+    justify-content: flex-start;
 }
 
 .ag-store-pdp__spec-controls {

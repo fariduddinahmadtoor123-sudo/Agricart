@@ -260,19 +260,37 @@ class StorefrontProductPresenter
 
     public function hasAgricartBrandReview(Product $product): bool
     {
-        $rating = $product->brand?->agricart_rating;
+        return $this->agricartBrandRatingSummary($product) !== null;
+    }
 
+    /**
+     * Compact Agricart brand score for storefront chips (stars + percent).
+     *
+     * @return array{score: int, max: int, percent: int, stars: float}|null
+     */
+    public function agricartBrandRatingSummary(Product $product): ?array
+    {
+        $rating = $product->brand?->agricart_rating;
         $maxScore = \App\Support\Catalog\BrandAgricartReviewCriteria::scoreMax();
 
         if (! is_int($rating) || $rating < 0 || $rating > $maxScore) {
-            return false;
+            return null;
         }
 
         $criteria = \App\Support\Catalog\BrandAgricartReviewCriteria::normalizeDetailed(
             $product->brand?->agricart_rating_criteria,
         );
 
-        return \App\Support\Catalog\BrandAgricartReviewCriteria::isComplete($criteria);
+        if (! \App\Support\Catalog\BrandAgricartReviewCriteria::isComplete($criteria)) {
+            return null;
+        }
+
+        return [
+            'score' => $rating,
+            'max' => $maxScore,
+            'percent' => (int) round(($rating / $maxScore) * 100),
+            'stars' => round($rating / 2, 1),
+        ];
     }
 
     public function localizedAgricartRatingReason(Product $product): ?string

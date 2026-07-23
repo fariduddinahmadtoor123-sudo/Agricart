@@ -98,7 +98,17 @@
                             <a href="{{ $productUrl }}" class="ag-store-product-card__body">
                                 <h3 class="ag-store-product-card__name">{{ $name }}</h3>
                                 @if ($brand = $productService->localizedBrandName($product))
-                                    <p class="ag-store-product-card__brand">{{ $brand }}</p>
+                                    @php
+                                        $searchBrandRating = app(\App\Services\Store\StorefrontProductPresenter::class)
+                                            ->agricartBrandRatingSummary($product);
+                                    @endphp
+                                    <p class="ag-store-product-card__brand">
+                                        <span class="ag-store-product-card__brand-name">{{ $brand }}</span>
+                                        @include('store.components.brand-rating', [
+                                            'summary' => $searchBrandRating,
+                                            'variant' => 'compact',
+                                        ])
+                                    </p>
                                 @endif
                                 @if ($price = $productService->formattedRetailPrice($product))
                                     <p class="ag-store-product-card__price">{{ __('agricart.storefront.products.price', ['amount' => $price]) }}</p>

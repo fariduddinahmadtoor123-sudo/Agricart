@@ -4,6 +4,7 @@
     $hasBrand = $product->brand !== null;
     $brandName = $hasBrand ? $presenter->localizedBrandName($product) : null;
     $brandLogoUrl = $hasBrand ? $presenter->brandImageUrl($product) : null;
+    $brandRating = $hasBrand ? $presenter->agricartBrandRatingSummary($product) : null;
     $hasSpecs = $hasBrand || $facts !== [] || $attributes->isNotEmpty();
 @endphp
 
@@ -17,7 +18,13 @@
             @if ($brandLogoUrl)
               <img src="{{ $brandLogoUrl }}" alt="" class="ag-store-pdp__spec-brand-logo" loading="lazy" width="28" height="28" />
             @endif
-            <span class="ag-store-pdp__spec-brand-name">{{ $brandName }}</span>
+            <span class="ag-store-pdp__spec-brand-meta">
+              <span class="ag-store-pdp__spec-brand-name">{{ $brandName }}</span>
+              @include('store.components.brand-rating', [
+                  'summary' => $brandRating,
+                  'variant' => 'full',
+              ])
+            </span>
           </span>
         </dd>
       </div>

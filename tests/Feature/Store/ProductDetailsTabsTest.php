@@ -132,7 +132,63 @@ class ProductDetailsTabsTest extends TestCase
             ->assertSee('Sometimes delays supply.', false)
             ->assertSee('Spare parts and service improved', false)
             ->assertSee('independent editorial opinion', false)
-            ->assertSee('8', false);
+            ->assertSee('8', false)
+            ->assertSee('80%', false)
+            ->assertSee('8/10', false)
+            ->assertSee('ag-store-brand-rating', false);
+    }
+
+    public function test_category_listing_shows_agricart_review_percent_next_to_brand(): void
+    {
+        $category = Category::query()->create([
+            'slug' => 'bearings',
+            'code' => 'CAT-BEAR',
+            'status' => 'active',
+            'name_en' => 'Bearings',
+            'name_ur' => 'بیرنگ',
+        ]);
+
+        $brand = \App\Models\Brand::query()->create([
+            'code' => 'BRD-BEARMAX',
+            'slug' => 'bearmax',
+            'status' => 'active',
+            'name_en' => 'BEARMAX',
+            'name_ur' => 'بیئر میکس',
+            'agricart_rating' => 8,
+            'agricart_rating_criteria' => [
+                'product_quality' => ['rating' => 9, 'reason_en' => 'Solid build.', 'reason_ur' => 'مضبوط بناتا ہے۔'],
+                'value_for_money' => ['rating' => 9, 'reason_en' => 'Fair price.', 'reason_ur' => 'مناسب قیمت۔'],
+                'market_reputation' => ['rating' => 9, 'reason_en' => 'Trusted by dealers.', 'reason_ur' => 'ڈیلرز اعتماد کرتے ہیں۔'],
+                'durability' => ['rating' => 9, 'reason_en' => 'Lasts seasons.', 'reason_ur' => 'موسم چلتا ہے۔'],
+                'performance' => ['rating' => 9, 'reason_en' => 'Meets claims.', 'reason_ur' => 'دعوے پورے کرتا ہے۔'],
+                'innovation_technology' => ['rating' => 9, 'reason_en' => 'Updates models.', 'reason_ur' => 'ماڈل اپڈیٹ کرتا ہے۔'],
+                'warranty_after_sales' => ['rating' => 9, 'reason_en' => 'Service centers work.', 'reason_ur' => 'سروس سینٹر کام کرتے ہیں۔'],
+                'spare_parts_availability' => ['rating' => 9, 'reason_en' => 'Parts easy to find.', 'reason_ur' => 'پارٹس ملتے ہیں۔'],
+                'brand_reliability' => ['rating' => 3, 'reason_en' => 'Sometimes delays supply.', 'reason_ur' => 'کبھی سپلائی تاخیر۔'],
+                'product_availability' => ['rating' => 9, 'reason_en' => 'Stock stays steady year-round.', 'reason_ur' => 'سال بھر اسٹاک مستحکم۔'],
+                'overall_market_acceptance' => ['rating' => 3, 'reason_en' => 'Still niche in some areas.', 'reason_ur' => 'کچھ علاقوں میں محدود۔'],
+            ],
+            'image_path' => 'brands/bearmax.webp',
+            'ai_status' => 'none',
+        ]);
+
+        Product::query()->create([
+            'category_id' => $category->id,
+            'brand_id' => $brand->id,
+            'status' => 'active',
+            'code' => 'PRD-BEAR-6203',
+            'sku' => 'AGR-BEAR-6203',
+            'name_en' => 'Deep Groove Ball Bearing 6203',
+            'name_ur' => 'ڈیپ گروو بال بیرنگ 6203',
+            'slug' => 'deep-groove-ball-bearing-6203',
+        ]);
+
+        $this->get(route('store.category', $category->slug))
+            ->assertOk()
+            ->assertSee('Deep Groove Ball Bearing 6203', false)
+            ->assertSee('BEARMAX', false)
+            ->assertSee('80%', false)
+            ->assertSee('ag-store-brand-rating--compact', false);
     }
 
     public function test_product_page_hides_about_brand_tab_without_brand_description(): void
