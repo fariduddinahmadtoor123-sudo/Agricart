@@ -84,6 +84,7 @@
                             <td class="agricart-categories__actions">
                                 @if ($canView)
                                     <button type="button" class="agricart-categories__action" wire:click="openView({{ $brand->id }})">{{ __('agricart.brands.actions.view_short') }}</button>
+                                    <button type="button" class="agricart-categories__action" wire:click="printBrand({{ $brand->id }})">{{ __('agricart.brands.actions.print_short') }}</button>
                                 @endif
                                 @if ($canEdit)
                                     <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $brand->id }})">{{ __('agricart.brands.actions.edit_short') }}</button>
@@ -103,3 +104,14 @@
         </div>
     @endif
 </div>
+
+@script
+<script>
+    Livewire.on('brands-open-print', (payload) => {
+        const url = payload?.url ?? payload?.[0]?.url ?? null;
+        if (url) {
+            window.open(url, '_blank');
+        }
+    });
+</script>
+@endscript

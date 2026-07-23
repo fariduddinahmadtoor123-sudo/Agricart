@@ -144,10 +144,10 @@ class BrandService
             'status' => ['nullable', 'string', 'in:active,inactive'],
             'inactive_reason_en' => ['nullable', 'string', 'max:2000'],
             'inactive_reason_ur' => ['nullable', 'string', 'max:2000'],
-            'agricart_rating' => ['nullable', 'integer', 'min:0', 'max:10'],
+            'agricart_rating' => ['nullable', 'integer', 'min:0', 'max:'.BrandAgricartReviewCriteria::count()],
             'agricart_rating_criteria' => ['nullable', 'array'],
-            'agricart_rating_reason_en' => ['nullable', 'string', 'max:2000'],
-            'agricart_rating_reason_ur' => ['nullable', 'string', 'max:2000'],
+            'agricart_rating_reason_en' => ['nullable', 'string', 'max:20000'],
+            'agricart_rating_reason_ur' => ['nullable', 'string', 'max:20000'],
             'agricart_rating_revision_en' => ['nullable', 'string', 'max:4000'],
             'agricart_rating_revision_ur' => ['nullable', 'string', 'max:4000'],
             'name_en' => ['required', 'string', 'max:255'],
@@ -176,6 +176,8 @@ class BrandService
         $criteria = BrandAgricartReviewCriteria::normalizeDetailed(
             is_array($data['agricart_rating_criteria'] ?? null) ? $data['agricart_rating_criteria'] : null,
         );
+        $criteria = app(BrandAgricartReviewMessageService::class)->fillMissingReasons($criteria);
+        $data['agricart_rating_criteria'] = $criteria;
 
         if (BrandAgricartReviewCriteria::hasAnyAnswer($criteria) && ! BrandAgricartReviewCriteria::isComplete($criteria)) {
             throw ValidationException::withMessages([
@@ -230,8 +232,12 @@ class BrandService
             $validated['agricart_rating_revision_ur'] = null;
         } else {
             $composed = BrandAgricartReviewCriteria::composeReview($criteria);
-            $validated['agricart_rating_reason_en'] = $composed['en'];
-            $validated['agricart_rating_reason_ur'] = $composed['ur'];
+            $providedEn = trim((string) ($data['agricart_rating_reason_en'] ?? ''));
+            $providedUr = trim((string) ($data['agricart_rating_reason_ur'] ?? ''));
+
+            // Keep AI / manually provided polished review when present; otherwise use checklist template.
+            $validated['agricart_rating_reason_en'] = $providedEn !== '' ? $providedEn : ($composed['en'] ?? null);
+            $validated['agricart_rating_reason_ur'] = $providedUr !== '' ? $providedUr : ($composed['ur'] ?? null);
         }
 
         if ($exceptId && empty($validated['image_path'])) {

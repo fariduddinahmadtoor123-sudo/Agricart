@@ -140,6 +140,17 @@ class SettingsPageToolbar extends ClusterPageToolbar
                 'filters' => [],
                 'columns' => [],
             ],
+            'brand-review-messages' => [
+                ...$config,
+                'addLabel' => null,
+                'formKey' => null,
+                'hideSearch' => true,
+                'hideFilters' => true,
+                'hideColumns' => true,
+                'interactive' => false,
+                'filters' => [],
+                'columns' => [],
+            ],
             'printing' => [
                 ...$config,
                 'addLabel' => null,

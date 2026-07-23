@@ -4,17 +4,21 @@ namespace Tests\Feature\Catalog;
 
 use App\Livewire\Brands\Form;
 use App\Livewire\Brands\ListBrands;
+use App\Models\AiConfiguration;
 use App\Models\Brand;
 use App\Models\Permission;
 use App\Models\Product;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Ai\OpenRouterClient;
+use App\Services\Catalog\BrandAgricartReviewAiService;
 use App\Services\Catalog\BrandEnrichmentService;
 use App\Services\Catalog\ProductLabelService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
+use Mockery;
 use Tests\TestCase;
 
 class BrandFormIntegrityTest extends TestCase
@@ -299,7 +303,7 @@ class BrandFormIntegrityTest extends TestCase
         $this->assertSame('Pass reason product_quality', $brand->agricart_rating_criteria['product_quality']['reason_en']);
         $this->assertFalse($brand->agricart_rating_criteria['overall_market_acceptance']['pass']);
         $this->assertStringContainsString('Product Quality', (string) $brand->agricart_rating_reason_en);
-        $this->assertStringContainsString('8 / 10', (string) $brand->agricart_rating_reason_en);
+        $this->assertStringContainsString('8 / 11', (string) $brand->agricart_rating_reason_en);
     }
 
     public function test_saving_brand_persists_editable_site_review_notice(): void
@@ -337,6 +341,89 @@ class BrandFormIntegrityTest extends TestCase
         $this->assertSame('active', $brand->status);
     }
 
+    public function test_pass_fail_auto_fills_manageable_suggested_messages_and_can_save_as_default(): void
+    {
+        Storage::fake('public');
+
+        $brand = $this->brand('suggest-brand', 'Suggest Brand');
+
+        Livewire::test(Form::class)
+            ->call('openForm', $brand->id, 'edit')
+            ->call('setAgricartCriterion', 'product_quality', 'pass')
+            ->assertSet(
+                'agricart_rating_criteria.product_quality.reason_en',
+                'Consistently delivers high-quality products.',
+            )
+            ->assertSet(
+                'agricart_rating_criteria.product_quality.reason_ur',
+                'مسلسل اعلیٰ معیار کی مصنوعات فراہم کرتا ہے۔',
+            )
+            ->call('setAgricartCriterion', 'value_for_money', 'fail')
+            ->call('setAgricartCriterion', 'market_reputation', 'pass')
+            ->call('setAgricartCriterion', 'durability', 'pass')
+            ->call('setAgricartCriterion', 'performance', 'pass')
+            ->call('setAgricartCriterion', 'innovation_technology', 'pass')
+            ->call('setAgricartCriterion', 'warranty_after_sales', 'pass')
+            ->call('setAgricartCriterion', 'spare_parts_availability', 'pass')
+            ->call('setAgricartCriterion', 'brand_reliability', 'pass')
+            ->call('setAgricartCriterion', 'product_availability', 'pass')
+            ->call('setAgricartCriterion', 'overall_market_acceptance', 'pass')
+            ->set('agricart_rating_criteria.product_quality.reason_en', 'Custom high quality line for this brand.')
+            ->set('agricart_rating_criteria.product_quality.reason_ur', 'اس برانڈ کے لیے حسبِ ضرورت معیار کی لائن۔')
+            ->set('saveCriterionMessageAsDefault.product_quality', true)
+            ->call('saveAndClose')
+            ->assertSet('statusType', 'success');
+
+        $message = \App\Models\BrandAgricartReviewMessage::query()
+            ->where('criterion_key', 'product_quality')
+            ->firstOrFail();
+
+        $this->assertSame('Custom high quality line for this brand.', $message->high_en);
+        $this->assertSame('اس برانڈ کے لیے حسبِ ضرورت معیار کی لائن۔', $message->high_ur);
+
+        $suggestion = app(\App\Services\Catalog\BrandAgricartReviewMessageService::class)
+            ->suggestionFor('product_quality', true);
+
+        $this->assertSame(
+            'Custom high quality line for this brand.',
+            $suggestion['en'],
+        );
+    }
+
+    public function test_save_auto_fills_missing_reasons_from_suggested_messages(): void
+    {
+        Storage::fake('public');
+
+        $brand = $this->brand('autofill-brand', 'Autofill Brand');
+        $component = Livewire::test(Form::class)->call('openForm', $brand->id, 'edit');
+
+        foreach (\App\Support\Catalog\BrandAgricartReviewCriteria::keys() as $index => $key) {
+            $component->call('setAgricartCriterion', $key, $index < 9 ? 'pass' : 'fail');
+        }
+
+        // Simulate Livewire wiping reason text after Pass/Fail (previous bug).
+        foreach (\App\Support\Catalog\BrandAgricartReviewCriteria::keys() as $key) {
+            $component
+                ->set('agricart_rating_criteria.'.$key.'.reason_en', '')
+                ->set('agricart_rating_criteria.'.$key.'.reason_ur', '');
+        }
+
+        $component
+            ->call('saveAndClose')
+            ->assertSet('statusType', 'success');
+
+        $brand->refresh();
+        $this->assertSame(9, $brand->agricart_rating);
+        $this->assertSame(
+            'Consistently delivers high-quality products.',
+            $brand->agricart_rating_criteria['product_quality']['reason_en'],
+        );
+        $this->assertSame(
+            'Market acceptance is comparatively limited.',
+            $brand->agricart_rating_criteria['overall_market_acceptance']['reason_en'],
+        );
+    }
+
     public function test_ai_parser_ignores_non_string_brand_fields(): void
     {
         $parsed = app(BrandEnrichmentService::class)->parseResponse(json_encode([
@@ -355,6 +442,112 @@ class BrandFormIntegrityTest extends TestCase
         $this->assertNull(app(BrandEnrichmentService::class)->parseResponse(json_encode([
             'name_ur' => str_repeat('ا', 256),
         ])));
+    }
+
+    public function test_agricart_review_ai_fills_reasons_and_polished_review(): void
+    {
+        Storage::fake('public');
+
+        AiConfiguration::query()->create([
+            'provider' => 'openrouter',
+            'api_key' => 'test-key',
+            'model_id' => 'test/model',
+            'model_name' => 'Test',
+            'is_active' => true,
+            'connection_status' => 'connected',
+        ]);
+
+        $criteriaPayload = [];
+        foreach (\App\Support\Catalog\BrandAgricartReviewCriteria::keys() as $key) {
+            $criteriaPayload[$key] = [
+                'reason_en' => 'AI EN reason for '.$key,
+                'reason_ur' => 'AI UR وجہ '.$key,
+            ];
+        }
+
+        $client = Mockery::mock(OpenRouterClient::class);
+        $client->shouldReceive('sendChat')
+            ->once()
+            ->andReturn([
+                'success' => true,
+                'message' => 'ok',
+                'response' => json_encode([
+                    'criteria' => $criteriaPayload,
+                    'review_en' => 'Polished Agricart review for TestBrand in English.',
+                    'review_ur' => 'ٹیسٹ برانڈ کے لیے پالش شدہ ایگری کارٹ ریویو۔',
+                ], JSON_UNESCAPED_UNICODE),
+                'http_status' => 200,
+            ]);
+        $this->app->instance(OpenRouterClient::class, $client);
+
+        $brand = $this->brand('ai-review-brand', 'TestBrand');
+        $component = Livewire::test(Form::class)
+            ->call('openForm', $brand->id, 'edit')
+            ->set('name_en', 'TestBrand')
+            ->set('name_ur', 'ٹیسٹ برانڈ');
+
+        foreach (\App\Support\Catalog\BrandAgricartReviewCriteria::keys() as $index => $key) {
+            $component->call('setAgricartCriterion', $key, $index < 7 ? 'pass' : 'fail');
+        }
+
+        $component
+            ->call('generateAgricartReviewWithAi')
+            ->assertSet('statusType', 'success')
+            ->assertSet('agricart_rating', '7')
+            ->assertSet('agricart_rating_reason_en', 'Polished Agricart review for TestBrand in English.')
+            ->assertSet('agricart_rating_reason_ur', 'ٹیسٹ برانڈ کے لیے پالش شدہ ایگری کارٹ ریویو۔')
+            ->assertSet('agricart_rating_criteria.product_quality.reason_en', 'AI EN reason for product_quality')
+            ->assertSet('agricart_rating_criteria.product_quality.reason_ur', 'AI UR وجہ product_quality')
+            ->call('saveAndClose')
+            ->assertSet('statusType', 'success');
+
+        $brand->refresh();
+        $this->assertSame(7, $brand->agricart_rating);
+        $this->assertSame('Polished Agricart review for TestBrand in English.', $brand->agricart_rating_reason_en);
+        $this->assertSame('AI EN reason for product_quality', $brand->agricart_rating_criteria['product_quality']['reason_en']);
+    }
+
+    public function test_agricart_review_ai_requires_all_pass_fail_outcomes(): void
+    {
+        Storage::fake('public');
+
+        $brand = $this->brand('partial-review-brand', 'Partial Brand');
+
+        Livewire::test(Form::class)
+            ->call('openForm', $brand->id, 'edit')
+            ->call('setAgricartCriterion', 'product_quality', 'pass')
+            ->call('generateAgricartReviewWithAi')
+            ->assertSet('statusType', 'warning');
+    }
+
+    public function test_agricart_review_ai_parser_requires_full_payload(): void
+    {
+        $service = app(BrandAgricartReviewAiService::class);
+
+        $this->assertNull($service->parseResponse('{}'));
+        $this->assertNull($service->parseResponse(json_encode([
+            'review_en' => 'Only English',
+            'review_ur' => 'صرف اردو',
+            'criteria' => [],
+        ])));
+
+        $criteria = [];
+        foreach (\App\Support\Catalog\BrandAgricartReviewCriteria::keys() as $key) {
+            $criteria[$key] = [
+                'reason_en' => 'EN '.$key,
+                'reason_ur' => 'UR '.$key,
+            ];
+        }
+
+        $parsed = $service->parseResponse(json_encode([
+            'criteria' => $criteria,
+            'review_en' => 'Full EN review',
+            'review_ur' => 'مکمل اردو ریویو',
+        ], JSON_UNESCAPED_UNICODE));
+
+        $this->assertNotNull($parsed);
+        $this->assertSame('Full EN review', $parsed['review_en']);
+        $this->assertSame('EN product_quality', $parsed['criteria']['product_quality']['reason_en']);
     }
 
     /**

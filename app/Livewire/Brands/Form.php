@@ -6,6 +6,8 @@ use App\Enums\CategoryAiStatus;
 use App\Models\Brand;
 use App\Models\User;
 use App\Models\StoreSetting;
+use App\Services\Catalog\BrandAgricartReviewAiService;
+use App\Services\Catalog\BrandAgricartReviewMessageService;
 use App\Services\Catalog\BrandEnrichmentService;
 use App\Services\Catalog\BrandService;
 use App\Services\Media\MediaLibraryService;
@@ -69,6 +71,9 @@ class Form extends Component
     /** @var array<string, array{pass: bool|null, reason_en: string, reason_ur: string}> */
     public array $agricart_rating_criteria = [];
 
+    /** @var array<string, bool> */
+    public array $saveCriterionMessageAsDefault = [];
+
     public string $agricart_rating_reason_en = '';
 
     public string $agricart_rating_reason_ur = '';
@@ -88,6 +93,8 @@ class Form extends Component
 
     public bool $enriching = false;
 
+    public bool $preserveAgricartAiReview = false;
+
     public ?string $statusMessage = null;
 
     public string $statusType = 'success';
@@ -96,6 +103,7 @@ class Form extends Component
     {
         $this->enrichmentPrompt = BrandEnrichmentService::defaultPrompt();
         $this->agricart_rating_criteria = BrandAgricartReviewCriteria::normalizeDetailed(null);
+        $this->saveCriterionMessageAsDefault = $this->emptySaveAsDefaultFlags();
     }
 
     public function setAgricartCriterion(string $key, string $value): void
@@ -106,12 +114,25 @@ class Form extends Component
             return;
         }
 
+        $this->preserveAgricartAiReview = false;
         $this->agricart_rating_criteria = BrandAgricartReviewCriteria::normalizeDetailed($this->agricart_rating_criteria);
-        $this->agricart_rating_criteria[$key]['pass'] = match ($value) {
+        $pass = match ($value) {
             'pass' => true,
             'fail' => false,
             default => null,
         };
+        $this->agricart_rating_criteria[$key]['pass'] = $pass;
+
+        if ($pass !== null) {
+            $suggestion = app(BrandAgricartReviewMessageService::class)->suggestionFor($key, $pass);
+            $this->agricart_rating_criteria[$key]['reason_en'] = $suggestion['en'];
+            $this->agricart_rating_criteria[$key]['reason_ur'] = $suggestion['ur'];
+        } else {
+            $this->agricart_rating_criteria[$key]['reason_en'] = '';
+            $this->agricart_rating_criteria[$key]['reason_ur'] = '';
+        }
+
+        $this->saveCriterionMessageAsDefault[$key] = false;
         $this->syncAgricartReviewFromCriteria();
     }
 
@@ -122,6 +143,14 @@ class Form extends Component
         }
 
         $this->agricart_rating_criteria = BrandAgricartReviewCriteria::normalizeDetailed($this->agricart_rating_criteria);
+
+        if ($this->preserveAgricartAiReview) {
+            $score = BrandAgricartReviewCriteria::score($this->agricart_rating_criteria);
+            $this->agricart_rating = $score === null ? '' : (string) $score;
+
+            return;
+        }
+
         $this->syncAgricartReviewFromCriteria();
     }
 
@@ -133,7 +162,9 @@ class Form extends Component
             return;
         }
 
+        $this->preserveAgricartAiReview = false;
         $this->agricart_rating_criteria = BrandAgricartReviewCriteria::normalizeDetailed(null);
+        $this->saveCriterionMessageAsDefault = $this->emptySaveAsDefaultFlags();
         $this->agricart_rating = '';
         $this->agricart_rating_reason_en = '';
         $this->agricart_rating_reason_ur = '';
@@ -141,10 +172,147 @@ class Form extends Component
         $this->agricart_rating_revision_ur = '';
     }
 
+    public function openPrintSheet(): void
+    {
+        $this->authorizeAction('view');
+
+        if ($this->brandId === null) {
+            $this->setStatus(__('agricart.brands.print.save_first'), 'warning');
+            $this->dispatchBusyState();
+
+            return;
+        }
+
+        $this->dispatch(
+            'brands-open-print',
+            url: route('admin.brands.print', [
+                'brand' => $this->brandId,
+                'locale' => app()->getLocale() === 'ur' ? 'ur' : 'en',
+            ]),
+        );
+    }
+
+    public function generateAgricartReviewWithAi(): void
+    {
+        $this->authorizeAction($this->mutationAction());
+
+        if ($this->isReadonly() || $this->enriching) {
+            return;
+        }
+
+        if (! filled(trim($this->name_en))) {
+            $this->setStatus(__('agricart.brands.ai.review_name_required'), 'warning');
+            $this->dispatchBusyState();
+
+            return;
+        }
+
+        $this->agricart_rating_criteria = BrandAgricartReviewCriteria::normalizeDetailed($this->agricart_rating_criteria);
+
+        if (! BrandAgricartReviewCriteria::allOutcomesSet($this->agricart_rating_criteria)) {
+            $this->setStatus(__('agricart.brands.ai.review_outcomes_required'), 'warning');
+            $this->dispatchBusyState();
+
+            return;
+        }
+
+        $lockKey = 'brand-ai-agricart-review:'.(auth()->id() ?? 'guest').':'.($this->brandId ?? 'new');
+        $aiLock = Cache::lock($lockKey, 180);
+
+        if (! $aiLock->get()) {
+            $this->setStatus(__('agricart.brands.ai.review_already_running'), 'warning');
+            $this->dispatchBusyState();
+
+            return;
+        }
+
+        $this->enriching = true;
+        $this->statusMessage = null;
+        $this->dispatchBusyState();
+
+        try {
+            $result = app(BrandAgricartReviewAiService::class)->generate(
+                $this->name_en,
+                $this->name_ur,
+                $this->agricart_rating_criteria,
+            );
+
+            if (! $result['success']) {
+                $this->setStatus($result['message'], 'danger');
+
+                return;
+            }
+
+            $data = $result['data'] ?? [];
+            $this->applyAgricartReviewAiData(is_array($data) ? $data : []);
+            $this->setStatus($result['message'], 'success');
+        } catch (\Throwable $exception) {
+            $this->setStatus(FriendlyError::message($exception), 'danger');
+        } finally {
+            $aiLock->release();
+            $this->enriching = false;
+            $this->dispatchBusyState();
+        }
+    }
+
+    /**
+     * @param  array{criteria?: array<string, array{reason_en?: string, reason_ur?: string}>, review_en?: string, review_ur?: string}  $data
+     */
+    private function applyAgricartReviewAiData(array $data): void
+    {
+        $reviewEn = trim((string) ($data['review_en'] ?? ''));
+        $reviewUr = trim((string) ($data['review_ur'] ?? ''));
+        $hasPolished = $reviewEn !== '' && $reviewUr !== '';
+
+        // Set first so any Livewire updated* hooks during criteria mutation keep the AI text.
+        $this->preserveAgricartAiReview = $hasPolished;
+
+        $next = BrandAgricartReviewCriteria::normalizeDetailed($this->agricart_rating_criteria);
+        $reasons = is_array($data['criteria'] ?? null) ? $data['criteria'] : [];
+
+        foreach (BrandAgricartReviewCriteria::keys() as $key) {
+            $row = $reasons[$key] ?? null;
+
+            if (! is_array($row)) {
+                continue;
+            }
+
+            if (isset($row['reason_en']) && is_string($row['reason_en'])) {
+                $next[$key]['reason_en'] = trim($row['reason_en']);
+            }
+
+            if (isset($row['reason_ur']) && is_string($row['reason_ur'])) {
+                $next[$key]['reason_ur'] = trim($row['reason_ur']);
+            }
+        }
+
+        $this->agricart_rating_criteria = $next;
+
+        $score = BrandAgricartReviewCriteria::score($this->agricart_rating_criteria);
+        $this->agricart_rating = $score === null ? '' : (string) $score;
+
+        if ($hasPolished) {
+            $this->agricart_rating_reason_en = $reviewEn;
+            $this->agricart_rating_reason_ur = $reviewUr;
+            $this->preserveAgricartAiReview = true;
+
+            return;
+        }
+
+        $this->preserveAgricartAiReview = false;
+        $composed = BrandAgricartReviewCriteria::composeReview($this->agricart_rating_criteria);
+        $this->agricart_rating_reason_en = $composed['en'] ?? '';
+        $this->agricart_rating_reason_ur = $composed['ur'] ?? '';
+    }
+
     private function syncAgricartReviewFromCriteria(): void
     {
         $score = BrandAgricartReviewCriteria::score($this->agricart_rating_criteria);
         $this->agricart_rating = $score === null ? '' : (string) $score;
+
+        if ($this->preserveAgricartAiReview) {
+            return;
+        }
 
         $composed = BrandAgricartReviewCriteria::composeReview($this->agricart_rating_criteria);
         $this->agricart_rating_reason_en = $composed['en'] ?? '';
@@ -343,6 +511,8 @@ class Form extends Component
             }
         }
 
+        $this->fillMissingAgricartReasonsFromSuggestions();
+
         $criteria = BrandAgricartReviewCriteria::normalizeDetailed($this->agricart_rating_criteria);
 
         if (BrandAgricartReviewCriteria::hasAnyAnswer($criteria) && ! BrandAgricartReviewCriteria::isComplete($criteria)) {
@@ -384,6 +554,7 @@ class Form extends Component
 
             $committed = true;
             $this->persistSiteReviewNotice();
+            $this->persistCriterionMessageDefaults();
 
             if (filled($originalImagePath) && $originalImagePath !== $this->storedImagePath) {
                 app(MediaLibraryService::class)->deleteFileIfUnused($originalImagePath);
@@ -517,6 +688,7 @@ class Form extends Component
         $this->inactive_reason_en = $brand->inactive_reason_en ?? '';
         $this->inactive_reason_ur = $brand->inactive_reason_ur ?? '';
         $this->agricart_rating_criteria = BrandAgricartReviewCriteria::normalizeDetailed($brand->agricart_rating_criteria);
+        $this->saveCriterionMessageAsDefault = $this->emptySaveAsDefaultFlags();
         $this->syncAgricartReviewFromCriteria();
 
         if ($this->agricart_rating_reason_en === '' && filled($brand->agricart_rating_reason_en)) {
@@ -558,10 +730,12 @@ class Form extends Component
         $this->inactive_reason_ur = '';
         $this->agricart_rating = '';
         $this->agricart_rating_criteria = BrandAgricartReviewCriteria::normalizeDetailed(null);
+        $this->saveCriterionMessageAsDefault = $this->emptySaveAsDefaultFlags();
         $this->agricart_rating_reason_en = '';
         $this->agricart_rating_reason_ur = '';
         $this->agricart_rating_revision_en = '';
         $this->agricart_rating_revision_ur = '';
+        $this->preserveAgricartAiReview = false;
         $this->loadSiteReviewNotice();
         $this->ai_status = 'none';
         $this->saving = false;
@@ -591,6 +765,60 @@ class Form extends Component
                 ? trim($this->brand_review_notice_ur)
                 : BrandAgricartReviewNotice::defaultUrdu(),
         ]);
+    }
+
+    private function persistCriterionMessageDefaults(): void
+    {
+        $service = app(BrandAgricartReviewMessageService::class);
+        $criteria = BrandAgricartReviewCriteria::normalizeDetailed($this->agricart_rating_criteria);
+
+        foreach (BrandAgricartReviewCriteria::keys() as $key) {
+            if (! ($this->saveCriterionMessageAsDefault[$key] ?? false)) {
+                continue;
+            }
+
+            $detail = $criteria[$key] ?? null;
+
+            if (! is_array($detail) || $detail['pass'] === null) {
+                continue;
+            }
+
+            $service->saveOutcomeDefault($key, (bool) $detail['pass'], [
+                'en' => (string) ($detail['reason_en'] ?? ''),
+                'ur' => (string) ($detail['reason_ur'] ?? ''),
+            ]);
+
+            $this->saveCriterionMessageAsDefault[$key] = false;
+        }
+    }
+
+    /**
+     * Ensure Pass/Fail rows always have bilingual reasons (from manageable defaults) before save.
+     */
+    private function fillMissingAgricartReasonsFromSuggestions(): void
+    {
+        $filled = app(BrandAgricartReviewMessageService::class)
+            ->fillMissingReasons($this->agricart_rating_criteria);
+
+        $this->agricart_rating_criteria = $filled;
+
+        if (! $this->preserveAgricartAiReview) {
+            $this->syncAgricartReviewFromCriteria();
+        }
+    }
+
+    /**
+     * @return array<string, bool>
+     */
+    private function emptySaveAsDefaultFlags(): array
+    {
+        $flags = [];
+
+        foreach (BrandAgricartReviewCriteria::keys() as $key) {
+            $flags[$key] = false;
+        }
+
+        return $flags;
     }
 
     private function restoreOriginalImage(?string $imagePath): void

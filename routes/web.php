@@ -4,6 +4,7 @@ use App\Filament\Layout\TopbarActions;
 use App\Http\Controllers\Admin\BackupDownloadController;
 use App\Http\Controllers\Admin\BackupUploadController;
 use App\Http\Controllers\Admin\BankAccountPrintController;
+use App\Http\Controllers\Admin\BrandAgricartReviewPrintController;
 use App\Http\Controllers\Admin\LabelBatchPrintController;
 use App\Http\Controllers\Admin\LabelPrintController;
 use App\Http\Controllers\Admin\OnlineSaleOrderPackingSlipPrintController;
@@ -184,6 +185,8 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
         ->name('admin.purchases.print');
     Route::get('/sales/{sale}/print', [SalePrintController::class, 'show'])
         ->name('admin.sales.print');
+    Route::get('/brands/{brand}/print', [BrandAgricartReviewPrintController::class, 'show'])
+        ->name('admin.brands.print');
     Route::get('/sale-quotations/{quotation}/print', [SaleQuotationPrintController::class, 'show'])
         ->name('admin.sale-quotations.print');
     Route::get('/sale-returns/{saleReturn}/print', [SaleReturnPrintController::class, 'show'])

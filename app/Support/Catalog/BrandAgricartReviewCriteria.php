@@ -21,6 +21,7 @@ final class BrandAgricartReviewCriteria
         'warranty_after_sales',
         'spare_parts_availability',
         'brand_reliability',
+        'product_availability',
         'overall_market_acceptance',
     ];
 
@@ -137,6 +138,22 @@ final class BrandAgricartReviewCriteria
             }
 
             if ($detail['reason_en'] === '' || $detail['reason_ur'] === '') {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * True when every checklist item has Pass or Fail (reasons may still be empty).
+     *
+     * @param  array<string, mixed>  $criteria
+     */
+    public static function allOutcomesSet(array $criteria): bool
+    {
+        foreach (self::normalizeDetailed($criteria) as $detail) {
+            if ($detail['pass'] === null) {
                 return false;
             }
         }

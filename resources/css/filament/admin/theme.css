@@ -3649,6 +3649,42 @@ body.agricart-form-panel-open {
     color: #991b1b;
 }
 
+.agricart-brand-review__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1.25rem;
+}
+
+.agricart-brand-review__ai {
+    padding: 0.45rem 0.85rem;
+    border: 1px solid var(--agricart-primary, #83b735);
+    background: var(--agricart-primary, #83b735);
+    color: #fff;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 0;
+}
+
+.agricart-brand-review__print {
+    padding: 0.45rem 0.85rem;
+    border: 1px solid var(--agricart-border, #ebedf0);
+    background: #fff;
+    color: var(--agricart-text, #0f172a);
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 0;
+}
+
+.agricart-brand-review__ai:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+
 .agricart-brand-review__clear {
     justify-self: start;
     padding: 0;
@@ -3661,6 +3697,151 @@ body.agricart-form-panel-open {
     text-decoration: underline;
     cursor: pointer;
     border-radius: 0;
+}
+
+.agricart-brand-review__suggest-hint {
+    grid-column: 1 / -1;
+    margin: 0;
+}
+
+.agricart-brand-review__default {
+    grid-column: 1 / -1;
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--agricart-muted, #64748b);
+    cursor: pointer;
+}
+
+.agricart-brand-review__default input {
+    margin-top: 0.15rem;
+    accent-color: var(--agricart-primary, #83b735);
+}
+
+.agricart-review-messages {
+    display: grid;
+    gap: 1rem;
+    width: 100%;
+}
+
+.agricart-review-messages__intro {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.agricart-review-messages__title {
+    margin: 0;
+    font-family: Arial, sans-serif !important;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--agricart-text, #0f172a);
+}
+
+.agricart-review-messages__status {
+    padding: 0.65rem 0.85rem;
+    border: 1px solid var(--agricart-border, #ebedf0);
+    background: #fff;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.875rem;
+    border-radius: 0;
+}
+
+.agricart-review-messages__status--success {
+    border-color: var(--agricart-primary, #83b735);
+    color: #3f6212;
+    background: color-mix(in srgb, var(--agricart-primary, #83b735) 12%, #fff);
+}
+
+.agricart-review-messages__status--danger {
+    border-color: #dc2626;
+    color: #991b1b;
+    background: color-mix(in srgb, #dc2626 10%, #fff);
+}
+
+.agricart-review-messages__list {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.agricart-review-messages__card {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.85rem;
+    border: 1px solid var(--agricart-border, #ebedf0);
+    background: var(--agricart-background, #f4f5f7);
+    border-radius: 0;
+}
+
+.agricart-review-messages__card-head {
+    display: grid;
+    gap: 0.2rem;
+}
+
+.agricart-review-messages__card-title {
+    margin: 0;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--agricart-text, #0f172a);
+}
+
+.agricart-review-messages__card-title-ur {
+    margin: 0;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.875rem;
+    color: var(--agricart-muted, #64748b);
+}
+
+.agricart-review-messages__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+}
+
+.agricart-review-messages__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+    align-items: center;
+}
+
+.agricart-review-messages__save {
+    padding: 0.5rem 0.95rem;
+    border: 1px solid var(--agricart-primary, #83b735);
+    background: var(--agricart-primary, #83b735);
+    color: #fff;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.875rem;
+    font-weight: 700;
+    cursor: pointer;
+    border-radius: 0;
+}
+
+.agricart-review-messages__save:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+
+.agricart-review-messages__reset {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--agricart-muted, #64748b);
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+    border-radius: 0;
+}
+
+@media (max-width: 40rem) {
+    .agricart-review-messages__grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 .agricart-brand-review__notes {

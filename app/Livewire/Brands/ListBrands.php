@@ -139,6 +139,22 @@ class ListBrands extends Component
         );
     }
 
+    public function printBrand(int $brandId): void
+    {
+        $this->authorizeAction('view');
+
+        $brand = Brand::query()->find($brandId);
+
+        if ($brand === null) {
+            return;
+        }
+
+        $this->dispatch(
+            'brands-open-print',
+            url: route('admin.brands.print', ['brand' => $brand, 'locale' => app()->getLocale() === 'ur' ? 'ur' : 'en']),
+        );
+    }
+
     public function deleteBrand(int $brandId): void
     {
         $this->authorizeAction('delete');

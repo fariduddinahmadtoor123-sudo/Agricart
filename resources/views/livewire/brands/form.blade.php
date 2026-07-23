@@ -151,11 +151,11 @@
                     <div class="agricart-brand-review__header">
                         <div>
                             <h4 class="agricart-brand-review__title">{{ __('agricart.brands.fields.agricart_rating') }}</h4>
-                            <p class="agricart-form-panel__hint">{{ __('agricart.brands.hints.agricart_rating') }}</p>
+                            <p class="agricart-form-panel__hint">{{ __('agricart.brands.hints.agricart_rating', ['total' => \App\Support\Catalog\BrandAgricartReviewCriteria::count()]) }}</p>
                         </div>
                         <div class="agricart-brand-review__score" aria-live="polite">
                             <span class="agricart-brand-review__score-value">{{ filled($agricart_rating) ? $agricart_rating : '—' }}</span>
-                            <span class="agricart-brand-review__score-of">/ 10</span>
+                            <span class="agricart-brand-review__score-of">/ {{ \App\Support\Catalog\BrandAgricartReviewCriteria::count() }}</span>
                         </div>
                     </div>
 
@@ -187,6 +187,9 @@
                                 </div>
                                 @if ($criterionValue !== null)
                                     <div class="agricart-brand-review__reasons">
+                                        <p class="agricart-form-panel__hint agricart-brand-review__suggest-hint">
+                                            {{ __('agricart.brands.review_messages.suggested_hint') }}
+                                        </p>
                                         <div class="agricart-form-panel__field">
                                             <label class="agricart-form-panel__label">
                                                 {{ __('agricart.brands.fields.criterion_reason_en') }}
@@ -194,7 +197,7 @@
                                             </label>
                                             <textarea
                                                 rows="2"
-                                                wire:model.live.debounce.400ms="agricart_rating_criteria.{{ $criterionKey }}.reason_en"
+                                                wire:model.blur="agricart_rating_criteria.{{ $criterionKey }}.reason_en"
                                                 class="agricart-brand-form__textarea"
                                                 @disabled($this->isReadonly())
                                                 placeholder="{{ __('agricart.brands.hints.criterion_reason_en') }}"
@@ -207,13 +210,22 @@
                                             </label>
                                             <textarea
                                                 rows="2"
-                                                wire:model.live.debounce.400ms="agricart_rating_criteria.{{ $criterionKey }}.reason_ur"
+                                                wire:model.blur="agricart_rating_criteria.{{ $criterionKey }}.reason_ur"
                                                 dir="rtl"
                                                 class="agricart-brand-form__textarea"
                                                 @disabled($this->isReadonly())
                                                 placeholder="{{ __('agricart.brands.hints.criterion_reason_ur') }}"
                                             ></textarea>
                                         </div>
+                                        @unless ($this->isReadonly())
+                                            <label class="agricart-brand-review__default">
+                                                <input
+                                                    type="checkbox"
+                                                    wire:model="saveCriterionMessageAsDefault.{{ $criterionKey }}"
+                                                />
+                                                <span>{{ __('agricart.brands.review_messages.save_as_default') }}</span>
+                                            </label>
+                                        @endunless
                                     </div>
                                 @endif
                             </div>
@@ -221,9 +233,48 @@
                     </div>
 
                     @unless ($this->isReadonly())
-                        <button type="button" class="agricart-brand-review__clear" wire:click="clearAgricartReview">
-                            {{ __('agricart.brands.review_actions.clear') }}
-                        </button>
+                        <div class="agricart-brand-review__toolbar">
+                            @if (filled($brandId))
+                                <button
+                                    type="button"
+                                    class="agricart-brand-review__print"
+                                    wire:click="openPrintSheet"
+                                >
+                                    {{ __('agricart.brands.actions.print_short') }}
+                                </button>
+                            @endif
+                            <button
+                                type="button"
+                                class="agricart-brand-review__ai"
+                                wire:click="generateAgricartReviewWithAi"
+                                wire:loading.attr="disabled"
+                                wire:target="generateAgricartReviewWithAi"
+                                @disabled($enriching)
+                            >
+                                <span wire:loading.remove wire:target="generateAgricartReviewWithAi">
+                                    {{ __('agricart.brands.ai.review_write') }}
+                                </span>
+                                <span wire:loading wire:target="generateAgricartReviewWithAi">
+                                    {{ __('agricart.brands.ai.review_writing') }}
+                                </span>
+                            </button>
+                            <button type="button" class="agricart-brand-review__clear" wire:click="clearAgricartReview">
+                                {{ __('agricart.brands.review_actions.clear') }}
+                            </button>
+                        </div>
+                        <p class="agricart-form-panel__hint">{{ __('agricart.brands.hints.agricart_rating_ai') }}</p>
+                    @else
+                        @if (filled($brandId))
+                            <div class="agricart-brand-review__toolbar">
+                                <button
+                                    type="button"
+                                    class="agricart-brand-review__print"
+                                    wire:click="openPrintSheet"
+                                >
+                                    {{ __('agricart.brands.actions.print_short') }}
+                                </button>
+                            </div>
+                        @endif
                     @endunless
 
                     <div class="agricart-brand-review__notes">

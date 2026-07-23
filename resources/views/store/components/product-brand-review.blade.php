@@ -34,7 +34,7 @@
     @if ($rating !== null)
         <div class="ag-store-pdp__brand-review-score" aria-label="{{ __('agricart.storefront.product.brand_review.score_aria', ['score' => $rating]) }}">
             <span class="ag-store-pdp__brand-review-score-value">{{ $rating }}</span>
-            <span class="ag-store-pdp__brand-review-score-of">{{ __('agricart.storefront.product.brand_review.out_of') }}</span>
+            <span class="ag-store-pdp__brand-review-score-of">/ {{ BrandAgricartReviewCriteria::count() }}</span>
         </div>
     @endif
 

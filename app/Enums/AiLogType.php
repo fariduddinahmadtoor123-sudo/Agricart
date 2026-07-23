@@ -9,6 +9,7 @@ enum AiLogType: string
     case ModelFetch = 'model_fetch';
     case CategoryEnrichment = 'category_enrichment';
     case BrandEnrichment = 'brand_enrichment';
+    case BrandAgricartReview = 'brand_agricart_review';
     case UnitEnrichment = 'unit_enrichment';
     case PackingUnitEnrichment = 'packing_unit_enrichment';
     case AttributeEnrichment = 'attribute_enrichment';
@@ -28,6 +29,7 @@ enum AiLogType: string
             self::ModelFetch => __('agricart.ai.logs.types.model_fetch'),
             self::CategoryEnrichment => __('agricart.ai.logs.types.category_enrichment'),
             self::BrandEnrichment => __('agricart.ai.logs.types.brand_enrichment'),
+            self::BrandAgricartReview => __('agricart.ai.logs.types.brand_agricart_review'),
             self::UnitEnrichment => __('agricart.ai.logs.types.unit_enrichment'),
             self::PackingUnitEnrichment => __('agricart.ai.logs.types.packing_unit_enrichment'),
             self::AttributeEnrichment => __('agricart.ai.logs.types.attribute_enrichment'),

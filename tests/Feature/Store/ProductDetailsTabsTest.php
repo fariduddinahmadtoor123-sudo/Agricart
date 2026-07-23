@@ -84,7 +84,7 @@ class ProductDetailsTabsTest extends TestCase
             'name_en' => 'Review Brand',
             'name_ur' => 'ریویو برانڈ',
             'description_en' => 'Maker of pumps.',
-            'agricart_rating' => 8,
+            'agricart_rating' => 9,
             'agricart_rating_criteria' => [
                 'product_quality' => ['pass' => true, 'reason_en' => 'Solid build.', 'reason_ur' => 'مضبوط بناتا ہے۔'],
                 'value_for_money' => ['pass' => true, 'reason_en' => 'Fair price.', 'reason_ur' => 'مناسب قیمت۔'],
@@ -95,6 +95,7 @@ class ProductDetailsTabsTest extends TestCase
                 'warranty_after_sales' => ['pass' => true, 'reason_en' => 'Service centers work.', 'reason_ur' => 'سروس سینٹر کام کرتے ہیں۔'],
                 'spare_parts_availability' => ['pass' => true, 'reason_en' => 'Parts easy to find.', 'reason_ur' => 'پارٹس ملتے ہیں۔'],
                 'brand_reliability' => ['pass' => false, 'reason_en' => 'Sometimes delays supply.', 'reason_ur' => 'کبھی سپلائی تاخیر۔'],
+                'product_availability' => ['pass' => true, 'reason_en' => 'Stock stays steady year-round.', 'reason_ur' => 'سال بھر اسٹاک مستحکم۔'],
                 'overall_market_acceptance' => ['pass' => false, 'reason_en' => 'Still niche in some areas.', 'reason_ur' => 'کچھ علاقوں میں محدود۔'],
             ],
             'agricart_rating_reason_en' => 'Steady sales and low return rate.',
