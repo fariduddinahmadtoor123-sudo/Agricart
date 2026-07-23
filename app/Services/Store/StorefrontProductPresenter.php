@@ -296,6 +296,34 @@ class StorefrontProductPresenter
         return null;
     }
 
+    public function localizedAgricartRatingRevision(Product $product): ?string
+    {
+        $brand = $product->brand;
+
+        if ($brand === null) {
+            return null;
+        }
+
+        if (app()->getLocale() === 'ur' && filled($brand->agricart_rating_revision_ur)) {
+            return $brand->agricart_rating_revision_ur;
+        }
+
+        if (filled($brand->agricart_rating_revision_en)) {
+            return $brand->agricart_rating_revision_en;
+        }
+
+        if (filled($brand->agricart_rating_revision_ur)) {
+            return $brand->agricart_rating_revision_ur;
+        }
+
+        return null;
+    }
+
+    public function brandReviewNoticeText(): string
+    {
+        return \App\Models\StoreSetting::current()->brandReviewNoticeText();
+    }
+
     private function tierLabel(string $tierKey): string
     {
         $definition = QuantityPricingEngine::PRICE_TIER_TYPES[$tierKey] ?? null;

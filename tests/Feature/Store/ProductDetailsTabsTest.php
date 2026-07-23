@@ -99,6 +99,8 @@ class ProductDetailsTabsTest extends TestCase
             ],
             'agricart_rating_reason_en' => 'Steady sales and low return rate.',
             'agricart_rating_reason_ur' => 'سیل مستحکم اور ریٹرن کم ہے۔',
+            'agricart_rating_revision_en' => 'Spare parts and service improved in 2025, so this review was updated.',
+            'agricart_rating_revision_ur' => '2025 میں پارٹس اور سروس بہتر ہوئی، ریویو اپڈیٹ کیا گیا۔',
             'image_path' => 'brands/review.webp',
             'ai_status' => 'none',
         ]);
@@ -126,6 +128,8 @@ class ProductDetailsTabsTest extends TestCase
             ->assertSee(__('agricart.storefront.product.brand_review.fairness'), false)
             ->assertSee(__('agricart.brands.review_criteria.product_quality.label'), false)
             ->assertSee('Steady sales and low return rate.', false)
+            ->assertSee('Spare parts and service improved', false)
+            ->assertSee('independent editorial opinion', false)
             ->assertSee('8', false);
     }
 

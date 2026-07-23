@@ -216,6 +216,52 @@
                                 placeholder="{{ __('agricart.brands.hints.agricart_rating_reason_ur') }}"
                             ></textarea>
                         </div>
+                        <div class="agricart-form-panel__field agricart-form-panel__field--full">
+                            <label class="agricart-form-panel__label">{{ __('agricart.brands.fields.agricart_rating_revision_en') }}</label>
+                            <p class="agricart-form-panel__hint">{{ __('agricart.brands.hints.agricart_rating_revision') }}</p>
+                            <textarea
+                                rows="3"
+                                wire:model="agricart_rating_revision_en"
+                                class="agricart-brand-form__textarea"
+                                @disabled($this->isReadonly())
+                                placeholder="{{ __('agricart.brands.hints.agricart_rating_revision_en') }}"
+                            ></textarea>
+                        </div>
+                        <div class="agricart-form-panel__field agricart-form-panel__field--full">
+                            <label class="agricart-form-panel__label">{{ __('agricart.brands.fields.agricart_rating_revision_ur') }}</label>
+                            <textarea
+                                rows="3"
+                                wire:model="agricart_rating_revision_ur"
+                                dir="rtl"
+                                class="agricart-brand-form__textarea"
+                                @disabled($this->isReadonly())
+                                placeholder="{{ __('agricart.brands.hints.agricart_rating_revision_ur') }}"
+                            ></textarea>
+                        </div>
+                    </div>
+
+                    <div class="agricart-brand-review__legal">
+                        <h4 class="agricart-brand-review__title">{{ __('agricart.brands.fields.brand_review_notice') }}</h4>
+                        <p class="agricart-form-panel__hint">{{ __('agricart.brands.hints.brand_review_notice') }}</p>
+                        <div class="agricart-form-panel__field agricart-form-panel__field--full">
+                            <label class="agricart-form-panel__label">{{ __('agricart.brands.fields.brand_review_notice_en') }}</label>
+                            <textarea
+                                rows="5"
+                                wire:model="brand_review_notice_en"
+                                class="agricart-brand-form__textarea"
+                                @disabled($this->isReadonly())
+                            ></textarea>
+                        </div>
+                        <div class="agricart-form-panel__field agricart-form-panel__field--full">
+                            <label class="agricart-form-panel__label">{{ __('agricart.brands.fields.brand_review_notice_ur') }}</label>
+                            <textarea
+                                rows="5"
+                                wire:model="brand_review_notice_ur"
+                                dir="rtl"
+                                class="agricart-brand-form__textarea"
+                                @disabled($this->isReadonly())
+                            ></textarea>
+                        </div>
                     </div>
                 </div>
             </div>

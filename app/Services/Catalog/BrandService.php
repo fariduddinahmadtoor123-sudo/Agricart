@@ -148,6 +148,8 @@ class BrandService
             'agricart_rating_criteria' => ['nullable', 'array'],
             'agricart_rating_reason_en' => ['nullable', 'string', 'max:2000'],
             'agricart_rating_reason_ur' => ['nullable', 'string', 'max:2000'],
+            'agricart_rating_revision_en' => ['nullable', 'string', 'max:4000'],
+            'agricart_rating_revision_ur' => ['nullable', 'string', 'max:4000'],
             'name_en' => ['required', 'string', 'max:255'],
             'name_ur' => ['required', 'string', 'max:255'],
             'image_path' => [$exceptId ? 'nullable' : 'required', 'string', 'max:255'],
@@ -194,6 +196,8 @@ class BrandService
             'agricart_rating_criteria',
             'agricart_rating_reason_en',
             'agricart_rating_reason_ur',
+            'agricart_rating_revision_en',
+            'agricart_rating_revision_ur',
             'name_en',
             'name_ur',
             'image_path',
@@ -219,6 +223,8 @@ class BrandService
         if ($validated['agricart_rating'] === null) {
             $validated['agricart_rating_reason_en'] = null;
             $validated['agricart_rating_reason_ur'] = null;
+            $validated['agricart_rating_revision_en'] = null;
+            $validated['agricart_rating_revision_ur'] = null;
         }
 
         if ($exceptId && empty($validated['image_path'])) {

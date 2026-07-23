@@ -5,6 +5,8 @@
     $brandLogoUrl = $presenter->brandImageUrl($product);
     $rating = $product->brand?->agricart_rating;
     $reason = $presenter->localizedAgricartRatingReason($product);
+    $revision = $presenter->localizedAgricartRatingRevision($product);
+    $notice = $presenter->brandReviewNoticeText();
     $criteria = BrandAgricartReviewCriteria::normalize($product->brand?->agricart_rating_criteria);
     $locale = app()->getLocale();
 @endphp
@@ -63,10 +65,24 @@
         </ul>
     @endif
 
+    @if (filled($revision))
+        <div class="ag-store-pdp__brand-review-revision">
+            <p class="ag-store-pdp__brand-review-notes-title">{{ __('agricart.storefront.product.brand_review.revision') }}</p>
+            <div class="ag-store-pdp__prose ag-store-pdp__brand-review-body">{!! nl2br(e($revision)) !!}</div>
+        </div>
+    @endif
+
     @if (filled($reason))
         <div class="ag-store-pdp__brand-review-notes">
             <p class="ag-store-pdp__brand-review-notes-title">{{ __('agricart.storefront.product.brand_review.notes') }}</p>
             <div class="ag-store-pdp__prose ag-store-pdp__brand-review-body">{!! nl2br(e($reason)) !!}</div>
         </div>
+    @endif
+
+    @if (filled($notice))
+        <aside class="ag-store-pdp__brand-review-notice" aria-label="{{ __('agricart.storefront.product.brand_review.notice_title') }}">
+            <p class="ag-store-pdp__brand-review-notice-title">{{ __('agricart.storefront.product.brand_review.notice_title') }}</p>
+            <div class="ag-store-pdp__prose ag-store-pdp__brand-review-notice-body">{!! nl2br(e($notice)) !!}</div>
+        </aside>
     @endif
 </div>

@@ -340,6 +340,8 @@ class CatalogPortableArchiveService
                 'agricart_rating_criteria' => $brand->agricart_rating_criteria,
                 'agricart_rating_reason_en' => $brand->agricart_rating_reason_en,
                 'agricart_rating_reason_ur' => $brand->agricart_rating_reason_ur,
+                'agricart_rating_revision_en' => $brand->agricart_rating_revision_en,
+                'agricart_rating_revision_ur' => $brand->agricart_rating_revision_ur,
                 'name_en' => $brand->name_en,
                 'name_ur' => $brand->name_ur,
                 'description_en' => $brand->description_en,
@@ -619,6 +621,8 @@ class CatalogPortableArchiveService
                 'agricart_rating_criteria' => $criteria,
                 'agricart_rating_reason_en' => $rating === null ? null : ($row['agricart_rating_reason_en'] ?? null),
                 'agricart_rating_reason_ur' => $rating === null ? null : ($row['agricart_rating_reason_ur'] ?? null),
+                'agricart_rating_revision_en' => $rating === null ? null : ($row['agricart_rating_revision_en'] ?? null),
+                'agricart_rating_revision_ur' => $rating === null ? null : ($row['agricart_rating_revision_ur'] ?? null),
                 'image_path' => $imagePath ?: 'brands/placeholder.webp',
             ]);
 

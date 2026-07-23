@@ -303,6 +303,24 @@ class BrandFormIntegrityTest extends TestCase
         $this->assertSame('Strong overall partner', $brand->agricart_rating_reason_en);
     }
 
+    public function test_saving_brand_persists_editable_site_review_notice(): void
+    {
+        Storage::fake('public');
+
+        $brand = $this->brand('notice-brand', 'Notice Brand');
+
+        Livewire::test(Form::class)
+            ->call('openForm', $brand->id, 'edit')
+            ->set('brand_review_notice_en', 'Custom EN legal notice for Agricart reviews.')
+            ->set('brand_review_notice_ur', 'ایگری کارٹ ریویو کے لیے حسبِ ضرورت اردو قانونی نوٹ۔')
+            ->call('saveAndClose')
+            ->assertSet('statusType', 'success');
+
+        $settings = \App\Models\StoreSetting::current()->fresh();
+        $this->assertSame('Custom EN legal notice for Agricart reviews.', $settings->brand_review_notice_en);
+        $this->assertSame('ایگری کارٹ ریویو کے لیے حسبِ ضرورت اردو قانونی نوٹ۔', $settings->brand_review_notice_ur);
+    }
+
     public function test_brand_can_save_without_agricart_rating(): void
     {
         Storage::fake('public');

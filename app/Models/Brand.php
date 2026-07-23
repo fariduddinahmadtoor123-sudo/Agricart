@@ -20,6 +20,8 @@ class Brand extends Model
         'agricart_rating_criteria',
         'agricart_rating_reason_en',
         'agricart_rating_reason_ur',
+        'agricart_rating_revision_en',
+        'agricart_rating_revision_ur',
         'name_en',
         'name_ur',
         'image_path',

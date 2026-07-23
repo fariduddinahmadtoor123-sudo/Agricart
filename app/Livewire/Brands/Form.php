@@ -5,11 +5,13 @@ namespace App\Livewire\Brands;
 use App\Enums\CategoryAiStatus;
 use App\Models\Brand;
 use App\Models\User;
+use App\Models\StoreSetting;
 use App\Services\Catalog\BrandEnrichmentService;
 use App\Services\Catalog\BrandService;
 use App\Services\Media\MediaLibraryService;
 use App\Services\Media\OptimizedImageStorage;
 use App\Support\Catalog\BrandAgricartReviewCriteria;
+use App\Support\Catalog\BrandAgricartReviewNotice;
 use App\Support\FriendlyError;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Cache;
@@ -71,6 +73,14 @@ class Form extends Component
 
     public string $agricart_rating_reason_ur = '';
 
+    public string $agricart_rating_revision_en = '';
+
+    public string $agricart_rating_revision_ur = '';
+
+    public string $brand_review_notice_en = '';
+
+    public string $brand_review_notice_ur = '';
+
     #[Locked]
     public string $ai_status = 'none';
 
@@ -117,6 +127,8 @@ class Form extends Component
         $this->agricart_rating = '';
         $this->agricart_rating_reason_en = '';
         $this->agricart_rating_reason_ur = '';
+        $this->agricart_rating_revision_en = '';
+        $this->agricart_rating_revision_ur = '';
     }
 
     private function syncAgricartRatingFromCriteria(): void
@@ -357,6 +369,7 @@ class Form extends Component
             }
 
             $committed = true;
+            $this->persistSiteReviewNotice();
 
             if (filled($originalImagePath) && $originalImagePath !== $this->storedImagePath) {
                 app(MediaLibraryService::class)->deleteFileIfUnused($originalImagePath);
@@ -418,6 +431,8 @@ class Form extends Component
             'agricart_rating_criteria' => BrandAgricartReviewCriteria::normalize($this->agricart_rating_criteria),
             'agricart_rating_reason_en' => $this->agricart_rating_reason_en ?: null,
             'agricart_rating_reason_ur' => $this->agricart_rating_reason_ur ?: null,
+            'agricart_rating_revision_en' => $this->agricart_rating_revision_en ?: null,
+            'agricart_rating_revision_ur' => $this->agricart_rating_revision_ur ?: null,
             'name_en' => $this->name_en,
             'name_ur' => $this->name_ur,
             'image_path' => $this->storedImagePath,
@@ -491,6 +506,9 @@ class Form extends Component
         $this->syncAgricartRatingFromCriteria();
         $this->agricart_rating_reason_en = $brand->agricart_rating_reason_en ?? '';
         $this->agricart_rating_reason_ur = $brand->agricart_rating_reason_ur ?? '';
+        $this->agricart_rating_revision_en = $brand->agricart_rating_revision_en ?? '';
+        $this->agricart_rating_revision_ur = $brand->agricart_rating_revision_ur ?? '';
+        $this->loadSiteReviewNotice();
         $this->ai_status = $brand->ai_status?->value ?? 'none';
         $this->storedImagePath = $brand->image_path;
         $this->imagePreviewUrl = filled($brand->image_path)
@@ -521,11 +539,37 @@ class Form extends Component
         $this->agricart_rating_criteria = BrandAgricartReviewCriteria::normalize(null);
         $this->agricart_rating_reason_en = '';
         $this->agricart_rating_reason_ur = '';
+        $this->agricart_rating_revision_en = '';
+        $this->agricart_rating_revision_ur = '';
+        $this->loadSiteReviewNotice();
         $this->ai_status = 'none';
         $this->saving = false;
         $this->enriching = false;
         $this->statusMessage = null;
         $this->statusType = 'success';
+    }
+
+    private function loadSiteReviewNotice(): void
+    {
+        $settings = StoreSetting::current();
+        $this->brand_review_notice_en = filled($settings->brand_review_notice_en)
+            ? (string) $settings->brand_review_notice_en
+            : BrandAgricartReviewNotice::defaultEnglish();
+        $this->brand_review_notice_ur = filled($settings->brand_review_notice_ur)
+            ? (string) $settings->brand_review_notice_ur
+            : BrandAgricartReviewNotice::defaultUrdu();
+    }
+
+    private function persistSiteReviewNotice(): void
+    {
+        StoreSetting::current()->update([
+            'brand_review_notice_en' => filled(trim($this->brand_review_notice_en))
+                ? trim($this->brand_review_notice_en)
+                : BrandAgricartReviewNotice::defaultEnglish(),
+            'brand_review_notice_ur' => filled(trim($this->brand_review_notice_ur))
+                ? trim($this->brand_review_notice_ur)
+                : BrandAgricartReviewNotice::defaultUrdu(),
+        ]);
     }
 
     private function restoreOriginalImage(?string $imagePath): void

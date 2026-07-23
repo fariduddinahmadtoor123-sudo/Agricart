@@ -1895,6 +1895,36 @@
     color: var(--agricart-text, #0f172a);
 }
 
+.ag-store-pdp__brand-review-revision {
+    padding: 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--agricart-accent, #fbbc34) 40%, var(--agricart-border, #ebedf0));
+    background: color-mix(in srgb, var(--agricart-accent, #fbbc34) 10%, #fff);
+    border-radius: 0;
+}
+
+.ag-store-pdp__brand-review-notice {
+    margin-top: 0.35rem;
+    padding: 0.85rem;
+    border: 1px solid var(--agricart-border, #ebedf0);
+    background: var(--agricart-background, #f4f5f7);
+    border-radius: 0;
+}
+
+.ag-store-pdp__brand-review-notice-title {
+    margin: 0 0 0.4rem;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--agricart-text, #0f172a);
+}
+
+.ag-store-pdp__brand-review-notice-body {
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.55;
+    color: var(--agricart-muted, #64748b);
+}
+
 .ag-store-pdp__spec-list {
     margin: 0;
     padding: 0;

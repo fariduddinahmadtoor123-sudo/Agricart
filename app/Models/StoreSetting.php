@@ -67,6 +67,8 @@ class StoreSetting extends Model
         'footer_show_social',
         'footer_show_login_link',
         'footer_show_register_link',
+        'brand_review_notice_en',
+        'brand_review_notice_ur',
     ];
 
     /**
@@ -179,6 +181,19 @@ class StoreSetting extends Model
         }
 
         return str_replace('{year}', (string) date('Y'), $text);
+    }
+
+    public function brandReviewNoticeText(): string
+    {
+        $text = $this->localized('brand_review_notice');
+
+        if (filled($text)) {
+            return (string) $text;
+        }
+
+        return app()->getLocale() === 'ur'
+            ? \App\Support\Catalog\BrandAgricartReviewNotice::defaultUrdu()
+            : \App\Support\Catalog\BrandAgricartReviewNotice::defaultEnglish();
     }
 
     public function footerLogoPath(): ?string
