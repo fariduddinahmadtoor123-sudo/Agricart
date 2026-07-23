@@ -59,7 +59,7 @@ return [
         'logo_from_store' => 'Logo comes from your online store footer (Store → Footer). The same logo is used here, on invoices and the website.',
         'logo_sync' => 'This logo is also used on your online store header when saved.',
         'tagline' => 'A short line about your business — shown on the website, receipts and invoices. Example: "Quality farm tools since 1990".',
-        'whatsapp_number' => 'Used by the storefront floating WhatsApp button. You may enter 03001234567 or 923001234567.',
+        'whatsapp_number' => 'Not shown to customers. Storefront chat uses the on-site messenger only. You may still store 03001234567 or 923001234567 for internal records.',
         'address' => 'Write shop address, city and country in one line.',
         'currency' => 'Pakistani Rupee (PKR) is used for now.',
         'ai_bottom' => 'Fill English fields first, then click the button below. AI will complete the empty Urdu fields. Phone numbers and tax IDs are never invented.',

@@ -15,7 +15,7 @@ class AttributesPage extends BaseModulePage
 
     protected static ?string $navigationLabel = 'Attributes';
 
-    protected static ?int $navigationSort = 7;
+    protected static ?int $navigationSort = 8;
 
     protected static ?string $slug = 'attributes';
 

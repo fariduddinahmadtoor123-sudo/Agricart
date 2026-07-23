@@ -15,7 +15,7 @@ class BrandsPage extends BaseModulePage
 
     protected static ?string $navigationLabel = 'Brands';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 5;
 
     protected static ?string $slug = 'brands';
 

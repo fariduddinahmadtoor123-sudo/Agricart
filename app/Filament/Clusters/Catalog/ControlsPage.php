@@ -15,7 +15,7 @@ class ControlsPage extends BaseModulePage
 
     protected static ?string $navigationLabel = 'Controls';
 
-    protected static ?int $navigationSort = 8;
+    protected static ?int $navigationSort = 9;
 
     protected static ?string $slug = 'controls';
 

@@ -104,6 +104,7 @@ abstract class ClusterPageToolbar
             'attributes' => 'attributes',
             'controls' => 'controls',
             'products' => 'products',
+            'product-reviews' => 'product-reviews',
             'users' => 'users',
             'staff' => 'users',
             'pay-management' => 'staff-salary',

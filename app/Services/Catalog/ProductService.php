@@ -18,6 +18,7 @@ use App\Models\SaleQuotationItem;
 use App\Models\SaleReturnItem;
 use App\Services\Media\MediaLibraryService;
 use App\Services\Identifiers\DocumentCounterService;
+use App\Support\Catalog\BrandAgricartReviewCriteria;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -494,11 +495,100 @@ class ProductService
         $validated['status'] = $validated['status'] ?? 'active';
         $validated['ai_status'] = $validated['ai_status'] ?? 'none';
 
+        // Agricart product review is edited on its dedicated Catalog page — never wipe on normal product save.
+        unset(
+            $validated['agricart_rating'],
+            $validated['agricart_rating_criteria'],
+            $validated['agricart_rating_reason_en'],
+            $validated['agricart_rating_reason_ur'],
+            $validated['agricart_rating_revision_en'],
+            $validated['agricart_rating_revision_ur'],
+        );
+
         if ($exceptId && empty($validated['image_path'])) {
             unset($validated['image_path']);
         }
 
         return $validated;
+    }
+
+    /**
+     * Persist Agricart editorial review for a product (dedicated Catalog page).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function updateAgricartReview(Product $product, array $data): Product
+    {
+        $rules = [
+            'agricart_rating' => ['nullable', 'integer', 'min:0', 'max:'.BrandAgricartReviewCriteria::scoreMax()],
+            'agricart_rating_criteria' => ['nullable', 'array'],
+            'agricart_rating_reason_en' => ['nullable', 'string', 'max:20000'],
+            'agricart_rating_reason_ur' => ['nullable', 'string', 'max:20000'],
+            'agricart_rating_revision_en' => ['nullable', 'string', 'max:4000'],
+            'agricart_rating_revision_ur' => ['nullable', 'string', 'max:4000'],
+        ];
+
+        foreach (BrandAgricartReviewCriteria::keys() as $criterionKey) {
+            $rules['agricart_rating_criteria.'.$criterionKey] = ['nullable', 'array'];
+            $rules['agricart_rating_criteria.'.$criterionKey.'.rating'] = [
+                'nullable',
+                'integer',
+                'min:'.BrandAgricartReviewCriteria::MIN_RATING,
+                'max:'.BrandAgricartReviewCriteria::MAX_RATING,
+            ];
+            $rules['agricart_rating_criteria.'.$criterionKey.'.reason_en'] = ['nullable', 'string', 'max:2000'];
+            $rules['agricart_rating_criteria.'.$criterionKey.'.reason_ur'] = ['nullable', 'string', 'max:2000'];
+        }
+
+        $criteria = BrandAgricartReviewCriteria::normalizeDetailed(
+            is_array($data['agricart_rating_criteria'] ?? null) ? $data['agricart_rating_criteria'] : null,
+        );
+        $criteria = app(BrandAgricartReviewMessageService::class)->fillMissingReasons($criteria);
+        $data['agricart_rating_criteria'] = $criteria;
+
+        if (BrandAgricartReviewCriteria::hasAnyAnswer($criteria) && ! BrandAgricartReviewCriteria::isComplete($criteria)) {
+            throw ValidationException::withMessages([
+                'agricart_rating_criteria' => [__('agricart.products.messages.review_criteria_incomplete')],
+            ]);
+        }
+
+        $validator = validator($data, $rules);
+
+        if ($validator->fails()) {
+            throw ValidationException::withMessages($validator->errors()->toArray());
+        }
+
+        $storedCriteria = BrandAgricartReviewCriteria::forStorage($criteria);
+        $score = BrandAgricartReviewCriteria::score($criteria);
+
+        $payload = [
+            'agricart_rating_criteria' => $storedCriteria,
+            'agricart_rating' => $score,
+        ];
+
+        if ($score === null) {
+            $payload['agricart_rating_reason_en'] = null;
+            $payload['agricart_rating_reason_ur'] = null;
+            $payload['agricart_rating_revision_en'] = null;
+            $payload['agricart_rating_revision_ur'] = null;
+        } else {
+            $composed = BrandAgricartReviewCriteria::composeReview($criteria);
+            $providedEn = trim((string) ($data['agricart_rating_reason_en'] ?? ''));
+            $providedUr = trim((string) ($data['agricart_rating_reason_ur'] ?? ''));
+
+            $payload['agricart_rating_reason_en'] = $providedEn !== '' ? $providedEn : ($composed['en'] ?? null);
+            $payload['agricart_rating_reason_ur'] = $providedUr !== '' ? $providedUr : ($composed['ur'] ?? null);
+            $payload['agricart_rating_revision_en'] = filled($data['agricart_rating_revision_en'] ?? null)
+                ? trim((string) $data['agricart_rating_revision_en'])
+                : null;
+            $payload['agricart_rating_revision_ur'] = filled($data['agricart_rating_revision_ur'] ?? null)
+                ? trim((string) $data['agricart_rating_revision_ur'])
+                : null;
+        }
+
+        $product->update($payload);
+
+        return $product->fresh();
     }
 
     private function slugExists(string $slug, ?int $exceptId): bool

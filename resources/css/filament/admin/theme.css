@@ -3882,6 +3882,110 @@ body.agricart-form-panel-open {
     gap: 0.65rem;
 }
 
+.agricart-product-agricart-review {
+    display: grid;
+    gap: 1rem;
+    max-width: 56rem;
+}
+
+.agricart-product-agricart-review__intro {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.agricart-product-agricart-review__title {
+    margin: 0;
+    font-family: Arial, sans-serif !important;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--agricart-text, #0f172a);
+}
+
+.agricart-product-agricart-review__results {
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    border: 1px solid var(--agricart-border, #ebedf0);
+    background: #fff;
+    max-height: 16rem;
+    overflow: auto;
+    border-radius: 0;
+}
+
+.agricart-product-agricart-review__result {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 0.65rem 0.75rem;
+    border: 0;
+    border-bottom: 1px solid var(--agricart-border, #ebedf0);
+    background: transparent;
+    color: var(--agricart-text, #0f172a);
+    font-family: Arial, sans-serif !important;
+    font-size: 0.875rem;
+    cursor: pointer;
+    border-radius: 0;
+}
+
+.agricart-product-agricart-review__result:hover,
+.agricart-product-agricart-review__result:focus-visible {
+    background: #f0f7e4;
+    color: #5f8a22;
+    outline: none;
+}
+
+.agricart-product-agricart-review__result:last-child {
+    border-bottom: 0;
+}
+
+.agricart-product-agricart-review__selected {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--agricart-border, #ebedf0);
+    background: var(--agricart-background, #f4f5f7);
+    border-radius: 0;
+}
+
+.agricart-product-agricart-review__name {
+    margin: 0;
+    font-family: Arial, sans-serif !important;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--agricart-text, #0f172a);
+}
+
+.agricart-product-agricart-review__name-ur {
+    margin: 0.2rem 0 0;
+    font-family: Arial, sans-serif !important;
+    color: var(--agricart-muted, #64748b);
+}
+
+.agricart-product-agricart-review__meta {
+    margin: 0.35rem 0 0;
+    font-family: Arial, sans-serif !important;
+    color: var(--agricart-muted, #64748b);
+    font-size: 0.875rem;
+}
+
+.agricart-product-agricart-review__footer {
+    display: grid;
+    gap: 0.5rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--agricart-border, #ebedf0);
+}
+
+.agricart-product-agricart-review__footer .agricart-brand-review__toolbar {
+    justify-content: flex-start;
+}
+
+.agricart-product-agricart-reviews__score-of {
+    color: var(--agricart-muted, #64748b);
+    font-weight: 600;
+}
+
 .agricart-brand-review__legal {
     display: grid;
     gap: 0.65rem;
@@ -13454,8 +13558,102 @@ body.agricart-price-tags-panel-open {
     border-color: #cbd5e1;
 }
 
+.agricart-store-messages__status.is-approved,
+.agricart-store-messages__summary-card.is-approved strong {
+    color: #166534;
+}
+
+.agricart-store-messages__status.is-approved {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+
+.agricart-store-messages__status.is-hidden,
+.agricart-store-messages__summary-card.is-hidden strong {
+    color: #475569;
+}
+
+.agricart-store-messages__status.is-hidden {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.agricart-store-messages__status.is-rejected,
+.agricart-store-messages__summary-card.is-rejected strong {
+    color: #991b1b;
+}
+
+.agricart-store-messages__status.is-rejected {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
 .agricart-store-messages__row-actions {
     min-width: 8.5rem;
+}
+
+.agricart-store-reviews__policy {
+    margin: 0 0 0.75rem;
+    padding: 0.65rem 0.75rem;
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    color: #0f172a;
+    background: #f4f5f7;
+    border: 1px solid #ebedf0;
+}
+
+.agricart-store-reviews__path,
+.agricart-store-reviews__media-label,
+.agricart-store-reviews__proof-note {
+    margin: 0.35rem 0 0;
+    font-size: 0.75rem;
+    color: #475569;
+}
+
+.agricart-store-reviews__media-label {
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.agricart-store-reviews__thumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.agricart-store-reviews__thumb {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.agricart-store-reviews__thumb img {
+    width: 3rem;
+    height: 3rem;
+    object-fit: cover;
+    border: 1px solid #cbd5e1;
+}
+
+.agricart-store-reviews__reply-preview,
+.agricart-store-reviews__reports-badge {
+    margin: 0.35rem 0 0;
+    font-size: 0.75rem;
+    color: #475569;
+}
+
+.agricart-store-reviews__reply-editor {
+    display: grid;
+    gap: 0.35rem;
+    margin-top: 0.5rem;
+}
+
+.agricart-store-reviews__report-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+    margin-top: 0.35rem;
+    font-size: 0.75rem;
 }
 
 .agricart-categories__action.is-warning {

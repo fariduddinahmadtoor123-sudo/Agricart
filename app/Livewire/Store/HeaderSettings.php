@@ -129,14 +129,10 @@ class HeaderSettings extends BaseStoreSettings
             'search_placeholder_ur' => ['nullable', 'string', 'max:255'],
             'social_facebook' => ['nullable', 'string', 'max:500', new SafeUrl(false, ['http', 'https'])],
             'social_instagram' => ['nullable', 'string', 'max:500', new SafeUrl(false, ['http', 'https'])],
-            'social_whatsapp' => ['nullable', 'string', 'max:500', new SafeUrl(false, ['http', 'https'])],
             'social_youtube' => ['nullable', 'string', 'max:500', new SafeUrl(false, ['http', 'https'])],
             'social_twitter' => ['nullable', 'string', 'max:500', new SafeUrl(false, ['http', 'https'])],
             'login_url' => ['nullable', 'string', 'max:500', new SafeUrl],
             'register_url' => ['nullable', 'string', 'max:500', new SafeUrl],
-            'whatsapp_number' => ['nullable', 'string', 'max:30'],
-            'whatsapp_message_en' => ['nullable', 'string', 'max:500'],
-            'whatsapp_message_ur' => ['nullable', 'string', 'max:500'],
         ]);
 
         $settings = $this->settings();
@@ -149,17 +145,17 @@ class HeaderSettings extends BaseStoreSettings
             'show_social' => $this->show_social,
             'social_facebook' => filled($this->social_facebook) ? $this->social_facebook : null,
             'social_instagram' => filled($this->social_instagram) ? $this->social_instagram : null,
-            'social_whatsapp' => filled($this->social_whatsapp) ? $this->social_whatsapp : null,
+            'social_whatsapp' => null,
             'social_youtube' => filled($this->social_youtube) ? $this->social_youtube : null,
             'social_twitter' => filled($this->social_twitter) ? $this->social_twitter : null,
             'show_auth_links' => $this->show_auth_links,
             'login_url' => filled($this->login_url) ? $this->login_url : '/login',
             'register_url' => filled($this->register_url) ? $this->register_url : null,
             'show_cart' => $this->show_cart,
-            'whatsapp_number' => filled($this->whatsapp_number) ? $this->whatsapp_number : null,
-            'whatsapp_enabled' => $this->whatsapp_enabled,
-            'whatsapp_message_en' => filled($this->whatsapp_message_en) ? $this->whatsapp_message_en : null,
-            'whatsapp_message_ur' => filled($this->whatsapp_message_ur) ? $this->whatsapp_message_ur : null,
+            // Customer WhatsApp chat is permanently disabled — on-site messenger only.
+            'whatsapp_enabled' => false,
+            'whatsapp_message_en' => null,
+            'whatsapp_message_ur' => null,
         ]);
         $settings->save();
 

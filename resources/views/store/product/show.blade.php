@@ -73,6 +73,8 @@
         $hasDelivery = ($deliveryOptions ?? []) !== [];
         $hasBrandAbout = $presenter->hasBrandAbout($product);
         $hasBrandReview = $presenter->hasAgricartBrandReview($product);
+        $hasProductReview = $presenter->hasAgricartProductReview($product);
+        $hasCustomerReviews = true;
         $isActive = $product->status === 'active';
         $firstTabKey = $hasDescription
             ? 'content-0'
@@ -80,7 +82,11 @@
                 ? 'brand'
                 : ($hasBrandReview
                     ? 'brand-review'
-                    : ($hasDelivery ? 'delivery' : ($hasPricing ? 'pricing' : null))));
+                    : ($hasProductReview
+                        ? 'product-review'
+                        : ($hasCustomerReviews
+                            ? 'customer-reviews'
+                            : ($hasDelivery ? 'delivery' : ($hasPricing ? 'pricing' : null))))));
     @endphp
 
     <article class="ag-store-pdp">
@@ -160,21 +166,18 @@
                             </form>
                         @else
                             <p class="ag-store-pdp__stock-note ag-store-pdp__stock-note--out">{{ __('agricart.storefront.product.out_of_stock') }}</p>
-                            @if ($settings->whatsapp_enabled && filled($settings->whatsappChatUrl()))
-                                <a
-                                    href="{{ $settings->whatsappChatUrl(__('agricart.storefront.product.out_of_stock_whatsapp', ['product' => $productName])) }}"
-                                    class="ag-store-btn ag-store-btn--whatsapp ag-store-btn--block"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >{{ __('agricart.storefront.product.ask_on_whatsapp') }}</a>
-                            @endif
+                            <button
+                                type="button"
+                                class="ag-store-btn ag-store-btn--secondary ag-store-btn--block"
+                                data-store-message-open
+                            >{{ __('agricart.storefront.product.ask_via_messenger') }}</button>
                         @endif
                     @endif
                 </section>
             </div>
         </div>
 
-        @if ($hasPricing || $hasDescription || $hasDelivery || $hasBrandAbout || $hasBrandReview)
+        @if ($hasPricing || $hasDescription || $hasDelivery || $hasBrandAbout || $hasBrandReview || $hasCustomerReviews)
             <div class="ag-store-pdp__tabs" data-store-pdp-tabs>
                 <div class="ag-store-pdp__tablist" role="tablist" aria-label="{{ __('agricart.storefront.product.sections.details') }}">
                     @foreach ($contentSections as $section)
@@ -218,6 +221,34 @@
                             data-store-pdp-tab="brand-review"
                         >
                             {{ __('agricart.storefront.product.tabs.agricart_brand_review') }}
+                        </button>
+                    @endif
+                    @if ($hasProductReview)
+                        <button
+                            type="button"
+                            @class(['ag-store-pdp__tab', 'is-active' => $firstTabKey === 'product-review'])
+                            id="store-pdp-tab-product-review"
+                            role="tab"
+                            aria-selected="{{ $firstTabKey === 'product-review' ? 'true' : 'false' }}"
+                            aria-controls="store-pdp-panel-product-review"
+                            tabindex="{{ $firstTabKey === 'product-review' ? '0' : '-1' }}"
+                            data-store-pdp-tab="product-review"
+                        >
+                            {{ __('agricart.storefront.product.tabs.agricart_product_review') }}
+                        </button>
+                    @endif
+                    @if ($hasCustomerReviews)
+                        <button
+                            type="button"
+                            @class(['ag-store-pdp__tab', 'is-active' => $firstTabKey === 'customer-reviews'])
+                            id="store-pdp-tab-customer-reviews"
+                            role="tab"
+                            aria-selected="{{ $firstTabKey === 'customer-reviews' ? 'true' : 'false' }}"
+                            aria-controls="store-pdp-panel-customer-reviews"
+                            tabindex="{{ $firstTabKey === 'customer-reviews' ? '0' : '-1' }}"
+                            data-store-pdp-tab="customer-reviews"
+                        >
+                            {{ __('agricart.storefront.product.tabs.customer_reviews') }}
                         </button>
                     @endif
                     @if ($hasDelivery)
@@ -295,6 +326,42 @@
                         @include('store.components.product-brand-review', [
                             'product' => $product,
                             'presenter' => $presenter,
+                        ])
+                    </div>
+                @endif
+
+                @if ($hasProductReview)
+                    <div
+                        @class(['ag-store-pdp__panel', 'is-active' => $firstTabKey === 'product-review'])
+                        id="store-pdp-panel-product-review"
+                        role="tabpanel"
+                        aria-labelledby="store-pdp-tab-product-review"
+                        tabindex="0"
+                        data-store-pdp-panel="product-review"
+                        @if ($firstTabKey !== 'product-review') hidden @endif
+                    >
+                        @include('store.components.product-agricart-review', [
+                            'product' => $product,
+                            'presenter' => $presenter,
+                        ])
+                    </div>
+                @endif
+
+                @if ($hasCustomerReviews)
+                    <div
+                        @class(['ag-store-pdp__panel', 'is-active' => $firstTabKey === 'customer-reviews'])
+                        id="store-pdp-panel-customer-reviews"
+                        role="tabpanel"
+                        aria-labelledby="store-pdp-tab-customer-reviews"
+                        tabindex="0"
+                        data-store-pdp-panel="customer-reviews"
+                        @if ($firstTabKey !== 'customer-reviews') hidden @endif
+                    >
+                        @include('store.components.product-customer-reviews', [
+                            'product' => $product,
+                            'reviewSummary' => $reviewSummary,
+                            'publicReviews' => $publicReviews,
+                            'canWriteReview' => $canWriteReview,
                         ])
                     </div>
                 @endif

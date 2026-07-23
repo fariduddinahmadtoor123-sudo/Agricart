@@ -64,6 +64,31 @@ class CatalogPageToolbar extends ClusterPageToolbar
                 'livewirePrefix' => 'catalog-overview',
                 'interactive' => false,
             ],
+            'product-reviews' => [
+                ...$config,
+                'livewirePrefix' => 'product-reviews',
+                'formKey' => 'product-reviews',
+                'columnDataAttr' => 'data-product-review-column',
+                'interactive' => true,
+                'addLabel' => static::userCan('create')
+                    ? __('agricart.products.review_page.actions.add')
+                    : null,
+                'filters' => [
+                    ['label' => __('agricart.form_panel.statuses.active'), 'value' => 'status:active'],
+                    ['label' => __('agricart.form_panel.statuses.inactive'), 'value' => 'status:inactive'],
+                    ['label' => __('agricart.form_panel.statuses.draft'), 'value' => 'status:draft'],
+                ],
+                'columns' => [
+                    ['label' => __('agricart.products.list.col_image'), 'value' => 'image', 'visible' => true],
+                    ['label' => __('agricart.products.list.col_code'), 'value' => 'code', 'visible' => true],
+                    ['label' => __('agricart.products.list.col_name_en'), 'value' => 'name_en', 'visible' => true],
+                    ['label' => __('agricart.products.list.col_name_ur'), 'value' => 'name_ur', 'visible' => false],
+                    ['label' => __('agricart.products.fields.brand'), 'value' => 'brand', 'visible' => true],
+                    ['label' => __('agricart.products.review_page.list.col_rating'), 'value' => 'agricart_rating', 'visible' => true],
+                    ['label' => __('agricart.products.list.col_status'), 'value' => 'status', 'visible' => true],
+                    ['label' => __('agricart.products.review_page.list.col_updated'), 'value' => 'updated_at', 'visible' => true],
+                ],
+            ],
             'products' => [
                 ...$config,
                 'livewirePrefix' => 'products',

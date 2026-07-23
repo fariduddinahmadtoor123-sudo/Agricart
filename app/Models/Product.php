@@ -73,6 +73,12 @@ class Product extends Model
         'ai_status',
         'ai_generated_at',
         'ai_version',
+        'agricart_rating',
+        'agricart_rating_criteria',
+        'agricart_rating_reason_en',
+        'agricart_rating_reason_ur',
+        'agricart_rating_revision_en',
+        'agricart_rating_revision_ur',
     ];
 
     /**
@@ -90,6 +96,8 @@ class Product extends Model
             'ai_status' => CategoryAiStatus::class,
             'ai_generated_at' => 'datetime',
             'stock_qty' => 'decimal:2',
+            'agricart_rating' => 'integer',
+            'agricart_rating_criteria' => 'array',
         ];
     }
 

@@ -15,7 +15,7 @@ class PackingUnitsPage extends BaseModulePage
 
     protected static ?string $navigationLabel = 'Packing Units';
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 7;
 
     protected static ?string $slug = 'packing-units';
 

@@ -97,15 +97,25 @@
                             </a>
                             <a href="{{ $productUrl }}" class="ag-store-product-card__body">
                                 <h3 class="ag-store-product-card__name">{{ $name }}</h3>
-                                @if ($brand = $productService->localizedBrandName($product))
-                                    @php
-                                        $searchBrandRating = app(\App\Services\Store\StorefrontProductPresenter::class)
-                                            ->agricartBrandRatingSummary($product);
-                                    @endphp
+                                @php
+                                    $searchPresenter = app(\App\Services\Store\StorefrontProductPresenter::class);
+                                    $searchProductRating = $searchPresenter->agricartProductRatingSummary($product);
+                                    $searchBrandRating = $searchPresenter->agricartBrandRatingSummary($product);
+                                    $brand = $productService->localizedBrandName($product);
+                                @endphp
+                                @if ($brand)
                                     <p class="ag-store-product-card__brand">
                                         <span class="ag-store-product-card__brand-name">{{ $brand }}</span>
                                         @include('store.components.brand-rating', [
                                             'summary' => $searchBrandRating,
+                                            'variant' => 'compact',
+                                        ])
+                                    </p>
+                                @endif
+                                @if ($searchProductRating !== null)
+                                    <p class="ag-store-product-card__product-rating">
+                                        @include('store.components.brand-rating', [
+                                            'summary' => $searchProductRating,
                                             'variant' => 'compact',
                                         ])
                                     </p>

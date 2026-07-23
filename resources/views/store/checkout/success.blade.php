@@ -4,8 +4,6 @@
 
 @section('content')
     @php
-        $whatsappMessage = __('agricart.storefront.checkout.success_whatsapp_message', ['order' => $orderNumber]);
-        $whatsappUrl = $settings->whatsapp_enabled ? $settings->whatsappChatUrl($whatsappMessage) : null;
         $needsProof = isset($order)
             && $order->customer_payment_method === 'bank_transfer'
             && $order->needsBankReceiptUpload();
@@ -77,37 +75,7 @@
                                 <span class="ag-store-checkout-success__option-text">{{ __('agricart.storefront.checkout.success_proof_upload_text') }}</span>
                             </a>
                         @endauth
-
-                        @if (filled($whatsappUrl))
-                            <a
-                                href="{{ $whatsappUrl }}"
-                                class="ag-store-checkout-success__option ag-store-checkout-success__option--whatsapp"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                <span class="ag-store-checkout-success__option-icon" aria-hidden="true">
-                                    @include('store.components.icons.whatsapp')
-                                </span>
-                                <span class="ag-store-checkout-success__option-title">{{ __('agricart.storefront.checkout.success_proof_whatsapp_title') }}</span>
-                                <span class="ag-store-checkout-success__option-text">{{ __('agricart.storefront.checkout.success_proof_whatsapp_text') }}</span>
-                            </a>
-                        @endif
                     </div>
-                </div>
-            @elseif (filled($whatsappUrl))
-                <div class="ag-store-checkout-success__proof ag-store-checkout-success__proof--soft">
-                    <a
-                        href="{{ $whatsappUrl }}"
-                        class="ag-store-btn ag-store-btn--whatsapp ag-store-checkout-success__whatsapp-btn"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                    >
-                        <span class="ag-store-checkout-success__whatsapp-icon" aria-hidden="true">
-                            @include('store.components.icons.whatsapp')
-                        </span>
-                        {{ __('agricart.storefront.checkout.success_whatsapp_cta') }}
-                    </a>
-                    <p class="ag-store-checkout-success__proof-note">{{ __('agricart.storefront.checkout.success_proof_whatsapp_text') }}</p>
                 </div>
             @endif
 

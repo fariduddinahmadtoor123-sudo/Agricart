@@ -10,12 +10,12 @@
             'name' => $settings->localized('site_name') ?? config('app.name'),
             'url' => route('store.home'),
             'logo' => $logo_url ?: null,
-            'telephone' => $settings->top_bar_phone ?: ($settings->whatsapp_number ?: null),
+            'telephone' => $settings->top_bar_phone ?: null,
             'sameAs' => array_values(array_filter([
                 $settings->social_facebook ?? null,
                 $settings->social_instagram ?? null,
                 $settings->social_youtube ?? null,
-                $settings->social_whatsapp ?? null,
+                $settings->social_twitter ?? null,
             ])),
         ], static fn ($value): bool => $value !== null && $value !== [] && $value !== '');
 

@@ -14,7 +14,7 @@ class VisitorAnalyticsPage extends BaseModulePage
 
     protected static ?string $navigationLabel = 'Visitor Analytics';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 11;
 
     protected static ?string $slug = 'visitor-analytics';
 

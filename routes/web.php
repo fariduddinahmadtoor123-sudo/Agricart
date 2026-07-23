@@ -32,6 +32,8 @@ use App\Http\Controllers\Store\CustomerOrderController;
 use App\Http\Controllers\Store\CustomerOrderPaymentController;
 use App\Http\Controllers\Store\CustomerPaymentProofController;
 use App\Http\Controllers\Store\CustomerPasswordResetController;
+use App\Http\Controllers\Store\CustomerProductReviewController;
+use App\Http\Controllers\Store\CustomerProductReviewReportController;
 use App\Http\Controllers\Store\CustomerProfileController;
 use App\Http\Controllers\Store\HomeController;
 use App\Http\Controllers\Store\PageController;
@@ -93,6 +95,14 @@ Route::middleware([
         Route::post('/account/orders/{order}/payment-proof', [CustomerOrderPaymentController::class, 'store'])
             ->middleware('throttle:customer-payment-proof')
             ->name('store.customer.orders.payment-proof');
+        Route::get('/account/reviews/{slug}/create', [CustomerProductReviewController::class, 'create'])
+            ->name('store.customer.reviews.create');
+        Route::post('/account/reviews/{slug}', [CustomerProductReviewController::class, 'store'])
+            ->middleware('throttle:10,1')
+            ->name('store.customer.reviews.store');
+        Route::post('/account/reviews/report/{review}', [CustomerProductReviewReportController::class, 'store'])
+            ->middleware('throttle:10,1')
+            ->name('store.customer.reviews.report');
     });
     Route::get('/register', [RegisterController::class, 'show'])->name('auth.register');
     Route::get('/staff-register', [StaffRegisterController::class, 'show'])

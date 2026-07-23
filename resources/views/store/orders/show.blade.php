@@ -132,7 +132,13 @@
                 <h2 class="ag-store-orders__section-title">{{ __('agricart.storefront.checkout.order_summary') }}</h2>
                 <ul class="ag-store-orders__lines">
                     @foreach ($order->items as $index => $item)
-                        @include('store.orders.partials.line-item', ['item' => $item, 'index' => $index, 'sales' => $sales])
+                        @include('store.orders.partials.line-item', [
+                            'item' => $item,
+                            'index' => $index,
+                            'sales' => $sales,
+                            'order' => $order,
+                            'productReview' => ($reviewsByProduct ?? collect())->get($item->product_id),
+                        ])
                     @endforeach
                 </ul>
                 <div class="ag-store-orders__totals">
@@ -172,10 +178,6 @@
             @endif
 
             @if ($order->requiresCustomerPaymentProof())
-                @php
-                    $whatsappMessage = __('agricart.storefront.checkout.success_whatsapp_message', ['order' => $order->order_number]);
-                    $whatsappUrl = $settings->whatsapp_enabled ? $settings->whatsappChatUrl($whatsappMessage) : null;
-                @endphp
                 <section class="ag-store-orders__detail-card ag-store-orders__payment-proof">
                     <h2 class="ag-store-orders__section-title">{{ __('agricart.customer.orders.upload_receipt_heading') }}</h2>
                     <p class="ag-store-customer-auth__lead">{{ __('agricart.customer.orders.upload_receipt_lead') }}</p>
@@ -218,22 +220,6 @@
                                 <button type="submit" class="ag-store-btn ag-store-btn--primary ag-store-btn--block">{{ __('agricart.customer.orders.submit_payment_proof') }}</button>
                             </form>
                         </div>
-
-                        @if (filled($whatsappUrl))
-                            <a
-                                href="{{ $whatsappUrl }}"
-                                class="ag-store-orders__proof-option ag-store-orders__proof-option--whatsapp"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                            >
-                                <span class="ag-store-orders__proof-whatsapp-icon" aria-hidden="true">
-                                    @include('store.components.icons.whatsapp')
-                                </span>
-                                <h3 class="ag-store-orders__proof-option-title">{{ __('agricart.customer.orders.proof_whatsapp_title') }}</h3>
-                                <p class="ag-store-orders__proof-option-text">{{ __('agricart.customer.orders.proof_whatsapp_text') }}</p>
-                                <span class="ag-store-btn ag-store-btn--whatsapp ag-store-btn--block">{{ __('agricart.customer.orders.proof_whatsapp_cta') }}</span>
-                            </a>
-                        @endif
                     </div>
                 </section>
             @endif

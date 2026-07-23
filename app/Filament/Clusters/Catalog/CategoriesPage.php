@@ -15,7 +15,7 @@ class CategoriesPage extends BaseModulePage
 
     protected static ?string $navigationLabel = 'Categories';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 4;
 
     protected static ?string $slug = 'categories';
 

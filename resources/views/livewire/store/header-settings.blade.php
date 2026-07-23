@@ -47,7 +47,7 @@
             <span>{{ __('agricart.store.admin.header.show_social') }}</span>
         </label>
         <div class="agricart-store-admin__grid-2">
-            @foreach (['facebook', 'instagram', 'whatsapp', 'youtube', 'twitter'] as $network)
+            @foreach (['facebook', 'instagram', 'youtube', 'twitter'] as $network)
                 <div class="agricart-store-admin__field">
                     <label>{{ ucfirst($network) }}</label>
                     <input type="url" wire:model="social_{{ $network }}" class="agricart-store-admin__input" placeholder="https://" />
@@ -74,23 +74,6 @@
             <input type="checkbox" wire:model="show_cart" />
             <span>{{ __('agricart.store.admin.header.show_cart') }}</span>
         </label>
-
-        <h4 class="agricart-store-admin__subtitle">{{ __('agricart.store.admin.header.whatsapp_float') }}</h4>
-        <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.header.whatsapp_business_profile_hint') }}</p>
-        <label class="agricart-store-admin__checkbox">
-            <input type="checkbox" wire:model="whatsapp_enabled" />
-            <span>{{ __('agricart.store.admin.header.whatsapp_enabled') }}</span>
-        </label>
-        <div class="agricart-store-admin__grid-2">
-            <div class="agricart-store-admin__field">
-                <label>{{ __('agricart.store.admin.header.whatsapp_message_en') }}</label>
-                <input type="text" wire:model="whatsapp_message_en" class="agricart-store-admin__input" />
-            </div>
-            <div class="agricart-store-admin__field">
-                <label>{{ __('agricart.store.admin.header.whatsapp_message_ur') }}</label>
-                <input type="text" wire:model="whatsapp_message_ur" class="agricart-store-admin__input" dir="rtl" />
-            </div>
-        </div>
 
         <button type="submit" class="agricart-store-admin__btn">{{ __('agricart.store.admin.save') }}</button>
     </form>

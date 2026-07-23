@@ -15,7 +15,7 @@ class LabelsPage extends BaseModulePage
 
     protected static ?string $navigationLabel = 'Labels';
 
-    protected static ?int $navigationSort = 9;
+    protected static ?int $navigationSort = 10;
 
     protected static ?string $slug = 'labels';
 

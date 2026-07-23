@@ -125,7 +125,6 @@ class StoreSetting extends Model
         return [
             'facebook' => $this->social_facebook,
             'instagram' => $this->social_instagram,
-            'whatsapp' => $this->social_whatsapp,
             'youtube' => $this->social_youtube,
             'twitter' => $this->social_twitter,
         ];
@@ -142,33 +141,12 @@ class StoreSetting extends Model
         return false;
     }
 
+    /**
+     * Customer WhatsApp chat links are disabled — use the on-site messenger instead.
+     */
     public function whatsappChatUrl(?string $message = null): ?string
     {
-        $number = CompanyProfile::query()->value('whatsapp_number') ?: $this->whatsapp_number;
-
-        if (! filled($number)) {
-            return null;
-        }
-
-        $digits = preg_replace('/\D+/', '', (string) $number);
-
-        if (! is_string($digits) || $digits === '') {
-            return null;
-        }
-
-        if (strlen($digits) === 11 && str_starts_with($digits, '0')) {
-            $digits = '92'.substr($digits, 1);
-        } elseif (strlen($digits) === 10 && str_starts_with($digits, '3')) {
-            $digits = '92'.$digits;
-        }
-
-        $text = filled($message) ? $message : $this->localized('whatsapp_message');
-
-        if (! filled($text)) {
-            return 'https://wa.me/' . $digits;
-        }
-
-        return 'https://wa.me/' . $digits . '?text=' . rawurlencode($text);
+        return null;
     }
 
     public function footerCopyrightText(): string

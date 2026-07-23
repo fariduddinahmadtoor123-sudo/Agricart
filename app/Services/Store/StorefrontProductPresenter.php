@@ -263,6 +263,11 @@ class StorefrontProductPresenter
         return $this->agricartBrandRatingSummary($product) !== null;
     }
 
+    public function hasAgricartProductReview(Product $product): bool
+    {
+        return $this->agricartProductRatingSummary($product) !== null;
+    }
+
     /**
      * Compact Agricart brand score for storefront chips (stars + percent).
      *
@@ -270,18 +275,42 @@ class StorefrontProductPresenter
      */
     public function agricartBrandRatingSummary(Product $product): ?array
     {
-        $rating = $product->brand?->agricart_rating;
+        return $this->agricartRatingSummaryFrom(
+            $product->brand?->agricart_rating,
+            $product->brand?->agricart_rating_criteria,
+        );
+    }
+
+    /**
+     * Compact Agricart product score (editorial). No brand fallback.
+     *
+     * @return array{score: int, max: int, percent: int, stars: float}|null
+     */
+    public function agricartProductRatingSummary(Product $product): ?array
+    {
+        return $this->agricartRatingSummaryFrom(
+            $product->agricart_rating,
+            $product->agricart_rating_criteria,
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $criteria
+     * @return array{score: int, max: int, percent: int, stars: float}|null
+     */
+    private function agricartRatingSummaryFrom(mixed $rating, mixed $criteria): ?array
+    {
         $maxScore = \App\Support\Catalog\BrandAgricartReviewCriteria::scoreMax();
 
         if (! is_int($rating) || $rating < 0 || $rating > $maxScore) {
             return null;
         }
 
-        $criteria = \App\Support\Catalog\BrandAgricartReviewCriteria::normalizeDetailed(
-            $product->brand?->agricart_rating_criteria,
+        $normalized = \App\Support\Catalog\BrandAgricartReviewCriteria::normalizeDetailed(
+            is_array($criteria) ? $criteria : null,
         );
 
-        if (! \App\Support\Catalog\BrandAgricartReviewCriteria::isComplete($criteria)) {
+        if (! \App\Support\Catalog\BrandAgricartReviewCriteria::isComplete($normalized)) {
             return null;
         }
 
@@ -334,6 +363,40 @@ class StorefrontProductPresenter
 
         if (filled($brand->agricart_rating_revision_ur)) {
             return $brand->agricart_rating_revision_ur;
+        }
+
+        return null;
+    }
+
+    public function localizedAgricartProductRatingReason(Product $product): ?string
+    {
+        if (app()->getLocale() === 'ur' && filled($product->agricart_rating_reason_ur)) {
+            return $product->agricart_rating_reason_ur;
+        }
+
+        if (filled($product->agricart_rating_reason_en)) {
+            return $product->agricart_rating_reason_en;
+        }
+
+        if (filled($product->agricart_rating_reason_ur)) {
+            return $product->agricart_rating_reason_ur;
+        }
+
+        return null;
+    }
+
+    public function localizedAgricartProductRatingRevision(Product $product): ?string
+    {
+        if (app()->getLocale() === 'ur' && filled($product->agricart_rating_revision_ur)) {
+            return $product->agricart_rating_revision_ur;
+        }
+
+        if (filled($product->agricart_rating_revision_en)) {
+            return $product->agricart_rating_revision_en;
+        }
+
+        if (filled($product->agricart_rating_revision_ur)) {
+            return $product->agricart_rating_revision_ur;
         }
 
         return null;

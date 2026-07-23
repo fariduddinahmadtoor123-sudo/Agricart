@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Services\Analytics\AnalyticsContext;
 use App\Services\Logistics\DeliveryMethodService;
 use App\Services\SalesChannels\SalesChannelService;
+use App\Models\Customer;
+use App\Services\Store\ProductReviewService;
 use App\Services\Store\StoreCategoryService;
 use App\Services\Store\StorefrontProductPresenter;
 use App\Services\Store\StoreLayoutService;
@@ -23,6 +25,7 @@ class ProductController extends Controller
         SalesChannelService $channels,
         AnalyticsContext $analytics,
         DeliveryMethodService $deliveryMethods,
+        ProductReviewService $productReviews,
     ): View {
         $product = $products->findActiveBySlug($slug);
 
@@ -39,6 +42,10 @@ class ProductController extends Controller
         // Quantity pricing is catalog info — always show when tiers exist; buy price stays gated.
         $priceTable = $presenter->quantityPriceTable($product);
 
+        $customer = auth('customer')->user();
+        $canWriteReview = $customer instanceof Customer
+            && $productReviews->canSubmit($customer, $product);
+
         return view('store.product.show', [
             ...$layout->layoutData(),
             'product' => $product,
@@ -51,6 +58,9 @@ class ProductController extends Controller
             'identityFacts' => $presenter->identityFacts($product),
             'contentSections' => $presenter->contentSections($product),
             'deliveryOptions' => $deliveryMethods->optionsForProductPage($product->id),
+            'reviewSummary' => $productReviews->publicSummary($product),
+            'publicReviews' => $productReviews->publicReviews($product),
+            'canWriteReview' => $canWriteReview,
         ]);
     }
 }

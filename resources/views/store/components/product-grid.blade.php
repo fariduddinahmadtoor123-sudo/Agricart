@@ -68,16 +68,26 @@
 
                     <a href="{{ $productUrl }}" class="ag-store-product-card__body">
                         <h3 class="ag-store-product-card__name">{{ $productService->localizedName($product) }}</h3>
+                        @php
+                            $cardPresenter = app(\App\Services\Store\StorefrontProductPresenter::class);
+                            $cardProductRating = $cardPresenter->agricartProductRatingSummary($product);
+                            $cardBrandRating = $product->brand
+                                ? $cardPresenter->agricartBrandRatingSummary($product)
+                                : null;
+                        @endphp
                         @if ($product->brand)
-                            @php
-                                $cardBrandName = $productService->localizedBrandName($product);
-                                $cardBrandRating = app(\App\Services\Store\StorefrontProductPresenter::class)
-                                    ->agricartBrandRatingSummary($product);
-                            @endphp
                             <p class="ag-store-product-card__brand">
-                                <span class="ag-store-product-card__brand-name">{{ $cardBrandName }}</span>
+                                <span class="ag-store-product-card__brand-name">{{ $productService->localizedBrandName($product) }}</span>
                                 @include('store.components.brand-rating', [
                                     'summary' => $cardBrandRating,
+                                    'variant' => 'compact',
+                                ])
+                            </p>
+                        @endif
+                        @if ($cardProductRating !== null)
+                            <p class="ag-store-product-card__product-rating">
+                                @include('store.components.brand-rating', [
+                                    'summary' => $cardProductRating,
                                     'variant' => 'compact',
                                 ])
                             </p>

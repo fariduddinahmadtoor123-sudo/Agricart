@@ -24,6 +24,7 @@ final class FormPanelRegistry
             'attributes' => ['component' => 'attributes.form', 'permission' => 'catalog.view'],
             'controls' => ['component' => 'controls.form', 'permission' => 'catalog.view'],
             'products' => ['component' => 'products.form', 'permission' => 'catalog.view'],
+            'product-reviews' => ['component' => 'products.agricart-review-editor', 'permission' => 'catalog.view'],
             'labels' => ['component' => 'labels.print-labels-form', 'permission' => 'catalog.view'],
             'users' => ['component' => 'users.form', 'permission' => 'settings.users.manage'],
             'staff' => ['component' => 'users.form', 'permission' => 'staff.view'],

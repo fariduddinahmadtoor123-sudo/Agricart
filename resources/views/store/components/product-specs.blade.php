@@ -5,7 +5,8 @@
     $brandName = $hasBrand ? $presenter->localizedBrandName($product) : null;
     $brandLogoUrl = $hasBrand ? $presenter->brandImageUrl($product) : null;
     $brandRating = $hasBrand ? $presenter->agricartBrandRatingSummary($product) : null;
-    $hasSpecs = $hasBrand || $facts !== [] || $attributes->isNotEmpty();
+    $productRating = $presenter->agricartProductRatingSummary($product);
+    $hasSpecs = $hasBrand || $productRating !== null || $facts !== [] || $attributes->isNotEmpty();
 @endphp
 
 @if ($hasSpecs)
@@ -26,6 +27,17 @@
               ])
             </span>
           </span>
+        </dd>
+      </div>
+    @endif
+    @if ($productRating !== null)
+      <div class="ag-store-pdp__spec-row">
+        <dt>{{ __('agricart.storefront.product.facts.agricart_product_rating') }}</dt>
+        <dd>
+          @include('store.components.brand-rating', [
+              'summary' => $productRating,
+              'variant' => 'full',
+          ])
         </dd>
       </div>
     @endif

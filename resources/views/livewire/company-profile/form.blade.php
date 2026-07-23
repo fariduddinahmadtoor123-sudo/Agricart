@@ -83,21 +83,6 @@
     <section class="agricart-company-profile-form__section">
         <h3 class="agricart-form-panel__section-title">{{ __('company_profile.sections.contacts') }}</h3>
 
-        <div class="agricart-form-panel__field agricart-company-profile-form__whatsapp">
-            <label class="agricart-form-panel__label" for="cp-whatsapp-number">{{ __('company_profile.fields.whatsapp_number') }}</label>
-            <x-filament::input.wrapper>
-                <input
-                    id="cp-whatsapp-number"
-                    type="tel"
-                    wire:model.live.debounce.300ms="whatsapp_number"
-                    class="fi-input"
-                    inputmode="tel"
-                    placeholder="923001234567"
-                />
-            </x-filament::input.wrapper>
-            <p class="agricart-form-panel__hint">{{ __('company_profile.hints.whatsapp_number') }}</p>
-        </div>
-
         @foreach ($phoneRows as $index => $phone)
             <div class="agricart-company-profile-form__contact-row" wire:key="company-phone-{{ $index }}">
                 <x-filament::input.wrapper class="agricart-company-profile-form__designation-wrap">

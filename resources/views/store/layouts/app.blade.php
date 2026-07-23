@@ -102,7 +102,7 @@
         @include('store.components.footer')
     @endif
 
-    @include('store.components.whatsapp-float')
+    @include('store.components.contact-float')
 
     @livewireScripts
     @include('store.components.store-search-script')

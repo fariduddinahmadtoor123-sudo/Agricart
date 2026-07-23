@@ -52,6 +52,8 @@
         categorySaving: false,
         brandAiEnriching: false,
         brandSaving: false,
+        productReviewAiEnriching: false,
+        productReviewSaving: false,
         unitAiEnriching: false,
         unitSaving: false,
         packingUnitAiEnriching: false,
@@ -170,6 +172,16 @@
                 window.dispatchEvent(new CustomEvent('brand-form-open', {
                     detail: {
                         brandId: detail.brandId ?? null,
+                        mode: detail.mode ?? 'create',
+                    },
+                    bubbles: true,
+                }));
+            }
+
+            if (this.formKey === 'product-reviews') {
+                window.dispatchEvent(new CustomEvent('product-review-form-open', {
+                    detail: {
+                        productId: detail.productId ?? null,
                         mode: detail.mode ?? 'create',
                     },
                     bubbles: true,
@@ -584,6 +596,8 @@
             this.categorySaving = false;
             this.brandAiEnriching = false;
             this.brandSaving = false;
+            this.productReviewAiEnriching = false;
+            this.productReviewSaving = false;
             this.unitAiEnriching = false;
             this.unitSaving = false;
             this.packingUnitAiEnriching = false;
@@ -741,6 +755,40 @@
                 }
 
                 window.dispatchEvent(new CustomEvent('brand-form-action', {
+                    detail: { action: key },
+                    bubbles: true,
+                }));
+
+                return;
+            }
+
+            if (this.formKey === 'product-reviews') {
+                if (key === 'cancel') {
+                    this.close();
+                    return;
+                }
+
+                if (this.formMode === 'view') {
+                    return;
+                }
+
+                if ((key === 'save_close' || key === 'save_next') && this.productReviewSaving) {
+                    return;
+                }
+
+                if (key === 'ai' && this.productReviewAiEnriching) {
+                    return;
+                }
+
+                if (key === 'ai') {
+                    this.productReviewAiEnriching = true;
+                }
+
+                if (key === 'save_close' || key === 'save_next') {
+                    this.productReviewSaving = true;
+                }
+
+                window.dispatchEvent(new CustomEvent('product-review-form-action', {
                     detail: { action: key },
                     bubbles: true,
                 }));
@@ -1366,6 +1414,7 @@
                 'media-library',
                 'categories',
                 'brands',
+                'product-reviews',
                 'units',
                 'packing-units',
                 'attributes',
@@ -1408,7 +1457,7 @@
                 'agricart-form-panel--normal': this.size === 'normal',
                 'agricart-form-panel--stretched': this.size === 'stretched',
                 'agricart-form-panel--maximized': this.size === 'maximized',
-                'agricart-form-panel--wide': this.formKey === 'ai-settings' || this.formKey === 'ai-log-detail' || this.formKey === 'activity-log-detail' || this.formKey === 'system-error-detail' || this.formKey === 'media-library' || this.formKey === 'categories' || this.formKey === 'brands' || this.formKey === 'units' || this.formKey === 'packing-units' || this.formKey === 'attributes' || this.formKey === 'controls' || this.formKey === 'products' || this.formKey === 'labels' || this.formKey === 'users' || this.formKey === 'staff' || this.formKey === 'roles' || this.formKey === 'company-profile' || this.formKey === 'suppliers' || this.formKey === 'customers' || this.formKey === 'purchase-planning' || this.formKey === 'purchase-payment-summary' || this.formKey === 'purchase-quotations' || this.formKey === 'purchases' || this.formKey === 'sales' || this.formKey === 'sale-quotations' || this.formKey === 'sale-returns' || this.formKey === 'online-orders' || this.formKey === 'price-controls' || this.formKey === 'quantity-controls' || this.formKey === 'secret-coding' || this.formKey === 'sales-channel' || this.formKey === 'delivery-methods' || this.formKey === 'logistics-ship' || this.formKey === 'staff-salary' || this.formKey === 'staff-attendance' || this.formKey === 'staff-advance' || this.formKey === 'staff-leave' || this.formKey === 'staff-payroll' || this.formKey === 'finance-bank' || this.formKey === 'finance-fund-transfer' || this.formKey === 'finance-expense-category' || this.formKey === 'finance-expense' || this.formKey === 'finance-expense-payment',
+                'agricart-form-panel--wide': this.formKey === 'ai-settings' || this.formKey === 'ai-log-detail' || this.formKey === 'activity-log-detail' || this.formKey === 'system-error-detail' || this.formKey === 'media-library' || this.formKey === 'categories' || this.formKey === 'brands' || this.formKey === 'product-reviews' || this.formKey === 'units' || this.formKey === 'packing-units' || this.formKey === 'attributes' || this.formKey === 'controls' || this.formKey === 'products' || this.formKey === 'labels' || this.formKey === 'users' || this.formKey === 'staff' || this.formKey === 'roles' || this.formKey === 'company-profile' || this.formKey === 'suppliers' || this.formKey === 'customers' || this.formKey === 'purchase-planning' || this.formKey === 'purchase-payment-summary' || this.formKey === 'purchase-quotations' || this.formKey === 'purchases' || this.formKey === 'sales' || this.formKey === 'sale-quotations' || this.formKey === 'sale-returns' || this.formKey === 'online-orders' || this.formKey === 'price-controls' || this.formKey === 'quantity-controls' || this.formKey === 'secret-coding' || this.formKey === 'sales-channel' || this.formKey === 'delivery-methods' || this.formKey === 'logistics-ship' || this.formKey === 'staff-salary' || this.formKey === 'staff-attendance' || this.formKey === 'staff-advance' || this.formKey === 'staff-leave' || this.formKey === 'staff-payroll' || this.formKey === 'finance-bank' || this.formKey === 'finance-fund-transfer' || this.formKey === 'finance-expense-category' || this.formKey === 'finance-expense' || this.formKey === 'finance-expense-payment',
             };
         },
         hasTextSelection() {
@@ -1480,6 +1529,7 @@
     x-on:close-form-panel.window="close(false)"
     x-on:category-form-busy.window="categoryAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); categorySaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:brand-form-busy.window="brandAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); brandSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
+    x-on:product-review-form-busy.window="productReviewAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); productReviewSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:unit-form-busy.window="unitAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); unitSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:packing-unit-form-busy.window="packingUnitAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); packingUnitSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:attribute-form-busy.window="attributeAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); attributeSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
@@ -1608,7 +1658,7 @@
                         <livewire:form-panel.dynamic-form />
                     </div>
 
-                    <div x-show="formKey !== 'ai-settings' && formKey !== 'ai-log-detail' && formKey !== 'activity-log-detail' && formKey !== 'system-error-detail' && formKey !== 'media-library' && formKey !== 'categories' && formKey !== 'brands' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls' && formKey !== 'products' && formKey !== 'labels' && formKey !== 'users' && formKey !== 'staff' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'customers' && formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'sales' && formKey !== 'sale-quotations' && formKey !== 'sale-returns' && formKey !== 'online-orders' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding' && formKey !== 'sales-channel' && formKey !== 'staff-salary' && formKey !== 'staff-attendance' && formKey !== 'staff-advance' && formKey !== 'staff-leave' && formKey !== 'staff-payroll' && formKey !== 'finance-bank' && formKey !== 'finance-fund-transfer' && formKey !== 'finance-expense-category' && formKey !== 'finance-expense' && formKey !== 'finance-expense-payment' && formKey !== 'delivery-methods' && formKey !== 'logistics-ship'">
+                    <div x-show="formKey !== 'ai-settings' && formKey !== 'ai-log-detail' && formKey !== 'activity-log-detail' && formKey !== 'system-error-detail' && formKey !== 'media-library' && formKey !== 'categories' && formKey !== 'brands' && formKey !== 'product-reviews' && formKey !== 'units' && formKey !== 'packing-units' && formKey !== 'attributes' && formKey !== 'controls' && formKey !== 'products' && formKey !== 'labels' && formKey !== 'users' && formKey !== 'staff' && formKey !== 'roles' && formKey !== 'company-profile' && formKey !== 'suppliers' && formKey !== 'customers' && formKey !== 'purchase-planning' && formKey !== 'purchase-payment-summary' && formKey !== 'purchase-quotations' && formKey !== 'purchases' && formKey !== 'sales' && formKey !== 'sale-quotations' && formKey !== 'sale-returns' && formKey !== 'online-orders' && formKey !== 'price-controls' && formKey !== 'quantity-controls' && formKey !== 'secret-coding' && formKey !== 'sales-channel' && formKey !== 'staff-salary' && formKey !== 'staff-attendance' && formKey !== 'staff-advance' && formKey !== 'staff-leave' && formKey !== 'staff-payroll' && formKey !== 'finance-bank' && formKey !== 'finance-fund-transfer' && formKey !== 'finance-expense-category' && formKey !== 'finance-expense' && formKey !== 'finance-expense-payment' && formKey !== 'delivery-methods' && formKey !== 'logistics-ship'">
                         @include('filament.components.form-panel.sample-fields')
                     </div>
                 </div>

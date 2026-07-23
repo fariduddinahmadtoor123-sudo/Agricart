@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\BankAccount;
 use App\Models\Customer;
 use App\Models\OnlineSaleOrder;
+use App\Models\ProductReview;
 use App\Services\Sales\SaleService;
 use App\Services\Store\StoreLayoutService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class CustomerOrderController extends Controller
 {
@@ -43,10 +45,26 @@ class CustomerOrderController extends Controller
             ->with(['items.product', 'supplierAssignments'])
             ->firstOrFail();
 
+        $productIds = $model->items
+            ->pluck('product_id')
+            ->filter()
+            ->unique()
+            ->values();
+
+        /** @var Collection<int, ProductReview> $reviewsByProduct */
+        $reviewsByProduct = $productIds->isEmpty()
+            ? collect()
+            : ProductReview::query()
+                ->where('customer_id', $customer->id)
+                ->whereIn('product_id', $productIds)
+                ->get()
+                ->keyBy('product_id');
+
         return view('store.orders.show', [
             ...$layout->layoutData(),
             'order' => $model,
             'sales' => $sales,
+            'reviewsByProduct' => $reviewsByProduct,
             'bankTransferAccounts' => BankAccount::query()
                 ->where('status', BankAccount::STATUS_ACTIVE)
                 ->orderBy('account_code')
