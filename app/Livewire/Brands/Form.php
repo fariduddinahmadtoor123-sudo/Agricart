@@ -9,6 +9,7 @@ use App\Services\Catalog\BrandEnrichmentService;
 use App\Services\Catalog\BrandService;
 use App\Services\Media\MediaLibraryService;
 use App\Services\Media\OptimizedImageStorage;
+use App\Support\Catalog\BrandAgricartReviewCriteria;
 use App\Support\FriendlyError;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Cache;
@@ -63,6 +64,9 @@ class Form extends Component
 
     public string $agricart_rating = '';
 
+    /** @var array<string, bool|null> */
+    public array $agricart_rating_criteria = [];
+
     public string $agricart_rating_reason_en = '';
 
     public string $agricart_rating_reason_ur = '';
@@ -81,6 +85,44 @@ class Form extends Component
     public function mount(): void
     {
         $this->enrichmentPrompt = BrandEnrichmentService::defaultPrompt();
+        $this->agricart_rating_criteria = BrandAgricartReviewCriteria::normalize(null);
+    }
+
+    public function setAgricartCriterion(string $key, string $value): void
+    {
+        $this->authorizeAction($this->mutationAction());
+
+        if ($this->isReadonly() || ! in_array($key, BrandAgricartReviewCriteria::keys(), true)) {
+            return;
+        }
+
+        $this->agricart_rating_criteria[$key] = match ($value) {
+            'pass' => true,
+            'fail' => false,
+            default => null,
+        };
+        $this->agricart_rating_criteria = BrandAgricartReviewCriteria::normalize($this->agricart_rating_criteria);
+        $this->syncAgricartRatingFromCriteria();
+    }
+
+    public function clearAgricartReview(): void
+    {
+        $this->authorizeAction($this->mutationAction());
+
+        if ($this->isReadonly()) {
+            return;
+        }
+
+        $this->agricart_rating_criteria = BrandAgricartReviewCriteria::normalize(null);
+        $this->agricart_rating = '';
+        $this->agricart_rating_reason_en = '';
+        $this->agricart_rating_reason_ur = '';
+    }
+
+    private function syncAgricartRatingFromCriteria(): void
+    {
+        $score = BrandAgricartReviewCriteria::score($this->agricart_rating_criteria);
+        $this->agricart_rating = $score === null ? '' : (string) $score;
     }
 
     public function openForm(?int $brandId = null, string $mode = 'create'): void
@@ -275,14 +317,13 @@ class Form extends Component
             }
         }
 
-        if (filled($this->agricart_rating)) {
-            if (! filled(trim($this->agricart_rating_reason_en))) {
-                $missing[] = __('agricart.brands.fields.agricart_rating_reason_en');
-            }
+        $criteria = BrandAgricartReviewCriteria::normalize($this->agricart_rating_criteria);
 
-            if (! filled(trim($this->agricart_rating_reason_ur))) {
-                $missing[] = __('agricart.brands.fields.agricart_rating_reason_ur');
-            }
+        if (BrandAgricartReviewCriteria::hasAnyAnswer($criteria) && ! BrandAgricartReviewCriteria::isComplete($criteria)) {
+            $this->setStatus(__('agricart.brands.messages.review_criteria_incomplete'), 'danger');
+            $this->dispatchBusyState();
+
+            return false;
         }
 
         if ($missing !== []) {
@@ -374,6 +415,7 @@ class Form extends Component
             'inactive_reason_en' => $this->inactive_reason_en ?: null,
             'inactive_reason_ur' => $this->inactive_reason_ur ?: null,
             'agricart_rating' => filled($this->agricart_rating) ? (int) $this->agricart_rating : null,
+            'agricart_rating_criteria' => BrandAgricartReviewCriteria::normalize($this->agricart_rating_criteria),
             'agricart_rating_reason_en' => $this->agricart_rating_reason_en ?: null,
             'agricart_rating_reason_ur' => $this->agricart_rating_reason_ur ?: null,
             'name_en' => $this->name_en,
@@ -445,7 +487,8 @@ class Form extends Component
         $this->status = $brand->status;
         $this->inactive_reason_en = $brand->inactive_reason_en ?? '';
         $this->inactive_reason_ur = $brand->inactive_reason_ur ?? '';
-        $this->agricart_rating = $brand->agricart_rating !== null ? (string) $brand->agricart_rating : '';
+        $this->agricart_rating_criteria = BrandAgricartReviewCriteria::normalize($brand->agricart_rating_criteria);
+        $this->syncAgricartRatingFromCriteria();
         $this->agricart_rating_reason_en = $brand->agricart_rating_reason_en ?? '';
         $this->agricart_rating_reason_ur = $brand->agricart_rating_reason_ur ?? '';
         $this->ai_status = $brand->ai_status?->value ?? 'none';
@@ -475,6 +518,7 @@ class Form extends Component
         $this->inactive_reason_en = '';
         $this->inactive_reason_ur = '';
         $this->agricart_rating = '';
+        $this->agricart_rating_criteria = BrandAgricartReviewCriteria::normalize(null);
         $this->agricart_rating_reason_en = '';
         $this->agricart_rating_reason_ur = '';
         $this->ai_status = 'none';

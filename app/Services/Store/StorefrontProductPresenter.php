@@ -262,7 +262,15 @@ class StorefrontProductPresenter
     {
         $rating = $product->brand?->agricart_rating;
 
-        return is_int($rating) && $rating >= 1 && $rating <= 10;
+        if (! is_int($rating) || $rating < 0 || $rating > 10) {
+            return false;
+        }
+
+        $criteria = \App\Support\Catalog\BrandAgricartReviewCriteria::normalize(
+            $product->brand?->agricart_rating_criteria,
+        );
+
+        return \App\Support\Catalog\BrandAgricartReviewCriteria::isComplete($criteria);
     }
 
     public function localizedAgricartRatingReason(Product $product): ?string

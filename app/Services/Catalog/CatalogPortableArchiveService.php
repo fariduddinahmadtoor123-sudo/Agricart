@@ -11,6 +11,7 @@ use App\Models\PackingUnit;
 use App\Models\Product;
 use App\Models\Unit;
 use App\Services\PortableArchive\PortableArchiveCodec;
+use App\Support\Catalog\BrandAgricartReviewCriteria;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
@@ -336,6 +337,7 @@ class CatalogPortableArchiveService
                 'inactive_reason_en' => $brand->inactive_reason_en,
                 'inactive_reason_ur' => $brand->inactive_reason_ur,
                 'agricart_rating' => $brand->agricart_rating,
+                'agricart_rating_criteria' => $brand->agricart_rating_criteria,
                 'agricart_rating_reason_en' => $brand->agricart_rating_reason_en,
                 'agricart_rating_reason_ur' => $brand->agricart_rating_reason_ur,
                 'name_en' => $brand->name_en,
@@ -598,7 +600,14 @@ class CatalogPortableArchiveService
             }
 
             $rating = $row['agricart_rating'] ?? null;
-            $rating = is_numeric($rating) ? max(1, min(10, (int) $rating)) : null;
+            $rating = is_numeric($rating) ? max(0, min(10, (int) $rating)) : null;
+            $criteria = BrandAgricartReviewCriteria::forStorage(
+                is_array($row['agricart_rating_criteria'] ?? null) ? $row['agricart_rating_criteria'] : null,
+            );
+
+            if ($criteria !== null) {
+                $rating = BrandAgricartReviewCriteria::score($criteria);
+            }
 
             $data = $this->masterPayload($row, [
                 'description_en' => $row['description_en'] ?? null,
@@ -607,6 +616,7 @@ class CatalogPortableArchiveService
                 'inactive_reason_en' => $row['inactive_reason_en'] ?? null,
                 'inactive_reason_ur' => $row['inactive_reason_ur'] ?? null,
                 'agricart_rating' => $rating,
+                'agricart_rating_criteria' => $criteria,
                 'agricart_rating_reason_en' => $rating === null ? null : ($row['agricart_rating_reason_en'] ?? null),
                 'agricart_rating_reason_ur' => $rating === null ? null : ($row['agricart_rating_reason_ur'] ?? null),
                 'image_path' => $imagePath ?: 'brands/placeholder.webp',

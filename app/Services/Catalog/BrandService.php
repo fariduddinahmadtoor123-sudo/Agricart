@@ -6,6 +6,7 @@ use App\Models\Brand;
 use App\Models\Product;
 use App\Services\Identifiers\DocumentCounterService;
 use App\Services\Media\MediaLibraryService;
+use App\Support\Catalog\BrandAgricartReviewCriteria;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -143,7 +144,8 @@ class BrandService
             'status' => ['nullable', 'string', 'in:active,inactive'],
             'inactive_reason_en' => ['nullable', 'string', 'max:2000'],
             'inactive_reason_ur' => ['nullable', 'string', 'max:2000'],
-            'agricart_rating' => ['nullable', 'integer', 'min:1', 'max:10'],
+            'agricart_rating' => ['nullable', 'integer', 'min:0', 'max:10'],
+            'agricart_rating_criteria' => ['nullable', 'array'],
             'agricart_rating_reason_en' => ['nullable', 'string', 'max:2000'],
             'agricart_rating_reason_ur' => ['nullable', 'string', 'max:2000'],
             'name_en' => ['required', 'string', 'max:255'],
@@ -155,6 +157,10 @@ class BrandService
             'ai_status' => ['nullable', 'string', 'in:none,pending,enriched,failed,manual'],
         ];
 
+        foreach (BrandAgricartReviewCriteria::keys() as $criterionKey) {
+            $rules['agricart_rating_criteria.'.$criterionKey] = ['nullable', 'boolean'];
+        }
+
         $status = (string) ($data['status'] ?? 'active');
 
         if ($status === 'inactive') {
@@ -162,16 +168,14 @@ class BrandService
             $rules['inactive_reason_ur'] = ['required', 'string', 'max:2000'];
         }
 
-        $rating = $data['agricart_rating'] ?? null;
-        if ($rating === '' || $rating === null) {
-            $rating = null;
-        } else {
-            $rating = (int) $rating;
-        }
+        $criteria = BrandAgricartReviewCriteria::normalize(
+            is_array($data['agricart_rating_criteria'] ?? null) ? $data['agricart_rating_criteria'] : null,
+        );
 
-        if ($rating !== null) {
-            $rules['agricart_rating_reason_en'] = ['required', 'string', 'max:2000'];
-            $rules['agricart_rating_reason_ur'] = ['required', 'string', 'max:2000'];
+        if (BrandAgricartReviewCriteria::hasAnyAnswer($criteria) && ! BrandAgricartReviewCriteria::isComplete($criteria)) {
+            throw ValidationException::withMessages([
+                'agricart_rating_criteria' => [__('agricart.brands.messages.review_criteria_incomplete')],
+            ]);
         }
 
         $validator = validator($data, $rules);
@@ -180,7 +184,26 @@ class BrandService
             throw ValidationException::withMessages($validator->errors()->toArray());
         }
 
-        $validated = Arr::only($validator->validated(), array_keys($rules));
+        $fieldKeys = [
+            'code',
+            'slug',
+            'status',
+            'inactive_reason_en',
+            'inactive_reason_ur',
+            'agricart_rating',
+            'agricart_rating_criteria',
+            'agricart_rating_reason_en',
+            'agricart_rating_reason_ur',
+            'name_en',
+            'name_ur',
+            'image_path',
+            'description_en',
+            'description_ur',
+            'website_url',
+            'ai_status',
+        ];
+
+        $validated = Arr::only($validator->validated(), $fieldKeys);
         $validated['status'] = $validated['status'] ?? 'active';
         $validated['ai_status'] = $validated['ai_status'] ?? 'none';
 
@@ -189,12 +212,11 @@ class BrandService
             $validated['inactive_reason_ur'] = null;
         }
 
-        if (array_key_exists('agricart_rating', $validated) && $validated['agricart_rating'] === '') {
-            $validated['agricart_rating'] = null;
-        }
+        $storedCriteria = BrandAgricartReviewCriteria::forStorage($criteria);
+        $validated['agricart_rating_criteria'] = $storedCriteria;
+        $validated['agricart_rating'] = BrandAgricartReviewCriteria::score($criteria);
 
-        if (empty($validated['agricart_rating'])) {
-            $validated['agricart_rating'] = null;
+        if ($validated['agricart_rating'] === null) {
             $validated['agricart_rating_reason_en'] = null;
             $validated['agricart_rating_reason_ur'] = null;
         }

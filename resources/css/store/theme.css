@@ -1802,6 +1802,99 @@
     margin: 0;
 }
 
+.ag-store-pdp__brand-review-fairness {
+    margin: 0;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--agricart-muted, #64748b);
+}
+
+.ag-store-pdp__brand-review-criteria {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.45rem;
+}
+
+.ag-store-pdp__brand-review-criterion {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.65rem;
+    align-items: start;
+    padding: 0.7rem 0.75rem;
+    border: 1px solid var(--agricart-border, #ebedf0);
+    background: #fff;
+    border-radius: 0;
+}
+
+.ag-store-pdp__brand-review-criterion.is-pass {
+    border-color: color-mix(in srgb, var(--agricart-primary, #83b735) 45%, var(--agricart-border, #ebedf0));
+    background: color-mix(in srgb, var(--agricart-primary, #83b735) 8%, #fff);
+}
+
+.ag-store-pdp__brand-review-criterion.is-fail {
+    border-color: color-mix(in srgb, #dc2626 35%, var(--agricart-border, #ebedf0));
+    background: color-mix(in srgb, #dc2626 6%, #fff);
+}
+
+.ag-store-pdp__brand-review-mark {
+    font-family: Arial, sans-serif !important;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.ag-store-pdp__brand-review-criterion.is-pass .ag-store-pdp__brand-review-mark {
+    color: var(--agricart-primary, #83b735);
+}
+
+.ag-store-pdp__brand-review-criterion.is-fail .ag-store-pdp__brand-review-mark {
+    color: #dc2626;
+}
+
+.ag-store-pdp__brand-review-criterion-body {
+    display: grid;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.ag-store-pdp__brand-review-criterion-label {
+    font-family: Arial, sans-serif !important;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--agricart-text, #0f172a);
+    display: grid;
+    gap: 0.1rem;
+}
+
+.ag-store-pdp__brand-review-criterion-label-ur {
+    font-weight: 600;
+    color: var(--agricart-muted, #64748b);
+}
+
+.ag-store-pdp__brand-review-criterion-check {
+    font-family: Arial, sans-serif !important;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--agricart-muted, #64748b);
+}
+
+.ag-store-pdp__brand-review-criterion-result {
+    font-family: Arial, sans-serif !important;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.ag-store-pdp__brand-review-notes-title {
+    margin: 0 0 0.35rem;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--agricart-text, #0f172a);
+}
+
 .ag-store-pdp__spec-list {
     margin: 0;
     padding: 0;

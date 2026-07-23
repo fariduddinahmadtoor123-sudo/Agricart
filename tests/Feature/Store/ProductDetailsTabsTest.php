@@ -85,6 +85,18 @@ class ProductDetailsTabsTest extends TestCase
             'name_ur' => 'ریویو برانڈ',
             'description_en' => 'Maker of pumps.',
             'agricart_rating' => 8,
+            'agricart_rating_criteria' => [
+                'product_quality' => true,
+                'value_for_money' => true,
+                'market_reputation' => true,
+                'durability' => true,
+                'performance' => true,
+                'innovation_technology' => true,
+                'warranty_after_sales' => true,
+                'spare_parts_availability' => true,
+                'brand_reliability' => false,
+                'overall_market_acceptance' => false,
+            ],
             'agricart_rating_reason_en' => 'Steady sales and low return rate.',
             'agricart_rating_reason_ur' => 'سیل مستحکم اور ریٹرن کم ہے۔',
             'image_path' => 'brands/review.webp',
@@ -111,6 +123,8 @@ class ProductDetailsTabsTest extends TestCase
             ->assertSee('data-store-pdp-tab="brand-review"', false)
             ->assertSee(__('agricart.storefront.product.tabs.agricart_brand_review'), false)
             ->assertSee(__('agricart.storefront.product.brand_review.eyebrow'), false)
+            ->assertSee(__('agricart.storefront.product.brand_review.fairness'), false)
+            ->assertSee(__('agricart.brands.review_criteria.product_quality.label'), false)
             ->assertSee('Steady sales and low return rate.', false)
             ->assertSee('8', false);
     }

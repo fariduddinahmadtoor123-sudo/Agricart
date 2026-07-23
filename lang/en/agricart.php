@@ -1329,10 +1329,67 @@ return [
             'agricart_rating' => 'Agricart review',
             'agricart_rating_none' => 'Not rated yet',
             'agricart_rating_value' => ':score / 10',
-            'agricart_rating_reason_en' => 'Why this score (English)',
-            'agricart_rating_reason_ur' => 'Why this score (Urdu)',
+            'agricart_rating_reason_en' => 'Extra notes (English)',
+            'agricart_rating_reason_ur' => 'Extra notes (Urdu)',
             'ai_status' => 'AI status',
             'ai_message' => 'Message to AI',
+        ],
+        'review_actions' => [
+            'pass' => 'Pass',
+            'fail' => 'Fail',
+            'clear' => 'Clear Agricart review',
+        ],
+        'review_criteria' => [
+            'product_quality' => [
+                'label' => 'Product Quality',
+                'label_ur' => 'مصنوعات کا معیار',
+                'check' => 'Does the brand truly deliver good quality?',
+            ],
+            'value_for_money' => [
+                'label' => 'Value for Money',
+                'label_ur' => 'قیمت کے مقابلے میں معیار',
+                'check' => 'Is the value fair for the price, or is it overpriced?',
+            ],
+            'market_reputation' => [
+                'label' => 'Market Reputation',
+                'label_ur' => 'مارکیٹ میں ساکھ',
+                'check' => 'How much do dealers, mechanics, farmers, and buyers trust this brand?',
+            ],
+            'durability' => [
+                'label' => 'Durability',
+                'label_ur' => 'پائیداری',
+                'check' => 'How long do products last without breaking down?',
+            ],
+            'performance' => [
+                'label' => 'Performance',
+                'label_ur' => 'کارکردگی',
+                'check' => 'Does the product deliver the claimed performance?',
+            ],
+            'innovation_technology' => [
+                'label' => 'Innovation & Technology',
+                'label_ur' => 'جدت اور ٹیکنالوجی',
+                'check' => 'Does the brand keep introducing better technology and design?',
+            ],
+            'warranty_after_sales' => [
+                'label' => 'Warranty & After-Sales Support',
+                'label_ur' => 'وارنٹی اور بعد از فروخت سروس',
+                'check' => 'How strong are warranty, service centers, and support?',
+            ],
+            'spare_parts_availability' => [
+                'label' => 'Spare Parts Availability',
+                'label_ur' => 'اسپیئر پارٹس کی دستیابی',
+                'check' => 'Are spare parts easy to find in the market?',
+            ],
+            'brand_reliability' => [
+                'label' => 'Brand Reliability',
+                'label_ur' => 'برانڈ کا اعتماد',
+                'check' => 'Does the brand keep its promises with consistent quality?',
+            ],
+            'overall_market_acceptance' => [
+                'label' => 'Overall Market Acceptance',
+                'label_ur' => 'مجموعی مارکیٹ قبولیت',
+                'check' => 'How widely is the brand accepted in Pakistan and related markets?',
+            ],
         ],
         'hints' => [
             'name_from_file' => 'English name is filled automatically from the uploaded file name. You can edit it.',
@@ -1341,9 +1398,9 @@ return [
             'status' => 'Inactive brands keep their products, but those products are set inactive automatically.',
             'inactive_reason_en' => 'Explain why this brand is being deactivated (English).',
             'inactive_reason_ur' => 'اس برانڈ کو غیر فعال کرنے کی وجہ اردو میں لکھیں۔',
-            'agricart_rating' => 'Optional Agricart score out of 10. If you set a score, explain why in English and Urdu.',
-            'agricart_rating_reason_en' => 'e.g. Strong after-sales support and consistent quality on our shelf.',
-            'agricart_rating_reason_ur' => 'مثلاً: سیل کے بعد سروس اچھی ہے اور معیار مستحکم ہے۔',
+            'agricart_rating' => 'Mark Pass or Fail on each of the 10 Agricart checks. The score out of 10 updates automatically. Complete all 10 to publish a fair review on the product page.',
+            'agricart_rating_reason_en' => 'Optional note for shoppers (English), after the checklist.',
+            'agricart_rating_reason_ur' => 'اختیاری نوٹ خریداروں کے لیے (اردو)۔',
         ],
         'image' => [
             'upload' => 'Upload brand image',
@@ -1364,6 +1421,7 @@ return [
             'saved' => 'Brand saved successfully.',
             'validation_failed' => 'Please fix the highlighted fields.',
             'required_fields' => 'Please fill required fields: :fields.',
+            'review_criteria_incomplete' => 'Complete Pass or Fail for all 10 Agricart review checks, or clear the review.',
         ],
         'list' => [
             'empty' => 'No brands yet. Click Add Brand above to create your first one.',
@@ -2776,6 +2834,10 @@ return [
                 'eyebrow' => 'Agricart brand score',
                 'out_of' => '/ 10',
                 'score_aria' => 'Agricart rated this brand :score out of 10',
+                'fairness' => 'This score is based on Agricart’s 10-point brand checklist — Pass or Fail on each point — not a random rating.',
+                'pass' => 'Pass',
+                'fail' => 'Fail',
+                'notes' => 'Agricart notes',
             ],
             'delivery' => [
                 'lead' => 'These delivery options are available for this product. You choose one at checkout.',

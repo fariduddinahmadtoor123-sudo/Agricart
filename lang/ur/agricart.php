@@ -1329,10 +1329,67 @@ return [
             'agricart_rating' => 'ایگری کارٹ ریویو',
             'agricart_rating_none' => 'ابھی ریٹنگ نہیں',
             'agricart_rating_value' => ':score / 10',
-            'agricart_rating_reason_en' => 'اس سکور کی وجہ (انگریزی)',
-            'agricart_rating_reason_ur' => 'اس سکور کی وجہ (اردو)',
+            'agricart_rating_reason_en' => 'اضافی نوٹ (انگریزی)',
+            'agricart_rating_reason_ur' => 'اضافی نوٹ (اردو)',
             'ai_status' => 'AI حالت',
             'ai_message' => 'AI کو پیغام',
+        ],
+        'review_actions' => [
+            'pass' => 'پاس',
+            'fail' => 'فیل',
+            'clear' => 'ایگری کارٹ ریویو صاف کریں',
+        ],
+        'review_criteria' => [
+            'product_quality' => [
+                'label' => 'Product Quality',
+                'label_ur' => 'مصنوعات کا معیار',
+                'check' => 'کیا برانڈ واقعی اچھی کوالٹی فراہم کرتا ہے؟',
+            ],
+            'value_for_money' => [
+                'label' => 'Value for Money',
+                'label_ur' => 'قیمت کے مقابلے میں معیار',
+                'check' => 'کیا قیمت کے مطابق ویلیو ملتی ہے یا قیمت زیادہ ہے؟',
+            ],
+            'market_reputation' => [
+                'label' => 'Market Reputation',
+                'label_ur' => 'مارکیٹ میں ساکھ',
+                'check' => 'ڈیلرز، مکینک، کسان اور صارفین اس برانڈ پر کتنا اعتماد کرتے ہیں؟',
+            ],
+            'durability' => [
+                'label' => 'Durability',
+                'label_ur' => 'پائیداری',
+                'check' => 'مصنوعات کتنی دیر تک بغیر خرابی کے چلتی ہیں؟',
+            ],
+            'performance' => [
+                'label' => 'Performance',
+                'label_ur' => 'کارکردگی',
+                'check' => 'کیا پراڈکٹ اپنی دعویٰ کردہ کارکردگی دیتی ہے؟',
+            ],
+            'innovation_technology' => [
+                'label' => 'Innovation & Technology',
+                'label_ur' => 'جدت اور ٹیکنالوجی',
+                'check' => 'کیا برانڈ نئی ٹیکنالوجی اور بہتر ڈیزائن متعارف کرواتا رہتا ہے؟',
+            ],
+            'warranty_after_sales' => [
+                'label' => 'Warranty & After-Sales Support',
+                'label_ur' => 'وارنٹی اور بعد از فروخت سروس',
+                'check' => 'وارنٹی، سروس سینٹر اور سپورٹ کیسی ہے؟',
+            ],
+            'spare_parts_availability' => [
+                'label' => 'Spare Parts Availability',
+                'label_ur' => 'اسپیئر پارٹس کی دستیابی',
+                'check' => 'کیا اس کے پارٹس آسانی سے مارکیٹ میں دستیاب ہیں؟',
+            ],
+            'brand_reliability' => [
+                'label' => 'Brand Reliability',
+                'label_ur' => 'برانڈ کا اعتماد',
+                'check' => 'کیا برانڈ اپنے وعدوں پر پورا اترتا ہے اور مسلسل ایک جیسا معیار دیتا ہے؟',
+            ],
+            'overall_market_acceptance' => [
+                'label' => 'Overall Market Acceptance',
+                'label_ur' => 'مجموعی مارکیٹ قبولیت',
+                'check' => 'پاکستان یا متعلقہ مارکیٹ میں اس برانڈ کی مجموعی مقبولیت اور قبولیت کتنی ہے؟',
+            ],
         ],
         'hints' => [
             'name_from_file' => 'انگریزی نام فائل کے نام سے خود بھر جاتا ہے — آپ بدل بھی سکتے ہیں۔',
@@ -1341,9 +1398,9 @@ return [
             'status' => 'غیر فعال برانڈ کی مصنوعات محفوظ رہتی ہیں، مگر وہ خود بخود غیر فعال ہو جاتی ہیں۔',
             'inactive_reason_en' => 'Explain why this brand is being deactivated (English).',
             'inactive_reason_ur' => 'اس برانڈ کو غیر فعال کرنے کی وجہ اردو میں لکھیں۔',
-            'agricart_rating' => 'اختیاری — 10 میں سے سکور۔ اگر سکور دیں تو انگریزی اور اردو میں وجہ بھی لکھیں۔',
-            'agricart_rating_reason_en' => 'e.g. Strong after-sales support and consistent quality on our shelf.',
-            'agricart_rating_reason_ur' => 'مثلاً: سیل کے بعد سروس اچھی ہے اور معیار مستحکم ہے۔',
+            'agricart_rating' => 'دس ایگری کارٹ چیکس پر پاس یا فیل لگائیں۔ سکور خود 10 میں سے بنے گا۔ منصفانہ ریویو کے لیے تمام 10 مکمل کریں۔',
+            'agricart_rating_reason_en' => 'Optional note for shoppers (English), after the checklist.',
+            'agricart_rating_reason_ur' => 'اختیاری نوٹ خریداروں کے لیے (اردو)۔',
         ],
         'image' => [
             'upload' => 'برانڈ تصویر اپلوڈ کریں',
@@ -1364,6 +1421,7 @@ return [
             'saved' => 'برانڈ محفوظ ہو گیا۔',
             'validation_failed' => 'غلط فیلڈز درست کریں۔',
             'required_fields' => 'لازمی فیلڈز بھریں: :fields.',
+            'review_criteria_incomplete' => 'ایگری کارٹ ریویو کے تمام 10 چیکس پر پاس یا فیل لگائیں، یا ریویو صاف کریں۔',
         ],
         'list' => [
             'empty' => 'ابھی کوئی برانڈ نہیں۔ اوپر Add Brand دبائیں۔',
@@ -2776,6 +2834,10 @@ return [
                 'eyebrow' => 'ایگری کارٹ برانڈ سکور',
                 'out_of' => '/ 10',
                 'score_aria' => 'ایگری کارٹ نے اس برانڈ کو 10 میں سے :score دیا',
+                'fairness' => 'یہ سکور ایگری کارٹ کے 10 نکاتی برانڈ چیک لسٹ پر مبنی ہے — ہر نکتے پر پاس یا فیل — بے ترتیب ریٹنگ نہیں۔',
+                'pass' => 'پاس',
+                'fail' => 'فیل',
+                'notes' => 'ایگری کارٹ نوٹس',
             ],
             'delivery' => [
                 'lead' => 'اس پروڈکٹ کے لیے یہ ڈیلیوری اختیارات دستیاب ہیں۔ چیک آؤٹ پر آپ ایک منتخب کریں گے۔',

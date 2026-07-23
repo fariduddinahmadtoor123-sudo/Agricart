@@ -146,17 +146,78 @@
                 </x-filament::input.wrapper>
                 <p class="agricart-form-panel__hint">{{ __('agricart.brands.hints.status') }}</p>
             </div>
-            <div class="agricart-form-panel__field">
-                <label class="agricart-form-panel__label">{{ __('agricart.brands.fields.agricart_rating') }}</label>
-                <x-filament::input.wrapper>
-                    <select wire:model.live="agricart_rating" class="fi-select-input" @disabled($this->isReadonly())>
-                        <option value="">{{ __('agricart.brands.fields.agricart_rating_none') }}</option>
-                        @for ($score = 10; $score >= 1; $score--)
-                            <option value="{{ $score }}">{{ __('agricart.brands.fields.agricart_rating_value', ['score' => $score]) }}</option>
-                        @endfor
-                    </select>
-                </x-filament::input.wrapper>
-                <p class="agricart-form-panel__hint">{{ __('agricart.brands.hints.agricart_rating') }}</p>
+            <div class="agricart-form-panel__field agricart-form-panel__field--full">
+                <div class="agricart-brand-review">
+                    <div class="agricart-brand-review__header">
+                        <div>
+                            <h4 class="agricart-brand-review__title">{{ __('agricart.brands.fields.agricart_rating') }}</h4>
+                            <p class="agricart-form-panel__hint">{{ __('agricart.brands.hints.agricart_rating') }}</p>
+                        </div>
+                        <div class="agricart-brand-review__score" aria-live="polite">
+                            <span class="agricart-brand-review__score-value">{{ filled($agricart_rating) ? $agricart_rating : '—' }}</span>
+                            <span class="agricart-brand-review__score-of">/ 10</span>
+                        </div>
+                    </div>
+
+                    <div class="agricart-brand-review__list" role="list">
+                        @foreach (\App\Support\Catalog\BrandAgricartReviewCriteria::keys() as $criterionKey)
+                            @php($criterionValue = $agricart_rating_criteria[$criterionKey] ?? null)
+                            <div class="agricart-brand-review__row" role="listitem" wire:key="brand-criterion-{{ $criterionKey }}">
+                                <div class="agricart-brand-review__copy">
+                                    <p class="agricart-brand-review__label">
+                                        <span>{{ __('agricart.brands.review_criteria.'.$criterionKey.'.label') }}</span>
+                                        <span class="agricart-brand-review__label-ur" dir="rtl">{{ __('agricart.brands.review_criteria.'.$criterionKey.'.label_ur') }}</span>
+                                    </p>
+                                    <p class="agricart-brand-review__check">{{ __('agricart.brands.review_criteria.'.$criterionKey.'.check') }}</p>
+                                </div>
+                                <div class="agricart-brand-review__actions">
+                                    <button
+                                        type="button"
+                                        class="agricart-brand-review__btn agricart-brand-review__btn--pass {{ $criterionValue === true ? 'is-active' : '' }}"
+                                        wire:click="setAgricartCriterion('{{ $criterionKey }}', 'pass')"
+                                        @disabled($this->isReadonly())
+                                    >{{ __('agricart.brands.review_actions.pass') }}</button>
+                                    <button
+                                        type="button"
+                                        class="agricart-brand-review__btn agricart-brand-review__btn--fail {{ $criterionValue === false ? 'is-active' : '' }}"
+                                        wire:click="setAgricartCriterion('{{ $criterionKey }}', 'fail')"
+                                        @disabled($this->isReadonly())
+                                    >{{ __('agricart.brands.review_actions.fail') }}</button>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+
+                    @unless ($this->isReadonly())
+                        <button type="button" class="agricart-brand-review__clear" wire:click="clearAgricartReview">
+                            {{ __('agricart.brands.review_actions.clear') }}
+                        </button>
+                    @endunless
+
+                    <div class="agricart-brand-review__notes">
+                        <div class="agricart-form-panel__field agricart-form-panel__field--full">
+                            <label class="agricart-form-panel__label">{{ __('agricart.brands.fields.agricart_rating_reason_en') }}</label>
+                            <textarea
+                                rows="2"
+                                wire:model="agricart_rating_reason_en"
+                                class="agricart-brand-form__textarea"
+                                @disabled($this->isReadonly())
+                                placeholder="{{ __('agricart.brands.hints.agricart_rating_reason_en') }}"
+                            ></textarea>
+                        </div>
+                        <div class="agricart-form-panel__field agricart-form-panel__field--full">
+                            <label class="agricart-form-panel__label">{{ __('agricart.brands.fields.agricart_rating_reason_ur') }}</label>
+                            <textarea
+                                rows="2"
+                                wire:model="agricart_rating_reason_ur"
+                                dir="rtl"
+                                class="agricart-brand-form__textarea"
+                                @disabled($this->isReadonly())
+                                placeholder="{{ __('agricart.brands.hints.agricart_rating_reason_ur') }}"
+                            ></textarea>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="agricart-form-panel__field">
                 <label class="agricart-form-panel__label">{{ __('agricart.brands.fields.ai_status') }}</label>
@@ -164,35 +225,6 @@
                     <input type="text" value="{{ __('agricart.categories.ai_status.' . ($ai_status ?: 'none')) }}" class="fi-input" readonly />
                 </x-filament::input.wrapper>
             </div>
-            @if (filled($agricart_rating))
-                <div class="agricart-form-panel__field agricart-form-panel__field--full">
-                    <label class="agricart-form-panel__label">
-                        {{ __('agricart.brands.fields.agricart_rating_reason_en') }}
-                        <span class="agricart-form-panel__required">*</span>
-                    </label>
-                    <textarea
-                        rows="3"
-                        wire:model="agricart_rating_reason_en"
-                        class="agricart-brand-form__textarea"
-                        @disabled($this->isReadonly())
-                        placeholder="{{ __('agricart.brands.hints.agricart_rating_reason_en') }}"
-                    ></textarea>
-                </div>
-                <div class="agricart-form-panel__field agricart-form-panel__field--full">
-                    <label class="agricart-form-panel__label">
-                        {{ __('agricart.brands.fields.agricart_rating_reason_ur') }}
-                        <span class="agricart-form-panel__required">*</span>
-                    </label>
-                    <textarea
-                        rows="3"
-                        wire:model="agricart_rating_reason_ur"
-                        dir="rtl"
-                        class="agricart-brand-form__textarea"
-                        @disabled($this->isReadonly())
-                        placeholder="{{ __('agricart.brands.hints.agricart_rating_reason_ur') }}"
-                    ></textarea>
-                </div>
-            @endif
             @if ($status === 'inactive')
                 <div class="agricart-form-panel__field agricart-form-panel__field--full">
                     <label class="agricart-form-panel__label">

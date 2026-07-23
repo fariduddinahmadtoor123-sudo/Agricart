@@ -17,6 +17,7 @@ class Brand extends Model
         'inactive_reason_en',
         'inactive_reason_ur',
         'agricart_rating',
+        'agricart_rating_criteria',
         'agricart_rating_reason_en',
         'agricart_rating_reason_ur',
         'name_en',
@@ -36,6 +37,7 @@ class Brand extends Model
         return [
             'ai_status' => CategoryAiStatus::class,
             'agricart_rating' => 'integer',
+            'agricart_rating_criteria' => 'array',
         ];
     }
 }

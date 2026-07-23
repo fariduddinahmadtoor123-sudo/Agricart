@@ -253,9 +253,6 @@ class BrandFormIntegrityTest extends TestCase
             ->set('status', 'inactive')
             ->set('inactive_reason_en', 'Supplier stopped delivery')
             ->set('inactive_reason_ur', 'سپلائر نے سپلائی بند کر دی')
-            ->set('agricart_rating', '8')
-            ->set('agricart_rating_reason_en', 'Reliable quality and steady sales')
-            ->set('agricart_rating_reason_ur', 'معیار قابلِ اعتماد ہے اور سیل مستحکم ہے')
             ->call('saveAndClose')
             ->assertSet('statusType', 'success');
 
@@ -263,38 +260,47 @@ class BrandFormIntegrityTest extends TestCase
         $this->assertSame('inactive', $brand->status);
         $this->assertSame('Supplier stopped delivery', $brand->inactive_reason_en);
         $this->assertSame('سپلائر نے سپلائی بند کر دی', $brand->inactive_reason_ur);
-        $this->assertSame(8, $brand->agricart_rating);
-        $this->assertSame('Reliable quality and steady sales', $brand->agricart_rating_reason_en);
-        $this->assertSame('معیار قابلِ اعتماد ہے اور سیل مستحکم ہے', $brand->agricart_rating_reason_ur);
         $this->assertSame('inactive', $activeProduct->fresh()->status);
         $this->assertSame('inactive', $draftProduct->fresh()->status);
     }
 
-    public function test_agricart_rating_requires_bilingual_reason(): void
+    public function test_agricart_checklist_auto_scores_and_requires_all_ten(): void
     {
         Storage::fake('public');
 
         $brand = $this->brand('rated-brand', 'Rated Brand');
+        $criteria = [];
+
+        foreach (\App\Support\Catalog\BrandAgricartReviewCriteria::keys() as $index => $key) {
+            $criteria[$key] = $index < 8;
+        }
 
         Livewire::test(Form::class)
             ->call('openForm', $brand->id, 'edit')
-            ->set('agricart_rating', '9')
+            ->call('setAgricartCriterion', 'product_quality', 'pass')
             ->call('saveAndClose')
             ->assertSet('statusType', 'danger');
 
         $this->assertNull($brand->fresh()->agricart_rating);
 
-        Livewire::test(Form::class)
-            ->call('openForm', $brand->id, 'edit')
-            ->set('agricart_rating', '9')
-            ->set('agricart_rating_reason_en', 'Excellent partner feedback')
-            ->set('agricart_rating_reason_ur', 'پارٹنر فیڈبیک بہترین ہے')
+        $component = Livewire::test(Form::class)->call('openForm', $brand->id, 'edit');
+
+        foreach ($criteria as $key => $pass) {
+            $component->call('setAgricartCriterion', $key, $pass ? 'pass' : 'fail');
+        }
+
+        $component
+            ->set('agricart_rating_reason_en', 'Strong overall partner')
+            ->set('agricart_rating_reason_ur', 'مجموعی طور پر مضبوط پارٹنر')
+            ->assertSet('agricart_rating', '8')
             ->call('saveAndClose')
             ->assertSet('statusType', 'success');
 
         $brand->refresh();
-        $this->assertSame(9, $brand->agricart_rating);
-        $this->assertSame('Excellent partner feedback', $brand->agricart_rating_reason_en);
+        $this->assertSame(8, $brand->agricart_rating);
+        $this->assertTrue($brand->agricart_rating_criteria['product_quality']);
+        $this->assertFalse($brand->agricart_rating_criteria['overall_market_acceptance']);
+        $this->assertSame('Strong overall partner', $brand->agricart_rating_reason_en);
     }
 
     public function test_brand_can_save_without_agricart_rating(): void
