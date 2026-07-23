@@ -3,12 +3,17 @@
 namespace Tests\Feature\Notifications;
 
 use App\Filament\Clusters\Approvals\StaffPage;
+use App\Models\Category;
+use App\Models\Customer;
 use App\Models\OnlineSaleOrder;
 use App\Models\Permission;
+use App\Models\Product;
+use App\Models\ProductReview;
 use App\Models\Role;
 use App\Models\StoreInquiry;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class TopbarNotificationTest extends TestCase
@@ -37,17 +42,57 @@ class TopbarNotificationTest extends TestCase
             'order_date' => today(),
             'order_status' => OnlineSaleOrder::STATUS_PENDING,
         ]);
+        $category = Category::query()->create([
+            'slug' => 'cat-topbar-review',
+            'code' => 'CAT-TBREV',
+            'status' => 'active',
+            'name_en' => 'Topbar Category',
+            'name_ur' => 'ٹاپ بار زمرہ',
+        ]);
+        $product = Product::query()->create([
+            'category_id' => $category->id,
+            'status' => 'active',
+            'code' => 'PRD-TBREV',
+            'sku' => 'SKU-topbar-review',
+            'name_en' => 'Topbar Review Product',
+            'name_ur' => 'ٹاپ بار ریویو پروڈکٹ',
+            'slug' => 'topbar-review-product',
+        ]);
+        $customer = Customer::query()->create([
+            'customer_number' => 'CUS-TBREV',
+            'customer_channel' => Customer::CHANNEL_ONLINE,
+            'first_name' => 'Topbar',
+            'last_name' => 'Reviewer',
+            'email' => 'topbar-review@test.test',
+            'phone' => '03001112233',
+            'password' => Hash::make('password'),
+            'address_line1' => '1 Test Street',
+            'city' => 'Lahore',
+            'state' => 'Punjab',
+            'country' => 'Pakistan',
+            'is_active' => true,
+        ]);
+        ProductReview::query()->create([
+            'product_id' => $product->id,
+            'customer_id' => $customer->id,
+            'submission_path' => ProductReview::PATH_PROOF,
+            'rating' => 5,
+            'body' => 'Pending review waiting in the topbar bell.',
+            'status' => ProductReview::STATUS_PENDING,
+        ]);
 
         $this->getJson(route('admin.notifications.summary'))
             ->assertOk()
-            ->assertJsonPath('total', 4)
+            ->assertJsonPath('total', 5)
             ->assertJsonPath('inbox_unread', 0)
             ->assertJsonPath('items.0.key', 'staff_approvals')
             ->assertJsonPath('items.0.count', 2)
             ->assertJsonPath('items.1.key', 'customer_messages')
             ->assertJsonPath('items.1.count', 1)
-            ->assertJsonPath('items.2.key', 'online_orders')
-            ->assertJsonPath('items.2.count', 1);
+            ->assertJsonPath('items.2.key', 'product_reviews')
+            ->assertJsonPath('items.2.count', 1)
+            ->assertJsonPath('items.3.key', 'online_orders')
+            ->assertJsonPath('items.3.count', 1);
     }
 
     public function test_user_only_sees_notification_types_they_can_access(): void

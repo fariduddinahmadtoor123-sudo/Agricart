@@ -81,27 +81,6 @@
                     @endif
                     <div class="ag-store-pdp__customer-review-footer">
                         <p class="ag-store-pdp__customer-review-date">{{ $review->created_at?->format('Y-m-d') }}</p>
-                        @auth('customer')
-                            <details class="ag-store-pdp__customer-review-report">
-                                <summary>{{ __('agricart.storefront.reviews.report') }}</summary>
-                                <form method="post" action="{{ route('store.customer.reviews.report', $review->id) }}" class="ag-store-pdp__customer-review-report-form">
-                                    @csrf
-                                    <label>
-                                        <span>{{ __('agricart.storefront.reviews.report_reason') }}</span>
-                                        <select name="reason" required>
-                                            @foreach (__('agricart.storefront.reviews.report_reasons') as $value => $label)
-                                                <option value="{{ $value }}">{{ $label }}</option>
-                                            @endforeach
-                                        </select>
-                                    </label>
-                                    <label>
-                                        <span>{{ __('agricart.storefront.reviews.report_note') }}</span>
-                                        <textarea name="note" rows="2" maxlength="500"></textarea>
-                                    </label>
-                                    <button type="submit">{{ __('agricart.storefront.reviews.report_submit') }}</button>
-                                </form>
-                            </details>
-                        @endauth
                     </div>
                 </li>
             @endforeach

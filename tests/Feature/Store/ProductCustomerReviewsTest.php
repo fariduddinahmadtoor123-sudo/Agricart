@@ -10,7 +10,6 @@ use App\Models\OnlineSaleOrderItem;
 use App\Models\Product;
 use App\Models\ProductReview;
 use App\Models\ProductReviewPhoto;
-use App\Models\ProductReviewReport;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -190,7 +189,10 @@ class ProductCustomerReviewsTest extends TestCase
             ->assertSee('Average product, waiting for staff approval.')
             ->assertSee(__('agricart.store.admin.reviews.path_proof'))
             ->assertSee(__('agricart.store.admin.reviews.policy_checklist'))
+            ->assertSee(__('agricart.store.admin.reviews.view'))
+            ->call('openView', $review->id)
             ->assertSee('Receipt from local shop.')
+            ->assertSee(__('agricart.store.admin.reviews.detail_label'))
             ->call('approve', $review->id);
 
         $this->assertDatabaseHas('product_reviews', [
@@ -266,7 +268,7 @@ class ProductCustomerReviewsTest extends TestCase
         Livewire::actingAs($admin, 'web')
             ->test(ListProductReviews::class)
             ->call('approve', $review->id)
-            ->call('openReply', $review->id)
+            ->call('openView', $review->id)
             ->set('replyText', 'Thanks for your verified feedback.')
             ->call('saveReply');
 
@@ -285,38 +287,6 @@ class ProductCustomerReviewsTest extends TestCase
             ->assertSee('Great product with a clear photo from my farm use.', false)
             ->assertSee('Thanks for your verified feedback.', false)
             ->assertSee(__('agricart.storefront.reviews.admin_reply'), false);
-    }
-
-    public function test_customer_can_report_approved_review(): void
-    {
-        $author = $this->createCustomer('author-report@test.test');
-        $reporter = $this->createCustomer('reporter@test.test');
-        $product = $this->createProduct('report-product');
-        $order = $this->createDeliveredOrder($author, $product);
-
-        $review = ProductReview::query()->create([
-            'product_id' => $product->id,
-            'customer_id' => $author->id,
-            'online_sale_order_id' => $order->id,
-            'submission_path' => ProductReview::PATH_VERIFIED_PURCHASE,
-            'rating' => 2,
-            'body' => 'Suspicious spam style review content here.',
-            'status' => ProductReview::STATUS_APPROVED,
-        ]);
-
-        $this->actingAs($reporter, 'customer')
-            ->post(route('store.customer.reviews.report', $review->id), [
-                'reason' => ProductReviewReport::REASON_SPAM,
-                'note' => 'Looks like advertising.',
-            ])
-            ->assertRedirect(route('store.product', $product->slug));
-
-        $this->assertDatabaseHas('product_review_reports', [
-            'product_review_id' => $review->id,
-            'customer_id' => $reporter->id,
-            'reason' => ProductReviewReport::REASON_SPAM,
-            'status' => ProductReviewReport::STATUS_OPEN,
-        ]);
     }
 
     private function createProduct(string $slug): Product

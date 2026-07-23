@@ -4,10 +4,10 @@ namespace App\Livewire\Store;
 
 use App\Models\ProductReview;
 use App\Models\ProductReviewPhoto;
-use App\Models\ProductReviewReport;
 use App\Models\User;
 use App\Services\Store\ProductReviewService;
 use Illuminate\Contracts\View\View;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -23,7 +23,8 @@ class ListProductReviews extends Component
 
     public string $statusFilter = 'pending';
 
-    public ?int $replyReviewId = null;
+    #[Locked]
+    public ?int $viewReviewId = null;
 
     public string $replyText = '';
 
@@ -82,6 +83,21 @@ class ListProductReviews extends Component
         $this->dispatch('store-reviews-columns-sync', columns: $this->visibleColumns);
     }
 
+    public function openView(int $reviewId): void
+    {
+        abort_unless($this->userCan('view'), 403);
+
+        $review = ProductReview::query()->findOrFail($reviewId);
+        $this->viewReviewId = $review->id;
+        $this->replyText = (string) ($review->admin_reply ?? '');
+    }
+
+    public function closeView(): void
+    {
+        $this->viewReviewId = null;
+        $this->replyText = '';
+    }
+
     public function approve(int $reviewId, ProductReviewService $reviews): void
     {
         $this->setStatus($reviewId, ProductReview::STATUS_APPROVED, $reviews);
@@ -108,7 +124,13 @@ class ListProductReviews extends Component
 
         $review = ProductReview::query()->with('photos')->findOrFail($reviewId);
         $reviews->delete($review);
+
+        if ($this->viewReviewId === $reviewId) {
+            $this->closeView();
+        }
+
         $this->resetPage();
+        $this->dispatch('topbar-notifications-refresh');
     }
 
     public function deletePhoto(int $photoId, ProductReviewService $reviews): void
@@ -119,20 +141,11 @@ class ListProductReviews extends Component
         $reviews->deletePhoto($photo);
     }
 
-    public function openReply(int $reviewId): void
-    {
-        $this->authorizeMutation();
-
-        $review = ProductReview::query()->findOrFail($reviewId);
-        $this->replyReviewId = $review->id;
-        $this->replyText = (string) ($review->admin_reply ?? '');
-    }
-
     public function saveReply(ProductReviewService $reviews): void
     {
         $this->authorizeMutation();
 
-        if ($this->replyReviewId === null) {
+        if ($this->viewReviewId === null) {
             return;
         }
 
@@ -142,15 +155,17 @@ class ListProductReviews extends Component
             abort(403);
         }
 
-        $review = ProductReview::query()->findOrFail($this->replyReviewId);
+        $review = ProductReview::query()->findOrFail($this->viewReviewId);
         $reviews->setAdminReply($review, $this->replyText, $user);
-        $this->replyReviewId = null;
-        $this->replyText = '';
     }
 
-    public function clearReply(int $reviewId, ProductReviewService $reviews): void
+    public function clearReply(ProductReviewService $reviews): void
     {
         $this->authorizeMutation();
+
+        if ($this->viewReviewId === null) {
+            return;
+        }
 
         $user = auth()->user();
 
@@ -158,47 +173,9 @@ class ListProductReviews extends Component
             abort(403);
         }
 
-        $review = ProductReview::query()->findOrFail($reviewId);
+        $review = ProductReview::query()->findOrFail($this->viewReviewId);
         $reviews->setAdminReply($review, null, $user);
-
-        if ($this->replyReviewId === $reviewId) {
-            $this->replyReviewId = null;
-            $this->replyText = '';
-        }
-    }
-
-    public function resolveReport(int $reportId, ProductReviewService $reviews): void
-    {
-        $this->authorizeMutation();
-
-        $report = ProductReviewReport::query()->findOrFail($reportId);
-        $reviews->resolveReport($report, ProductReviewReport::STATUS_RESOLVED);
-    }
-
-    public function dismissReport(int $reportId, ProductReviewService $reviews): void
-    {
-        $this->authorizeMutation();
-
-        $report = ProductReviewReport::query()->findOrFail($reportId);
-        $reviews->resolveReport($report, ProductReviewReport::STATUS_DISMISSED);
-    }
-
-    public function resolveReportAndHide(int $reportId, ProductReviewService $reviews): void
-    {
-        $this->authorizeMutation();
-
-        $user = auth()->user();
-
-        if (! $user instanceof User) {
-            abort(403);
-        }
-
-        $report = ProductReviewReport::query()->with('review')->findOrFail($reportId);
-        $reviews->resolveReport($report, ProductReviewReport::STATUS_RESOLVED);
-
-        if ($report->review !== null) {
-            $reviews->setStatus($report->review, ProductReview::STATUS_HIDDEN, $user);
-        }
+        $this->replyText = '';
     }
 
     public function render(): View
@@ -207,13 +184,8 @@ class ListProductReviews extends Component
 
         $items = ProductReview::query()
             ->with([
-                'product:id,name_en,name_ur,slug',
+                'product:id,name_en,name_ur,slug,image_path',
                 'customer',
-                'photos',
-                'reports' => fn ($query) => $query->where('status', ProductReviewReport::STATUS_OPEN),
-            ])
-            ->withCount([
-                'reports as open_reports_count' => fn ($query) => $query->where('status', ProductReviewReport::STATUS_OPEN),
             ])
             ->when($this->statusFilter !== 'all', fn ($query) => $query->where('status', $this->statusFilter))
             ->when(filled($this->search), function ($query): void {
@@ -244,10 +216,28 @@ class ListProductReviews extends Component
             ->map(fn (mixed $count): int => (int) $count)
             ->all();
 
+        $selectedReview = null;
+
+        if ($this->viewReviewId !== null) {
+            $selectedReview = ProductReview::query()
+                ->with([
+                    'product:id,name_en,name_ur,slug,image_path',
+                    'customer',
+                    'photos',
+                    'order:id,order_number',
+                ])
+                ->find($this->viewReviewId);
+
+            if ($selectedReview === null) {
+                $this->viewReviewId = null;
+            }
+        }
+
         return view('livewire.store.list-product-reviews', [
             'reviews' => $items,
             'canEdit' => $this->userCan('edit'),
             'statusCounts' => $statusCounts,
+            'selectedReview' => $selectedReview,
         ]);
     }
 
@@ -263,6 +253,7 @@ class ListProductReviews extends Component
 
         $review = ProductReview::query()->findOrFail($reviewId);
         $reviews->setStatus($review, $status, $user);
+        $this->dispatch('topbar-notifications-refresh');
     }
 
     private function authorizeMutation(): void

@@ -1,3 +1,4 @@
+@php use Illuminate\Support\Facades\Storage; @endphp
 <div class="agricart-categories agricart-store-reviews">
     <p class="agricart-store-reviews__policy">{{ __('agricart.store.admin.reviews.policy_checklist') }}</p>
 
@@ -51,110 +52,40 @@
                         <tr wire:key="store-product-review-{{ $review->id }}">
                             @if (in_array('product', $visibleColumns, true))
                                 <td>
-                                    <strong>{{ $review->product?->name_en ?? '—' }}</strong>
-                                    @if (($review->open_reports_count ?? 0) > 0)
-                                        <p class="agricart-store-reviews__reports-badge">
-                                            {{ trans_choice('agricart.store.admin.reviews.reports_open', $review->open_reports_count, ['count' => $review->open_reports_count]) }}
-                                        </p>
-                                    @endif
+                                    <div class="agricart-store-reviews__product-cell">
+                                        @if ($review->product?->image_path)
+                                            <img
+                                                src="{{ Storage::disk('public')->url($review->product->image_path) }}"
+                                                alt=""
+                                                class="agricart-categories__thumb"
+                                                loading="lazy"
+                                            />
+                                        @else
+                                            <span class="agricart-categories__thumb-placeholder">—</span>
+                                        @endif
+                                        <div class="agricart-store-reviews__product-text">
+                                            <strong>{{ $review->product?->name_en ?? '—' }}</strong>
+                                            <span class="agricart-store-reviews__path">
+                                                @if ($review->isProofSubmission())
+                                                    {{ __('agricart.store.admin.reviews.path_proof') }}
+                                                @else
+                                                    {{ __('agricart.store.admin.reviews.path_verified') }}
+                                                @endif
+                                            </span>
+                                        </div>
+                                    </div>
                                 </td>
                             @endif
                             @if (in_array('customer', $visibleColumns, true))
-                                <td>
-                                    {{ $review->customer?->displayName() ?? '—' }}
-                                    <p class="agricart-store-reviews__path">
-                                        @if ($review->isProofSubmission())
-                                            {{ __('agricart.store.admin.reviews.path_proof') }}
-                                        @else
-                                            {{ __('agricart.store.admin.reviews.path_verified') }}
-                                        @endif
-                                    </p>
-                                </td>
+                                <td>{{ $review->customer?->displayName() ?? '—' }}</td>
                             @endif
                             @if (in_array('rating', $visibleColumns, true))
                                 <td>{{ $review->rating }} / 5</td>
                             @endif
                             @if (in_array('body', $visibleColumns, true))
                                 <td class="agricart-store-messages__preview">
-                                    {{ \Illuminate\Support\Str::limit($review->body, 120) }}
-                                    @if (filled($review->proof_note))
-                                        <p class="agricart-store-reviews__proof-note">
-                                            <strong>{{ __('agricart.store.admin.reviews.proof_note_label') }}:</strong>
-                                            {{ \Illuminate\Support\Str::limit($review->proof_note, 120) }}
-                                        </p>
-                                    @endif
-                                    @php
-                                        $galleryPhotos = $review->photos->where('kind', \App\Models\ProductReviewPhoto::KIND_GALLERY);
-                                        $proofPhotos = $review->photos->where('kind', \App\Models\ProductReviewPhoto::KIND_PROOF);
-                                    @endphp
-                                    @if ($proofPhotos->isNotEmpty())
-                                        <p class="agricart-store-reviews__media-label">{{ __('agricart.store.admin.reviews.proof_label') }}</p>
-                                        <div class="agricart-store-reviews__thumbs">
-                                            @foreach ($proofPhotos as $photo)
-                                                <span class="agricart-store-reviews__thumb">
-                                                    @if ($photo->isPdf())
-                                                        <a href="{{ $photo->url() }}" target="_blank" rel="noopener">{{ __('agricart.store.admin.reviews.proof_pdf') }}</a>
-                                                    @else
-                                                        <a href="{{ $photo->url() }}" target="_blank" rel="noopener">
-                                                            <img src="{{ $photo->url() }}" alt="" width="48" height="48" loading="lazy" />
-                                                        </a>
-                                                    @endif
-                                                    @if ($canEdit)
-                                                        <button type="button" class="agricart-categories__action is-danger" wire:click="deletePhoto({{ $photo->id }})">
-                                                            {{ __('agricart.store.admin.reviews.delete_photo') }}
-                                                        </button>
-                                                    @endif
-                                                </span>
-                                            @endforeach
-                                        </div>
-                                    @endif
-                                    @if ($galleryPhotos->isNotEmpty())
-                                        <p class="agricart-store-reviews__media-label">{{ __('agricart.store.admin.reviews.gallery_label') }}</p>
-                                        <div class="agricart-store-reviews__thumbs">
-                                            @foreach ($galleryPhotos as $photo)
-                                                <span class="agricart-store-reviews__thumb">
-                                                    <a href="{{ $photo->url() }}" target="_blank" rel="noopener">
-                                                        <img src="{{ $photo->url() }}" alt="" width="48" height="48" loading="lazy" />
-                                                    </a>
-                                                    @if ($canEdit)
-                                                        <button type="button" class="agricart-categories__action is-danger" wire:click="deletePhoto({{ $photo->id }})">
-                                                            {{ __('agricart.store.admin.reviews.delete_photo') }}
-                                                        </button>
-                                                    @endif
-                                                </span>
-                                            @endforeach
-                                        </div>
-                                    @endif
-                                    @if (filled($review->admin_reply))
-                                        <p class="agricart-store-reviews__reply-preview">
-                                            <strong>{{ __('agricart.storefront.reviews.admin_reply') }}:</strong>
-                                            {{ \Illuminate\Support\Str::limit($review->admin_reply, 80) }}
-                                        </p>
-                                    @endif
-                                    @if ($replyReviewId === $review->id)
-                                        <div class="agricart-store-reviews__reply-editor">
-                                            <textarea rows="3" wire:model="replyText" class="fi-input" placeholder="{{ __('agricart.store.admin.reviews.reply_placeholder') }}"></textarea>
-                                            <button type="button" class="agricart-categories__action is-primary" wire:click="saveReply">
-                                                {{ __('agricart.store.admin.reviews.reply_save') }}
-                                            </button>
-                                        </div>
-                                    @endif
-                                    @foreach ($review->reports as $report)
-                                        <div class="agricart-store-reviews__report-row">
-                                            <span>{{ __('agricart.storefront.reviews.report_reasons.'.$report->reason) }}</span>
-                                            @if ($canEdit)
-                                                <button type="button" class="agricart-categories__action" wire:click="resolveReport({{ $report->id }})">
-                                                    {{ __('agricart.store.admin.reviews.resolve_report') }}
-                                                </button>
-                                                <button type="button" class="agricart-categories__action" wire:click="dismissReport({{ $report->id }})">
-                                                    {{ __('agricart.store.admin.reviews.dismiss_report') }}
-                                                </button>
-                                                <button type="button" class="agricart-categories__action is-warning" wire:click="resolveReportAndHide({{ $report->id }})">
-                                                    {{ __('agricart.store.admin.reviews.resolve_and_hide') }}
-                                                </button>
-                                            @endif
-                                        </div>
-                                    @endforeach
+                                    <span class="agricart-store-reviews__review-label">{{ __('agricart.store.admin.reviews.review_label') }}</span>
+                                    {{ \Illuminate\Support\Str::limit($review->body, 100) }}
                                 </td>
                             @endif
                             @if (in_array('status', $visibleColumns, true))
@@ -169,42 +100,12 @@
                             @endif
                             @if (in_array('actions', $visibleColumns, true))
                                 <td class="agricart-categories__actions agricart-store-messages__row-actions">
-                                    @if ($canEdit)
-                                        @if ($review->status !== \App\Models\ProductReview::STATUS_APPROVED)
-                                            <button type="button" class="agricart-categories__action is-primary" wire:click="approve({{ $review->id }})">
-                                                {{ __('agricart.store.admin.reviews.approve') }}
-                                            </button>
-                                        @endif
-                                        @if ($review->status !== \App\Models\ProductReview::STATUS_HIDDEN)
-                                            <button type="button" class="agricart-categories__action" wire:click="hide({{ $review->id }})">
-                                                {{ __('agricart.store.admin.reviews.hide') }}
-                                            </button>
-                                        @endif
-                                        @if ($review->status !== \App\Models\ProductReview::STATUS_REJECTED)
-                                            <button type="button" class="agricart-categories__action" wire:click="reject({{ $review->id }})">
-                                                {{ __('agricart.store.admin.reviews.reject') }}
-                                            </button>
-                                        @endif
-                                        @if ($review->status !== \App\Models\ProductReview::STATUS_PENDING)
-                                            <button type="button" class="agricart-categories__action" wire:click="pending({{ $review->id }})">
-                                                {{ __('agricart.store.admin.reviews.pending') }}
-                                            </button>
-                                        @endif
-                                        <button type="button" class="agricart-categories__action" wire:click="openReply({{ $review->id }})">
-                                            {{ __('agricart.store.admin.reviews.reply') }}
-                                        </button>
-                                        @if (filled($review->admin_reply))
-                                            <button type="button" class="agricart-categories__action" wire:click="clearReply({{ $review->id }})">
-                                                {{ __('agricart.store.admin.reviews.reply_clear') }}
-                                            </button>
-                                        @endif
-                                        <button
-                                            type="button"
-                                            class="agricart-categories__action is-danger"
-                                            wire:click="delete({{ $review->id }})"
-                                            wire:confirm="{{ __('agricart.store.admin.reviews.delete_confirm') }}"
-                                        >
-                                            {{ __('agricart.store.admin.reviews.delete') }}
+                                    <button type="button" class="agricart-categories__action is-primary" wire:click="openView({{ $review->id }})">
+                                        {{ __('agricart.store.admin.reviews.view') }}
+                                    </button>
+                                    @if ($canEdit && $review->status !== \App\Models\ProductReview::STATUS_APPROVED)
+                                        <button type="button" class="agricart-categories__action" wire:click="approve({{ $review->id }})">
+                                            {{ __('agricart.store.admin.reviews.approve') }}
                                         </button>
                                     @endif
                                 </td>
@@ -217,6 +118,195 @@
 
         <div class="agricart-categories__pagination">
             {{ $reviews->links() }}
+        </div>
+    @endif
+
+    @if ($selectedReview)
+        @php
+            $galleryPhotos = $selectedReview->photos->where('kind', \App\Models\ProductReviewPhoto::KIND_GALLERY);
+            $proofPhotos = $selectedReview->photos->where('kind', \App\Models\ProductReviewPhoto::KIND_PROOF);
+        @endphp
+        <div class="agricart-store-messages__overlay" wire:click.self="closeView" x-data @keydown.escape.window="$wire.closeView()">
+            <section
+                class="agricart-store-messages__panel agricart-store-reviews__panel"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="store-review-detail-title"
+            >
+                <header class="agricart-store-messages__panel-head">
+                    <div>
+                        <span class="agricart-store-messages__panel-eyebrow">{{ __('agricart.store.admin.reviews.detail_label') }}</span>
+                        <h2 id="store-review-detail-title">{{ $selectedReview->product?->name_en ?? __('agricart.store.admin.reviews.col_product') }}</h2>
+                    </div>
+                    <button type="button" class="agricart-store-messages__panel-close" wire:click="closeView" aria-label="{{ __('agricart.store.admin.reviews.close_view') }}">×</button>
+                </header>
+
+                <div class="agricart-store-reviews__detail-product">
+                    @if ($selectedReview->product?->image_path)
+                        <img
+                            src="{{ Storage::disk('public')->url($selectedReview->product->image_path) }}"
+                            alt=""
+                            class="agricart-store-reviews__detail-product-image"
+                            loading="lazy"
+                        />
+                    @else
+                        <span class="agricart-store-reviews__detail-product-placeholder">—</span>
+                    @endif
+                    <div>
+                        <p class="agricart-store-reviews__detail-product-name">{{ $selectedReview->product?->name_en ?? '—' }}</p>
+                        <p class="agricart-store-reviews__path">
+                            @if ($selectedReview->isProofSubmission())
+                                {{ __('agricart.store.admin.reviews.path_proof') }}
+                            @else
+                                {{ __('agricart.store.admin.reviews.path_verified') }}
+                                @if ($selectedReview->order?->order_number)
+                                    · {{ $selectedReview->order->order_number }}
+                                @endif
+                            @endif
+                        </p>
+                    </div>
+                </div>
+
+                <div class="agricart-store-messages__panel-status">
+                    <span class="agricart-store-messages__status is-{{ $selectedReview->status }}">
+                        {{ __('agricart.store.admin.reviews.statuses.'.$selectedReview->status) }}
+                    </span>
+                    <span>{{ $selectedReview->rating }} / 5</span>
+                    <span>{{ __('agricart.store.admin.reviews.received_at', ['date' => $selectedReview->created_at?->format('Y-m-d H:i')]) }}</span>
+                </div>
+
+                <dl class="agricart-store-messages__meta">
+                    <div>
+                        <dt>{{ __('agricart.store.admin.reviews.col_customer') }}</dt>
+                        <dd>{{ $selectedReview->customer?->displayName() ?? '—' }}</dd>
+                    </div>
+                    <div>
+                        <dt>{{ __('agricart.users.fields.email') }}</dt>
+                        <dd>{{ $selectedReview->customer?->email ?: '—' }}</dd>
+                    </div>
+                    <div>
+                        <dt>{{ __('agricart.store.admin.reviews.col_phone') }}</dt>
+                        <dd>
+                            @if (filled($selectedReview->customer?->phone))
+                                <a href="tel:{{ $selectedReview->customer->phone }}">{{ $selectedReview->customer->phone }}</a>
+                            @else
+                                —
+                            @endif
+                        </dd>
+                    </div>
+                </dl>
+
+                <div class="agricart-store-messages__body">
+                    <h3>{{ __('agricart.store.admin.reviews.review_label') }}</h3>
+                    <p>{{ $selectedReview->body }}</p>
+                </div>
+
+                @if (filled($selectedReview->proof_note))
+                    <div class="agricart-store-messages__body">
+                        <h3>{{ __('agricart.store.admin.reviews.proof_note_label') }}</h3>
+                        <p>{{ $selectedReview->proof_note }}</p>
+                    </div>
+                @endif
+
+                @if ($proofPhotos->isNotEmpty())
+                    <div class="agricart-store-reviews__detail-media">
+                        <h3>{{ __('agricart.store.admin.reviews.proof_label') }}</h3>
+                        <div class="agricart-store-reviews__thumbs">
+                            @foreach ($proofPhotos as $photo)
+                                <span class="agricart-store-reviews__thumb">
+                                    @if ($photo->isPdf())
+                                        <a href="{{ $photo->url() }}" target="_blank" rel="noopener">{{ __('agricart.store.admin.reviews.proof_pdf') }}</a>
+                                    @else
+                                        <a href="{{ $photo->url() }}" target="_blank" rel="noopener">
+                                            <img src="{{ $photo->url() }}" alt="" width="72" height="72" loading="lazy" />
+                                        </a>
+                                    @endif
+                                    @if ($canEdit)
+                                        <button type="button" class="agricart-categories__action is-danger" wire:click="deletePhoto({{ $photo->id }})">
+                                            {{ __('agricart.store.admin.reviews.delete_photo') }}
+                                        </button>
+                                    @endif
+                                </span>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                @if ($galleryPhotos->isNotEmpty())
+                    <div class="agricart-store-reviews__detail-media">
+                        <h3>{{ __('agricart.store.admin.reviews.gallery_label') }}</h3>
+                        <div class="agricart-store-reviews__thumbs">
+                            @foreach ($galleryPhotos as $photo)
+                                <span class="agricart-store-reviews__thumb">
+                                    <a href="{{ $photo->url() }}" target="_blank" rel="noopener">
+                                        <img src="{{ $photo->url() }}" alt="" width="72" height="72" loading="lazy" />
+                                    </a>
+                                    @if ($canEdit)
+                                        <button type="button" class="agricart-categories__action is-danger" wire:click="deletePhoto({{ $photo->id }})">
+                                            {{ __('agricart.store.admin.reviews.delete_photo') }}
+                                        </button>
+                                    @endif
+                                </span>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                @if ($canEdit)
+                    <div class="agricart-store-reviews__reply-editor">
+                        <h3>{{ __('agricart.storefront.reviews.admin_reply') }}</h3>
+                        <textarea rows="3" wire:model="replyText" class="fi-input" placeholder="{{ __('agricart.store.admin.reviews.reply_placeholder') }}"></textarea>
+                        <div class="agricart-store-reviews__reply-actions">
+                            <button type="button" class="agricart-categories__action is-primary" wire:click="saveReply">
+                                {{ __('agricart.store.admin.reviews.reply_save') }}
+                            </button>
+                            @if (filled($selectedReview->admin_reply))
+                                <button type="button" class="agricart-categories__action" wire:click="clearReply">
+                                    {{ __('agricart.store.admin.reviews.reply_clear') }}
+                                </button>
+                            @endif
+                        </div>
+                    </div>
+                @elseif (filled($selectedReview->admin_reply))
+                    <div class="agricart-store-messages__body">
+                        <h3>{{ __('agricart.storefront.reviews.admin_reply') }}</h3>
+                        <p>{{ $selectedReview->admin_reply }}</p>
+                    </div>
+                @endif
+
+                @if ($canEdit)
+                    <footer class="agricart-store-messages__panel-actions">
+                        @if ($selectedReview->status !== \App\Models\ProductReview::STATUS_APPROVED)
+                            <button type="button" class="agricart-categories__action is-primary" wire:click="approve({{ $selectedReview->id }})">
+                                {{ __('agricart.store.admin.reviews.approve') }}
+                            </button>
+                        @endif
+                        @if ($selectedReview->status !== \App\Models\ProductReview::STATUS_HIDDEN)
+                            <button type="button" class="agricart-categories__action" wire:click="hide({{ $selectedReview->id }})">
+                                {{ __('agricart.store.admin.reviews.hide') }}
+                            </button>
+                        @endif
+                        @if ($selectedReview->status !== \App\Models\ProductReview::STATUS_REJECTED)
+                            <button type="button" class="agricart-categories__action" wire:click="reject({{ $selectedReview->id }})">
+                                {{ __('agricart.store.admin.reviews.reject') }}
+                            </button>
+                        @endif
+                        @if ($selectedReview->status !== \App\Models\ProductReview::STATUS_PENDING)
+                            <button type="button" class="agricart-categories__action" wire:click="pending({{ $selectedReview->id }})">
+                                {{ __('agricart.store.admin.reviews.pending') }}
+                            </button>
+                        @endif
+                        <button
+                            type="button"
+                            class="agricart-categories__action is-danger"
+                            wire:click="delete({{ $selectedReview->id }})"
+                            wire:confirm="{{ __('agricart.store.admin.reviews.delete_confirm') }}"
+                        >
+                            {{ __('agricart.store.admin.reviews.delete') }}
+                        </button>
+                    </footer>
+                @endif
+            </section>
         </div>
     @endif
 </div>

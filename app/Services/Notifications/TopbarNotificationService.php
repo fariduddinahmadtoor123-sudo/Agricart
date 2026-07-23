@@ -7,7 +7,9 @@ use App\Filament\Clusters\Sales\InboxPage;
 use App\Filament\Clusters\Sales\OnlineQuotationsPage;
 use App\Filament\Clusters\Settings\SystemErrorsPage;
 use App\Filament\Clusters\Store\MessagesPage;
+use App\Filament\Clusters\Store\ReviewsPage;
 use App\Models\OnlineSaleOrder;
+use App\Models\ProductReview;
 use App\Models\StoreInquiry;
 use App\Models\SystemError;
 use App\Models\User;
@@ -37,6 +39,11 @@ class TopbarNotificationService
                 key: 'customer_messages',
                 count: StoreInquiry::query()->where('status', StoreInquiry::STATUS_NEW)->count(),
                 pageClass: MessagesPage::class,
+            ),
+            $this->item(
+                key: 'product_reviews',
+                count: $this->pendingProductReviews(),
+                pageClass: ReviewsPage::class,
             ),
             $this->item(
                 key: 'online_orders',
@@ -73,6 +80,17 @@ class TopbarNotificationService
         }
 
         return app(StaffMessagingService::class)->unreadCountFor($user);
+    }
+
+    private function pendingProductReviews(): int
+    {
+        if (! Schema::hasTable('product_reviews')) {
+            return 0;
+        }
+
+        return ProductReview::query()
+            ->where('status', ProductReview::STATUS_PENDING)
+            ->count();
     }
 
     private function unreadCriticalSystemErrors(): int

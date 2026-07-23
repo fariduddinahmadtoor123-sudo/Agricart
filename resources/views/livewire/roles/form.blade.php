@@ -51,31 +51,46 @@
     <section class="agricart-form-panel__section agricart-user-form__section">
         <h3 class="agricart-form-panel__section-title">{{ __('agricart.roles.sections.permissions') }}</h3>
         <p class="agricart-form-panel__hint">{{ __('agricart.roles.hints.permissions') }}</p>
+        <p class="agricart-role-form__legend">{{ __('agricart.roles.hints.permissions_legend') }}</p>
 
         <div class="agricart-role-form__permission-groups">
             @foreach ($permissionGroups as $groupKey => $group)
                 @php
                     $groupPermissionKeys = collect($group['permissions'])->pluck('key')->all();
-                    $groupChecked = count(array_intersect($groupPermissionKeys, $selectedPermissions)) === count($groupPermissionKeys);
-                    $groupLabel = app()->getLocale() === 'ur' && filled($group['label_ur'] ?? null)
+                    $selectedInGroup = count(array_intersect($groupPermissionKeys, $selectedPermissions));
+                    $groupChecked = $selectedInGroup === count($groupPermissionKeys) && count($groupPermissionKeys) > 0;
+                    $groupPartial = $selectedInGroup > 0 && ! $groupChecked;
+                    $isUr = app()->getLocale() === 'ur';
+                    $groupLabel = $isUr && filled($group['label_ur'] ?? null)
                         ? $group['label_ur']
                         : $group['label_en'];
+                    $groupHint = $isUr && filled($group['hint_ur'] ?? null)
+                        ? $group['hint_ur']
+                        : ($group['hint_en'] ?? null);
                 @endphp
                 <div class="agricart-role-form__permission-group" wire:key="role-permission-group-{{ $groupKey }}">
-                    <label class="agricart-role-form__group-toggle">
+                    <label class="agricart-role-form__group-toggle" title="{{ __('agricart.roles.hints.select_all_module') }}">
                         <input
                             type="checkbox"
                             @checked($groupChecked)
+                            @if ($groupPartial) data-partial="1" @endif
                             wire:click="toggleGroup(@js($groupKey), $event.target.checked)"
                             @disabled($this->isReadonly())
                         />
                         <span>{{ $groupLabel }}</span>
+                        @if ($groupPartial)
+                            <span class="agricart-role-form__group-partial">{{ $selectedInGroup }}/{{ count($groupPermissionKeys) }}</span>
+                        @endif
                     </label>
+
+                    @if (filled($groupHint))
+                        <p class="agricart-role-form__group-hint">{{ $groupHint }}</p>
+                    @endif
 
                     <ul class="agricart-role-form__permission-list">
                         @foreach ($group['permissions'] as $permission)
                             @php
-                                $permissionLabel = app()->getLocale() === 'ur' && filled($permission['label_ur'] ?? null)
+                                $permissionLabel = $isUr && filled($permission['label_ur'] ?? null)
                                     ? $permission['label_ur']
                                     : $permission['label_en'];
                             @endphp

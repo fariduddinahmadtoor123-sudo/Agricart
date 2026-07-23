@@ -5,7 +5,7 @@ namespace App\Services\Access;
 class PermissionRegistry
 {
     /**
-     * @return array<string, array{label_en: string, label_ur: string, permissions: list<array{key: string, label_en: string, label_ur: string}>}>
+     * @return array<string, array{label_en: string, label_ur: string, hint_en?: string, hint_ur?: string, permissions: list<array{key: string, label_en: string, label_ur: string}>}>
      */
     public static function groups(): array
     {
@@ -20,7 +20,7 @@ class PermissionRegistry
             'dashboard' => ['Dashboard', 'ڈیش بورڈ'],
             'approvals' => ['Approvals', 'منظوریاں'],
             'contacts' => ['Contacts', 'رابطے'],
-            'catalog' => ['Catalog', 'کیٹalog'],
+            'catalog' => ['Catalog', 'کیٹلاگ'],
             'purchasing' => ['Purchasing', 'خریداری'],
             'sales' => ['Sales', 'فروخت'],
             'store' => ['Online Store', 'آن لائن اسٹور'],
@@ -32,6 +32,32 @@ class PermissionRegistry
             'marketplace' => ['Channels Hub', 'چینلز حب'],
             'settings' => ['Settings', 'ترتیبات'],
             'docs' => ['Docs', 'دستاویزات'],
+        ];
+
+        $moduleHints = [
+            'catalog' => [
+                'en' => 'One Catalog role covers products, brands, categories, units, attributes, controls, labels, and Agricart product reviews. View alone cannot Add — also enable Create (and Edit to change records).',
+                'ur' => 'ایک کیٹلاگ رول میں پروڈکٹس، برانڈز، زمرے، یونٹس، خصوصیات، کنٹرولز، لیبلز اور ایگری کارٹ پروڈکٹ ریویوز شامل ہیں۔ صرف دیکھیں سے Add نہیں ہوتا — بنائیں (اور ترمیم) بھی آن کریں۔',
+            ],
+            'store' => [
+                'en' => 'Online Store covers layout settings, customer messages, customer product reviews moderation, and store items. Visitor analytics has its own checkbox below.',
+                'ur' => 'آن لائن اسٹور میں لے آؤٹ، کسٹمر میسجز، کسٹمر پروڈکٹ ریویوز کی منظوری، اور اسٹور آئٹمز شامل ہیں۔ وزیٹر اینالیٹکس الگ چیک باکس ہے۔',
+            ],
+        ];
+
+        $moduleActionLabels = [
+            'catalog' => [
+                'view' => ['View Catalog (browse products, brands, categories…)', 'کیٹلاگ دیکھیں (پروڈکٹس، برانڈز، زمرے…)'],
+                'create' => ['Create Catalog items (Add Product, Brand, Category…)', 'کیٹلاگ بنائیں (پروڈکٹ، برانڈ، زمرہ شامل کریں…)'],
+                'edit' => ['Edit Catalog items & Agricart product reviews', 'کیٹلاگ ترمیم اور ایگری کارٹ پروڈکٹ ریویوز'],
+                'delete' => ['Delete Catalog items', 'کیٹلاگ آئٹمز حذف'],
+            ],
+            'store' => [
+                'view' => ['View Online Store (layout, messages, reviews, items)', 'آن لائن اسٹور دیکھیں (لے آؤٹ، میسجز، ریویوز، آئٹمز)'],
+                'create' => ['Create Online Store content', 'آن لائن اسٹور مواد بنائیں'],
+                'edit' => ['Edit store settings & moderate messages/reviews', 'اسٹور ترتیبات ترمیم اور میسجز/ریویوز منظوری'],
+                'delete' => ['Delete Online Store content', 'آن لائن اسٹور مواد حذف'],
+            ],
         ];
 
         $groups = [];
@@ -64,18 +90,32 @@ class PermissionRegistry
             }
 
             foreach ($actions as $action => [$actionEn, $actionUr]) {
+                if (isset($moduleActionLabels[$key][$action])) {
+                    [$actionLabelEn, $actionLabelUr] = $moduleActionLabels[$key][$action];
+                } else {
+                    $actionLabelEn = "{$actionEn} {$labelEn}";
+                    $actionLabelUr = "{$labelUr} {$actionUr}";
+                }
+
                 $permissions[] = [
                     'key' => "{$key}.{$action}",
-                    'label_en' => "{$actionEn} {$labelEn}",
-                    'label_ur' => "{$labelUr} {$actionUr}",
+                    'label_en' => $actionLabelEn,
+                    'label_ur' => $actionLabelUr,
                 ];
             }
 
-            $groups[$key] = [
+            $group = [
                 'label_en' => $labelEn,
                 'label_ur' => $labelUr,
                 'permissions' => $permissions,
             ];
+
+            if (isset($moduleHints[$key])) {
+                $group['hint_en'] = $moduleHints[$key]['en'];
+                $group['hint_ur'] = $moduleHints[$key]['ur'];
+            }
+
+            $groups[$key] = $group;
         }
 
         $groups['store']['permissions'][] = [
