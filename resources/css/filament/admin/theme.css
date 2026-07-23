@@ -14525,29 +14525,26 @@ body.agricart-price-tags-panel-open {
     position: fixed;
     right: 1rem;
     bottom: 1rem;
-    z-index: 200;
+    z-index: 60;
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     gap: 0.75rem;
     font-family: Arial, sans-serif;
-    pointer-events: none;
-}
-
-.agricart-staff-messenger__fab,
-.agricart-staff-messenger__panel {
-    pointer-events: auto;
 }
 
 .agricart-staff-messenger__fab {
     position: relative;
-    width: 3.25rem;
+    min-width: 3.25rem;
     height: 3.25rem;
+    padding: 0 0.9rem 0 0.75rem;
     border: 0;
     background: #83b735;
     color: #fff;
-    display: grid;
-    place-items: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
     cursor: pointer;
     box-shadow: 0 0.35rem 1rem rgb(15 23 42 / 18%);
     border-radius: 0 !important;
@@ -14556,6 +14553,14 @@ body.agricart-price-tags-panel-open {
 
 .agricart-staff-messenger__fab:hover {
     background: color-mix(in oklab, #83b735 85%, #0f172a);
+}
+
+.agricart-staff-messenger__fab-label {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    line-height: 1;
 }
 
 .agricart-staff-messenger__fab-badge {
@@ -14594,6 +14599,11 @@ body.agricart-price-tags-panel-open {
     flex: 0 0 auto;
 }
 
+.agricart-staff-messenger__brand {
+    flex: 1;
+    min-width: 0;
+}
+
 .agricart-staff-messenger__head strong {
     display: block;
     font-size: 0.9375rem;
@@ -14623,9 +14633,76 @@ body.agricart-price-tags-panel-open {
 }
 
 .agricart-staff-messenger__search {
+    position: relative;
     display: block;
     padding: 0.65rem 0.75rem 0;
     flex: 0 0 auto;
+    z-index: 2;
+}
+
+.agricart-staff-messenger__suggestions {
+    list-style: none;
+    margin: 0.35rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0.35rem;
+    max-height: 12rem;
+    overflow: auto;
+    border: 1px solid #ebedf0;
+    background: #fff;
+    box-shadow: 0 0.35rem 0.85rem rgb(15 23 42 / 10%);
+}
+
+.agricart-staff-messenger__suggestions .agricart-staff-messenger__person {
+    border: 0;
+    border-bottom: 1px solid #ebedf0;
+}
+
+.agricart-staff-messenger__suggestions li:last-child .agricart-staff-messenger__person {
+    border-bottom: 0;
+}
+
+.agricart-staff-messenger__empty--inline {
+    padding: 0.55rem 0.15rem 0;
+}
+
+.agricart-staff-messenger__peer-bar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.55rem 0.75rem;
+    border-bottom: 1px solid #ebedf0;
+    background: color-mix(in oklab, #83b735 8%, #fff);
+    flex: 0 0 auto;
+}
+
+.agricart-staff-messenger__change {
+    border: 1px solid #ebedf0;
+    background: #fff;
+    color: #0f172a;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.35rem 0.55rem;
+    cursor: pointer;
+    border-radius: 0 !important;
+    white-space: nowrap;
+}
+
+.agricart-staff-messenger__idle {
+    flex: 1 1 auto;
+    display: grid;
+    place-items: center;
+    padding: 1.25rem 1rem;
+    text-align: center;
+    color: #64748b;
+    font-size: 0.875rem;
+}
+
+.agricart-staff-messenger__idle p {
+    margin: 0;
+    max-width: 16rem;
+    line-height: 1.45;
 }
 
 .agricart-staff-messenger__people,
@@ -14658,9 +14735,16 @@ body.agricart-price-tags-panel-open {
     z-index: 1;
 }
 
-.agricart-staff-messenger__person:hover {
+.agricart-staff-messenger__person:hover,
+.agricart-staff-messenger__person:focus-visible {
     border-color: #83b735;
     background: color-mix(in oklab, #83b735 10%, #fff);
+    outline: none;
+}
+
+.agricart-staff-messenger__person.is-loading {
+    opacity: 0.65;
+    cursor: wait;
 }
 
 .agricart-staff-messenger__dot {
@@ -14690,6 +14774,13 @@ body.agricart-price-tags-panel-open {
     color: #64748b;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.agricart-staff-messenger__hint {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    color: #83b735;
     white-space: nowrap;
 }
 
@@ -14768,6 +14859,17 @@ body.agricart-price-tags-panel-open {
 
 .agricart-staff-messenger__compose .agricart-staff-messenger__error {
     grid-column: 1 / -1;
+}
+
+@media (max-width: 640px) {
+    .agricart-staff-messenger__fab-label {
+        display: none;
+    }
+
+    .agricart-staff-messenger__fab {
+        padding: 0;
+        width: 3.25rem;
+    }
 }
 
 [dir='rtl'] .agricart-staff-messenger {

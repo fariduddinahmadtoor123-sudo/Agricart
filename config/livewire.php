@@ -34,9 +34,15 @@ return [
     */
 
     'temporary_file_upload' => [
-        'disk' => null,
-        'rules' => ['required', 'file', 'max:12288'],
-        'directory' => null,
+        // Keep temp uploads off the public disk so /storage/livewire-tmp is not web-reachable.
+        'disk' => 'local',
+        'rules' => [
+            'required',
+            'file',
+            'max:12288',
+            'mimetypes:image/jpeg,image/png,image/webp,image/gif,image/bmp,image/avif,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,application/x-zip-compressed,text/plain,text/csv',
+        ],
+        'directory' => 'livewire-tmp',
         'middleware' => null,
         'preview_mimes' => [
             'png', 'gif', 'bmp', 'svg', 'wav', 'mp4',

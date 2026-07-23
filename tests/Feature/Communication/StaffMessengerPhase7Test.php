@@ -66,8 +66,11 @@ class StaffMessengerPhase7Test extends TestCase
             ->test(StaffMessengerFloat::class)
             ->call('toggle')
             ->assertSet('open', true)
+            ->assertDontSee('Float Peer', false)
+            ->set('staffSearch', 'Float')
             ->assertSee('Float Peer', false)
-            ->call('openPeer', $peer->id)
+            ->call('selectPeer', $peer->id)
+            ->assertSet('peerId', $peer->id)
             ->set('messageText', 'Hello from the corner messenger.')
             ->call('send')
             ->assertHasNoErrors()
@@ -81,7 +84,7 @@ class StaffMessengerPhase7Test extends TestCase
         );
     }
 
-    public function test_directory_lists_active_staff(): void
+    public function test_directory_lists_active_staff_only(): void
     {
         $admin = $this->superAdmin();
         User::factory()->create([
@@ -90,12 +93,49 @@ class StaffMessengerPhase7Test extends TestCase
             'name' => 'Directory Staff',
             'email' => 'directory-staff@test.test',
         ]);
+        User::factory()->create([
+            'role_id' => $admin->role_id,
+            'status' => User::STATUS_INACTIVE,
+            'name' => 'Inactive Staff',
+            'email' => 'inactive-staff@test.test',
+        ]);
 
         $directory = app(DirectStaffMessengerService::class)->directory($admin);
 
         $this->assertTrue(
             $directory->contains(fn (array $row): bool => $row['user']->email === 'directory-staff@test.test')
         );
+        $this->assertFalse(
+            $directory->contains(fn (array $row): bool => $row['user']->email === 'inactive-staff@test.test')
+        );
+    }
+
+    public function test_float_ui_hides_staff_until_search_then_opens_chat(): void
+    {
+        $admin = $this->superAdmin();
+        $peer = User::factory()->create([
+            'role_id' => $admin->role_id,
+            'status' => User::STATUS_ACTIVE,
+            'name' => 'Label Peer',
+            'email' => 'label-peer@test.test',
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(StaffMessengerFloat::class)
+            ->assertSee(__('communication.messenger.fab_label'), false)
+            ->call('toggle')
+            ->assertSee(__('communication.messenger.title'), false)
+            ->assertSee(__('communication.messenger.idle_hint'), false)
+            ->assertDontSee('Label Peer', false)
+            ->set('staffSearch', 'Label')
+            ->assertSee('Label Peer', false)
+            ->assertSee('label-peer@test.test', false)
+            ->call('selectPeer', $peer->id)
+            ->assertSet('peerId', $peer->id)
+            ->assertSet('staffSearch', '')
+            ->assertSet('errorMessage', null)
+            ->assertSee(__('communication.messenger.empty_thread'), false)
+            ->assertSee(__('communication.messenger.placeholder'), false);
     }
 
     public function test_non_sales_admin_can_open_staff_dm(): void
@@ -125,7 +165,7 @@ class StaffMessengerPhase7Test extends TestCase
         Livewire::actingAs($admin)
             ->test(StaffMessengerFloat::class)
             ->call('toggle')
-            ->call('openPeer', $peer->id)
+            ->call('selectPeer', $peer->id)
             ->assertSet('peerId', $peer->id)
             ->assertSet('errorMessage', null)
             ->assertSee('Catalog Peer', false)

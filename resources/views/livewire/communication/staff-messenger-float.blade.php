@@ -1,36 +1,22 @@
 @if ($authUser)
     <div
         class="agricart-staff-messenger"
-        @if ($open) wire:poll.8s @else wire:poll.45s @endif
-        x-data
+        @if ($open && $peerId) wire:poll.8s @elseif ($open) wire:poll.30s @else wire:poll.45s @endif
+        x-data="{ picking: false }"
         x-on:staff-messenger-scroll.window="$nextTick(() => { const el = $refs.messages; if (el) el.scrollTop = el.scrollHeight })"
     >
         @if ($open)
             <section
                 class="agricart-staff-messenger__panel"
-                wire:key="staff-messenger-panel-{{ $peerId ?? 'list' }}"
                 role="dialog"
                 aria-modal="true"
                 aria-label="{{ __('communication.messenger.title') }}"
             >
                 <header class="agricart-staff-messenger__head">
-                    @if ($peerId && $peer)
-                        <button type="button" class="agricart-staff-messenger__back" wire:click="backToList" aria-label="{{ __('communication.messenger.back') }}">←</button>
-                        <div class="agricart-staff-messenger__peer">
-                            <strong>{{ $peer->name }}</strong>
-                            <span>
-                                @php
-                                    $peerOnline = collect($directory)->first(fn ($row) => (int) $row['user']->id === (int) $peer->id)['online'] ?? false;
-                                @endphp
-                                {{ $peerOnline ? __('communication.messenger.online') : __('communication.messenger.offline') }}
-                            </span>
-                        </div>
-                    @else
-                        <div>
-                            <strong>{{ __('communication.messenger.title') }}</strong>
-                            <span>{{ __('communication.messenger.lead') }}</span>
-                        </div>
-                    @endif
+                    <div class="agricart-staff-messenger__brand">
+                        <strong>{{ __('communication.messenger.title') }}</strong>
+                        <span>{{ __('communication.messenger.lead') }}</span>
+                    </div>
                     <button type="button" class="agricart-staff-messenger__close" wire:click="toggle" aria-label="{{ __('communication.messenger.close') }}">×</button>
                 </header>
 
@@ -38,8 +24,56 @@
                     <p class="agricart-staff-messenger__error agricart-staff-messenger__error--banner" role="alert">{{ $errorMessage }}</p>
                 @endif
 
+                <div class="agricart-staff-messenger__search" wire:key="messenger-search">
+                    <label class="sr-only" for="agricart-staff-messenger-search">{{ __('communication.messenger.search') }}</label>
+                    <input
+                        id="agricart-staff-messenger-search"
+                        type="search"
+                        class="fi-input"
+                        wire:model.live.debounce.250ms="staffSearch"
+                        placeholder="{{ __('communication.messenger.search') }}"
+                        autocomplete="off"
+                        @focus="picking = true"
+                        @blur="setTimeout(() => picking = false, 180)"
+                    />
+
+                    @if ($peerId === null && $suggestions->isNotEmpty())
+                        <ul class="agricart-staff-messenger__suggestions" role="listbox" aria-label="{{ __('communication.messenger.search') }}">
+                            @foreach ($suggestions as $row)
+                                @php $personId = (int) $row['user']->id; @endphp
+                                <li wire:key="staff-suggest-{{ $personId }}" role="option">
+                                    <button
+                                        type="button"
+                                        class="agricart-staff-messenger__person"
+                                        x-on:mousedown.prevent="$wire.selectPeer({{ $personId }})"
+                                    >
+                                        <span @class(['agricart-staff-messenger__dot', 'is-online' => $row['online']])></span>
+                                        <span class="agricart-staff-messenger__person-text">
+                                            <strong>{{ $row['user']->name }}</strong>
+                                            <span>{{ $row['user']->email }}</span>
+                                        </span>
+                                        <span class="agricart-staff-messenger__hint">{{ __('communication.messenger.start') }}</span>
+                                    </button>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @elseif ($peerId === null && trim($staffSearch) !== '')
+                        <p class="agricart-staff-messenger__empty agricart-staff-messenger__empty--inline">{{ __('communication.messenger.empty_people') }}</p>
+                    @endif
+                </div>
+
                 @if ($peerId && $peer)
-                    <ol class="agricart-staff-messenger__messages" x-ref="messages" wire:key="dm-list-{{ $peerId }}-{{ $messages->count() }}">
+                    <div class="agricart-staff-messenger__peer-bar">
+                        <div class="agricart-staff-messenger__peer">
+                            <strong>{{ $peer->name }}</strong>
+                            <span>{{ $peerOnline ? __('communication.messenger.online') : __('communication.messenger.offline') }} · {{ $peer->email }}</span>
+                        </div>
+                        <button type="button" class="agricart-staff-messenger__change" wire:click="clearPeer">
+                            {{ __('communication.messenger.change') }}
+                        </button>
+                    </div>
+
+                    <ol class="agricart-staff-messenger__messages" x-ref="messages" wire:key="dm-list-{{ $peerId }}">
                         @forelse ($messages as $message)
                             @php
                                 $isMine = $message->participant
@@ -66,6 +100,7 @@
                             placeholder="{{ __('communication.messenger.placeholder') }}"
                             maxlength="5000"
                             autocomplete="off"
+                            autofocus
                             wire:loading.attr="disabled"
                             wire:target="send"
                         />
@@ -78,45 +113,9 @@
                         >{{ __('communication.messenger.send') }}</button>
                     </form>
                 @else
-                    <div class="agricart-staff-messenger__search">
-                        <label class="sr-only" for="agricart-staff-messenger-search">{{ __('communication.messenger.search') }}</label>
-                        <input
-                            id="agricart-staff-messenger-search"
-                            type="search"
-                            class="fi-input"
-                            wire:model.live.debounce.200ms="staffSearch"
-                            placeholder="{{ __('communication.messenger.search') }}"
-                        />
+                    <div class="agricart-staff-messenger__idle">
+                        <p>{{ __('communication.messenger.idle_hint') }}</p>
                     </div>
-
-                    <ol class="agricart-staff-messenger__people">
-                        @forelse ($directory as $row)
-                            <li wire:key="staff-dm-{{ $row['user']->id }}">
-                                <button
-                                    type="button"
-                                    class="agricart-staff-messenger__person"
-                                    wire:click.prevent="openPeer({{ (int) $row['user']->id }})"
-                                >
-                                    <span @class(['agricart-staff-messenger__dot', 'is-online' => $row['online']])></span>
-                                    <span class="agricart-staff-messenger__person-text">
-                                        <strong>{{ $row['user']->name }}</strong>
-                                        <span>
-                                            @if ($row['last_body'])
-                                                {{ \Illuminate\Support\Str::limit($row['last_body'], 42) }}
-                                            @else
-                                                {{ $row['online'] ? __('communication.messenger.online') : __('communication.messenger.start') }}
-                                            @endif
-                                        </span>
-                                    </span>
-                                    @if ($row['unread'] > 0)
-                                        <span class="agricart-staff-messenger__badge">{{ $row['unread'] }}</span>
-                                    @endif
-                                </button>
-                            </li>
-                        @empty
-                            <li class="agricart-staff-messenger__empty">{{ __('communication.messenger.empty_people') }}</li>
-                        @endforelse
-                    </ol>
                 @endif
             </section>
         @endif
@@ -132,9 +131,10 @@
             @if ($unreadTotal > 0 && ! $open)
                 <span class="agricart-staff-messenger__fab-badge">{{ $unreadTotal > 9 ? '9+' : $unreadTotal }}</span>
             @endif
-            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z" />
             </svg>
+            <span class="agricart-staff-messenger__fab-label">{{ __('communication.messenger.fab_label') }}</span>
         </button>
     </div>
 @endif

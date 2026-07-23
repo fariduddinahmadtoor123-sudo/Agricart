@@ -37,6 +37,18 @@ php artisan hostinger:sync-public --clean
 php artisan storage:link
 php artisan hostinger:sync-storage --dry-run --delete-stale
 php artisan hostinger:sync-storage --delete-stale
+
+# Harden public uploads against PHP webshells (Apache).
+if [ -f deploy/hostinger/storage-public.htaccess ]; then
+    cp deploy/hostinger/storage-public.htaccess storage/app/public/.htaccess
+    if [ -n "${HOSTINGER_PUBLIC_HTML:-}" ] && [ -d "${HOSTINGER_PUBLIC_HTML}/storage" ]; then
+        cp deploy/hostinger/storage-public.htaccess "${HOSTINGER_PUBLIC_HTML}/storage/.htaccess"
+    elif [ -d public_html/storage ]; then
+        cp deploy/hostinger/storage-public.htaccess public_html/storage/.htaccess
+    elif [ -d ../public_html/storage ]; then
+        cp deploy/hostinger/storage-public.htaccess ../public_html/storage/.htaccess
+    fi
+fi
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache

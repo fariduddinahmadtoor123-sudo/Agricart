@@ -141,12 +141,14 @@ class DirectStaffMessengerService
             ->where('status', User::STATUS_ACTIVE)
             ->whereNotNull('role_id')
             ->whereKeyNot($user->id)
+            ->with('role')
             ->orderBy('name')
             ->limit(100)
             ->get(['id', 'name', 'email', 'role_id', 'status']);
 
         return $staff
-            ->filter(fn (User $peer): bool => $peer->canUseAdmin())
+            ->filter(fn (User $peer): bool => $peer->status === User::STATUS_ACTIVE && $peer->canUseAdmin())
+            ->unique('id')
             ->map(function (User $peer) use ($user, $onlineIds): array {
             $pair = $this->pairKey($user->id, $peer->id);
             $conversation = $this->findDm($pair);
