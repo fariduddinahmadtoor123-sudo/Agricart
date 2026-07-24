@@ -1,6 +1,6 @@
 @props([
     'id',
-    'name',
+    'name' => null,
     'label' => null,
     'inputClass' => '',
     'autocomplete' => 'current-password',
@@ -11,6 +11,7 @@
     $showLabel = __('agricart.form_panel.show_password');
     $hideLabel = __('agricart.form_panel.hide_password');
     $inputClasses = trim('ag-password-field__input ' . $inputClass);
+    $inputName = $name ?? $attributes->get('name');
 @endphp
 
 <div class="ag-password-field">
@@ -22,7 +23,7 @@
         <input
             id="{{ $id }}"
             type="password"
-            name="{{ $name }}"
+            @if (filled($inputName)) name="{{ $inputName }}" @endif
             data-ag-password-input
             @disabled($disabled)
             autocomplete="{{ $autocomplete }}"
