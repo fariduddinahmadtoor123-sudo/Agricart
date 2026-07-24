@@ -49,12 +49,17 @@ class CustomerAuthController extends Controller
 
         $customer = $this->resolveCustomerByLogin($login, $contacts);
 
-        if (
-            ! $customer instanceof Customer
-            || ! $customer->is_active
-            || ! filled($customer->password)
-            || ! Hash::check($password, $customer->password)
-        ) {
+        if (! $customer instanceof Customer) {
+            return $this->loginFailed($request, __('agricart.customer.auth.login_failed'));
+        }
+
+        if (! $customer->is_active) {
+            return $this->loginFailed($request, __('agricart.customer.auth.login_inactive'));
+        }
+
+        $passwordHash = (string) ($customer->getAuthPassword() ?? '');
+
+        if ($passwordHash === '' || ! Hash::check($password, $passwordHash)) {
             return $this->loginFailed($request, __('agricart.customer.auth.login_failed'));
         }
 
@@ -132,7 +137,9 @@ class CustomerAuthController extends Controller
     private function resolveCustomerByLogin(string $login, ContactCustomerService $contacts): ?Customer
     {
         if (str_contains($login, '@')) {
-            return Customer::query()->where('email', $login)->first();
+            return Customer::query()
+                ->whereRaw('LOWER(email) = ?', [mb_strtolower($login)])
+                ->first();
         }
 
         return $contacts->findByPhone($login);

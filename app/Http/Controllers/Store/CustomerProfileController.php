@@ -8,6 +8,7 @@ use App\Services\Store\StoreLayoutService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class CustomerProfileController extends Controller
 {
@@ -31,7 +32,18 @@ class CustomerProfileController extends Controller
 
     public function updatePassword(Request $request, CustomerService $customers): RedirectResponse
     {
-        $customers->updateAuthenticatedPassword($request->user('customer'), $request->all());
+        try {
+            $customers->updateAuthenticatedPassword(
+                $request->user('customer'),
+                $request->only(['current_password', 'password', 'password_confirmation']),
+            );
+        } catch (ValidationException $exception) {
+            return redirect()
+                ->route('store.customer.account')
+                ->withErrors($exception->errors())
+                ->with('customer_auth_status', collect($exception->errors())->flatten()->first())
+                ->with('customer_auth_status_type', 'danger');
+        }
 
         return redirect()
             ->route('store.customer.account')

@@ -7,7 +7,6 @@ use App\Services\Store\StoreLayoutService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
@@ -60,8 +59,9 @@ class CustomerPasswordResetController extends Controller
         $status = Password::broker('customers')->reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($customer, string $password): void {
+                // Plain value — Customer `hashed` cast hashes once (do not Hash::make here).
                 $customer->forceFill([
-                    'password' => Hash::make($password),
+                    'password' => $password,
                     'remember_token' => Str::random(60),
                 ])->save();
             }

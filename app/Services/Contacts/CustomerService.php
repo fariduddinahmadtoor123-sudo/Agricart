@@ -10,7 +10,6 @@ use App\Models\Sale;
 use App\Models\SaleReturn;
 use App\Services\Media\OptimizedImageStorage;
 use App\Services\Identifiers\DocumentCounterService;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -429,7 +428,8 @@ class CustomerService
         }
 
         if (! filled($validated['password'] ?? null) && $existing === null) {
-            $validated['password'] = Hash::make(Str::random(40));
+            // Plain random secret — Customer `hashed` cast hashes once.
+            $validated['password'] = Str::password(40);
         } elseif ($existing !== null) {
             unset($validated['password']);
         }

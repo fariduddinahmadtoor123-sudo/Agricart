@@ -6,7 +6,6 @@ use App\Models\Customer;
 use App\Services\PortableArchive\PortableArchiveCodec;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
@@ -315,7 +314,7 @@ class CustomerPortableArchiveService
         ];
 
         if ($existing === null) {
-            $attributes['password'] = Hash::make(Str::random(40));
+            $attributes['password'] = Str::password(40);
             $customer = Customer::query()->create($attributes);
             $this->customers->syncNormalizedPhones($customer, $contacts);
         } else {

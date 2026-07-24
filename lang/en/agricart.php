@@ -2775,6 +2775,7 @@ return [
             'terms_label' => 'I agree to the store terms and privacy policy.',
             'terms_required' => 'Please accept the terms to create your account.',
             'login_failed' => 'These credentials do not match our records.',
+            'login_inactive' => 'This account is inactive. Please contact Agricart support.',
             'login_success' => 'You are signed in. Welcome back!',
             'register_failed' => 'Could not create your account. Please check the form.',
             'register_success_login' => 'Your account has been created. Please sign in with the same email and password.',

@@ -162,14 +162,19 @@ class CustomerService
             'password_confirmation' => ['required', 'string'],
         ])->validate();
 
-        if (! Hash::check($validated['current_password'], $customer->password)) {
+        // Always verify against a fresh DB hash — never a stale in-memory/session copy.
+        $fresh = Customer::query()->whereKey($customer->id)->firstOrFail();
+        $currentHash = (string) ($fresh->getAuthPassword() ?? '');
+
+        if ($currentHash === '' || ! Hash::check($validated['current_password'], $currentHash)) {
             throw ValidationException::withMessages([
                 'current_password' => [__('agricart.customer.auth.current_password_invalid')],
             ]);
         }
 
-        $customer->password = $validated['password'];
-        $customer->save();
+        $fresh->password = $validated['password'];
+        $fresh->setRememberToken(\Illuminate\Support\Str::random(60));
+        $fresh->save();
     }
 
     /**

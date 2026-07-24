@@ -1,5 +1,6 @@
 @props([
     'id',
+    'name',
     'label' => null,
     'inputClass' => '',
     'autocomplete' => 'current-password',
@@ -21,11 +22,12 @@
         <input
             id="{{ $id }}"
             type="password"
+            name="{{ $name }}"
             data-ag-password-input
             @disabled($disabled)
             autocomplete="{{ $autocomplete }}"
             class="{{ $inputClasses }}"
-            {{ $attributes }}
+            {{ $attributes->except(['name']) }}
         />
 
         <button
