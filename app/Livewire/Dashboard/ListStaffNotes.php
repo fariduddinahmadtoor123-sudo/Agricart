@@ -20,7 +20,11 @@ class ListStaffNotes extends Component
     /** @var 'open'|'done'|'all'|'mine'|'created' */
     public string $filter = 'open';
 
+    public bool $showForm = false;
+
     public ?int $editingId = null;
+
+    public ?int $viewingId = null;
 
     public string $title = '';
 
@@ -63,6 +67,21 @@ class ListStaffNotes extends Component
         $this->resetPage();
     }
 
+    #[On('staff-notes-open-form')]
+    public function openCreateForm(): void
+    {
+        $this->startCreate();
+        $this->showForm = true;
+        $this->viewingId = null;
+        $this->forwardNoteId = null;
+    }
+
+    public function closeForm(): void
+    {
+        $this->showForm = false;
+        $this->startCreate();
+    }
+
     public function startCreate(): void
     {
         $this->editingId = null;
@@ -72,6 +91,27 @@ class ListStaffNotes extends Component
         $this->dueOn = '';
         $this->forwardNoteId = null;
         $this->resetValidation();
+    }
+
+    public function viewNote(int $noteId): void
+    {
+        $user = $this->authUser();
+        $note = StaffNote::query()->find($noteId);
+
+        if ($user === null || $note === null) {
+            return;
+        }
+
+        $this->viewingId = $note->id;
+        $this->showForm = false;
+        $this->forwardNoteId = null;
+        $this->resetValidation();
+    }
+
+    public function closeView(): void
+    {
+        $this->viewingId = null;
+        $this->forwardNoteId = null;
     }
 
     public function startEdit(int $noteId): void
@@ -93,6 +133,8 @@ class ListStaffNotes extends Component
         $this->assignedTo = $note->assigned_to;
         $this->dueOn = $note->due_on?->format('Y-m-d') ?? '';
         $this->forwardNoteId = null;
+        $this->viewingId = null;
+        $this->showForm = true;
         $this->resetValidation();
     }
 
@@ -128,7 +170,7 @@ class ListStaffNotes extends Component
             return;
         }
 
-        $this->startCreate();
+        $this->closeForm();
         $this->resetPage();
     }
 
@@ -223,7 +265,11 @@ class ListStaffNotes extends Component
         }
 
         if ($this->editingId === $noteId) {
-            $this->startCreate();
+            $this->closeForm();
+        }
+
+        if ($this->viewingId === $noteId) {
+            $this->closeView();
         }
     }
 
@@ -242,10 +288,23 @@ class ListStaffNotes extends Component
             ->limit(80)
             ->get(['id', 'name']);
 
+        $viewingNote = null;
+
+        if ($this->viewingId !== null) {
+            $viewingNote = StaffNote::query()
+                ->with(['creator', 'assignee', 'completedByUser'])
+                ->find($this->viewingId);
+
+            if ($viewingNote === null) {
+                $this->viewingId = null;
+            }
+        }
+
         return view('livewire.dashboard.list-staff-notes', [
             'rows' => $rows,
             'authUser' => $user,
             'staffOptions' => $staffOptions,
+            'viewingNote' => $viewingNote,
         ]);
     }
 

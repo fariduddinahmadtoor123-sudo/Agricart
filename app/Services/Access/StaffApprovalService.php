@@ -7,13 +7,22 @@ use Illuminate\Validation\ValidationException;
 
 class StaffApprovalService
 {
-    public function approve(User $user, ?int $roleId = null): User
+    public function approve(User $user, ?int $roleId = null, ?User $actor = null): User
     {
         if ($user->status !== User::STATUS_PENDING) {
             throw ValidationException::withMessages([
                 'user' => __('agricart.approvals.staff.messages.not_pending'),
             ]);
         }
+
+        $actor ??= auth()->user() instanceof User ? auth()->user() : null;
+        $assignedRoleId = $roleId ?? $user->role_id;
+
+        app(RoleAssignmentGuard::class)->assertCanAssign(
+            $actor,
+            $user,
+            $assignedRoleId !== null ? (int) $assignedRoleId : null,
+        );
 
         if ($roleId !== null) {
             $user->role_id = $roleId;
@@ -25,7 +34,10 @@ class StaffApprovalService
             ]);
         }
 
-        $user->update(['status' => User::STATUS_ACTIVE]);
+        $user->update([
+            'role_id' => $user->role_id,
+            'status' => User::STATUS_ACTIVE,
+        ]);
 
         return $user->fresh(['role']);
     }

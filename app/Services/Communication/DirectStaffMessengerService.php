@@ -130,13 +130,14 @@ class DirectStaffMessengerService
     }
 
     /**
-     * Lightweight staff picker rows (no DM lookups) for messenger search.
+     * Lightweight staff picker rows for messenger search (includes unread flags).
      *
-     * @return list<array{id: int, name: string, email: string, online: bool}>
+     * @return list<array{id: int, name: string, email: string, online: bool, unread: int}>
      */
     public function searchableStaff(User $user, ?string $query = null, int $limit = 20): array
     {
         $onlineIds = $this->onlineUserIds();
+        $unreadPeers = $this->unreadPeerMap($user);
         $needle = trim((string) $query);
 
         $staffQuery = User::query()
@@ -159,15 +160,94 @@ class DirectStaffMessengerService
             ->get(['id', 'name', 'email', 'role_id', 'status'])
             ->filter(fn (User $peer): bool => $peer->canUseAdmin())
             ->unique('id')
-            ->take($limit)
             ->map(fn (User $peer): array => [
                 'id' => (int) $peer->id,
                 'name' => (string) $peer->name,
                 'email' => (string) $peer->email,
                 'online' => $onlineIds->contains($peer->id),
+                'unread' => isset($unreadPeers[(int) $peer->id]) ? 1 : 0,
             ])
+            ->sortBy([
+                fn (array $row): int => $row['unread'] > 0 ? 0 : 1,
+                fn (array $row): int => $row['online'] ? 0 : 1,
+                fn (array $row): string => mb_strtolower((string) $row['name']),
+            ])
+            ->take($limit)
             ->values()
             ->all();
+    }
+
+    /**
+     * Peer user ids that currently have an unread staff DM for this user.
+     *
+     * @return array<int, int> peerId => 1
+     */
+    public function unreadPeerMap(User $user): array
+    {
+        $this->ensureChannel();
+        $channel = $this->channels->findByKey(self::CHANNEL_KEY);
+
+        if ($channel === null) {
+            return [];
+        }
+
+        $actor = ActorRef::user($user->id);
+        $map = [];
+
+        $conversations = Conversation::query()
+            ->where('channel_id', $channel->id)
+            ->where('meta->purpose', self::PURPOSE)
+            ->whereHas('participants', function ($query) use ($user): void {
+                $query->where('actor_type', 'user')
+                    ->where('actor_id', $user->id)
+                    ->whereNull('left_at');
+            })
+            ->limit(50)
+            ->get(['id', 'last_message_id', 'meta']);
+
+        foreach ($conversations as $conversation) {
+            if (! $this->reads->isUnreadFor($conversation, $actor)) {
+                continue;
+            }
+
+            $peerId = $this->peerIdFromPair(
+                (string) data_get($conversation->meta, 'peer_pair', ''),
+                (int) $user->id,
+            );
+
+            if ($peerId !== null) {
+                $map[$peerId] = 1;
+            }
+        }
+
+        return $map;
+    }
+
+    public function markExistingDmRead(User $user, Conversation $conversation): void
+    {
+        $this->reads->markRead($conversation, ActorRef::user($user->id));
+    }
+
+    public function peerIdFromPair(string $pairKey, int $userId): ?int
+    {
+        $parts = explode(':', $pairKey);
+
+        if (count($parts) !== 2) {
+            return null;
+        }
+
+        $a = (int) $parts[0];
+        $b = (int) $parts[1];
+
+        if ($a === $userId) {
+            return $b > 0 ? $b : null;
+        }
+
+        if ($b === $userId) {
+            return $a > 0 ? $a : null;
+        }
+
+        return null;
     }
 
     /**
@@ -224,33 +304,7 @@ class DirectStaffMessengerService
 
     public function totalUnread(User $user): int
     {
-        $this->ensureChannel();
-        $channel = $this->channels->findByKey(self::CHANNEL_KEY);
-
-        if ($channel === null) {
-            return 0;
-        }
-
-        $conversations = Conversation::query()
-            ->where('channel_id', $channel->id)
-            ->where('meta->purpose', self::PURPOSE)
-            ->whereHas('participants', function ($query) use ($user): void {
-                $query->where('actor_type', 'user')
-                    ->where('actor_id', $user->id)
-                    ->whereNull('left_at');
-            })
-            ->limit(50)
-            ->get();
-
-        $total = 0;
-
-        foreach ($conversations as $conversation) {
-            if ($this->reads->isUnreadFor($conversation, ActorRef::user($user->id))) {
-                $total++;
-            }
-        }
-
-        return $total;
+        return count($this->unreadPeerMap($user));
     }
 
     public function findDm(string $pairKey): ?Conversation

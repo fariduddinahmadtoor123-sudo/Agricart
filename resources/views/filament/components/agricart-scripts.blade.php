@@ -42,4 +42,25 @@
 
     document.addEventListener('DOMContentLoaded', agricartMarkComingSoonNavItems);
     document.addEventListener('livewire:navigated', agricartMarkComingSoonNavItems);
+
+    if (! window.__agricartLivewireDispatchBound) {
+        window.__agricartLivewireDispatchBound = true;
+
+        document.addEventListener('click', (event) => {
+            const trigger = event.target.closest('[data-agricart-livewire-dispatch]');
+
+            if (! trigger) {
+                return;
+            }
+
+            const eventName = trigger.getAttribute('data-agricart-livewire-dispatch');
+
+            if (! eventName || ! window.Livewire || typeof window.Livewire.dispatch !== 'function') {
+                return;
+            }
+
+            event.preventDefault();
+            window.Livewire.dispatch(eventName);
+        });
+    }
 </script>

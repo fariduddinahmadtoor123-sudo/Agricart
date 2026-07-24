@@ -2,8 +2,8 @@
 
 namespace App\Livewire\Approvals;
 
-use App\Models\Role;
 use App\Models\User;
+use App\Services\Access\RoleAssignmentGuard;
 use App\Services\Access\StaffApprovalService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
@@ -186,7 +186,9 @@ class ListStaffApprovals extends Component
         return view('livewire.approvals.list-staff', [
             'users' => $users,
             'viewUser' => $viewUser,
-            'roleOptions' => Role::query()->orderBy('name')->pluck('name', 'id')->all(),
+            'roleOptions' => app(RoleAssignmentGuard::class)->assignableRoleOptions(
+                auth()->user() instanceof User ? auth()->user() : null,
+            ),
             'canManage' => $this->canManage(),
         ]);
     }

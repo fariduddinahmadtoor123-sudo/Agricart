@@ -3,6 +3,7 @@
 namespace App\Services\Staff;
 
 use App\Models\User;
+use App\Services\Access\RoleAssignmentGuard;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Validation\ValidationException;
 
@@ -54,6 +55,12 @@ class StaffMemberService
         if (! $actor instanceof User) {
             throw ValidationException::withMessages([
                 'user' => [__('agricart.access.denied')],
+            ]);
+        }
+
+        if (app(RoleAssignmentGuard::class)->isOwner($member)) {
+            throw ValidationException::withMessages([
+                'user' => [__('agricart.staff.members.messages.cannot_change_owner')],
             ]);
         }
 

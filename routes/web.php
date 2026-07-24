@@ -178,6 +178,14 @@ Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
         ->name('admin.messenger.messages');
     Route::post('/messenger/send', [StaffMessengerController::class, 'send'])
         ->name('admin.messenger.send');
+    Route::post('/messenger/groups', [StaffMessengerController::class, 'createGroup'])
+        ->name('admin.messenger.groups.store');
+    Route::get('/messenger/groups/{conversation}/messages', [StaffMessengerController::class, 'groupMessages'])
+        ->whereNumber('conversation')
+        ->name('admin.messenger.groups.messages');
+    Route::post('/messenger/groups/{conversation}/send', [StaffMessengerController::class, 'sendGroup'])
+        ->whereNumber('conversation')
+        ->name('admin.messenger.groups.send');
     Route::get('/communication/attachments/{attachment}', [CommunicationAttachmentController::class, 'show'])
         ->name('admin.communication.attachments.show');
     Route::get('/users/{user}/documents/{side}', UserDocumentController::class)

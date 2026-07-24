@@ -7,6 +7,7 @@ use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\Access\UserEnrichmentService;
+use App\Services\Access\RoleAssignmentGuard;
 use App\Services\Access\UserService;
 use App\Services\Staff\StaffPermissions;
 use App\Support\LivewireImagePreview;
@@ -444,10 +445,27 @@ class Form extends Component
             ? [User::STATUS_ACTIVE, User::STATUS_INACTIVE]
             : UserService::statuses();
 
+        $guard = app(RoleAssignmentGuard::class);
+        $actor = auth()->user() instanceof User ? auth()->user() : null;
+        $editingUser = $this->userId
+            ? User::query()->find($this->userId)
+            : null;
+        $roleLocked = $editingUser instanceof User && $guard->isOwner($editingUser);
+
+        $roleOptions = [];
+        if ($authorized) {
+            $roleOptions = $guard->assignableRoleOptions($actor);
+            if ($roleLocked && $editingUser?->role_id) {
+                $role = Role::query()->find($editingUser->role_id);
+                if ($role instanceof Role) {
+                    $roleOptions[(int) $role->id] = (string) $role->name;
+                }
+            }
+        }
+
         return view('livewire.users.form', [
-            'roleOptions' => $authorized
-                ? Role::query()->orderBy('name')->pluck('name', 'id')->all()
-                : [],
+            'roleOptions' => $roleOptions,
+            'roleLocked' => $roleLocked,
             'statusOptions' => collect($statuses)
                 ->mapWithKeys(fn (string $status): array => [
                     $status => __("agricart.users.statuses.{$status}"),
@@ -559,16 +577,18 @@ class Form extends Component
                 $payload['password'] = $this->password;
             }
 
+            $actor = auth()->user() instanceof User ? auth()->user() : null;
+
             if ($this->userId) {
                 $user = User::query()->findOrFail($this->userId);
-                $user = $service->update($user, $payload);
+                $user = $service->update($user, $payload, $actor);
                 $this->user_number = (string) ($user->user_number ?? '');
                 $messageKey = $this->formContext === 'staff'
                     ? 'agricart.staff.members.messages.updated'
                     : 'agricart.users.messages.updated';
                 $this->setStatus(__($messageKey, ['name' => $this->name]), 'success');
             } else {
-                $user = $service->create($payload);
+                $user = $service->create($payload, $actor);
                 $this->userId = $user->id;
                 $this->user_number = (string) ($user->user_number ?? '');
                 $this->mode = 'edit';
@@ -896,10 +916,11 @@ class Form extends Component
             return;
         }
 
-        $defaultRoleId = Role::query()->where('slug', 'super-admin')->value('id');
+        $actor = auth()->user() instanceof User ? auth()->user() : null;
+        $defaultRoleId = app(RoleAssignmentGuard::class)->defaultAssignableRoleId($actor);
 
-        if ($defaultRoleId) {
-            $this->role_id = (int) $defaultRoleId;
+        if ($defaultRoleId !== null) {
+            $this->role_id = $defaultRoleId;
         }
     }
 

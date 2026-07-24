@@ -53,11 +53,14 @@ class StaffNotesTest extends TestCase
 
         Livewire::actingAs($admin)
             ->test(ListStaffNotes::class)
+            ->call('openCreateForm')
+            ->assertSet('showForm', true)
             ->set('title', 'Improve UI pages')
             ->set('body', 'Make admin pages simpler.')
             ->set('assignedTo', $staff->id)
             ->call('save')
             ->assertHasNoErrors()
+            ->assertSet('showForm', false)
             ->assertSee('Improve UI pages', false);
 
         $note = StaffNote::query()->where('title', 'Improve UI pages')->sole();
@@ -65,6 +68,9 @@ class StaffNotesTest extends TestCase
         Livewire::actingAs($staff)
             ->test(ListStaffNotes::class)
             ->assertSee('Improve UI pages', false)
+            ->call('viewNote', $note->id)
+            ->assertSet('viewingId', $note->id)
+            ->assertSee(__('staff_notes.actions.view'), false)
             ->call('markDone', $note->id)
             ->assertHasNoErrors();
 
@@ -73,6 +79,7 @@ class StaffNotesTest extends TestCase
         Livewire::actingAs($admin)
             ->test(ListStaffNotes::class)
             ->call('reopen', $note->id)
+            ->call('viewNote', $note->id)
             ->call('startForward', $note->id)
             ->set('forwardTo', $staff->id)
             ->call('confirmForward')
@@ -80,6 +87,19 @@ class StaffNotesTest extends TestCase
 
         $this->assertSame($staff->id, $note->fresh()->assigned_to);
         $this->assertTrue($note->fresh()->isOpen());
+    }
+
+    public function test_list_page_does_not_embed_compose_form(): void
+    {
+        $admin = $this->superAdmin();
+
+        Livewire::actingAs($admin)
+            ->test(ListStaffNotes::class)
+            ->assertSet('showForm', false)
+            ->assertDontSee(__('staff_notes.form.create_heading'), false)
+            ->dispatch('staff-notes-open-form')
+            ->assertSet('showForm', true)
+            ->assertSee(__('staff_notes.form.create_heading'), false);
     }
 
     public function test_assignee_cannot_delete_creators_note(): void

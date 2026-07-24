@@ -76,6 +76,9 @@
                                 <a href="{{ route('store.customer.orders.show', $order->order_number) }}" class="ag-store-btn ag-store-btn--primary ag-store-btn--sm">
                                     {{ __('agricart.customer.orders.view') }}
                                 </a>
+                                <a href="{{ route('store.customer.orders.show', ['order' => $order->order_number, 'print' => 1]) }}" class="ag-store-btn ag-store-btn--secondary ag-store-btn--sm">
+                                    {{ __('agricart.customer.orders.print') }}
+                                </a>
                             </div>
                         </article>
                     @endforeach

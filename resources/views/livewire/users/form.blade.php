@@ -50,13 +50,16 @@
                     <span class="agricart-form-panel__required">*</span>
                 </label>
                 <x-filament::input.wrapper>
-                    <select id="agricart-user-role" wire:model="role_id" class="fi-select-input" @disabled($readonly)>
+                    <select id="agricart-user-role" wire:model="role_id" class="fi-select-input" @disabled($readonly || ($roleLocked ?? false))>
                         <option value="">{{ __('agricart.users.hints.select_role') }}</option>
                         @foreach ($roleOptions as $id => $label)
                             <option value="{{ $id }}">{{ $label }}</option>
                         @endforeach
                     </select>
                 </x-filament::input.wrapper>
+                @if ($roleLocked ?? false)
+                    <p class="agricart-form-panel__hint">{{ __('agricart.users.hints.owner_role_locked') }}</p>
+                @endif
             </div>
 
             <div class="agricart-form-panel__field">

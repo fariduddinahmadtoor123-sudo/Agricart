@@ -20,7 +20,7 @@ return [
     'list' => [
         'heading' => 'Your notes',
         'lead' => 'Notes you created or that were sent to you.',
-        'empty' => 'No notes yet. Add one on the left.',
+        'empty' => 'No notes yet. Use Add Note to create one.',
         'search' => 'Search notes…',
         'created_by' => 'From :name',
         'assigned_to' => 'To :name',
@@ -43,10 +43,12 @@ return [
     ],
 
     'actions' => [
+        'add_note' => 'Add Note',
         'add' => 'Save note',
         'save' => 'Save changes',
         'cancel_edit' => 'Cancel edit',
         'cancel' => 'Cancel',
+        'view' => 'View',
         'mark_done' => 'Mark done',
         'reopen' => 'Reopen',
         'edit' => 'Edit',

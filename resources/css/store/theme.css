@@ -3416,11 +3416,19 @@
     padding: 1.25rem 0 2rem;
 }
 
+.ag-store-checkout-success--wide {
+    max-width: 52rem;
+}
+
 .ag-store-checkout-success__card {
     padding: 1.5rem 1.35rem 1.4rem;
     border: 1px solid var(--agricart-border);
     border-radius: 0;
     background: var(--agricart-surface, #fff);
+}
+
+.ag-store-checkout-success__hero {
+    margin-bottom: 0.15rem;
 }
 
 .ag-store-checkout-success__badge {
@@ -3506,8 +3514,21 @@
     color: var(--agricart-text);
 }
 
+.ag-store-checkout-success__grid {
+    display: grid;
+    gap: 0.85rem;
+    margin: 0 0 1.15rem;
+}
+
+@media (min-width: 48rem) {
+    .ag-store-checkout-success--wide .ag-store-checkout-success__grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        align-items: start;
+    }
+}
+
 .ag-store-checkout-success__pay-next {
-    margin: 0 0 1rem;
+    margin: 0;
     padding: 0.9rem 0.85rem;
     border: 1px solid color-mix(in oklab, var(--agricart-primary) 28%, var(--agricart-border));
     background: color-mix(in oklab, var(--agricart-primary) 6%, var(--agricart-surface, #fff));
@@ -3691,7 +3712,7 @@
 }
 
 .ag-store-checkout-success__proof {
-    margin: 0 0 1.15rem;
+    margin: 0;
     padding: 0.9rem 0.85rem;
     border: 1px solid var(--agricart-border);
     background: var(--agricart-bg, #F4F5F7);
@@ -5124,6 +5145,10 @@ html[dir='rtl'] .ag-store-footer__col--map {
     max-width: 42rem;
 }
 
+.ag-store-account--orders.ag-store-orders__detail {
+    max-width: 64rem;
+}
+
 .ag-store-orders__head {
     display: flex;
     flex-wrap: wrap;
@@ -5279,7 +5304,9 @@ html[dir='rtl'] .ag-store-footer__col--map {
 
 .ag-store-orders__card-actions {
     display: flex;
+    flex-wrap: wrap;
     justify-content: flex-end;
+    gap: 0.45rem;
 }
 
 .ag-store-orders__pagination {
@@ -5327,6 +5354,36 @@ html[dir='rtl'] .ag-store-footer__col--map {
     margin-bottom: 1.25rem;
 }
 
+.ag-store-orders__detail-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem 1rem;
+    margin-bottom: 0.85rem;
+}
+
+.ag-store-orders__print-brand {
+    display: none;
+    margin-bottom: 0.85rem;
+}
+
+.ag-store-orders__print-brand strong {
+    display: block;
+    font-size: 1.1rem;
+}
+
+.ag-store-orders__print-brand span {
+    display: block;
+    margin-top: 0.15rem;
+    font-size: 0.8125rem;
+    color: var(--agricart-muted);
+}
+
+.ag-store-print-only {
+    display: none;
+}
+
 .ag-store-orders__detail-title-row {
     display: flex;
     flex-wrap: wrap;
@@ -5336,6 +5393,39 @@ html[dir='rtl'] .ag-store-footer__col--map {
 
 .ag-store-orders__detail-date {
     margin-top: 0.35rem;
+}
+
+.ag-store-orders__invoice-note {
+    margin: 0.75rem 0 0;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid color-mix(in oklab, var(--agricart-primary) 35%, var(--agricart-border));
+    background: color-mix(in oklab, var(--agricart-primary) 8%, var(--agricart-surface));
+    font-size: 0.875rem;
+    line-height: 1.45;
+    color: var(--agricart-text);
+}
+
+.ag-store-orders__detail-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+@media (min-width: 56rem) {
+    .ag-store-orders__detail-grid {
+        grid-template-columns: minmax(0, 1.45fr) minmax(16rem, 0.85fr);
+        align-items: start;
+    }
+}
+
+.ag-store-orders__detail-main,
+.ag-store-orders__detail-side {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.ag-store-orders__detail-actions {
+    margin-top: 0.25rem;
 }
 
 .ag-store-orders__section-title {
@@ -5665,6 +5755,46 @@ html[dir='rtl'] .ag-store-footer__col--map {
     color: var(--agricart-muted);
 }
 
+.ag-store-orders__proof-banner {
+    margin-bottom: 0.85rem;
+}
+
+.ag-store-orders__proof-lead {
+    margin: 0.35rem 0 0;
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--agricart-muted);
+}
+
+.ag-store-orders__proof-panel {
+    margin-top: 0.85rem;
+    padding: 0.85rem 0.8rem;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-surface, #fff);
+}
+
+.ag-store-checkout-success__proof .ag-store-orders__proof-panel {
+    margin-top: 0.65rem;
+}
+
+.ag-store-orders__proof-form .ag-store-checkout__field {
+    margin-bottom: 0.75rem;
+}
+
+.ag-store-orders__tracking-list {
+    margin: 0.65rem 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.65rem;
+}
+
+.ag-store-orders__tracking-item {
+    padding: 0.65rem 0.7rem;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-bg, #F4F5F7);
+}
+
 .ag-store-orders__payment-proof .ag-store-checkout__field {
     margin-bottom: 0.75rem;
 }
@@ -5682,6 +5812,63 @@ html[dir='rtl'] .ag-store-footer__col--map {
 
 .ag-store-orders__note--reject {
     color: #991b1b;
+}
+
+@media print {
+    .ag-store-no-print,
+    .ag-store-skip-link,
+    .ag-store-topbar,
+    .ag-store-ticker,
+    .ag-store-header,
+    .ag-store-menu,
+    .ag-store-footer,
+    .ag-store-channel-banner-wrap,
+    .ag-store-flash-banner,
+    .ag-store-contact-floats,
+    .ag-store-message-float,
+    .ag-store-customer-auth__alert {
+        display: none !important;
+    }
+
+    .ag-store-print-only {
+        display: block !important;
+    }
+
+    .ag-store-orders__print-brand {
+        display: block;
+    }
+
+    .ag-store-main,
+    .ag-store__container,
+    .ag-store-customer-auth-page,
+    .ag-store-account,
+    .ag-store-orders__detail-card {
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        background: #fff !important;
+    }
+
+    .ag-store-orders__detail-grid {
+        display: block;
+    }
+
+    .ag-store-orders__detail-side {
+        margin-top: 1rem;
+        break-inside: avoid;
+    }
+
+    .ag-store-orders__detail-card + .ag-store-orders__detail-card {
+        margin-top: 0.85rem;
+    }
+
+    .ag-store-orders__status,
+    .ag-store-orders__line-img,
+    .ag-store-orders__line-placeholder {
+        print-color-adjust: exact;
+        -webkit-print-color-adjust: exact;
+    }
 }
 
 .ag-store-customer-auth__shell {

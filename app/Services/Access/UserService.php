@@ -15,9 +15,9 @@ class UserService
     /**
      * @param  array<string, mixed>  $data
      */
-    public function create(array $data): User
+    public function create(array $data, ?User $actor = null): User
     {
-        $validated = $this->validate($data);
+        $validated = $this->validate($data, null, $actor);
 
         if (empty($validated['status'] ?? null)) {
             $validated['status'] = User::STATUS_PENDING;
@@ -98,9 +98,9 @@ class UserService
     /**
      * @param  array<string, mixed>  $data
      */
-    public function update(User $user, array $data): User
+    public function update(User $user, array $data, ?User $actor = null): User
     {
-        $validated = $this->validate($data, $user->id);
+        $validated = $this->validate($data, $user->id, $actor, $user);
 
         if (empty($validated['password'] ?? null)) {
             unset($validated['password']);
@@ -246,9 +246,14 @@ class UserService
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
-    public function validate(array $data, ?int $exceptId = null): array
+    public function validate(array $data, ?int $exceptId = null, ?User $actor = null, ?User $target = null): array
     {
         $isCreate = $exceptId === null;
+        $actor ??= auth()->user() instanceof User ? auth()->user() : null;
+
+        if ($target === null && $exceptId !== null) {
+            $target = User::query()->find($exceptId);
+        }
 
         $rules = [
             'user_number' => [
@@ -299,6 +304,12 @@ class UserService
                 'password' => [__('validation.required', ['attribute' => 'password'])],
             ]);
         }
+
+        app(RoleAssignmentGuard::class)->assertCanAssign(
+            $actor,
+            $target,
+            isset($validated['role_id']) ? (int) $validated['role_id'] : null,
+        );
 
         return $validated;
     }

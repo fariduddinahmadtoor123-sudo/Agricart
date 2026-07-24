@@ -111,23 +111,39 @@
             @endif
 
             @if (filled($toolbar['addLabel']))
-                <x-filament::button
-                    color="primary"
-                    :icon="$toolbar['actionIcon'] ?? Heroicon::OutlinedPlus"
-                    tag="button"
-                    type="button"
-                    @class([
-                        'agricart-catalog-toolbar__action',
-                        'agricart-catalog-toolbar__action--compact-label' => ($toolbar['compactAddButton'] ?? false) === true,
-                    ])
-                    data-agricart-open-form-panel
-                    data-form-title="{{ $toolbar['addLabel'] }}"
-                    data-form-resource="{{ $toolbar['resourceLabel'] }}"
-                    data-form-key="{{ $toolbar['formKey'] ?? '' }}"
-                    data-form-context="{{ $toolbar['formContext'] ?? '' }}"
-                >
-                    {{ $toolbar['addLabel'] }}
-                </x-filament::button>
+                @if (filled($toolbar['addEvent'] ?? null))
+                    <x-filament::button
+                        color="primary"
+                        :icon="$toolbar['actionIcon'] ?? Heroicon::OutlinedPlus"
+                        tag="button"
+                        type="button"
+                        @class([
+                            'agricart-catalog-toolbar__action',
+                            'agricart-catalog-toolbar__action--compact-label' => ($toolbar['compactAddButton'] ?? false) === true,
+                        ])
+                        data-agricart-livewire-dispatch="{{ $toolbar['addEvent'] }}"
+                    >
+                        {{ $toolbar['addLabel'] }}
+                    </x-filament::button>
+                @else
+                    <x-filament::button
+                        color="primary"
+                        :icon="$toolbar['actionIcon'] ?? Heroicon::OutlinedPlus"
+                        tag="button"
+                        type="button"
+                        @class([
+                            'agricart-catalog-toolbar__action',
+                            'agricart-catalog-toolbar__action--compact-label' => ($toolbar['compactAddButton'] ?? false) === true,
+                        ])
+                        data-agricart-open-form-panel
+                        data-form-title="{{ $toolbar['addLabel'] }}"
+                        data-form-resource="{{ $toolbar['resourceLabel'] }}"
+                        data-form-key="{{ $toolbar['formKey'] ?? '' }}"
+                        data-form-context="{{ $toolbar['formContext'] ?? '' }}"
+                    >
+                        {{ $toolbar['addLabel'] }}
+                    </x-filament::button>
+                @endif
             @endif
         </div>
     </div>
