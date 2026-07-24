@@ -3,14 +3,19 @@
 namespace App\Filament\Auth;
 
 use Filament\Auth\Pages\EditProfile as BaseEditProfile;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema as DatabaseSchema;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rules\Password;
 use SensitiveParameter;
 
 class EditProfile extends BaseEditProfile
@@ -18,6 +23,8 @@ class EditProfile extends BaseEditProfile
     protected ?string $originalProfilePhotoPath = null;
 
     protected bool $passwordWasChanged = false;
+
+    protected bool $syncSessionPasswordHash = false;
 
     public static function getLabel(): string
     {
@@ -29,6 +36,28 @@ class EditProfile extends BaseEditProfile
         $this->originalProfilePhotoPath = $this->getUser()->getAttribute('profile_photo_path');
 
         parent::mount();
+    }
+
+    public function save(): void
+    {
+        parent::save();
+
+        if (! $this->syncSessionPasswordHash || ! request()->hasSession()) {
+            return;
+        }
+
+        $user = $this->getUser()->fresh();
+
+        if ($user === null) {
+            return;
+        }
+
+        request()->session()->put(
+            'password_hash_'.Filament::getAuthGuard(),
+            $user->getAuthPassword(),
+        );
+
+        $this->syncSessionPasswordHash = false;
     }
 
     public function form(Schema $schema): Schema
@@ -108,6 +137,7 @@ class EditProfile extends BaseEditProfile
     protected function mutateFormDataBeforeSave(#[SensitiveParameter] array $data): array
     {
         $this->passwordWasChanged = array_key_exists('password', $data);
+        $this->syncSessionPasswordHash = $this->passwordWasChanged;
 
         $primaryPhone = trim((string) ($data['primary_phone'] ?? ''));
         unset($data['primary_phone']);
@@ -120,6 +150,45 @@ class EditProfile extends BaseEditProfile
         );
 
         return parent::mutateFormDataBeforeSave($data);
+    }
+
+    protected function getPasswordFormComponent(): Component
+    {
+        return TextInput::make('password')
+            ->label(__('agricart.admin_profile.new_password'))
+            ->validationAttribute(__('filament-panels::auth/pages/edit-profile.form.password.validation_attribute'))
+            ->password()
+            ->revealable(filament()->arePasswordsRevealable())
+            ->rule(Password::default())
+            ->showAllValidationMessages()
+            ->autocomplete('new-password')
+            ->dehydrated(fn (#[SensitiveParameter] $state): bool => filled($state))
+            // Plain value — User `hashed` cast hashes once (do not Hash::make here).
+            ->live(debounce: 500)
+            ->same('passwordConfirmation');
+    }
+
+    protected function getCurrentPasswordFormComponent(): Component
+    {
+        return TextInput::make('currentPassword')
+            ->label(__('agricart.admin_profile.current_password'))
+            ->validationAttribute(__('filament-panels::auth/pages/edit-profile.form.current_password.validation_attribute'))
+            ->belowContent(__('filament-panels::auth/pages/edit-profile.form.current_password.below_content'))
+            ->password()
+            ->autocomplete('current-password')
+            ->revealable(filament()->arePasswordsRevealable())
+            ->required()
+            ->visible(fn (Get $get): bool => filled($get('password')) || ($get('email') !== $this->getUser()->getAttributeValue('email')))
+            ->dehydrated(false)
+            ->rule(function (): \Closure {
+                return function (string $attribute, mixed $value, \Closure $fail): void {
+                    $hash = (string) ($this->getUser()->fresh()?->getRawOriginal('password') ?? '');
+
+                    if ($hash === '' || ! Hash::check((string) $value, $hash)) {
+                        $fail(__('agricart.admin_profile.current_password_invalid'));
+                    }
+                };
+            });
     }
 
     protected function afterSave(): void

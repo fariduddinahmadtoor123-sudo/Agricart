@@ -34,6 +34,7 @@ return [
         'new_password' => 'New password',
         'confirm_password' => 'Confirm new password',
         'current_password' => 'Current password',
+        'current_password_invalid' => 'The current password is incorrect. Your password was not changed.',
     ],
 
     'actions' => [

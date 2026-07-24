@@ -34,6 +34,7 @@ return [
         'new_password' => 'نیا پاس ورڈ',
         'confirm_password' => 'نئے پاس ورڈ کی تصدیق',
         'current_password' => 'موجودہ پاس ورڈ',
+        'current_password_invalid' => 'موجودہ پاس ورڈ غلط ہے۔ آپ کا پاس ورڈ تبدیل نہیں ہوا۔',
     ],
 
     'actions' => [
