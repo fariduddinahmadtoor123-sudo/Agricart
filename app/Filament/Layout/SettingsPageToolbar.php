@@ -55,8 +55,10 @@ class SettingsPageToolbar extends ClusterPageToolbar
                 'columnDataAttr' => 'data-user-column',
                 'interactive' => true,
                 'filters' => [
+                    ['label' => __('agricart.users.statuses.pending'), 'value' => 'status:pending'],
                     ['label' => __('agricart.form_panel.statuses.active'), 'value' => 'status:active'],
                     ['label' => __('agricart.form_panel.statuses.inactive'), 'value' => 'status:inactive'],
+                    ['label' => __('agricart.users.statuses.rejected'), 'value' => 'status:rejected'],
                 ],
                 'columns' => [
                     ['label' => __('agricart.users.list.col_user_number'), 'value' => 'user_number', 'visible' => true],

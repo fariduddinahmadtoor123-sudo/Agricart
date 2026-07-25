@@ -3,14 +3,23 @@
 namespace App\Services\Store;
 
 use App\Models\Customer;
+use App\Services\Access\SessionInvalidationService;
 use App\Services\Identifiers\DocumentCounterService;
 use App\Services\Contacts\CustomerService as ContactCustomerService;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * Storefront customer accounts (register, login, profile, password).
+ *
+ * For shared contact/phone domain logic, {@see \App\Services\Contacts\CustomerService} is the owner;
+ * this class delegates where appropriate via {@see ContactCustomerService}.
+ */
 class CustomerService
 {
     /**
@@ -61,7 +70,7 @@ class CustomerService
             'last_name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:255', Rule::unique('customers', 'email')],
             'phone' => ['required', 'string', 'max:30'],
-            'password' => ['required', 'string', 'min:8', 'same:password_confirmation'],
+            'password' => ['required', 'string', Password::default(), 'same:password_confirmation'],
             'password_confirmation' => ['required', 'string'],
             'address_line1' => ['nullable', 'string', 'max:255'],
             'address_line2' => ['nullable', 'string', 'max:255'],
@@ -158,7 +167,7 @@ class CustomerService
     {
         $validated = validator($data, [
             'current_password' => ['required', 'string'],
-            'password' => ['required', 'string', 'min:8', 'same:password_confirmation'],
+            'password' => ['required', 'string', Password::default(), 'same:password_confirmation'],
             'password_confirmation' => ['required', 'string'],
         ])->validate();
 
@@ -173,8 +182,17 @@ class CustomerService
         }
 
         $fresh->password = $validated['password'];
-        $fresh->setRememberToken(\Illuminate\Support\Str::random(60));
         $fresh->save();
+
+        app(SessionInvalidationService::class)
+            ->invalidateOtherCustomerDevices($fresh, $validated['password']);
+
+        if (Auth::guard('customer')->check() && request()->hasSession()) {
+            request()->session()->put(
+                'password_hash_'.Auth::getDefaultDriver(),
+                (string) $fresh->fresh()?->getAuthPassword(),
+            );
+        }
     }
 
     /**

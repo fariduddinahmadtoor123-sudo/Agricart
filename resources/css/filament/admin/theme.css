@@ -1388,6 +1388,20 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
     color: var(--agricart-primary);
 }
 
+.agricart-catalog-subnav__coming-soon {
+    margin-inline-start: 0.35rem;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--agricart-muted);
+    white-space: nowrap;
+}
+
+.agricart-catalog-subnav__item.is-active .agricart-catalog-subnav__coming-soon {
+    color: color-mix(in oklab, var(--agricart-primary) 55%, var(--agricart-muted));
+}
+
 .agricart-catalog-toolbar {
     display: flex;
     flex-direction: row;

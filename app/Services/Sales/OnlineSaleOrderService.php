@@ -14,6 +14,7 @@ use App\Services\Finance\BankAccountService;
 use App\Services\Identifiers\DocumentCounterService;
 use App\Services\Logistics\DeliveryMethodService;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -50,6 +51,7 @@ class OnlineSaleOrderService
             'customer_payment_method' => ['nullable', 'string', Rule::in(SaleService::PAYMENT_METHODS)],
             'customer_payment_note' => ['nullable', 'string', 'max:2000'],
             'customer_payment_reference' => ['nullable', 'string', 'max:128'],
+            'has_bank_receipt_upload' => ['nullable', 'boolean'],
             'customer_notes' => ['nullable', 'string', 'max:5000'],
             'ship_contact_name' => ['nullable', 'string', 'max:255'],
             'ship_phone' => ['nullable', 'string', 'max:64'],
@@ -84,6 +86,13 @@ class OnlineSaleOrderService
             $this->deliveryMethods->assertCheckoutSelection($deliveryMethod, (string) $paymentMethod);
         }
 
+        $this->deliveryMethods->assertFullAdvanceCheckoutRequirements(
+            $deliveryMethod,
+            $paymentMethod,
+            $validated['customer_payment_reference'] ?? null,
+            (bool) ($validated['has_bank_receipt_upload'] ?? false),
+        );
+
         $productIds = collect($rows)
             ->pluck('product_id')
             ->map(static fn ($id): int => (int) $id)
@@ -94,7 +103,7 @@ class OnlineSaleOrderService
 
         $deliverySnapshot = $this->deliveryMethods->orderSnapshot($deliveryMethod);
 
-        return DB::transaction(function () use ($validated, $rows, $paymentMethod, $deliverySnapshot): OnlineSaleOrder {
+        return DB::transaction(function () use ($validated, $rows, $paymentMethod, $deliverySnapshot, $deliveryMethod): OnlineSaleOrder {
             Customer::query()->lockForUpdate()->findOrFail((int) $validated['customer_id']);
 
             $existing = OnlineSaleOrder::query()
@@ -115,7 +124,8 @@ class OnlineSaleOrderService
 
             $rows = $this->lockAndValidateCheckoutRows($rows);
             $subtotal = $this->subtotalFromRows($rows);
-            $total = $subtotal;
+            $shippingAmount = $this->deliveryMethods->checkoutShippingAmount($deliveryMethod);
+            $total = round($subtotal + $shippingAmount, 2);
             $proofStatus = $paymentMethod === 'bank_transfer'
                 ? OnlineSaleOrder::PROOF_AWAITING
                 : OnlineSaleOrder::PROOF_NONE;
@@ -133,6 +143,7 @@ class OnlineSaleOrderService
                 'customer_payment_reference' => $validated['customer_payment_reference'] ?? null,
                 'customer_payment_proof_status' => $proofStatus,
                 'subtotal' => $subtotal,
+                'shipping_amount' => $shippingAmount,
                 'total_amount' => $total,
                 'amount_paid' => 0,
                 'ship_contact_name' => $validated['ship_contact_name'] ?? null,
@@ -317,8 +328,13 @@ class OnlineSaleOrderService
         }
 
         if ($upload !== null) {
+            $previousPath = $order->customer_bank_receipt_path;
             $path = $upload->store('online-orders/customer-receipts/'.$order->id, 'local');
             $order->customer_bank_receipt_path = $path;
+
+            if (filled($previousPath) && $previousPath !== $path) {
+                Storage::disk('local')->delete($previousPath);
+            }
         }
 
         $order->customer_payment_proof_status = OnlineSaleOrder::PROOF_SUBMITTED;

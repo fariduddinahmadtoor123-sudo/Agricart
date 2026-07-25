@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Jobs\RecordStorefrontAnalytics;
 use App\Services\Analytics\AnalyticsContext;
 use App\Services\Analytics\AnalyticsTrafficFilter;
 use App\Services\Analytics\VisitorAnalyticsTracker;
@@ -71,7 +72,7 @@ class TrackStorefrontAnalytics
             'lax',
         ));
 
-        defer(fn () => $this->tracker->record($payload));
+        RecordStorefrontAnalytics::dispatch($payload);
 
         return $response;
     }

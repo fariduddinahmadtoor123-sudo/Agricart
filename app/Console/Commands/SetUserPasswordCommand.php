@@ -3,10 +3,9 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
+use App\Services\Access\SessionInvalidationService;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema;
 
 class SetUserPasswordCommand extends Command
 {
@@ -40,14 +39,7 @@ class SetUserPasswordCommand extends Command
             'remember_token' => null,
         ])->save();
 
-        if (
-            (config('session.driver') === 'database')
-            && Schema::hasTable((string) config('session.table', 'sessions'))
-        ) {
-            DB::table((string) config('session.table', 'sessions'))
-                ->where('user_id', $user->getKey())
-                ->delete();
-        }
+        app(SessionInvalidationService::class)->wipeAllForUser($user->fresh() ?? $user);
 
         $freshHash = (string) $user->fresh()?->getRawOriginal('password');
 

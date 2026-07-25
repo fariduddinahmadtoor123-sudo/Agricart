@@ -42,7 +42,7 @@ class SystemErrorInboxTest extends TestCase
     {
         $capture = app(SystemErrorCaptureService::class);
 
-        $first = $capture->capture($this->repeatableException());
+        $first = $capture->captureNow($this->repeatableException());
 
         $this->assertInstanceOf(SystemError::class, $first);
         $this->assertStringNotContainsString('secret-value', $first->message);
@@ -59,7 +59,7 @@ class SystemErrorInboxTest extends TestCase
             'resolved_at' => now(),
         ]);
 
-        $second = $capture->capture($this->repeatableException());
+        $second = $capture->captureNow($this->repeatableException());
 
         $this->assertSame($first->id, $second?->id);
         $this->assertSame(2, $second?->occurrences);
@@ -83,12 +83,12 @@ class SystemErrorInboxTest extends TestCase
     {
         $capture = app(SystemErrorCaptureService::class);
 
-        $this->assertNull($capture->capture(ValidationException::withMessages(['name' => 'Required'])));
-        $this->assertNull($capture->capture(new ConnectionException('OpenRouter timed out.')));
+        $this->assertNull($capture->captureNow(ValidationException::withMessages(['name' => 'Required'])));
+        $this->assertNull($capture->captureNow(new ConnectionException('OpenRouter timed out.')));
 
         Schema::drop('system_errors');
 
-        $this->assertNull($capture->capture(new RuntimeException('Database-backed inbox is unavailable.')));
+        $this->assertNull($capture->captureNow(new RuntimeException('Database-backed inbox is unavailable.')));
     }
 
     public function test_authorized_user_can_view_and_manager_can_resolve_errors(): void

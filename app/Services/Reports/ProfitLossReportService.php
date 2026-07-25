@@ -34,7 +34,7 @@ class ProfitLossReportService
             ? $resultFilter
             : 'all';
 
-        [$start, $end] = $this->periodRange($periodFilter);
+        [$start, $end] = ReportPeriod::range($periodFilter);
 
         $salesQuery = Sale::query()
             ->where('status', Sale::STATUS_COMPLETED)
@@ -303,20 +303,6 @@ class ProfitLossReportService
     /**
      * @return array{0: CarbonImmutable|null, 1: CarbonImmutable|null}
      */
-    private function periodRange(?string $period): array
-    {
-        $today = CarbonImmutable::today();
-
-        return match ($period) {
-            'today' => [$today, $today],
-            'week' => [$today->startOfWeek(), $today->endOfWeek()],
-            'month' => [$today->startOfMonth(), $today->endOfMonth()],
-            'quarter' => [$today->startOfQuarter(), $today->endOfQuarter()],
-            'year' => [$today->startOfYear(), $today->endOfYear()],
-            default => [null, null],
-        };
-    }
-
     private function qtySumExpression(string $column): string
     {
         $cast = DB::connection()->getDriverName() === 'sqlite' ? 'REAL' : 'DECIMAL(14,4)';

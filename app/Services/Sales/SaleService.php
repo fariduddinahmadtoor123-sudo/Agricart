@@ -385,7 +385,12 @@ class SaleService
             'locale' => ['required', Rule::in(self::LOCALES)],
             'payment_status' => ['required', Rule::in(self::PAYMENT_STATUSES)],
             'payment_method' => ['required', Rule::in(self::PAYMENT_METHODS)],
-            'bank_account_id' => ['nullable', 'integer'],
+            'bank_account_id' => [
+                'nullable',
+                'integer',
+                'exists:bank_accounts,id',
+                Rule::requiredIf(($data['payment_method'] ?? '') === 'bank_transfer'),
+            ],
             'price_display' => ['required', Rule::in(self::PRICE_DISPLAYS)],
             'discount_type' => ['nullable', Rule::in([...self::DISCOUNT_TYPES, ''])],
             'discount_value' => ['nullable', 'numeric', 'min:0'],
@@ -455,10 +460,15 @@ class SaleService
         $validated['discount_amount'] = $discountAmount;
         $validated['total_amount'] = $total;
         $validated['amount_paid'] = $paid;
+        // Authoritative status from totals; POS/sales UI does not collect payment_status (see Sales\Form).
         $validated['payment_status'] = $this->resolvePaymentStatus($total, $paid);
         $validated['print_controls'] = (bool) ($validated['print_controls'] ?? false);
         $validated['locale'] = $this->normalizeLocale($validated['locale'] ?? 'en');
         $validated['rows'] = $rows;
+
+        if ($validated['payment_method'] !== 'bank_transfer') {
+            $validated['bank_account_id'] = null;
+        }
 
         return $validated;
     }

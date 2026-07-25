@@ -6,6 +6,7 @@ use App\Models\MediaAsset;
 use App\Models\User;
 use App\Services\Media\MediaLibraryService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -212,7 +213,17 @@ class ListMedia extends Component
 
         return view('livewire.media.list-media', [
             'assets' => $assets,
-            'stats' => [
+            'stats' => $this->mediaLibraryStats(),
+        ]);
+    }
+
+    /**
+     * @return array{all: int, used: int, unused: int, trash: int}
+     */
+    private function mediaLibraryStats(): array
+    {
+        return Cache::remember('media_library:stats', 45, function (): array {
+            return [
                 'all' => MediaAsset::query()->whereNull('trashed_at')->count(),
                 'used' => MediaAsset::query()->whereNull('trashed_at')->has('usages')->count(),
                 'unused' => MediaAsset::query()
@@ -226,8 +237,8 @@ class ListMedia extends Component
                     })
                     ->count(),
                 'trash' => MediaAsset::query()->whereNotNull('trashed_at')->count(),
-            ],
-        ]);
+            ];
+        });
     }
 
     private function authorizeView(): User

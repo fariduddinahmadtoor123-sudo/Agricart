@@ -138,6 +138,7 @@ return [
         'payment_status_required' => 'Select payment status before saving.',
         'payment_method_required' => 'Select payment method (cash or bank) before saving.',
         'bank_account_required' => 'Select which bank account received this payment.',
+        'bank_transfer_unavailable' => 'Bank transfer requires an active bank account under Finance → Banks.',
     ],
 
     'validation' => [

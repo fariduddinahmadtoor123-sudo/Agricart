@@ -2,6 +2,7 @@
 
 namespace App\Services\SystemErrors;
 
+use App\Jobs\CaptureSystemError;
 use App\Models\SystemError;
 use App\Services\Notifications\TopbarNotificationService;
 use Error;
@@ -31,19 +32,42 @@ class SystemErrorCaptureService
             return null;
         }
 
+        if (! $this->databaseAvailable()) {
+            return null;
+        }
+
+        dispatch(CaptureSystemError::fromThrowable($exception));
+
+        return null;
+    }
+
+    public function captureNow(Throwable $exception): ?SystemError
+    {
+        if (self::$capturing || $this->shouldIgnore($exception)) {
+            return null;
+        }
+
+        return $this->captureNowFromReport(CaptureSystemError::fromThrowable($exception));
+    }
+
+    public function captureNowFromReport(CaptureSystemError $report): ?SystemError
+    {
+        if (self::$capturing) {
+            return null;
+        }
+
         self::$capturing = true;
 
         try {
-            if (! Schema::hasTable('system_errors')) {
+            if (! $this->databaseAvailable()) {
                 return null;
             }
 
             $now = now();
-            $message = $this->sanitizer->message($exception->getMessage()) ?: class_basename($exception);
-            $file = $this->sanitizer->file($exception->getFile());
-            $httpStatus = $exception instanceof HttpExceptionInterface ? $exception->getStatusCode() : null;
-            $fingerprint = $this->fingerprint($exception, $message, $file);
-            $attributes = $this->attributes($exception, $message, $file, $httpStatus);
+            $message = $this->sanitizer->message($report->message) ?: class_basename($report->exceptionClass);
+            $file = $this->sanitizer->file($report->file);
+            $fingerprint = $this->fingerprintFromReport($report, $message, $file);
+            $attributes = $this->attributesFromReport($report, $message, $file);
 
             $error = DB::transaction(function () use ($fingerprint, $attributes, $now): SystemError {
                 $inserted = DB::table('system_errors')->insertOrIgnore([
@@ -120,14 +144,22 @@ class SystemErrorCaptureService
         return false;
     }
 
+    private function databaseAvailable(): bool
+    {
+        try {
+            return Schema::hasTable('system_errors');
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
     /**
      * @return array<string, mixed>
      */
-    private function attributes(
-        Throwable $exception,
+    private function attributesFromReport(
+        CaptureSystemError $report,
         string $message,
         ?string $file,
-        ?int $httpStatus,
     ): array {
         $request = app()->runningInConsole() ? null : request();
         $route = $request?->route();
@@ -135,16 +167,16 @@ class SystemErrorCaptureService
 
         return [
             'source' => 'exception',
-            'severity' => $this->severity($exception, $httpStatus),
-            'exception_class' => $exception::class,
+            'severity' => $this->severityFromReport($report),
+            'exception_class' => $report->exceptionClass,
             'message' => $message,
             'file' => $file,
-            'line' => max(0, $exception->getLine()),
-            'trace' => $this->sanitizer->trace($exception->getTraceAsString()),
+            'line' => max(0, $report->line),
+            'trace' => $this->sanitizer->trace($report->trace),
             'request_method' => $request?->method(),
             'request_path' => $this->sanitizer->requestPath($request?->getRequestUri()),
             'route_name' => is_object($route) ? $route->getName() : null,
-            'http_status' => $httpStatus,
+            'http_status' => $report->httpStatus,
             'user_id' => is_numeric($userId) ? (int) $userId : null,
             'environment' => Str::limit((string) app()->environment(), 50, ''),
             'release' => filled(config('app.release')) ? Str::limit((string) config('app.release'), 100, '') : null,
@@ -157,7 +189,7 @@ class SystemErrorCaptureService
         ];
     }
 
-    private function fingerprint(Throwable $exception, string $message, ?string $file): string
+    private function fingerprintFromReport(CaptureSystemError $report, string $message, ?string $file): string
     {
         $normalizedMessage = preg_replace([
             '/\b[0-9a-f]{8}-[0-9a-f-]{27,}\b/i',
@@ -166,16 +198,19 @@ class SystemErrorCaptureService
         ], ['{uuid}', '{ulid}', '{n}'], $message) ?? $message;
 
         return hash('sha256', implode('|', [
-            $exception::class,
+            $report->exceptionClass,
             $normalizedMessage,
             $file ?? '',
-            (string) $exception->getLine(),
+            (string) $report->line,
         ]));
     }
 
-    private function severity(Throwable $exception, ?int $httpStatus): string
+    private function severityFromReport(CaptureSystemError $report): string
     {
-        if ($exception instanceof Error || ($httpStatus !== null && $httpStatus >= 503)) {
+        if (
+            is_a($report->exceptionClass, Error::class, true)
+            || ($report->httpStatus !== null && $report->httpStatus >= 503)
+        ) {
             return SystemError::SEVERITY_CRITICAL;
         }
 

@@ -109,6 +109,7 @@ return [
         'product_name' => 'پروڈکٹ کا نام',
         'required_qty' => 'درکار مقدار',
         'purchase_qty' => 'خریداری مقدار',
+        'received_qty' => 'موصولہ مقدار',
         'previous_price' => 'پچھلی قیمت',
         'current_rate' => 'موجودہ قیمت',
         'landing_cost' => 'لینڈنگ کاسٹ',
@@ -145,6 +146,8 @@ return [
 
     'validation' => [
         'items_required' => 'خریداری میں کم از کم ایک پروڈکٹ شامل کریں۔',
+        'received_qty_required' => 'جزوی وصولی پر ہر لائن کے لیے موصولہ مقدار درج کریں۔',
+        'received_qty_exceeds_purchase' => 'موصولہ مقدار خریداری مقدار سے زیادہ نہیں ہو سکتی۔',
     ],
 
     'print' => [

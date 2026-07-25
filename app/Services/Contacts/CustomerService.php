@@ -201,7 +201,7 @@ class CustomerService
                     ->orWhere('last_name', 'like', $needle);
 
                 if ($normalized !== '') {
-                    $query->orWhere('phone', 'like', '%'.$normalized.'%');
+                    $query->orWhereHas('phones', fn ($phones) => $phones->where('canonical_phone', 'like', $normalized.'%'));
                 }
 
                 if (ctype_digit($term)) {

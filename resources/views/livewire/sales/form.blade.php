@@ -235,18 +235,8 @@
         </div>
 
         <div class="agricart-purchase-form__field">
-            <label class="agricart-purchase-form__label" for="sale-payment-status">{{ __('pos.fields.payment_status') }}</label>
-            <select id="sale-payment-status" class="agricart-purchase-form__input agricart-purchase-form__input--compact agricart-purchase-form__input--status" wire:model.live="payment_status" @disabled($this->isReadonly())>
-                <option value="">{{ __('pos.hints.select_status') }}</option>
-                @foreach ($paymentOptions as $value => $label)
-                    <option value="{{ $value }}">{{ $label }}</option>
-                @endforeach
-            </select>
-        </div>
-
-        <div class="agricart-purchase-form__field">
             <label class="agricart-purchase-form__label" for="sale-amount-paid">{{ __('pos.fields.amount_paid') }}</label>
-            <input id="sale-amount-paid" type="text" class="agricart-purchase-form__input agricart-purchase-form__input--compact" wire:model.live.debounce.400ms="amount_paid" @disabled(! $this->isAmountPaidEditable()) />
+            <input id="sale-amount-paid" type="text" class="agricart-purchase-form__input agricart-purchase-form__input--compact" wire:model.live.debounce.400ms="amount_paid" @disabled($this->isReadonly()) />
         </div>
 
         <div class="agricart-purchase-form__field">

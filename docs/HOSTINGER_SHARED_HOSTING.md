@@ -137,12 +137,17 @@ No Hostinger-specific code in Laravel core; VPS deployments with document root =
 
 ## Storage & media on Hostinger
 
-- Set `FILESYSTEM_PUBLIC_SERVE=auto` so `/storage/*` is served by Laravel when `php artisan storage:link` cannot run.
+- Set `FILESYSTEM_PUBLIC_SERVE=true` (or `auto` with `HOSTINGER_PUBLIC_HTML` set) so `/storage/*`
+  is served by Laravel. A `public/storage` symlink may exist for PHP, but Apache on Hostinger
+  often cannot follow it for static files — without the Laravel route, thumbs return 404.
 - Do **not** copy `public/storage` during sync (skipped by `hostinger:sync-public`); uploads live in `agricart/storage/app/public`.
-- Prefer a verified `public_html/storage` symlink. If a mirror is unavoidable,
-  preview with `hostinger:sync-storage --dry-run --delete-stale`, then run with
-  `--delete-stale`. The mirror excludes configured private/sensitive prefixes
-  and reports stale files instead of silently retaining them.
+- Prefer a verified `public_html/storage` symlink. If a mirror is unavoidable:
+  - Runtime uploads/deletes sync that single file into `public_html/storage`
+    automatically (`HOSTINGER_MIRROR_PUBLIC_MEDIA_ON_WRITE=true`, default).
+  - After deploy (or to repair broken thumbs), run
+    `php artisan hostinger:sync-storage --delete-stale`.
+  - Preview first with `--dry-run --delete-stale`. The mirror excludes
+    configured private/sensitive prefixes.
 
 See also [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md).
 
@@ -179,8 +184,8 @@ No codebase fork required.
 | Plain text “application root not found” | Fix `laravel-root.php` or repo folder name; run `hostinger:verify` |
 | 500 after deploy | Check `storage/` permissions; `APP_KEY`; Laravel log in `agricart/storage/logs` |
 | CSS/JS missing | `git pull` + `hostinger:sync-public`; or run `npm run build` locally, commit `public/build`, push |
-| Images 404 | `FILESYSTEM_PUBLIC_SERVE=auto`; files in `storage/app/public` |
-| Admin 419 | Session driver, HTTPS, `TRUSTED_PROXIES=*` |
+| Images 404 | `FILESYSTEM_PUBLIC_SERVE=true` (or `auto` + `HOSTINGER_PUBLIC_HTML`); `php artisan config:clear && php artisan route:clear`; files in `storage/app/public` |
+| Admin 419 | Session driver (`SESSION_DRIVER=database`), HTTPS, explicit `TRUSTED_PROXIES` CIDRs (wildcard only with `ALLOW_WILDCARD_TRUSTED_PROXIES=true`) |
 
 ---
 
@@ -191,8 +196,16 @@ No codebase fork required.
 - Cron (if available): `* * * * * cd /home/USERNAME/agricart && php artisan schedule:run >> /dev/null 2>&1`
 - That cron is required for the daily `01:30` database backup, the weekly full backup, and other scheduled jobs.
 - Install that scheduler line exactly once and set `SCHEDULER_CONFIGURED=true`.
+- Prefer system cron over `SCHEDULER_WEB_TICK`. Leave `SCHEDULER_WEB_TICK=false`
+  (default) when cron is available; set `SCHEDULER_WEB_TICK=true` only if hPanel
+  offers no cron and you accept per-request scheduler overhead. Never enable both
+  cron (`SCHEDULER_CONFIGURED=true`) and web tick without
+  `SCHEDULER_DUAL_MODE_ACKNOWLEDGE=true` — preflight treats that as misconfiguration.
 - If persistent workers are unavailable, add a one-per-minute
   `queue:work --stop-when-empty --tries=3` cron and set
   `QUEUE_WORKER_CONFIGURED=true`.
+- Online store checkout dispatches `SendOnlineOrderPlacedNotification` (queued email;
+  SMS via `LogSmsSender` when SMS is not live). Process the queue or customers may not
+  get the placed-order email promptly.
 - Leave `SCHEDULER_SHARED_LOCKS=false` for one scheduler. Enable it only for
   multiple nodes sharing a database/Redis lock cache.

@@ -109,6 +109,7 @@ return [
         'product_name' => 'Product Name',
         'required_qty' => 'Required Qty',
         'purchase_qty' => 'Purchase Qty',
+        'received_qty' => 'Received Qty',
         'previous_price' => 'Previous Price',
         'current_rate' => 'Current Price',
         'landing_cost' => 'Landing Cost',
@@ -145,6 +146,8 @@ return [
 
     'validation' => [
         'items_required' => 'Add at least one product to the purchase.',
+        'received_qty_required' => 'Enter received quantity for each line when delivery is partially received.',
+        'received_qty_exceeds_purchase' => 'Received quantity cannot exceed purchase quantity.',
     ],
 
     'print' => [

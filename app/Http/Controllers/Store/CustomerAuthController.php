@@ -8,6 +8,7 @@ use App\Services\Contacts\CustomerService as ContactCustomerService;
 use App\Services\Store\CustomerService;
 use App\Services\Store\StoreCartService;
 use App\Services\Store\StoreLayoutService;
+use App\Support\SafeInternalRedirect;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,11 +21,7 @@ class CustomerAuthController extends Controller
     public function show(StoreLayoutService $layout): View
     {
         $tab = request()->query('tab');
-        $redirect = request()->query('redirect');
-
-        if (is_string($redirect) && str_starts_with($redirect, '/') && ! str_starts_with($redirect, '//')) {
-            session()->put('url.intended', $redirect);
-        }
+        SafeInternalRedirect::putIntended(request()->query('redirect'));
 
         return view('store.auth.login', [
             ...$layout->layoutData(),
@@ -68,13 +65,7 @@ class CustomerAuthController extends Controller
 
         $cart->mergeAfterCustomerLogin($customer->id, $sessionCart);
 
-        $intended = $request->session()->pull('url.intended', route('store.home'));
-
-        if (! is_string($intended) || ! str_starts_with($intended, '/') || str_starts_with($intended, '//')) {
-            $intended = route('store.home');
-        }
-
-        return redirect()->to($intended)
+        return redirect()->to(SafeInternalRedirect::pullIntended(route('store.home', absolute: false)))
             ->with('customer_auth_status', __('agricart.customer.auth.login_success'))
             ->with('customer_auth_status_type', 'success');
     }
@@ -123,13 +114,7 @@ class CustomerAuthController extends Controller
 
         $cart->mergeAfterCustomerLogin($customer->id, $sessionCart);
 
-        $intended = $request->session()->pull('url.intended', route('store.home'));
-
-        if (! is_string($intended) || ! str_starts_with($intended, '/') || str_starts_with($intended, '//')) {
-            $intended = route('store.home');
-        }
-
-        return redirect()->to($intended)
+        return redirect()->to(SafeInternalRedirect::pullIntended(route('store.home', absolute: false)))
             ->with('customer_auth_status', __('agricart.customer.auth.register_success_signed_in'))
             ->with('customer_auth_status_type', 'success');
     }
@@ -149,9 +134,9 @@ class CustomerAuthController extends Controller
     {
         $params = [];
 
-        $redirect = $request->input('redirect');
+        $redirect = SafeInternalRedirect::normalize($request->input('redirect'));
 
-        if (is_string($redirect) && str_starts_with($redirect, '/') && ! str_starts_with($redirect, '//')) {
+        if ($redirect !== null) {
             $params['redirect'] = $redirect;
         }
 

@@ -161,10 +161,10 @@ class Form extends Component
 
             if ($this->roleId) {
                 $role = Role::query()->findOrFail($this->roleId);
-                $service->update($role, $payload, $permissionKeys);
+                $service->update($role, $payload, $permissionKeys, $user);
                 $this->setStatus(__('agricart.roles.messages.updated', ['name' => $this->name]), 'success');
             } else {
-                $role = $service->create($payload, $permissionKeys);
+                $role = $service->create($payload, $permissionKeys, $user);
                 $this->roleId = $role->id;
                 $this->mode = 'edit';
                 $this->setStatus(__('agricart.roles.messages.created', ['name' => $this->name]), 'success');

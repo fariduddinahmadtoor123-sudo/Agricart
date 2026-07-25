@@ -95,9 +95,14 @@ class PhaseOneAuditRemediationTest extends TestCase
             ->assertOk()
             ->assertHeader('X-Content-Type-Options', 'nosniff');
 
+        // AuthenticateSession stores password_hash_* — clear before switching customer actors.
+        $this->flushSession();
+
         $this->actingAs($other, 'customer')
             ->get(route('store.customer.orders.payment-proof.show', $order->order_number))
             ->assertNotFound();
+
+        $this->flushSession();
 
         $unauthorizedAdmin = User::factory()->create(['status' => User::STATUS_ACTIVE, 'role_id' => null]);
         $this->actingAs($unauthorizedAdmin)

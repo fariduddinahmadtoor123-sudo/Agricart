@@ -11,6 +11,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class SeasonalSalesReportService
 {
+    public const INTERACTIVE_ROW_LIMIT = 500;
+
     /**
      * @return array{rows: list<array<string, mixed>>, kpis: array<string, int|string>, generated_at: string}
      */
@@ -19,7 +21,7 @@ class SeasonalSalesReportService
         ?string $periodFilter = null,
         string $channelFilter = 'all',
     ): array {
-        [$start, $end] = $this->periodRange($periodFilter);
+        [$start, $end] = ReportPeriod::range($periodFilter);
         $onlineSaleIds = OnlineSaleOrder::query()
             ->whereNotNull('sale_id')
             ->pluck('sale_id');
@@ -43,6 +45,7 @@ class SeasonalSalesReportService
                         ->orWhere('product_name_ur', 'like', $needle);
                 });
             })
+            ->limit(self::INTERACTIVE_ROW_LIMIT)
             ->get();
 
         $returns = SaleReturnItem::query()
@@ -57,6 +60,7 @@ class SeasonalSalesReportService
                         ->orWhere('product_name_ur', 'like', $needle);
                 });
             })
+            ->limit(self::INTERACTIVE_ROW_LIMIT)
             ->get()
             ->filter(function (SaleReturnItem $item) use ($channelFilter, $onlineSaleIds): bool {
                 $saleId = $item->saleReturn?->sale_id;
@@ -183,20 +187,6 @@ class SeasonalSalesReportService
     /**
      * @return array{0: ?CarbonImmutable, 1: ?CarbonImmutable}
      */
-    private function periodRange(?string $periodFilter): array
-    {
-        $today = CarbonImmutable::today();
-
-        return match ($periodFilter) {
-            'today' => [$today, $today],
-            'week' => [$today->startOfWeek(), $today->endOfWeek()],
-            'month' => [$today->startOfMonth(), $today->endOfMonth()],
-            'quarter' => [$today->firstOfQuarter(), $today->lastOfQuarter()],
-            'year' => [$today->startOfYear(), $today->endOfYear()],
-            default => [null, null],
-        };
-    }
-
     private function applyDateRange(Builder $query, string $column, ?CarbonImmutable $start, ?CarbonImmutable $end): void
     {
         if ($start !== null) {

@@ -22,8 +22,15 @@ class CustomerLedgerReportService
      */
     public function build(?string $search = null, ?string $periodFilter = null, ?string $partyFilter = null): array
     {
-        [$start, $end] = $this->periodRange($periodFilter);
+        [$start, $end] = ReportPeriod::range($periodFilter);
         $customers = $this->customerQuery($search)->get();
+        $customerIds = $customers->pluck('id')->map(fn ($id): int => (int) $id)->all();
+
+        $beforeAggregates = $start !== null
+            ? $this->batchCustomerMovement($customerIds, null, $start->subDay())
+            : [];
+
+        $periodAggregates = $this->batchCustomerMovement($customerIds, $start, $end);
 
         $rows = [];
         $totalDebit = 0.0;
@@ -35,10 +42,11 @@ class CustomerLedgerReportService
             $opening = $this->numeric($customer->opening_balance);
 
             if ($start !== null) {
-                $opening += $this->movementBefore($customer->id, $start);
+                $before = $beforeAggregates[$customer->id] ?? ['debit' => 0.0, 'credit' => 0.0];
+                $opening += $before['debit'] - $before['credit'];
             }
 
-            $movement = $this->movementWithin($customer->id, $start, $end);
+            $movement = $periodAggregates[$customer->id] ?? ['debit' => 0.0, 'credit' => 0.0];
             $debit = $movement['debit'];
             $credit = $movement['credit'];
             $balance = $opening + $debit - $credit;
@@ -104,7 +112,7 @@ class CustomerLedgerReportService
     public function history(int $customerId, ?string $periodFilter = null): array
     {
         $customer = Customer::query()->findOrFail($customerId);
-        [$start, $end] = $this->periodRange($periodFilter);
+        [$start, $end] = ReportPeriod::range($periodFilter);
 
         $opening = $this->numeric($customer->opening_balance);
 
@@ -425,6 +433,81 @@ class CustomerLedgerReportService
     }
 
     /**
+     * @param  list<int>  $customerIds
+     * @return array<int, array{debit: float, credit: float}>
+     */
+    private function batchCustomerMovement(array $customerIds, ?CarbonImmutable $start, ?CarbonImmutable $end): array
+    {
+        $customerIds = array_values(array_unique(array_filter(array_map('intval', $customerIds))));
+
+        if ($customerIds === []) {
+            return [];
+        }
+
+        $result = [];
+
+        foreach ($customerIds as $customerId) {
+            $result[$customerId] = ['debit' => 0.0, 'credit' => 0.0];
+        }
+
+        $sales = Sale::query()
+            ->whereIn('customer_id', $customerIds)
+            ->where('status', Sale::STATUS_COMPLETED);
+        $this->applyDateRange($sales, 'sale_date', $start, $end);
+
+        foreach ($sales
+            ->selectRaw('customer_id, COALESCE(SUM(total_amount), 0) as debit_sum, COALESCE(SUM(amount_paid), 0) as credit_sum')
+            ->groupBy('customer_id')
+            ->get() as $row) {
+            $id = (int) $row->customer_id;
+            $result[$id]['debit'] += (float) $row->debit_sum;
+            $result[$id]['credit'] += (float) $row->credit_sum;
+        }
+
+        $orders = OnlineSaleOrder::query()
+            ->whereIn('customer_id', $customerIds)
+            ->whereNull('sale_id')
+            ->where('order_status', '!=', OnlineSaleOrder::STATUS_CANCELLED);
+        $this->applyDateRange($orders, 'order_date', $start, $end);
+
+        foreach ($orders
+            ->selectRaw('customer_id, COALESCE(SUM(total_amount), 0) as debit_sum, COALESCE(SUM(amount_paid), 0) as credit_sum')
+            ->groupBy('customer_id')
+            ->get() as $row) {
+            $id = (int) $row->customer_id;
+            $result[$id]['debit'] += (float) $row->debit_sum;
+            $result[$id]['credit'] += (float) $row->credit_sum;
+        }
+
+        $returns = SaleReturn::query()->whereIn('customer_id', $customerIds);
+        $this->applyDateRange($returns, 'return_date', $start, $end);
+
+        foreach ($returns
+            ->selectRaw('customer_id, COALESCE(SUM(refund_total), 0) as credit_sum, COALESCE(SUM(amount_paid), 0) as debit_sum')
+            ->groupBy('customer_id')
+            ->get() as $row) {
+            $id = (int) $row->customer_id;
+            $result[$id]['debit'] += (float) $row->debit_sum;
+            $result[$id]['credit'] += (float) $row->credit_sum;
+        }
+
+        $receipts = FundTransfer::query()
+            ->whereIn('destination_customer_id', $customerIds)
+            ->where('transaction_type', FundTransfer::TYPE_CUSTOMER_RECEIPT);
+        $this->applyDateRange($receipts, 'transaction_date', $start, $end);
+
+        foreach ($receipts
+            ->selectRaw('destination_customer_id as customer_id, COALESCE(SUM(amount), 0) as credit_sum')
+            ->groupBy('destination_customer_id')
+            ->get() as $row) {
+            $id = (int) $row->customer_id;
+            $result[$id]['credit'] += (float) $row->credit_sum;
+        }
+
+        return $result;
+    }
+
+    /**
      * @return array{debit: float, credit: float}
      */
     private function movementWithin(int $customerId, ?CarbonImmutable $start, ?CarbonImmutable $end): array
@@ -475,20 +558,6 @@ class CustomerLedgerReportService
     /**
      * @return array{0: CarbonImmutable|null, 1: CarbonImmutable|null}
      */
-    private function periodRange(?string $period): array
-    {
-        $today = CarbonImmutable::today();
-
-        return match ($period) {
-            'today' => [$today, $today],
-            'week' => [$today->startOfWeek(), $today->endOfWeek()],
-            'month' => [$today->startOfMonth(), $today->endOfMonth()],
-            'quarter' => [$today->startOfQuarter(), $today->endOfQuarter()],
-            'year' => [$today->startOfYear(), $today->endOfYear()],
-            default => [null, null],
-        };
-    }
-
     private function sumDecimal(Builder $query, string $column): float
     {
         return (float) $query->sum($column);

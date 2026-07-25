@@ -20,6 +20,7 @@ class DeliveryMethodRule extends Model
         'customer_notice_en',
         'customer_notice_ur',
         'shipping_charge_mode',
+        'shipping_fee',
     ];
 
     /**
@@ -33,6 +34,7 @@ class DeliveryMethodRule extends Model
             'cod_min_advance_percent' => 'decimal:2',
             'full_advance_required' => 'boolean',
             'shipping_charge_mode' => ShippingChargeMode::class,
+            'shipping_fee' => 'decimal:2',
         ];
     }
 

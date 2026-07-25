@@ -70,7 +70,7 @@ class ReportsPageToolbar extends ClusterPageToolbar
             ],
         ] : [];
 
-        if (in_array($reportKey, ['stock-report', 'customer-ledger', 'supplier-ledger', 'sales-summary', 'profit-loss'], true) && static::userCan('view')) {
+        if (ReportCatalog::supportsCsvExport($reportKey) && static::userCan('view')) {
             $toolbarActions[] = [
                 'label' => __('reports.actions.export'),
                 'value' => 'export_csv',

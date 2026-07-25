@@ -10,7 +10,7 @@ class SchedulerTickService
 {
     public function enabled(): bool
     {
-        return (bool) config('deployment.scheduler_web_tick', true);
+        return (bool) config('deployment.scheduler_web_tick', false);
     }
 
     /**

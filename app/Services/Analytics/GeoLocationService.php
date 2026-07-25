@@ -7,6 +7,8 @@ use Throwable;
 
 class GeoLocationService
 {
+    private ?Reader $reader = null;
+
     /**
      * @return array{
      *     country_code: ?string,
@@ -43,7 +45,7 @@ class GeoLocationService
         }
 
         try {
-            $record = (new Reader($database))->city((string) $ip);
+            $record = $this->reader()->city((string) $ip);
             $subdivision = $record->mostSpecificSubdivision;
             $latitude = $record->location->latitude;
             $longitude = $record->location->longitude;
@@ -118,5 +120,20 @@ class GeoLocationService
         return is_string($value) && filled($value)
             ? mb_substr(trim($value), 0, $length)
             : null;
+    }
+
+    private function reader(): Reader
+    {
+        if ($this->reader instanceof Reader) {
+            return $this->reader;
+        }
+
+        $database = (string) config('analytics.geoip_database');
+
+        if ($database === '' || ! is_file($database) || ! is_readable($database)) {
+            throw new \RuntimeException('GeoIP database unavailable.');
+        }
+
+        return $this->reader = new Reader($database);
     }
 }

@@ -120,11 +120,6 @@ class ListDailyAttendance extends Component
     {
         $date = Carbon::parse($this->attendanceDate);
         $attendance = app(StaffAttendanceService::class);
-
-        if (! $date->isFuture()) {
-            $attendance->ensureDefaultAbsencesForDate($date);
-        }
-
         $leave = app(StaffLeaveService::class);
         $records = $attendance->recordsForDate($date);
         $publicHoliday = $leave->publicHolidayOn($date);

@@ -82,7 +82,7 @@ class BrandService
 
                 if (Product::query()->where('brand_id', $brand->id)->exists()) {
                     throw ValidationException::withMessages([
-                        'brand' => ['Move this brand’s products first, then delete the brand.'],
+                        'brand' => [__('agricart.brands.messages.delete_has_products')],
                     ]);
                 }
 

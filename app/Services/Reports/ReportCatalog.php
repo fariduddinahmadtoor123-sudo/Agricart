@@ -37,6 +37,17 @@ class ReportCatalog
         return 'reports-' . $reportKey;
     }
 
+    public static function supportsCsvExport(string $reportKey): bool
+    {
+        foreach (static::reportPages() as $entry) {
+            if ($entry['key'] === $reportKey) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * @return array{
      *     filters: list<array{label: string, value: string}>,
@@ -162,7 +173,6 @@ class ReportCatalog
                     ['label' => __('reports.filters.period_month'), 'value' => 'period:month'],
                     ['label' => __('reports.filters.period_quarter'), 'value' => 'period:quarter'],
                     ['label' => __('reports.filters.period_year'), 'value' => 'period:year'],
-                    ['label' => __('reports.filters.period_custom'), 'value' => 'period:custom'],
                 ],
             ],
         ];

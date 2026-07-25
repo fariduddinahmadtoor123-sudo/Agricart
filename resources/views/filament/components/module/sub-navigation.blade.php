@@ -24,6 +24,10 @@
                         @endif
 
                         <span class="agricart-catalog-subnav__label">{{ $item['label'] }}</span>
+
+                        @if (! empty($item['comingSoon']))
+                            <span class="agricart-catalog-subnav__coming-soon">{{ $item['comingSoonBadge'] }}</span>
+                        @endif
                     </a>
                 </li>
             @endforeach

@@ -113,7 +113,8 @@ return [
 
         'customers' => [
             'provider' => 'customers',
-            'table' => env('AUTH_PASSWORD_RESET_TOKEN_TABLE', 'password_reset_tokens'),
+            // Separate table so staff + customer sharing an email cannot clobber each other's tokens.
+            'table' => env('AUTH_CUSTOMER_PASSWORD_RESET_TOKEN_TABLE', 'customer_password_reset_tokens'),
             'expire' => 60,
             'throttle' => 60,
         ],

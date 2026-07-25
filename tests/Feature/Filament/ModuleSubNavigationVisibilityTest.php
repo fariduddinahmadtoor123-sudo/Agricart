@@ -94,7 +94,7 @@ class ModuleSubNavigationVisibilityTest extends TestCase
         $this->get('/admin/store/overview')->assertOk();
         $storeLabels = array_column(\App\Filament\Layout\StoreSubNavigation::items(), 'label');
 
-        foreach (['Overview', 'Top Bar', 'Ticker', 'Header', 'Menu', 'Pages', 'Footer', 'Items', 'Messages', 'Visitor Analytics'] as $label) {
+        foreach (['Overview', 'Top Bar', 'Ticker', 'Header', 'Menu', 'Pages', 'Footer', 'Items', 'Agricart Inbox', 'Visitor Analytics'] as $label) {
             $this->assertContains($label, $storeLabels);
         }
 

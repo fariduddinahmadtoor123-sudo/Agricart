@@ -57,7 +57,13 @@
                             @if (in_array('image', $visibleColumns, true))
                                 <td>
                                     @if ($category->image_path)
-                                        <img src="{{ Storage::disk('public')->url($category->image_path) }}" alt="" class="agricart-categories__thumb" />
+                                        <img
+                                            src="{{ Storage::disk('public')->url($category->image_path) }}"
+                                            alt=""
+                                            class="agricart-categories__thumb"
+                                            loading="lazy"
+                                            onerror="this.replaceWith(Object.assign(document.createElement('span'), { className: 'agricart-categories__thumb-missing', textContent: '—' }))"
+                                        />
                                     @else
                                         <span class="agricart-categories__thumb-placeholder">—</span>
                                     @endif

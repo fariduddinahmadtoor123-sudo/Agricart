@@ -25,6 +25,7 @@
                         selectedMembers: [],
                         pollTimer: null,
                         pollTick: 0,
+                        pollHidden: false,
                         labels: config.labels,
                         staffUrl: config.staffUrl,
                         messagesBaseUrl: config.messagesBaseUrl,
@@ -36,6 +37,13 @@
                         init() {
                             this.refreshUnread(false);
                             this.pollTimer = window.setInterval(() => this.tickPoll(), 3000);
+                            document.addEventListener('visibilitychange', () => {
+                                this.pollHidden = document.hidden;
+                                if (! this.pollHidden) {
+                                    this.refreshUnread(this.open);
+                                }
+                            });
+                            this.pollHidden = document.hidden;
                         },
 
                         get filteredStaff() {
@@ -75,6 +83,10 @@
                         },
 
                         async tickPoll() {
+                            if (this.pollHidden || document.hidden) {
+                                return;
+                            }
+
                             this.pollTick += 1;
 
                             if (this.peer) {
@@ -87,8 +99,8 @@
                                 return;
                             }
 
-                            // Picker open: ~9s. Closed FAB: ~12s.
-                            const every = this.open ? 3 : 4;
+                            // Picker open: ~9s. Closed FAB: ~24s.
+                            const every = this.open ? 3 : 8;
                             if (this.pollTick % every === 0) {
                                 await this.refreshUnread(this.open);
                             }

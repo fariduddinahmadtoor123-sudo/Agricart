@@ -72,4 +72,39 @@ return [
             ],
         ],
     ],
+
+    'notes' => [
+        'title' => 'Dashboard Notes',
+        'summary' => 'Placeholder notes page — BasePlaceholderPage.',
+        'meta' => [
+            'routes' => ['/admin/dashboard/notes'],
+            'permissions' => ['dashboard.view'],
+        ],
+        'sections' => [
+            [
+                'id' => 'purpose',
+                'type' => 'purpose',
+                'heading' => 'Purpose',
+                'paragraphs' => [
+                    'Reserved for operator sticky notes / shift handoff. Not implemented yet.',
+                ],
+            ],
+            [
+                'id' => 'rebuild_notes',
+                'type' => 'rebuild_notes',
+                'heading' => 'Rebuild notes',
+                'list' => [
+                    'Ship only after clarifying ownership (per-user vs shared board) and retention.',
+                ],
+            ],
+            [
+                'id' => 'technical',
+                'type' => 'technical',
+                'heading' => 'Technical',
+                'classes' => [
+                    'page' => 'App\\Filament\\Clusters\\Dashboard\\NotesPage',
+                ],
+            ],
+        ],
+    ],
 ];

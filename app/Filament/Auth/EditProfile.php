@@ -2,6 +2,8 @@
 
 namespace App\Filament\Auth;
 
+use App\Models\User;
+use App\Services\Access\SessionInvalidationService;
 use Filament\Auth\Pages\EditProfile as BaseEditProfile;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\FileUpload;
@@ -11,9 +13,7 @@ use Filament\Schemas\Components\Component;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema as DatabaseSchema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\Password;
 use SensitiveParameter;
@@ -209,16 +209,8 @@ class EditProfile extends BaseEditProfile
             return;
         }
 
-        $user->forceFill(['remember_token' => null])->saveQuietly();
-
-        if (
-            (config('session.driver') === 'database')
-            && DatabaseSchema::hasTable((string) config('session.table', 'sessions'))
-        ) {
-            DB::table((string) config('session.table', 'sessions'))
-                ->where('user_id', $user->getKey())
-                ->where('id', '!=', session()->getId())
-                ->delete();
+        if ($user instanceof User) {
+            app(SessionInvalidationService::class)->wipeOthersForUser($user);
         }
 
         $this->passwordWasChanged = false;

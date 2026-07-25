@@ -33,7 +33,7 @@ return [
                 'heading' => 'قواعد',
                 'list' => [
                     'صرف reports.view۔',
-                    'period:custom حقیقتاً all-time۔',
+                    'مدت: today، week، month، quarter، year؛ خالی = all-time۔',
                 ],
             ],
             [

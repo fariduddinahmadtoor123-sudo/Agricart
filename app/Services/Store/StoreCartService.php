@@ -25,8 +25,8 @@ class StoreCartService
     {
         $sum = 0;
 
-        foreach ($this->rawItems() as $item) {
-            $sum += (int) max(0, floor($this->saleService->numeric((string) ($item['quantity'] ?? '0'))));
+        foreach ($this->lines() as $line) {
+            $sum += (int) max(0, floor($line['quantity_numeric']));
         }
 
         return $sum;
@@ -143,16 +143,27 @@ class StoreCartService
     {
         $saved = $this->readCustomerCart($customerId);
         $merged = $this->mergeItemLists($saved, $this->normalizeRawItems($sessionItemsBeforeLogin));
+        [$merged, $adjusted] = $this->clampItemsToActiveStock($merged);
 
         if ($merged === []) {
             Session::forget(self::SESSION_KEY);
             CustomerStoreCart::query()->where('customer_id', $customerId)->delete();
+
+            if ($adjusted) {
+                session()->flash('store_status', __('agricart.storefront.cart.merge_adjusted'));
+                session()->flash('store_status_type', 'warning');
+            }
 
             return;
         }
 
         Session::put(self::SESSION_KEY, $merged);
         $this->writeCustomerCart($customerId, $merged);
+
+        if ($adjusted) {
+            session()->flash('store_status', __('agricart.storefront.cart.merge_adjusted'));
+            session()->flash('store_status_type', 'warning');
+        }
     }
 
     /**
@@ -169,6 +180,8 @@ class StoreCartService
      */
     public function lines(): array
     {
+        $this->pruneInactiveFromSession();
+
         $ids = collect($this->rawItems())->pluck('product_id')->map(fn ($id) => (int) $id)->all();
 
         if ($ids === []) {
@@ -444,5 +457,133 @@ class StoreCartService
                 'quantity' => [__('agricart.storefront.cart.insufficient_stock', ['available' => $this->saleService->formatQty($stock)])],
             ]);
         }
+    }
+
+    private function pruneInactiveFromSession(): void
+    {
+        $items = Session::get(self::SESSION_KEY);
+
+        if (! is_array($items) || $items === []) {
+            return;
+        }
+
+        $normalized = $this->normalizeRawItems($items);
+        $ids = collect($normalized)->pluck('product_id')->map(fn ($id) => (int) $id)->all();
+
+        if ($ids === []) {
+            return;
+        }
+
+        $activeIds = Product::query()
+            ->where('status', 'active')
+            ->whereIn('id', $ids)
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
+
+        $activeSet = array_flip($activeIds);
+
+        $pruned = array_values(array_filter(
+            $normalized,
+            static fn (array $item): bool => isset($activeSet[(int) $item['product_id']]),
+        ));
+
+        if ($pruned === $normalized) {
+            return;
+        }
+
+        if ($pruned === []) {
+            Session::forget(self::SESSION_KEY);
+
+            $customerId = $this->authenticatedCustomerId();
+
+            if ($customerId !== null) {
+                CustomerStoreCart::query()->where('customer_id', $customerId)->delete();
+            }
+
+            return;
+        }
+
+        $this->persist($pruned);
+    }
+
+    /**
+     * @param  list<array{product_id: int, quantity: string}>  $items
+     * @return array{0: list<array{product_id: int, quantity: string}>, 1: bool}
+     */
+    private function clampItemsToActiveStock(array $items): array
+    {
+        if ($items === []) {
+            return [[], false];
+        }
+
+        $ids = collect($items)->pluck('product_id')->map(fn ($id) => (int) $id)->all();
+
+        $products = Product::query()
+            ->where('status', 'active')
+            ->whereIn('id', $ids)
+            ->get()
+            ->keyBy('id');
+
+        $adjusted = false;
+        $result = [];
+
+        foreach ($items as $item) {
+            $productId = (int) $item['product_id'];
+            $product = $products->get($productId);
+
+            if ($product === null) {
+                $adjusted = true;
+
+                continue;
+            }
+
+            $requested = $this->saleService->numeric((string) $item['quantity']);
+            $clamped = $this->clampQuantityToStock($product, $requested);
+
+            if ($clamped === null) {
+                $adjusted = true;
+
+                continue;
+            }
+
+            if ($clamped !== $requested) {
+                $adjusted = true;
+            }
+
+            $result[] = [
+                'product_id' => $productId,
+                'quantity' => $this->saleService->formatQty($clamped),
+            ];
+        }
+
+        return [$result, $adjusted];
+    }
+
+    private function clampQuantityToStock(Product $product, float $quantity): ?float
+    {
+        if ($quantity <= 0) {
+            return null;
+        }
+
+        if ($this->saleService->allowsOverselling()) {
+            return $quantity;
+        }
+
+        if ($product->stock_qty === null) {
+            return $quantity;
+        }
+
+        $stock = (float) $product->stock_qty;
+
+        if ($stock <= 0) {
+            return null;
+        }
+
+        if ($quantity > $stock) {
+            return $stock;
+        }
+
+        return $quantity;
     }
 }

@@ -124,7 +124,11 @@ class DocumentationRegistry
             }
         }
 
-        if ($kinds === [] && static::hasArticle($moduleKey, $pageKey, $locale)) {
+        if ($kinds === [] && (
+            static::hasArticle($moduleKey, $pageKey, $locale)
+            || static::hasArticle($moduleKey, $pageKey, 'ur')
+            || static::hasArticle($moduleKey, $pageKey, 'en')
+        )) {
             $kinds[] = 'page';
         }
 

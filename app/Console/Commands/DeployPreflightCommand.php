@@ -124,6 +124,15 @@ class DeployPreflightCommand extends Command
         if (! config('deployment.scheduler_configured', false)) {
             $fail('SCHEDULER_CONFIGURED=true is required after installing the one-per-minute cron.');
         }
+        if (
+            config('deployment.scheduler_configured', false)
+            && config('deployment.scheduler_web_tick', false)
+            && ! config('deployment.scheduler_dual_mode_acknowledged', false)
+        ) {
+            $fail(
+                'SCHEDULER_CONFIGURED and SCHEDULER_WEB_TICK cannot both be true. Use cron only, or set SCHEDULER_WEB_TICK=true only without cron, or set SCHEDULER_DUAL_MODE_ACKNOWLEDGE=true if both are intentional.',
+            );
+        }
         if (config('deployment.scheduler_shared_locks', false)) {
             $cacheStore = (string) config('cache.default');
             $cacheDriver = (string) config("cache.stores.{$cacheStore}.driver");

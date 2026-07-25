@@ -59,4 +59,10 @@ class GeoIpAndSchedulerTest extends TestCase
         $this->assertFalse($service->tick());
         $this->assertSame(1, $calls);
     }
+
+    public function test_scheduler_web_tick_defaults_to_disabled(): void
+    {
+        $this->assertFalse((bool) config('deployment.scheduler_web_tick'));
+        $this->assertFalse(app(\App\Services\Deployment\SchedulerTickService::class)->enabled());
+    }
 }

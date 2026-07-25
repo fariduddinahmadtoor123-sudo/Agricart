@@ -89,6 +89,18 @@ return [
                 ],
             ],
             [
+                'id' => 'non-goals',
+                'type' => 'rebuild_notes',
+                'heading' => 'Freeze غیر مقاصد',
+                'list' => [
+                    'اس freeze میں product variants / multi-SKU commerce ماڈل نہیں۔',
+                    'اس freeze میں Facebook Catalog API یا شیڈولڈ Meta feed sync نہیں (CSV ڈاؤن لوڈ الگ Meta-lite مرحلہ ہے)۔',
+                    'WhatsApp Business product catalog API نہیں — storefront product URL شیئر کافی ہے۔',
+                    'Hijri visual mapping UI ملتوی ہے؛ اسے لائیو نہ لکھیں۔',
+                    'Category admin فہرست فلیٹ رہتی ہے (tree UI نہیں)۔',
+                ],
+            ],
+            [
                 'id' => 'acceptance',
                 'type' => 'acceptance',
                 'heading' => 'Acceptance معیار',
@@ -99,6 +111,7 @@ return [
                     'تعلقات اور pivot ریکارڈز export/import کے بعد برقرار رہیں۔',
                     'تیار slugs اور codes منفرد رہیں۔',
                     'میڈیا پیش منظر public storage disk سے حل ہوں۔',
+                    'حوالہ شدہ products تباہ کن طور پر حذف نہ ہوں۔',
                 ],
                 'screenshot_placeholder' => true,
             ],

@@ -281,6 +281,7 @@ class PurchaseService
             'image_path' => $product->image_path,
             'required_qty' => $required > 0 ? (string) $required : '',
             'purchase_qty' => '',
+            'received_qty' => '',
             'previous_price' => $this->previousPurchasePrice($product->id),
             'current_rate' => '',
             'landing_cost' => '',
@@ -333,6 +334,7 @@ class PurchaseService
                 'image_path' => $item->image_path,
                 'required_qty' => (string) ($item->required_qty ?? ''),
                 'purchase_qty' => (string) ($item->purchase_qty ?? ''),
+                'received_qty' => (string) ($item->received_qty ?? ''),
                 'previous_price' => (string) ($item->previous_price ?? ''),
                 'current_rate' => (string) ($item->current_rate ?? ''),
                 'landing_cost' => (string) ($item->landing_cost ?? ''),
@@ -372,6 +374,7 @@ class PurchaseService
             'items.*.image_path' => ['nullable', 'string', 'max:500'],
             'items.*.required_qty' => ['nullable', 'numeric', 'min:0'],
             'items.*.purchase_qty' => ['nullable', 'numeric', 'min:0'],
+            'items.*.received_qty' => ['nullable', 'numeric', 'min:0'],
             'items.*.previous_price' => ['nullable', 'numeric', 'min:0'],
             'items.*.current_rate' => ['nullable', 'numeric', 'min:0'],
             'items.*.landing_cost' => ['nullable', 'numeric', 'min:0'],
@@ -387,7 +390,10 @@ class PurchaseService
         }
 
         $validated = Arr::only($validator->validated(), array_keys($rules));
-        $validated['items'] = $this->normalizeItems($validated['items']);
+        $validated['items'] = $this->normalizeItems(
+            $validated['items'],
+            (string) ($validated['delivery_status'] ?? ''),
+        );
 
         return $validated;
     }
@@ -396,13 +402,22 @@ class PurchaseService
      * @param  list<array<string, mixed>>  $items
      * @return list<array<string, mixed>>
      */
-    public function normalizeItems(array $items): array
+    public function normalizeItems(array $items, string $deliveryStatus = ''): array
     {
         $normalized = [];
 
         foreach ($items as $index => $item) {
             if (! is_array($item) || ! filled($item['product_name_en'] ?? null)) {
                 continue;
+            }
+
+            $purchaseQty = trim((string) ($item['purchase_qty'] ?? ''));
+            $receivedQty = trim((string) ($item['received_qty'] ?? ''));
+
+            if ($deliveryStatus === Purchase::DELIVERY_RECEIVED) {
+                $receivedQty = $purchaseQty;
+            } elseif ($deliveryStatus === Purchase::DELIVERY_PENDING) {
+                $receivedQty = '';
             }
 
             $row = [
@@ -412,7 +427,8 @@ class PurchaseService
                 'product_name_ur' => trim((string) ($item['product_name_ur'] ?? '')),
                 'image_path' => filled($item['image_path'] ?? null) ? (string) $item['image_path'] : null,
                 'required_qty' => trim((string) ($item['required_qty'] ?? '')),
-                'purchase_qty' => trim((string) ($item['purchase_qty'] ?? '')),
+                'purchase_qty' => $purchaseQty,
+                'received_qty' => $receivedQty,
                 'previous_price' => trim((string) ($item['previous_price'] ?? '')),
                 'current_rate' => trim((string) ($item['current_rate'] ?? '')),
                 'landing_cost' => trim((string) ($item['landing_cost'] ?? '')),
@@ -431,6 +447,25 @@ class PurchaseService
             throw ValidationException::withMessages([
                 'rows' => [__('purchases.validation.items_required')],
             ]);
+        }
+
+        if ($deliveryStatus === Purchase::DELIVERY_PARTIAL) {
+            foreach ($normalized as $index => $row) {
+                $purchaseQty = $this->numericValue($row['purchase_qty'] ?? null);
+                $receivedQty = $this->numericValue($row['received_qty'] ?? null);
+
+                if ($receivedQty === null) {
+                    throw ValidationException::withMessages([
+                        "items.{$index}.received_qty" => [__('purchases.validation.received_qty_required')],
+                    ]);
+                }
+
+                if ($purchaseQty !== null && $receivedQty > $purchaseQty) {
+                    throw ValidationException::withMessages([
+                        "items.{$index}.received_qty" => [__('purchases.validation.received_qty_exceeds_purchase')],
+                    ]);
+                }
+            }
         }
 
         return $normalized;

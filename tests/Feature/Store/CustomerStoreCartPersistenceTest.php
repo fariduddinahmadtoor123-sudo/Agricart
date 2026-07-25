@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Store;
 
+use App\Models\Category;
 use App\Models\Customer;
 use App\Models\CustomerStoreCart;
+use App\Models\Product;
 use App\Services\Store\StoreCartService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -20,9 +22,27 @@ class CustomerStoreCartPersistenceTest extends TestCase
 
         $this->actingAs($customer, 'customer');
 
+        $product = Product::query()->create([
+            'category_id' => Category::query()->create([
+                'slug' => 'cart-persist',
+                'code' => 'CAT-CART-P',
+                'status' => 'active',
+                'name_en' => 'Cart Persist',
+                'name_ur' => 'Cart Persist',
+            ])->id,
+            'slug' => 'cart-persist-product',
+            'code' => 'CART-P-1',
+            'sku' => 'CART-P-1',
+            'status' => 'active',
+            'name_en' => 'Persist Product',
+            'name_ur' => 'Persist Product',
+            'stock_qty' => 50,
+            'retail_price' => 100,
+        ]);
+
         $cart = app(StoreCartService::class);
         $cart->mergeAfterCustomerLogin($customer->id, [
-            ['product_id' => 42, 'quantity' => '2'],
+            ['product_id' => $product->id, 'quantity' => '2'],
         ]);
 
         $this->post(route('store.customer.logout'))->assertRedirect(route('store.home'));
@@ -33,7 +53,7 @@ class CustomerStoreCartPersistenceTest extends TestCase
 
         $row = CustomerStoreCart::query()->where('customer_id', $customer->id)->first();
         $this->assertNotNull($row);
-        $this->assertSame(42, (int) $row->items[0]['product_id']);
+        $this->assertSame($product->id, (int) $row->items[0]['product_id']);
 
         $this->post(route('store.customer.login.submit'), [
             'login' => $customer->email,

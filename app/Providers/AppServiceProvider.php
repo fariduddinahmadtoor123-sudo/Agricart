@@ -45,6 +45,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -54,6 +55,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(AnalyticsContext::class);
+        $this->app->singleton(\App\Services\Analytics\GeoLocationService::class);
 
         $this->app->bind(SmsSender::class, function (): SmsSender {
             $driver = (string) config('agricart.sms.driver', 'log');
@@ -76,6 +78,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Password::defaults(static fn () => Password::min(8));
+
         RateLimiter::for('customer-login', fn (Request $request) => [
             Limit::perMinute(10)->by(strtolower((string) $request->input('login', $request->input('email'))).'|'.$request->ip()),
             Limit::perHour(50)->by($request->ip()),

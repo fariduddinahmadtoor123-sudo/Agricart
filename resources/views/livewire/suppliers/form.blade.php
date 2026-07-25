@@ -338,6 +338,8 @@
             </div>
         @endforeach
 
+        {{-- Supplier portal credentials hidden until portal ships (SEC-014). --}}
+        @if (false)
         <section class="agricart-customer-form__section agricart-supplier-form__portal">
             <h2 class="agricart-customer-form__section-title">{{ __('suppliers.sections.portal') }}</h2>
             <p class="agricart-form-panel__hint">{{ __('suppliers.hints.portal_later') }}</p>
@@ -367,6 +369,7 @@
                     </div>
                 @endif
             </div>
+        @endif
         @endif
 
         <div class="agricart-user-form__documents agricart-supplier-form__documents">

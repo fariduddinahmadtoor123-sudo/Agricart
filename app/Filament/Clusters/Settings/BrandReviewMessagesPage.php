@@ -14,7 +14,7 @@ class BrandReviewMessagesPage extends BaseModulePage
 
     protected static ?string $navigationLabel = 'Review Messages';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 13;
 
     protected static ?string $slug = 'brand-review-messages';
 

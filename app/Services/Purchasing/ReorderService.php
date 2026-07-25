@@ -194,7 +194,7 @@ class ReorderService
                 continue;
             }
 
-            $qty = $this->numericValue($item->purchase_qty);
+            $qty = $this->stockCreditQuantity($purchase, $item);
 
             if ($qty <= 0) {
                 continue;
@@ -229,7 +229,7 @@ class ReorderService
                 continue;
             }
 
-            $qty = $this->numericValue($item->purchase_qty);
+            $qty = $this->stockCreditQuantity($purchase, $item);
 
             if ($qty <= 0) {
                 continue;
@@ -245,6 +245,30 @@ class ReorderService
                 'stock_qty' => round($this->rawStock($product) - $qty, 2),
             ]);
         }
+    }
+
+    /**
+     * Quantity that should hit on-hand stock for this purchase line.
+     * Received → full purchase_qty; partial → received_qty only; pending → 0.
+     */
+    public function stockCreditQuantity(Purchase $purchase, PurchaseItem|\stdClass|array $item): float
+    {
+        if ($purchase->delivery_status === Purchase::DELIVERY_PENDING) {
+            return 0.0;
+        }
+
+        $purchaseQty = $this->numericValue(is_array($item) ? ($item['purchase_qty'] ?? null) : ($item->purchase_qty ?? null));
+        $receivedQty = $this->numericValue(is_array($item) ? ($item['received_qty'] ?? null) : ($item->received_qty ?? null));
+
+        if ($purchase->delivery_status === Purchase::DELIVERY_RECEIVED) {
+            return max(0.0, $purchaseQty);
+        }
+
+        if ($purchase->delivery_status === Purchase::DELIVERY_PARTIAL) {
+            return max(0.0, min($receivedQty, $purchaseQty > 0 ? $purchaseQty : $receivedQty));
+        }
+
+        return 0.0;
     }
 
     public function refreshPurchaseStock(Purchase $before, Purchase $after): void
@@ -265,11 +289,18 @@ class ReorderService
     {
         $productId = (int) $product->id;
 
+        $cast = DB::connection()->getDriverName() === 'sqlite' ? 'REAL' : 'DECIMAL(14,4)';
+        $creditExpression = "CASE
+            WHEN purchases.delivery_status = '".Purchase::DELIVERY_RECEIVED."' THEN CAST(COALESCE(purchase_items.purchase_qty, 0) AS {$cast})
+            WHEN purchases.delivery_status = '".Purchase::DELIVERY_PARTIAL."' THEN CAST(COALESCE(purchase_items.received_qty, 0) AS {$cast})
+            ELSE 0
+        END";
+
         $purchased = (float) (DB::table('purchase_items')
             ->join('purchases', 'purchases.id', '=', 'purchase_items.purchase_id')
             ->where('purchase_items.product_id', $productId)
             ->whereIn('purchases.delivery_status', [Purchase::DELIVERY_RECEIVED, Purchase::DELIVERY_PARTIAL])
-            ->selectRaw($this->castSumExpression('purchase_items.purchase_qty').' as total')
+            ->selectRaw("COALESCE(SUM({$creditExpression}), 0) as total")
             ->value('total') ?? 0);
 
         $sold = (float) (DB::table('sale_items')

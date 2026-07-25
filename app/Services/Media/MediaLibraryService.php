@@ -268,7 +268,13 @@ class MediaLibraryService
 
         $asset?->delete();
 
-        return Storage::disk($disk)->delete($path);
+        $deleted = Storage::disk($disk)->delete($path);
+
+        if ($deleted) {
+            app(PublicMediaMirror::class)->forget($path, $disk);
+        }
+
+        return $deleted;
     }
 
     public function canSafelyTrash(MediaAsset $asset): bool
@@ -478,7 +484,10 @@ class MediaLibraryService
 
         DB::transaction(function () use ($asset, $disk, $path): void {
             $asset->delete();
-            DB::afterCommit(fn () => Storage::disk($disk)->delete($path));
+            DB::afterCommit(function () use ($disk, $path): void {
+                Storage::disk($disk)->delete($path);
+                app(PublicMediaMirror::class)->forget($path, $disk);
+            });
         });
     }
 

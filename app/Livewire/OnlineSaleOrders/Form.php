@@ -162,6 +162,13 @@ class Form extends Component
     {
         if ($this->payment_method !== 'bank_transfer') {
             $this->bank_account_id = null;
+
+            return;
+        }
+
+        if (app(SalesBankAccountService::class)->options() === []) {
+            $this->payment_method = '';
+            $this->bank_account_id = null;
         }
     }
 
@@ -690,7 +697,7 @@ class Form extends Component
             'paymentOptions' => collect(['paid', 'partial'])
                 ->mapWithKeys(fn (string $status): array => [$status => __('pos.payment_statuses.' . $status)])
                 ->all(),
-            'paymentMethodOptions' => collect(SaleService::PAYMENT_METHODS)
+            'paymentMethodOptions' => collect(app(SalesBankAccountService::class)->paymentMethodKeys())
                 ->mapWithKeys(fn (string $method): array => [$method => __('pos.payment_methods.' . $method)])
                 ->all(),
             'orderStatusOptions' => collect(OnlineSaleOrder::STATUSES)
@@ -837,7 +844,13 @@ class Form extends Component
         if ($this->payment_method === 'bank_transfer') {
             $banks = app(SalesBankAccountService::class)->options();
 
-            if ($banks !== [] && $this->bank_account_id === null) {
+            if ($banks === []) {
+                $this->setStatus(__('pos.messages.bank_transfer_unavailable'), 'warning');
+
+                return false;
+            }
+
+            if ($this->bank_account_id === null) {
                 $this->setStatus(__('pos.messages.bank_account_required'), 'warning');
 
                 return false;

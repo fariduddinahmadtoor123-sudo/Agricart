@@ -7,6 +7,7 @@ use App\Models\BankAccount;
 use App\Models\Customer;
 use App\Models\OnlineSaleOrder;
 use App\Services\Logistics\DeliveryMethodService;
+use App\Services\PricingControls\ChannelPricingEngine;
 use App\Services\Sales\OnlineSaleOrderService;
 use App\Services\Sales\SaleService;
 use App\Services\SalesChannels\SalesChannelService;
@@ -19,6 +20,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -39,9 +41,9 @@ class CheckoutController extends Controller
         }
 
         if (! Auth::guard('customer')->check()) {
-            return redirect()
-                ->guest(route('store.customer.login', ['redirect' => route('store.checkout')]))
-                ->with('store_status', __('agricart.storefront.checkout.login_required'));
+            return $this->redirectGuestToCheckoutLogin(
+                __('agricart.storefront.checkout.login_required'),
+            );
         }
 
         /** @var Customer $customer */
@@ -61,9 +63,12 @@ class CheckoutController extends Controller
             ->all();
         $activeMethods = $deliveryMethods->activeForCheckout($productIds);
         $catalogMethods = $deliveryMethods->activeForCheckout();
+        $cartSubtotal = $cart->subtotalNumeric();
+        $priceFormat = app(ChannelPricingEngine::class);
 
-        $deliveryOptions = $activeMethods->map(function ($method) use ($deliveryMethods): array {
+        $deliveryOptions = $activeMethods->map(function ($method) use ($deliveryMethods, $cartSubtotal, $priceFormat): array {
             $rule = $method->rule;
+            $shippingAmount = $deliveryMethods->checkoutShippingAmount($method);
 
             return [
                 'id' => $method->id,
@@ -72,6 +77,9 @@ class CheckoutController extends Controller
                 'notice' => $rule?->localizedNotice(),
                 'payments' => $deliveryMethods->paymentMethodsFor($method),
                 'shipping_mode' => $rule?->shipping_charge_mode?->value,
+                'shipping_amount' => $shippingAmount,
+                'shipping_amount_formatted' => $priceFormat->formatPrice($shippingAmount),
+                'order_total_formatted' => $priceFormat->formatPrice($cartSubtotal + $shippingAmount),
                 'cod_min_advance_percent' => (float) ($rule?->cod_min_advance_percent ?? 0),
                 'full_advance_required' => (bool) ($rule?->full_advance_required ?? false),
             ];
@@ -94,10 +102,20 @@ class CheckoutController extends Controller
             }
         }
 
+        $bankTransferAccounts = BankAccount::query()
+            ->where('status', BankAccount::STATUS_ACTIVE)
+            ->orderBy('account_code')
+            ->get([
+                'id', 'name_en', 'name_ur', 'bank_name_en', 'bank_name_ur',
+                'account_title', 'account_number', 'iban', 'currency',
+            ]);
+        $bankTransferAvailable = $bankTransferAccounts->isNotEmpty();
+
         return view('store.checkout.show', [
             ...$layout->layoutData(),
             'lines' => $lines,
             'subtotal' => $cart->formattedSubtotal(),
+            'cartSubtotalNumeric' => $cartSubtotal,
             'customer' => $customer,
             'productService' => $productService,
             'paymentMethods' => collect(SaleService::PAYMENT_METHODS)
@@ -105,13 +123,8 @@ class CheckoutController extends Controller
                 ->all(),
             'deliveryOptions' => $deliveryOptions,
             'deliveryOptionsEmptyReason' => $deliveryOptionsEmptyReason,
-            'bankTransferAccounts' => BankAccount::query()
-                ->where('status', BankAccount::STATUS_ACTIVE)
-                ->orderBy('account_code')
-                ->get([
-                    'id', 'name_en', 'name_ur', 'bank_name_en', 'bank_name_ur',
-                    'account_title', 'account_number', 'iban', 'currency',
-                ]),
+            'bankTransferAccounts' => $bankTransferAccounts,
+            'bankTransferAvailable' => $bankTransferAvailable,
             'provinces' => config('pakistani_provinces', []),
             'checkoutToken' => (string) Str::uuid(),
         ]);
@@ -131,7 +144,7 @@ class CheckoutController extends Controller
         }
 
         if (! Auth::guard('customer')->check()) {
-            return redirect()->guest(route('store.customer.login', ['redirect' => route('store.checkout')]));
+            return $this->redirectGuestToCheckoutLogin();
         }
 
         /** @var Customer $customer */
@@ -146,12 +159,25 @@ class CheckoutController extends Controller
         $validated = $request->validate([
             'checkout_token' => ['required', 'string', 'max:64'],
             'delivery_method_id' => ['required', 'integer', 'exists:delivery_methods,id'],
-            'customer_payment_method' => ['required', 'string', Rule::in(SaleService::PAYMENT_METHODS)],
             'customer_payment_note' => ['nullable', 'string', 'max:2000'],
             'customer_payment_reference' => ['nullable', 'string', 'max:128'],
             'customer_notes' => ['nullable', 'string', 'max:5000'],
             'bank_receipt' => ['nullable', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
         ]);
+
+        $method = $deliveryMethods->findActive((int) $validated['delivery_method_id']);
+
+        if ($method === null) {
+            throw ValidationException::withMessages([
+                'delivery_method_id' => [__('agricart.storefront.checkout.delivery_inactive')],
+            ]);
+        }
+
+        $allowedPayments = $deliveryMethods->paymentMethodsFor($method);
+
+        $validated = array_merge($validated, $request->validate([
+            'customer_payment_method' => ['required', 'string', Rule::in($allowedPayments)],
+        ]));
 
         $shipping = $customers->validateCheckoutShipping($request->all());
 
@@ -160,15 +186,14 @@ class CheckoutController extends Controller
         }
 
         try {
-            $method = $deliveryMethods->findActive((int) $validated['delivery_method_id']);
-
-            if ($method === null) {
-                throw ValidationException::withMessages([
-                    'delivery_method_id' => [__('agricart.storefront.checkout.delivery_inactive')],
-                ]);
-            }
-
             $deliveryMethods->assertCheckoutSelection($method, $validated['customer_payment_method']);
+
+            $deliveryMethods->assertFullAdvanceCheckoutRequirements(
+                $method,
+                $validated['customer_payment_method'],
+                $validated['customer_payment_reference'] ?? null,
+                $request->hasFile('bank_receipt'),
+            );
 
             $productIds = collect($cart->lines())
                 ->map(static fn (array $line): int => (int) $line['product']->id)
@@ -176,6 +201,15 @@ class CheckoutController extends Controller
                 ->values()
                 ->all();
             $deliveryMethods->assertAvailableForProducts($method, $productIds);
+
+            if (
+                $validated['customer_payment_method'] === 'bank_transfer'
+                && ! BankAccount::query()->where('status', BankAccount::STATUS_ACTIVE)->exists()
+            ) {
+                throw ValidationException::withMessages([
+                    'customer_payment_method' => [__('agricart.storefront.checkout.bank_transfer_unavailable')],
+                ]);
+            }
 
             $saleService = app(SaleService::class);
 
@@ -201,6 +235,7 @@ class CheckoutController extends Controller
                 'customer_payment_method' => $validated['customer_payment_method'],
                 'customer_payment_note' => $validated['customer_payment_note'] ?? null,
                 'customer_payment_reference' => $validated['customer_payment_reference'] ?? null,
+                'has_bank_receipt_upload' => $request->hasFile('bank_receipt'),
                 'customer_notes' => $validated['customer_notes'] ?? null,
                 'ship_contact_name' => $shipping['ship_contact_name'],
                 'ship_phone' => $shipping['ship_phone'],
@@ -210,6 +245,7 @@ class CheckoutController extends Controller
             ]);
 
             if ($validated['customer_payment_method'] === 'bank_transfer' && $request->hasFile('bank_receipt')) {
+                $previousPath = $order->customer_bank_receipt_path;
                 $path = $request->file('bank_receipt')->store(
                     'online-orders/customer-receipts/' . $order->id,
                     'local',
@@ -218,6 +254,10 @@ class CheckoutController extends Controller
                     'customer_bank_receipt_path' => $path,
                     'customer_payment_proof_status' => OnlineSaleOrder::PROOF_SUBMITTED,
                 ]);
+
+                if (filled($previousPath) && $previousPath !== $path) {
+                    Storage::disk('local')->delete($previousPath);
+                }
             }
 
             $cart->clear();
@@ -256,5 +296,20 @@ class CheckoutController extends Controller
                     'account_title', 'account_number', 'iban', 'currency',
                 ]),
         ]);
+    }
+
+    private function redirectGuestToCheckoutLogin(?string $flashMessage = null): RedirectResponse
+    {
+        $loginUrl = route('store.customer.login', [
+            'redirect' => route('store.checkout', absolute: false),
+        ]);
+
+        $response = redirect()->guest($loginUrl);
+
+        if ($flashMessage !== null) {
+            $response->with('store_status', $flashMessage);
+        }
+
+        return $response;
     }
 }

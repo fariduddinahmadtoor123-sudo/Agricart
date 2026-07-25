@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class CashReportService
 {
+    public const INTERACTIVE_ROW_LIMIT = 500;
+
     /**
      * @return array{
      *     rows: list<array<string, mixed>>,
@@ -31,7 +33,7 @@ class CashReportService
             ];
         }
 
-        [$start, $end] = $this->periodRange($periodFilter);
+        [$start, $end] = ReportPeriod::range($periodFilter);
 
         $query = CashBookTransaction::query()
             ->orderBy('transaction_date')
@@ -52,7 +54,7 @@ class CashReportService
         $outTotal = 0.0;
         $rows = [];
 
-        foreach ($query->get() as $tx) {
+        foreach ($query->limit(self::INTERACTIVE_ROW_LIMIT)->get() as $tx) {
             $amount = (float) $tx->amount;
             $in = $tx->direction === CashBookTransaction::DIRECTION_IN ? $amount : 0.0;
             $out = $tx->direction === CashBookTransaction::DIRECTION_OUT ? $amount : 0.0;
@@ -111,29 +113,6 @@ class CashReportService
         }
 
         return $matrix;
-    }
-
-    /**
-     * @return array{0: ?CarbonImmutable, 1: ?CarbonImmutable}
-     */
-    private function periodRange(?string $periodFilter): array
-    {
-        $period = $periodFilter ?? '';
-
-        if (str_starts_with($period, 'period:')) {
-            $period = substr($period, strlen('period:'));
-        }
-
-        $today = CarbonImmutable::today();
-
-        return match ($period) {
-            'today' => [$today, $today],
-            'week' => [$today->startOfWeek(), $today->endOfWeek()],
-            'month' => [$today->startOfMonth(), $today->endOfMonth()],
-            'quarter' => [$today->firstOfQuarter(), $today->lastOfQuarter()],
-            'year' => [$today->startOfYear(), $today->endOfYear()],
-            default => [null, null],
-        };
     }
 
     /**

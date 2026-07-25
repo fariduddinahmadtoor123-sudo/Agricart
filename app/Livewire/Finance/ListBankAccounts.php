@@ -154,11 +154,9 @@ class ListBankAccounts extends Component
             ->orderBy('name_en')
             ->paginate(15);
 
-        $balances = [];
-
-        foreach ($accounts as $account) {
-            $balances[$account->id] = $service->balance($account);
-        }
+        $balances = $service->balancesForIds(
+            $accounts->getCollection()->pluck('id')->map(fn ($id): int => (int) $id)->all(),
+        );
 
         return view('livewire.finance.bank-accounts.list', [
             'accounts' => $accounts,

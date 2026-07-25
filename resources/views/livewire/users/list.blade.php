@@ -1,4 +1,8 @@
 <div class="agricart-categories agricart-users">
+    @if ($flashMessage)
+        <p class="agricart-form-panel__status is-{{ $flashType }}">{{ $flashMessage }}</p>
+    @endif
+
     @if ($users->isEmpty())
         <div class="agricart-categories__empty">
             <p>{{ __('agricart.users.list.empty') }}</p>
@@ -54,6 +58,16 @@
                                 <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $user->id }})">
                                     {{ __('agricart.users.actions.edit_short') }}
                                 </button>
+                                @if ($this->canArchiveUser($user))
+                                    <button
+                                        type="button"
+                                        class="agricart-categories__action is-danger"
+                                        wire:click="archiveUser({{ $user->id }})"
+                                        wire:confirm="{{ __('agricart.users.actions.archive_confirm', ['name' => $user->name]) }}"
+                                    >
+                                        {{ __('agricart.users.actions.archive_short') }}
+                                    </button>
+                                @endif
                             </td>
                         </tr>
                     @endforeach

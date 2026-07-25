@@ -32,6 +32,7 @@ class FreshStartSeeder extends Seeder
             'roles',
             'sessions',
             'password_reset_tokens',
+            'customer_password_reset_tokens',
         ];
 
         foreach ($tables as $table) {

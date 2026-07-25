@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\SaleQuotationPrintController;
 use App\Http\Controllers\Admin\SaleReturnPrintController;
 use App\Http\Controllers\Admin\CommunicationAttachmentController;
 use App\Http\Controllers\Admin\StaffMessengerController;
+use App\Http\Middleware\ReleaseSessionLockForPolling;
 use App\Http\Controllers\Admin\TopbarNotificationController;
 use App\Http\Controllers\Admin\UserDocumentController;
 use App\Http\Controllers\Admin\VisitorAnalyticsExportController;
@@ -47,8 +48,11 @@ use App\Http\Controllers\Store\SitemapController;
 use App\Http\Controllers\Store\StaffRegisterController;
 use App\Http\Controllers\Store\StoreInquiryController;
 use App\Http\Middleware\BlockOnlineStoreMaintenance;
+use App\Http\Middleware\EnsureActiveAdminUser;
+use App\Http\Middleware\EnsureActiveCustomer;
 use App\Http\Middleware\SetAgricartLocale;
 use App\Http\Middleware\TrackStorefrontAnalytics;
+use Illuminate\Session\Middleware\AuthenticateSession;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/robots.txt', RobotsController::class)->name('store.robots');
@@ -85,7 +89,7 @@ Route::middleware([
     Route::post('/logout', CustomerLogoutController::class)
         ->middleware('auth:customer')
         ->name('store.customer.logout');
-    Route::middleware('auth:customer')->group(function (): void {
+    Route::middleware(['auth:customer', AuthenticateSession::class, EnsureActiveCustomer::class])->group(function (): void {
         Route::get('/account', [CustomerProfileController::class, 'show'])->name('store.customer.account');
         Route::post('/account/profile', [CustomerProfileController::class, 'updateProfile'])->name('store.customer.account.profile');
         Route::post('/account/address', [CustomerProfileController::class, 'updateAddress'])->name('store.customer.account.address');
@@ -131,10 +135,13 @@ Route::middleware([
     Route::post('/cart/add', [CartController::class, 'add'])->name('store.cart.add');
     Route::post('/cart/update', [CartController::class, 'update'])->name('store.cart.update');
     Route::post('/cart/remove/{productId}', [CartController::class, 'remove'])->name('store.cart.remove');
-    Route::get('/checkout', [CheckoutController::class, 'show'])->name('store.checkout');
-    Route::post('/checkout', [CheckoutController::class, 'place'])
-        ->middleware('throttle:store-checkout')
-        ->name('store.checkout.place');
+    Route::middleware(['auth:customer', AuthenticateSession::class, EnsureActiveCustomer::class])->group(function (): void {
+        Route::get('/checkout', [CheckoutController::class, 'show'])->name('store.checkout');
+        Route::post('/checkout', [CheckoutController::class, 'place'])
+            ->middleware('throttle:store-checkout')
+            ->name('store.checkout.place');
+    });
+    // One-time session thank-you page may be viewed before login; access gated in controller.
     Route::get('/checkout/success/{order}', [CheckoutController::class, 'success'])->name('store.checkout.success');
 });
 
@@ -143,19 +150,10 @@ Route::get('/locale/{locale}', function (string $locale) {
         abort(404);
     }
 
-    $redirect = request()->query('redirect', '/');
-
-    if (
-        ! is_string($redirect)
-        || ! str_starts_with($redirect, '/')
-        || str_starts_with($redirect, '//')
-        || str_contains($redirect, '\\')
-        || preg_match('/[\x00-\x1F\x7F]/', $redirect)
-        || parse_url($redirect, PHP_URL_SCHEME) !== null
-        || parse_url($redirect, PHP_URL_HOST) !== null
-    ) {
-        $redirect = '/';
-    }
+    $redirect = \App\Support\SafeInternalRedirect::normalize(
+        request()->query('redirect', '/'),
+        '/',
+    ) ?? '/';
 
     return redirect($redirect)
         ->withCookie(cookie()->forever('agricart-locale', $locale));
@@ -169,18 +167,22 @@ Route::middleware('web')->get('/ai/status', function () {
     return response()->json(TopbarActions::aiConnectionState());
 })->name('agricart.ai.status');
 
-Route::middleware(['web', 'auth'])->prefix('admin')->group(function (): void {
+Route::middleware(['web', 'auth', AuthenticateSession::class, EnsureActiveAdminUser::class])->prefix('admin')->group(function (): void {
     Route::get('/notifications/summary', TopbarNotificationController::class)
+        ->middleware(ReleaseSessionLockForPolling::class)
         ->name('admin.notifications.summary');
     Route::get('/messenger/staff', [StaffMessengerController::class, 'staff'])
+        ->middleware(ReleaseSessionLockForPolling::class)
         ->name('admin.messenger.staff');
     Route::get('/messenger/peers/{peer}/messages', [StaffMessengerController::class, 'messages'])
+        ->middleware(ReleaseSessionLockForPolling::class)
         ->name('admin.messenger.messages');
     Route::post('/messenger/send', [StaffMessengerController::class, 'send'])
         ->name('admin.messenger.send');
     Route::post('/messenger/groups', [StaffMessengerController::class, 'createGroup'])
         ->name('admin.messenger.groups.store');
     Route::get('/messenger/groups/{conversation}/messages', [StaffMessengerController::class, 'groupMessages'])
+        ->middleware(ReleaseSessionLockForPolling::class)
         ->whereNumber('conversation')
         ->name('admin.messenger.groups.messages');
     Route::post('/messenger/groups/{conversation}/send', [StaffMessengerController::class, 'sendGroup'])

@@ -21,6 +21,7 @@ class PurchaseItem extends Model
         'image_path',
         'required_qty',
         'purchase_qty',
+        'received_qty',
         'previous_price',
         'current_rate',
         'landing_cost',

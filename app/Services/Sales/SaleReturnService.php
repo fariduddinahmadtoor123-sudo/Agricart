@@ -286,7 +286,12 @@ class SaleReturnService
             'return_date' => ['required', 'date'],
             'payment_status' => ['required', Rule::in(SaleService::PAYMENT_STATUSES)],
             'payment_method' => ['required', Rule::in(SaleService::PAYMENT_METHODS)],
-            'bank_account_id' => ['nullable', 'integer'],
+            'bank_account_id' => [
+                'nullable',
+                'integer',
+                'exists:bank_accounts,id',
+                Rule::requiredIf(($data['payment_method'] ?? '') === 'bank_transfer'),
+            ],
             'amount_paid' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'rows' => ['required', 'array', 'min:1'],
@@ -303,6 +308,10 @@ class SaleReturnService
             'rows.*.unit_label' => ['nullable', 'string', 'max:64'],
             'rows.*.image_path' => ['nullable', 'string', 'max:500'],
         ])->validate();
+
+        if ($validated['payment_method'] !== 'bank_transfer') {
+            $validated['bank_account_id'] = null;
+        }
 
         $sale = Sale::query()->lockForUpdate()->find((int) $validated['sale_id']);
 

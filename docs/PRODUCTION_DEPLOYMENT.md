@@ -296,6 +296,14 @@ these are active. Jobs use `withoutOverlapping`. Leave
 when every scheduler node uses the same database/Redis cache and then
 `onOneServer` locks are safe.
 
+Do **not** set both `SCHEDULER_CONFIGURED=true` and `SCHEDULER_WEB_TICK=true`
+unless you intentionally run cron and web fallback together; in that rare case set
+`SCHEDULER_DUAL_MODE_ACKNOWLEDGE=true`. `deploy:preflight` fails closed otherwise.
+
+Storefront checkout queues `SendOnlineOrderPlacedNotification` for order confirmation email;
+run a queue worker (or Hostinger `--stop-when-empty` cron) so customers receive it. SMS uses
+`LogSmsSender` when live SMS is not configured.
+
 Daily database backups run automatically at `BACKUP_SCHEDULE_TIME` (default `01:30`)
 via `backup:create --type=database --source=scheduled` when `BACKUP_SCHEDULE_ENABLED=true`.
 A weekly **full** backup (database + public uploads) runs when
@@ -381,9 +389,9 @@ No change to application code required beyond env and compose file.
 
 | Symptom | Fix |
 |---------|-----|
-| Images 404 on Hostinger | `FILESYSTEM_PUBLIC_SERVE=auto`; clear route cache; confirm files exist under `storage/app/public` |
+| Images 404 on Hostinger | Set `FILESYSTEM_PUBLIC_SERVE=true` (Apache often cannot follow `public/storage`); clear config/route cache; confirm files under `storage/app/public` |
 | `storage:link` fails | Expected on some shared hosts; use auto serve |
-| Mixed content / wrong URLs | Set `APP_URL` to `https://...`; `TRUSTED_PROXIES=*` |
+| Mixed content / wrong URLs | Set `APP_URL` to `https://...`; set provider proxy CIDRs in `TRUSTED_PROXIES` (not `*` unless `ALLOW_WILDCARD_TRUSTED_PROXIES=true`) |
 | 419 on admin | Session domain, `SESSION_SECURE_COOKIE`, database sessions table migrated |
 | Vite error | Run `npm run build`; upload `public/build` |
 | Migration fails on FK name | Run `migrations:audit-identifiers`; apply short names |
@@ -395,6 +403,8 @@ No change to application code required beyond env and compose file.
 - [ ] `APP_ENV=production`, `APP_DEBUG=false`, `APP_KEY` set
 - [ ] `APP_URL` matches live URL (https)
 - [ ] MySQL credentials and `migrate --force` completed
+- [ ] `SESSION_DRIVER=database` (or Redis on VPS); sessions table migrated
+- [ ] `QUEUE_CONNECTION` is **not** `sync` in production; queue worker or cron `queue:work --stop-when-empty` running; `QUEUE_WORKER_CONFIGURED=true` when verified
 - [ ] `storage` and `bootstrap/cache` writable
 - [ ] Storage mode OK (`deploy:preflight`)
 - [ ] `public/build/manifest.json` present
@@ -402,7 +412,9 @@ No change to application code required beyond env and compose file.
 - [ ] Online store channel enabled (admin or `--prepare-testing`)
 - [ ] Test checkout → order in admin
 - [ ] Backups configured (`local` disk / Hostinger backups)
-- [ ] Cron for scheduler (VPS)
+- [ ] Cron for scheduler (VPS / Hostinger); `SCHEDULER_CONFIGURED=true` when active
+- [ ] `SCHEDULER_WEB_TICK=false` unless no system cron (shared hosting fallback only)
+- [ ] Redis optional on VPS for cache/queue; database queue acceptable on shared hosting at moderate volume
 
 ---
 

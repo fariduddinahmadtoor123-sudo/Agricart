@@ -35,7 +35,7 @@ class SalesSummaryReportService
             ? $channelFilter
             : 'all';
 
-        [$start, $end] = $this->periodRange($periodFilter);
+        [$start, $end] = ReportPeriod::range($periodFilter);
 
         $salesQuery = Sale::query()->where('status', Sale::STATUS_COMPLETED);
         $this->applyDateRange($salesQuery, 'sale_date', $start, $end);
@@ -481,23 +481,6 @@ class SalesSummaryReportService
         if ($end !== null) {
             $query->whereDate($column, '<=', $end->toDateString());
         }
-    }
-
-    /**
-     * @return array{0: CarbonImmutable|null, 1: CarbonImmutable|null}
-     */
-    private function periodRange(?string $period): array
-    {
-        $today = CarbonImmutable::today();
-
-        return match ($period) {
-            'today' => [$today, $today],
-            'week' => [$today->startOfWeek(), $today->endOfWeek()],
-            'month' => [$today->startOfMonth(), $today->endOfMonth()],
-            'quarter' => [$today->startOfQuarter(), $today->endOfQuarter()],
-            'year' => [$today->startOfYear(), $today->endOfYear()],
-            default => [null, null],
-        };
     }
 
     private function lineTotalSumExpression(string $column): string

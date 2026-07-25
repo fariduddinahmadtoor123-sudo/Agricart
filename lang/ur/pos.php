@@ -138,6 +138,7 @@ return [
         'payment_status_required' => 'محفوظ کرنے سے پہلے ادائیگی کی حیثیت منتخب کریں۔',
         'payment_method_required' => 'محفوظ کرنے سے پہلے ادائیگی کا طریقہ (کیش یا بینک) منتخب کریں۔',
         'bank_account_required' => 'وصولی والا بینک اکاؤنٹ منتخب کریں۔',
+        'bank_transfer_unavailable' => 'بینک ٹرانسفر کے لیے Finance → Banks میں فعال بینک اکاؤنٹ درکار ہے۔',
     ],
 
     'validation' => [

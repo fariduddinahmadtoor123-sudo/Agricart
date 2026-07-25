@@ -35,7 +35,7 @@ return [
                 'heading' => 'Rules',
                 'list' => [
                     'Module gate: reports.view (no per-report permission keys).',
-                    'period:custom is listed in catalog but services only map today|week|month|quarter|year; custom/empty → all-time.',
+                    'Period filters: today, week, month, quarter, year; empty selection → all-time.',
                 ],
             ],
             [

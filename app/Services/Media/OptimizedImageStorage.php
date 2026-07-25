@@ -13,6 +13,7 @@ class OptimizedImageStorage
 {
     public function __construct(
         private readonly MediaLibraryService $library,
+        private readonly PublicMediaMirror $publicMirror,
     ) {}
 
     /**
@@ -77,6 +78,8 @@ class OptimizedImageStorage
             $disk,
             $metadata,
         );
+
+        $this->publicMirror->publish($relative, $disk);
 
         return $relative;
     }
@@ -147,9 +150,12 @@ class OptimizedImageStorage
 
             if (! $oldAsset?->usages()->exists()) {
                 $storage->delete($relativePath);
+                $this->publicMirror->forget($relativePath, $disk);
                 $oldAsset?->delete();
             }
         }
+
+        $this->publicMirror->publish($newRelative, $disk);
 
         return $newRelative;
     }
@@ -285,6 +291,8 @@ class OptimizedImageStorage
             $disk,
             $metadata,
         );
+
+        $this->publicMirror->publish($path, $disk);
 
         return $path;
     }

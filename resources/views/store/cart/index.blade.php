@@ -98,7 +98,7 @@
                         @auth('customer')
                             <a href="{{ route('store.checkout') }}" class="ag-store-btn ag-store-btn--primary">{{ __('agricart.storefront.cart.checkout') }}</a>
                         @else
-                            <a href="{{ route('store.customer.login', ['redirect' => route('store.checkout')]) }}" class="ag-store-btn ag-store-btn--primary">
+                            <a href="{{ route('store.customer.login', ['redirect' => route('store.checkout', absolute: false)]) }}" class="ag-store-btn ag-store-btn--primary">
                                 {{ __('agricart.storefront.cart.login_to_checkout') }}
                             </a>
                         @endauth

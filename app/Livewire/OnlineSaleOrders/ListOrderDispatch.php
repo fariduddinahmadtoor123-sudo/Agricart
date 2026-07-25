@@ -216,12 +216,11 @@ class ListOrderDispatch extends Component
 
     public function render(): View
     {
-        $dispatch = app(OnlineOrderDispatchService::class);
-
         $orders = OnlineSaleOrder::query()
             ->with(['customer', 'sale', 'staffAssignments', 'items'])
             ->where('order_status', OnlineSaleOrder::STATUS_CONVERTED)
             ->whereNotNull('queued_at')
+            ->stillNeedsForward()
             ->when(filled($this->search), function ($query): void {
                 $needle = '%' . $this->search . '%';
                 $query->where(function ($inner) use ($needle): void {
@@ -242,19 +241,7 @@ class ListOrderDispatch extends Component
             ->when(filled($this->fulfillmentFilter), fn ($query) => $query->where('fulfillment_status', $this->fulfillmentFilter))
             ->orderByDesc('queued_at')
             ->orderByDesc('converted_at')
-            ->get()
-            ->filter(fn (OnlineSaleOrder $order): bool => $dispatch->orderStillNeedsForward($order))
-            ->values();
-
-        $page = $this->getPage();
-        $perPage = 20;
-        $orders = new \Illuminate\Pagination\LengthAwarePaginator(
-            $orders->forPage($page, $perPage)->values(),
-            $orders->count(),
-            $perPage,
-            $page,
-            ['path' => request()->url(), 'pageName' => 'page'],
-        );
+            ->paginate(20);
 
         $forwardOrder = $this->forwardOrder();
         $forwardStaff = [];
@@ -262,31 +249,27 @@ class ListOrderDispatch extends Component
         if ($forwardOrder !== null) {
             $actorId = (int) (auth()->id() ?? 0);
             $needle = mb_strtolower(trim($this->forwardStaffSearch));
+            $like = $needle === '' ? null : '%'.$needle.'%';
 
             $forwardStaff = User::query()
                 ->with('role')
                 ->whereNotNull('role_id')
                 ->whereIn('status', [User::STATUS_ACTIVE, User::STATUS_INACTIVE])
+                ->when($like !== null, function ($query) use ($like): void {
+                    $query->where(function ($inner) use ($like): void {
+                        $inner->whereRaw('LOWER(name) LIKE ?', [$like])
+                            ->orWhereRaw('LOWER(COALESCE(email, \'\')) LIKE ?', [$like])
+                            ->orWhereRaw('LOWER(COALESCE(user_number, \'\')) LIKE ?', [$like])
+                            ->orWhereHas('role', fn ($role) => $role->whereRaw('LOWER(name) LIKE ?', [$like]));
+                    });
+                })
                 ->orderByRaw(
                     'CASE WHEN status = ? THEN 0 ELSE 1 END',
                     [User::STATUS_ACTIVE],
                 )
                 ->orderBy('name')
+                ->limit($needle === '' ? 50 : 25)
                 ->get()
-                ->filter(function (User $user) use ($needle): bool {
-                    if ($needle === '') {
-                        return true;
-                    }
-
-                    $haystack = mb_strtolower(implode(' ', array_filter([
-                        (string) $user->name,
-                        (string) ($user->email ?? ''),
-                        (string) ($user->user_number ?? ''),
-                        (string) ($user->role?->name ?? ''),
-                    ])));
-
-                    return str_contains($haystack, $needle);
-                })
                 ->map(function (User $user) use ($actorId): array {
                     $isSelf = $actorId > 0 && $user->id === $actorId;
                     $isActive = $user->status === User::STATUS_ACTIVE;

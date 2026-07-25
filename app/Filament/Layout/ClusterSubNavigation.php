@@ -3,6 +3,7 @@
 namespace App\Filament\Layout;
 
 use App\Filament\Clusters\BaseAgricartCluster;
+use App\Filament\Pages\BasePlaceholderPage;
 use Filament\Pages\Page;
 
 abstract class ClusterSubNavigation
@@ -65,16 +66,21 @@ abstract class ClusterSubNavigation
                 continue;
             }
 
+            $isPlaceholder = is_subclass_of($component, BasePlaceholderPage::class);
+
             $items[] = [
                 'label' => $component::getNavigationLabel(),
                 'url' => $component::getUrl(),
                 'icon' => $component::getNavigationIcon(),
                 'active' => static::isActivePage($component),
                 'sort' => $component::getNavigationSort() ?? 0,
+                'comingSoon' => $isPlaceholder,
             ];
         }
 
         usort($items, fn (array $a, array $b): int => $a['sort'] <=> $b['sort']);
+
+        $comingSoonBadge = __('agricart.placeholder.sub_nav_badge');
 
         return array_map(
             fn (array $item): array => [
@@ -82,6 +88,8 @@ abstract class ClusterSubNavigation
                 'url' => $item['url'],
                 'icon' => $item['icon'],
                 'active' => $item['active'],
+                'comingSoon' => $item['comingSoon'] ?? false,
+                'comingSoonBadge' => ($item['comingSoon'] ?? false) ? $comingSoonBadge : null,
             ],
             $items,
         );

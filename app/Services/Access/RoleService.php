@@ -4,6 +4,7 @@ namespace App\Services\Access;
 
 use App\Models\Permission;
 use App\Models\Role;
+use App\Models\User;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
@@ -14,12 +15,14 @@ class RoleService
     /**
      * @param  list<string>  $permissionKeys
      */
-    public function create(array $data, array $permissionKeys): Role
+    public function create(array $data, array $permissionKeys, ?User $actor = null): Role
     {
         $validated = $this->validateRoleData($data);
 
         $validated['slug'] = $this->uniqueSlug($validated['name']);
         $validated['is_system'] = false;
+
+        $this->assertCanManagePermissions($actor);
 
         $role = Role::query()->create($validated);
         $this->syncPermissions($role, $permissionKeys);
@@ -30,9 +33,10 @@ class RoleService
     /**
      * @param  list<string>  $permissionKeys
      */
-    public function update(Role $role, array $data, array $permissionKeys): Role
+    public function update(Role $role, array $data, array $permissionKeys, ?User $actor = null): Role
     {
         $this->ensureEditable($role);
+        $this->assertCanManagePermissions($actor);
 
         $validated = $this->validateRoleData($data, $role->id);
         $validated['slug'] = $this->uniqueSlug($validated['name'], $role->id);
@@ -41,6 +45,17 @@ class RoleService
         $this->syncPermissions($role, $permissionKeys);
 
         return $role->fresh(['permissions']);
+    }
+
+    public function assertCanManagePermissions(?User $actor): void
+    {
+        if ($actor?->isSuperAdmin()) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'permissions' => __('agricart.roles.messages.permissions_super_admin_only'),
+        ]);
     }
 
     public function delete(Role $role): void

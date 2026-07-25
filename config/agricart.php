@@ -46,6 +46,10 @@ return [
     |--------------------------------------------------------------------------
     | Modules shown as "Coming soon" (sidebar muted; only overview page opens)
     |--------------------------------------------------------------------------
+    |
+    | Placeholder pages that remain in module sub-nav (e.g. Settings → Tax) show a
+    | "Coming soon" badge automatically when they extend BasePlaceholderPage.
+    |
     */
     'modules_coming_soon' => [
         'service',
@@ -60,18 +64,19 @@ return [
     | Supplier portable archive (.ags)
     |--------------------------------------------------------------------------
     |
-    | Shared secret for encrypting supplier export/import packages. When empty,
-    | Agricart uses a built-in format default so local and Hostinger installs of
-    | this codebase can exchange archives. Set a private key in production if
-    | you want archives that only your servers can open.
+    | Legacy alias for AGRICART_PORTABLE_ARCHIVE_KEY. Prefer the shared key below.
     |
     */
     'supplier_archive_key' => env('AGRICART_SUPPLIER_ARCHIVE_KEY', ''),
 
     /*
     |--------------------------------------------------------------------------
-    | Shared portable archive key (.ags for suppliers, customers, …)
+    | Shared portable archive key (.ags for suppliers, customers, catalog, …)
     |--------------------------------------------------------------------------
+    |
+    | Required in production/staging. When empty, local and testing use a dev
+    | fallback; all other environments reject export/import until this is set.
+    |
     */
     'portable_archive_key' => env('AGRICART_PORTABLE_ARCHIVE_KEY', env('AGRICART_SUPPLIER_ARCHIVE_KEY', '')),
 

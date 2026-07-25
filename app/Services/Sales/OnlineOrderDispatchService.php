@@ -191,9 +191,30 @@ class OnlineOrderDispatchService
      */
     public function packingProgress(OnlineSaleOrder $order): array
     {
-        $order->loadMissing('items');
+        $order->loadMissing(['items', 'supplierAssignments.lines']);
+
+        return $this->packingProgressFromLoadedRelations($order);
+    }
+
+    /**
+     * @return array{total: int, sent: int, remaining: int, complete: bool}
+     */
+    public function packingProgressFromLoadedRelations(OnlineSaleOrder $order): array
+    {
         $total = $order->items->count();
-        $sent = count($this->assignedItemIds($order));
+        $assigned = [];
+
+        foreach ($order->supplierAssignments as $assignment) {
+            if ($assignment->status === OnlineSaleOrderSupplierAssignment::STATUS_DECLINED) {
+                continue;
+            }
+
+            foreach ($assignment->lines as $line) {
+                $assigned[(int) $line->online_sale_order_item_id] = true;
+            }
+        }
+
+        $sent = count($assigned);
         $remaining = max(0, $total - $sent);
 
         return [

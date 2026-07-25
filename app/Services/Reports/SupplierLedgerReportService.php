@@ -19,8 +19,15 @@ class SupplierLedgerReportService
      */
     public function build(?string $search = null, ?string $periodFilter = null, ?string $partyFilter = null): array
     {
-        [$start, $end] = $this->periodRange($periodFilter);
+        [$start, $end] = ReportPeriod::range($periodFilter);
         $suppliers = $this->supplierQuery($search)->get();
+        $supplierIds = $suppliers->pluck('id')->map(fn ($id): int => (int) $id)->all();
+
+        $lifetimeAggregates = $this->batchSupplierMovement($supplierIds, null, null);
+        $beforeAggregates = $start !== null
+            ? $this->batchSupplierMovement($supplierIds, null, $start->subDay())
+            : [];
+        $periodAggregates = $this->batchSupplierMovement($supplierIds, $start, $end);
 
         $rows = [];
         $totalDebit = 0.0;
@@ -29,13 +36,15 @@ class SupplierLedgerReportService
         $totalAdvance = 0.0;
 
         foreach ($suppliers as $supplier) {
-            $opening = $this->seedOpening($supplier);
+            $lifetime = $lifetimeAggregates[$supplier->id] ?? ['debit' => 0.0, 'credit' => 0.0];
+            $opening = $this->numeric($supplier->opening_balance) - $lifetime['debit'] + $lifetime['credit'];
 
             if ($start !== null) {
-                $opening += $this->movementBefore($supplier->id, $start);
+                $before = $beforeAggregates[$supplier->id] ?? ['debit' => 0.0, 'credit' => 0.0];
+                $opening += $before['debit'] - $before['credit'];
             }
 
-            $movement = $this->movementWithin($supplier->id, $start, $end);
+            $movement = $periodAggregates[$supplier->id] ?? ['debit' => 0.0, 'credit' => 0.0];
             $debit = $movement['debit'];
             $credit = $movement['credit'];
             $balance = $opening + $debit - $credit;
@@ -100,7 +109,7 @@ class SupplierLedgerReportService
     public function history(int $supplierId, ?string $periodFilter = null): array
     {
         $supplier = Supplier::query()->findOrFail($supplierId);
-        [$start, $end] = $this->periodRange($periodFilter);
+        [$start, $end] = ReportPeriod::range($periodFilter);
 
         $opening = $this->seedOpening($supplier);
 
@@ -323,6 +332,52 @@ class SupplierLedgerReportService
     }
 
     /**
+     * @param  list<int>  $supplierIds
+     * @return array<int, array{debit: float, credit: float}>
+     */
+    private function batchSupplierMovement(array $supplierIds, ?CarbonImmutable $start, ?CarbonImmutable $end): array
+    {
+        $supplierIds = array_values(array_unique(array_filter(array_map('intval', $supplierIds))));
+
+        if ($supplierIds === []) {
+            return [];
+        }
+
+        $result = [];
+
+        foreach ($supplierIds as $supplierId) {
+            $result[$supplierId] = ['debit' => 0.0, 'credit' => 0.0];
+        }
+
+        $purchases = Purchase::query()->whereIn('supplier_id', $supplierIds);
+        $this->applyDateRange($purchases, 'purchase_date', $start, $end);
+
+        foreach ($purchases
+            ->selectRaw('supplier_id, COALESCE(SUM(total_amount), 0) as debit_sum, COALESCE(SUM(amount_paid), 0) as credit_sum')
+            ->groupBy('supplier_id')
+            ->get() as $row) {
+            $id = (int) $row->supplier_id;
+            $result[$id]['debit'] += (float) $row->debit_sum;
+            $result[$id]['credit'] += (float) $row->credit_sum;
+        }
+
+        $transfers = FundTransfer::query()
+            ->where('transaction_type', FundTransfer::TYPE_VENDOR_PAYMENT)
+            ->whereIn('destination_supplier_id', $supplierIds);
+        $this->applyDateRange($transfers, 'transaction_date', $start, $end);
+
+        foreach ($transfers
+            ->selectRaw('destination_supplier_id as supplier_id, COALESCE(SUM(amount), 0) as credit_sum')
+            ->groupBy('destination_supplier_id')
+            ->get() as $row) {
+            $id = (int) $row->supplier_id;
+            $result[$id]['credit'] += (float) $row->credit_sum;
+        }
+
+        return $result;
+    }
+
+    /**
      * @return array{debit: float, credit: float}
      */
     private function movementWithin(int $supplierId, ?CarbonImmutable $start, ?CarbonImmutable $end): array
@@ -358,20 +413,6 @@ class SupplierLedgerReportService
     /**
      * @return array{0: CarbonImmutable|null, 1: CarbonImmutable|null}
      */
-    private function periodRange(?string $period): array
-    {
-        $today = CarbonImmutable::today();
-
-        return match ($period) {
-            'today' => [$today, $today],
-            'week' => [$today->startOfWeek(), $today->endOfWeek()],
-            'month' => [$today->startOfMonth(), $today->endOfMonth()],
-            'quarter' => [$today->startOfQuarter(), $today->endOfQuarter()],
-            'year' => [$today->startOfYear(), $today->endOfYear()],
-            default => [null, null],
-        };
-    }
-
     private function sumDecimal(Builder $query, string $column): float
     {
         return (float) $query->sum($column);

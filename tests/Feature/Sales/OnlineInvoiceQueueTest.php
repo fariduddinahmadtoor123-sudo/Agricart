@@ -74,7 +74,6 @@ class OnlineInvoiceQueueTest extends TestCase
         Livewire::actingAs($admin)
             ->test(ListOrderDispatch::class)
             ->assertSee('ONL-Q-SEND', false)
-            ->assertSee(__('online_sale_orders.queue_documents.invoice'), false)
             ->assertSee(__('online_sale_orders.actions.forward_short'), false);
     }
 
@@ -94,7 +93,7 @@ class OnlineInvoiceQueueTest extends TestCase
         Livewire::actingAs($admin)
             ->test(ListOrderDispatch::class)
             ->assertSee('ONL-Q-PACK', false)
-            ->assertSee(__('online_sale_orders.queue_documents.packing_list'), false);
+            ->assertSee(__('online_sale_orders.actions.forward_short'), false);
     }
 
     public function test_ready_for_queue_excludes_queued_invoices(): void

@@ -6,8 +6,10 @@ use App\Models\User;
 use App\Services\Identifiers\DocumentCounterService;
 use App\Support\PakistaniBanks;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
 
 class UserService
@@ -102,13 +104,82 @@ class UserService
     {
         $validated = $this->validate($data, $user->id, $actor, $user);
 
-        if (empty($validated['password'] ?? null)) {
+        $passwordChanged = filled($validated['password'] ?? null);
+
+        if (! $passwordChanged) {
             unset($validated['password']);
         }
 
+        $this->replaceStoredFiles($user, $validated);
+
         $user->update($validated);
 
+        if ($passwordChanged) {
+            app(SessionInvalidationService::class)->wipeAllForUser($user->fresh() ?? $user);
+        }
+
         return $user->fresh(['role']);
+    }
+
+    public function archive(User $user, ?User $actor = null): void
+    {
+        $actor ??= auth()->user() instanceof User ? auth()->user() : null;
+
+        if (! $actor instanceof User) {
+            throw ValidationException::withMessages([
+                'user' => [__('agricart.access.denied')],
+            ]);
+        }
+
+        if (! $actor->isSuperAdmin() && ! $actor->hasPermission('settings.users.manage')) {
+            throw ValidationException::withMessages([
+                'user' => [__('agricart.access.denied')],
+            ]);
+        }
+
+        if (app(RoleAssignmentGuard::class)->isOwner($user)) {
+            throw ValidationException::withMessages([
+                'user' => [__('agricart.users.errors.archive_owner_forbidden')],
+            ]);
+        }
+
+        if ((int) $actor->id === (int) $user->id) {
+            throw ValidationException::withMessages([
+                'user' => [__('agricart.users.errors.archive_self_forbidden')],
+            ]);
+        }
+
+        if ($user->trashed()) {
+            return;
+        }
+
+        DB::transaction(function () use ($user): void {
+            $timestamp = now()->timestamp;
+            $email = mb_strtolower(trim((string) $user->email));
+            $archivedEmail = $this->archivedEmailAddress($email, (int) $user->id, $timestamp);
+
+            $user->update([
+                'status' => User::STATUS_INACTIVE,
+                'email' => $archivedEmail,
+            ]);
+
+            app(SessionInvalidationService::class)->wipeAllForUser($user);
+
+            $user->delete();
+        });
+    }
+
+    private function archivedEmailAddress(string $email, int $userId, int $timestamp): string
+    {
+        $email = mb_strtolower(trim($email));
+
+        if (! str_contains($email, '@')) {
+            return "archived.{$userId}.{$timestamp}.{$email}@invalid.local";
+        }
+
+        [$local, $domain] = explode('@', $email, 2);
+
+        return "{$local}+archived-{$userId}-{$timestamp}@{$domain}";
     }
 
     public function nextUserNumber(): string
@@ -207,7 +278,7 @@ class UserService
             'profile_photo_path' => ['required', 'string', 'max:500'],
             'cnic_front_path' => ['required', 'string', 'max:500'],
             'cnic_back_path' => ['required', 'string', 'max:500'],
-            'password' => ['required', 'string', 'min:8'],
+            'password' => ['required', 'string', Password::default()],
         ];
 
         $validator = validator($data, $rules);
@@ -228,16 +299,22 @@ class UserService
      */
     private function replaceStoredFiles(User $user, array $validated): void
     {
-        foreach (['profile_photo_path', 'cnic_front_path', 'cnic_back_path'] as $field) {
+        $disks = [
+            'profile_photo_path' => 'public',
+            'cnic_front_path' => 'local',
+            'cnic_back_path' => 'local',
+        ];
+
+        foreach ($disks as $field => $disk) {
+            if (! array_key_exists($field, $validated)) {
+                continue;
+            }
+
             $newPath = $validated[$field] ?? null;
             $oldPath = $user->{$field};
 
-            if (filled($newPath) && filled($oldPath) && $newPath !== $oldPath) {
-                if ($field === 'profile_photo_path') {
-                    continue;
-                } else {
-                    Storage::disk('local')->delete($oldPath);
-                }
+            if (filled($oldPath) && $oldPath !== $newPath) {
+                Storage::disk($disk)->delete($oldPath);
             }
         }
     }
@@ -279,14 +356,19 @@ class UserService
             'phone_numbers.*.contact_person_ur' => ['nullable', 'string', 'max:255'],
             'phone_numbers.*.phone_number' => ['nullable', 'string', 'max:30'],
             'bank_accounts' => ['nullable', 'array'],
-            'bank_accounts.*.bank_name' => ['nullable', 'string', 'max:255'],
+            'bank_accounts.*.bank_name' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::in(PakistaniBanks::englishNames()),
+            ],
             'bank_accounts.*.account_title' => ['nullable', 'string', 'max:255'],
             'bank_accounts.*.account_title_ur' => ['nullable', 'string', 'max:255'],
             'bank_accounts.*.account_number' => ['nullable', 'string', 'max:64'],
             'profile_photo_path' => ['nullable', 'string', 'max:500'],
             'cnic_front_path' => ['nullable', 'string', 'max:500'],
             'cnic_back_path' => ['nullable', 'string', 'max:500'],
-            'password' => [$isCreate ? 'required' : 'nullable', 'string', 'min:8'],
+            'password' => [$isCreate ? 'required' : 'nullable', 'string', Password::default()],
         ];
 
         $validator = validator($data, $rules);

@@ -21,6 +21,7 @@
             action="{{ route('store.checkout.place') }}"
             class="ag-store-checkout__layout"
             data-checkout-form
+            enctype="multipart/form-data"
             x-data="agricartCheckoutDelivery(@js([
                 'methods' => $deliveryOptions,
                 'selectedId' => (int) old('delivery_method_id', $deliveryOptions[0]['id'] ?? 0),
@@ -75,11 +76,16 @@
                         @error('delivery_method_id') <span class="ag-store-checkout__error">{{ $message }}</span> @enderror
                         @error('customer_payment_method') <span class="ag-store-checkout__error">{{ $message }}</span> @enderror
 
-                        <p class="ag-store-checkout__pay-mode" role="note">
+                        <p class="ag-store-checkout__pay-mode" role="note" @if (! ($bankTransferAvailable ?? true)) hidden @endif>
                             <span class="ag-store-checkout__pay-mode-label">{{ __('agricart.storefront.checkout.payment_method_short') }}</span>
                             <strong>{{ __('pos.payment_methods.bank_transfer') }}</strong>
                             <span class="ag-store-checkout__pay-mode-hint">{{ __('agricart.storefront.checkout.payment_bank_only_hint') }}</span>
                         </p>
+                        @if (! ($bankTransferAvailable ?? true))
+                            <p class="ag-store-checkout__delivery-empty" role="alert">
+                                {{ __('agricart.storefront.checkout.bank_transfer_unavailable') }}
+                            </p>
+                        @endif
                     </div>
                 </section>
 
@@ -230,6 +236,40 @@
                         <span>{{ __('agricart.storefront.cart.subtotal') }}</span>
                         <strong>{{ __('agricart.storefront.products.price', ['amount' => $subtotal]) }}</strong>
                     </p>
+                    <p class="ag-store-checkout__subtotal" x-show="selectedMethod && Number(selectedMethod.shipping_amount || 0) > 0" x-cloak>
+                        <span>{{ __('agricart.storefront.checkout.shipping') }}</span>
+                        <strong x-text="selectedMethod?.shipping_amount_formatted || ''"></strong>
+                    </p>
+                    <p class="ag-store-checkout__subtotal ag-store-checkout__subtotal--total">
+                        <span>{{ __('agricart.storefront.checkout.total') }}</span>
+                        <strong x-text="selectedMethod?.order_total_formatted || @js(__('agricart.storefront.products.price', ['amount' => $subtotal]))"></strong>
+                    </p>
+                </section>
+
+                <section
+                    class="ag-store-checkout__card"
+                    x-show="selectedMethod?.full_advance_required"
+                    x-cloak
+                    aria-labelledby="checkout-full-advance-payment"
+                >
+                    <h2 id="checkout-full-advance-payment" class="ag-store-checkout__card-title">{{ __('agricart.storefront.checkout.full_advance_payment_heading') }}</h2>
+                    <p class="ag-store-checkout__label ag-store-checkout__label--muted">{{ __('agricart.storefront.checkout.full_advance_payment_lead') }}</p>
+                    <label class="ag-store-checkout__field">
+                        <span class="ag-store-checkout__label">{{ __('agricart.storefront.checkout.payment_reference') }}</span>
+                        <input
+                            type="text"
+                            name="customer_payment_reference"
+                            class="ag-store-checkout__input"
+                            value="{{ old('customer_payment_reference') }}"
+                            maxlength="128"
+                        />
+                        @error('customer_payment_reference') <span class="ag-store-checkout__error">{{ $message }}</span> @enderror
+                    </label>
+                    <label class="ag-store-checkout__field">
+                        <span class="ag-store-checkout__label">{{ __('agricart.customer.orders.bank_receipt_file') }}</span>
+                        <input type="file" name="bank_receipt" class="ag-store-checkout__input" accept="image/jpeg,image/png,image/webp,application/pdf" />
+                        <span class="ag-store-orders__file-hint">{{ __('agricart.customer.orders.bank_receipt_hint') }}</span>
+                    </label>
                 </section>
 
                 <div class="ag-store-checkout__aside-actions">
@@ -246,7 +286,7 @@
                         <p class="ag-store-checkout__delivery-hint" x-show="advanceHint" x-text="advanceHint"></p>
                     </div>
 
-                    <button type="submit" class="ag-store-btn ag-store-btn--primary ag-store-btn--block ag-store-checkout__submit" @disabled(empty($deliveryOptions))>
+                    <button type="submit" class="ag-store-btn ag-store-btn--primary ag-store-btn--block ag-store-checkout__submit" @disabled(empty($deliveryOptions) || ! ($bankTransferAvailable ?? true))>
                         {{ __('agricart.storefront.checkout.place_order') }}
                     </button>
                 </div>

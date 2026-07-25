@@ -1,12 +1,8 @@
 <?php
 
-$publicServeMode = strtolower(trim((string) env('FILESYSTEM_PUBLIC_SERVE', 'auto')));
+use App\Support\PublicDiskServe;
 
-$servePublicDiskViaApplication = match (true) {
-    in_array($publicServeMode, ['1', 'true', 'yes', 'on'], true) => true,
-    in_array($publicServeMode, ['0', 'false', 'no', 'off'], true) => false,
-    default => ! is_link(public_path('storage')),
-};
+$servePublicDiskViaApplication = PublicDiskServe::enabled();
 
 return [
 
@@ -32,6 +28,9 @@ return [
     | FILESYSTEM_PUBLIC_SERVE=auto or true. Laravel registers /storage/* on
     | the public disk (see disks.public.serve). On VPS with storage:link, use
     | false or auto (detects symlink and skips the route).
+    |
+    | auto + HOSTINGER_PUBLIC_HTML: always register the route — Apache often
+    | cannot follow public/storage even when PHP can read the symlink.
     |
     | Values: auto | true | false
     |

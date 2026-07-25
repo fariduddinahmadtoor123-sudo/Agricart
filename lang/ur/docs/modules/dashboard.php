@@ -70,4 +70,39 @@ return [
             ],
         ],
     ],
+
+    'notes' => [
+        'title' => 'Dashboard Notes',
+        'summary' => 'Placeholder نوٹس صفحہ — BasePlaceholderPage۔',
+        'meta' => [
+            'routes' => ['/admin/dashboard/notes'],
+            'permissions' => ['dashboard.view'],
+        ],
+        'sections' => [
+            [
+                'id' => 'purpose',
+                'type' => 'purpose',
+                'heading' => 'مقصد',
+                'paragraphs' => [
+                    'آپریٹر نوٹس / شفٹ handoff کے لیے محفوظ — ابھی نفاذ نہیں۔',
+                ],
+            ],
+            [
+                'id' => 'rebuild_notes',
+                'type' => 'rebuild_notes',
+                'heading' => 'Rebuild نوٹس',
+                'list' => [
+                    'صرف ملکیت (فی صارف بمقابلہ مشترکہ بورڈ) اور retention واضح ہونے کے بعد شپ کریں۔',
+                ],
+            ],
+            [
+                'id' => 'technical',
+                'type' => 'technical',
+                'heading' => 'تکنیکی',
+                'classes' => [
+                    'page' => 'App\\Filament\\Clusters\\Dashboard\\NotesPage',
+                ],
+            ],
+        ],
+    ],
 ];

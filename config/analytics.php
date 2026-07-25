@@ -28,6 +28,10 @@ return [
         'ANALYTICS_GEOIP_DATABASE',
         storage_path('app/private/geoip/GeoLite2-City.mmdb'),
     ),
+    /*
+    | Storefront analytics event tables intentionally omit strict FKs to catalog/users
+    | (denormalized facts + rollups). Do not add FK migrations without a full backfill plan.
+    */
     'maxmind_account_id' => env('MAXMIND_ACCOUNT_ID'),
     'maxmind_license_key' => env('MAXMIND_LICENSE_KEY'),
 ];

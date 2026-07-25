@@ -3,6 +3,7 @@
 namespace App\Filament\Clusters\Finance;
 
 use App\Filament\Clusters\FinanceCluster;
+use App\Filament\Clusters\Reports\OverviewPage as ReportsOverviewPage;
 use App\Filament\Pages\BasePlaceholderPage;
 use BackedEnum;
 use Filament\Support\Icons\Heroicon;
@@ -18,4 +19,14 @@ class FinancialReportsPage extends BasePlaceholderPage
     protected static ?string $slug = 'financial-reports';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentChartBar;
+
+    public static function registersInModuleChrome(): bool
+    {
+        return false;
+    }
+
+    public function mount(): void
+    {
+        $this->redirect(ReportsOverviewPage::getUrl());
+    }
 }

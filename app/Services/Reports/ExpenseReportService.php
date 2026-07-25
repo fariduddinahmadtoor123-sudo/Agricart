@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Builder;
 
 class ExpenseReportService
 {
+    public const INTERACTIVE_ROW_LIMIT = 500;
+
     /**
      * @return array{
      *     rows: list<array<string, mixed>>,
@@ -17,7 +19,7 @@ class ExpenseReportService
      */
     public function build(?string $search = null, ?string $periodFilter = null, string $expenseFilter = 'all'): array
     {
-        [$start, $end] = $this->periodRange($periodFilter);
+        [$start, $end] = ReportPeriod::range($periodFilter);
 
         $query = ExpensePayment::query()
             ->with(['expense.category', 'bankAccount'])
@@ -43,7 +45,7 @@ class ExpenseReportService
             });
         }
 
-        $payments = $query->get();
+        $payments = $query->limit(self::INTERACTIVE_ROW_LIMIT)->get();
         $total = 0.0;
         $rows = [];
 
@@ -96,29 +98,6 @@ class ExpenseReportService
         }
 
         return $matrix;
-    }
-
-    /**
-     * @return array{0: ?CarbonImmutable, 1: ?CarbonImmutable}
-     */
-    private function periodRange(?string $periodFilter): array
-    {
-        $period = $periodFilter ?? '';
-
-        if (str_starts_with($period, 'period:')) {
-            $period = substr($period, strlen('period:'));
-        }
-
-        $today = CarbonImmutable::today();
-
-        return match ($period) {
-            'today' => [$today, $today],
-            'week' => [$today->startOfWeek(), $today->endOfWeek()],
-            'month' => [$today->startOfMonth(), $today->endOfMonth()],
-            'quarter' => [$today->firstOfQuarter(), $today->lastOfQuarter()],
-            'year' => [$today->startOfYear(), $today->endOfYear()],
-            default => [null, null],
-        };
     }
 
     /**

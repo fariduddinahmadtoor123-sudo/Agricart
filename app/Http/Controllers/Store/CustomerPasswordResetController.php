@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Store;
 
 use App\Http\Controllers\Controller;
+use App\Models\Customer;
+use App\Services\Access\SessionInvalidationService;
 use App\Services\Store\StoreLayoutService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
@@ -53,7 +55,7 @@ class CustomerPasswordResetController extends Controller
         $request->validate([
             'token' => ['required'],
             'email' => ['required', 'email'],
-            'password' => ['required', 'confirmed', PasswordRule::min(8)],
+            'password' => ['required', 'confirmed', PasswordRule::default()],
         ]);
 
         $status = Password::broker('customers')->reset(
@@ -64,6 +66,10 @@ class CustomerPasswordResetController extends Controller
                     'password' => $password,
                     'remember_token' => Str::random(60),
                 ])->save();
+
+                if ($customer instanceof Customer) {
+                    app(SessionInvalidationService::class)->wipeAllForCustomer($customer);
+                }
             }
         );
 

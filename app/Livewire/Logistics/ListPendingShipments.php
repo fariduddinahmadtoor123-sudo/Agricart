@@ -164,7 +164,7 @@ class ListPendingShipments extends Component
         $dispatch = app(OnlineOrderDispatchService::class);
 
         $orders = OnlineSaleOrder::query()
-            ->with(['customer', 'supplierAssignments', 'staffAssignments'])
+            ->with(['customer', 'items', 'supplierAssignments.lines', 'staffAssignments'])
             ->logisticsPending()
             ->when(filled($this->search), function ($query): void {
                 $needle = '%' . $this->search . '%';
@@ -190,7 +190,7 @@ class ListPendingShipments extends Component
         $orderProgress = [];
 
         foreach ($orders as $order) {
-            $orderProgress[$order->id] = $dispatch->packingProgress($order);
+            $orderProgress[$order->id] = $dispatch->packingProgressFromLoadedRelations($order);
         }
 
         return view('livewire.logistics.list-pending-shipments', [

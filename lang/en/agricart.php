@@ -4,6 +4,7 @@ return [
 
     'placeholder' => [
         'message' => 'This section is a placeholder. Content will be added in a future phase.',
+        'sub_nav_badge' => 'Coming soon',
     ],
 
     'module_coming_soon' => [
@@ -54,6 +55,7 @@ return [
         'import_truncated' => 'The uploaded archive looks incomplete (upload may have been cut off). Wait for upload to finish, then try again.',
         'import_format' => 'Unsupported archive format for this page.',
         'import_decrypt' => 'Could not decrypt this archive. Use the same AGRICART_PORTABLE_ARCHIVE_KEY as the export server, or re-export and upload again if the file was truncated.',
+        'key_required' => 'Set AGRICART_PORTABLE_ARCHIVE_KEY in your environment before exporting or importing portable archives.',
     ],
 
     'errors' => [
@@ -1492,6 +1494,7 @@ return [
             'validation_failed' => 'Please fix the highlighted fields.',
             'required_fields' => 'Please fill required fields: :fields.',
             'review_criteria_incomplete' => 'For every Agricart check, choose a 1–10 rating and write the reason in English and Urdu — or use Write review with AI — or clear the review.',
+            'delete_has_products' => 'Move this brand’s products first, then delete the brand.',
         ],
         'list' => [
             'empty' => 'No brands yet. Click Add Brand above to create your first one.',
@@ -1985,6 +1988,8 @@ return [
             'owner_role_locked' => 'The system owner Super Admin role cannot be changed.',
             'super_admin_assign_forbidden' => 'Only the system owner can assign the Super Admin role.',
             'super_admin_demote_forbidden' => 'Only the system owner can change another Super Admin role.',
+            'archive_owner_forbidden' => 'The system owner account cannot be archived.',
+            'archive_self_forbidden' => 'You cannot archive your own account.',
         ],
         'ai' => [
             'no_configuration' => 'Turn on AI in Settings → AI before using enrichment.',
@@ -1998,6 +2003,8 @@ return [
             'add' => 'Add User',
             'edit' => 'Edit :name',
             'edit_short' => 'Edit',
+            'archive_short' => 'Archive',
+            'archive_confirm' => 'Archive :name? Their login will stop and the email can be used for a new account.',
             'remove' => 'Remove',
             'add_phone' => 'Add phone',
             'add_bank' => 'Add bank account',
@@ -2005,6 +2012,8 @@ return [
         'messages' => [
             'created' => 'User ":name" has been saved.',
             'updated' => 'User ":name" has been updated.',
+            'archived' => 'User ":name" has been archived.',
+            'archive_failed' => 'Could not archive this user.',
             'save_failed' => 'Could not save the user. Please check the form and try again.',
         ],
         'statuses' => [
@@ -2565,6 +2574,7 @@ return [
             'system_locked' => 'System roles cannot be modified.',
             'delete_confirm' => 'Delete role ":name"? This cannot be undone.',
             'in_use' => 'This role is assigned to users and cannot be deleted.',
+            'permissions_super_admin_only' => 'Only a Super Admin can assign or change role permissions.',
         ],
         'list' => [
             'empty' => 'No roles yet.',
@@ -2777,6 +2787,7 @@ return [
             'terms_required' => 'Please accept the terms to create your account.',
             'login_failed' => 'These credentials do not match our records.',
             'login_inactive' => 'This account is inactive. Please contact Agricart support.',
+            'session_deactivated' => 'Your account was deactivated. Please sign in again or contact Agricart support.',
             'login_success' => 'You are signed in. Welcome back!',
             'register_failed' => 'Could not create your account. Please check the form.',
             'register_success_login' => 'Your account has been created. Please sign in with the same email and password.',
@@ -3195,6 +3206,7 @@ return [
             'product_unavailable' => 'This product is no longer available.',
             'item_not_found' => 'Item not found in cart.',
             'insufficient_stock' => 'Only :available available in stock.',
+            'merge_adjusted' => 'Some cart items were removed or quantities reduced because they are no longer available.',
         ],
         'checkout' => [
             'title' => 'Checkout',
@@ -3223,6 +3235,7 @@ return [
             'select_delivery_first' => 'Choose a delivery method to see payment options.',
             'payment_not_allowed_for_delivery' => 'That payment method is not available for the selected delivery method.',
             'delivery_inactive' => 'The selected delivery method is no longer available.',
+            'bank_transfer_unavailable' => 'Bank transfer is not available right now. Please contact the store.',
             'delivery_required' => 'Please select a delivery method.',
             'shipping_modes' => [
                 'collect_upfront' => 'Shipping charges will be collected before dispatch.',
@@ -3231,6 +3244,12 @@ return [
             ],
             'cod_advance_hint' => 'Cash on delivery may require at least :percent% advance.',
             'full_advance_hint' => 'Full payment in advance is required for this delivery method.',
+            'full_advance_requires_bank_transfer' => 'This delivery method requires full advance payment by bank transfer.',
+            'full_advance_proof_required' => 'Enter your bank transfer reference or upload a payment receipt before placing the order.',
+            'full_advance_payment_heading' => 'Advance payment details',
+            'full_advance_payment_lead' => 'Provide your transfer reference or upload a receipt so we can verify full payment.',
+            'shipping' => 'Shipping',
+            'total' => 'Total',
             'payment_note' => 'Payment reference / note',
             'payment_note_hint' => 'e.g. bank transfer reference, receipt number…',
             'order_notes' => 'Notes for our team',

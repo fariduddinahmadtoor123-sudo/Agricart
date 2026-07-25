@@ -42,6 +42,7 @@ class Form extends Component
 
     public ?int $bank_account_id = null;
 
+    /** Derived on save by {@see SaleService::resolvePaymentStatus()} — not shown in POS form. */
     public string $payment_status = '';
 
     public string $amount_paid = '0';
@@ -135,20 +136,14 @@ class Form extends Component
     {
         if ($this->payment_method !== 'bank_transfer') {
             $this->bank_account_id = null;
-        }
-    }
 
-    public function updatedPaymentStatus(): void
-    {
-        $service = app(SaleService::class);
-
-        if ($this->payment_status === 'paid') {
-            $this->amount_paid = $this->total_amount !== '0' ? $this->total_amount : $service->formatMoney(0);
-        } elseif ($this->payment_status === 'unpaid') {
-            $this->amount_paid = $service->formatMoney(0);
+            return;
         }
 
-        $this->recalculateTotals();
+        if (app(SalesBankAccountService::class)->options() === []) {
+            $this->payment_method = '';
+            $this->bank_account_id = null;
+        }
     }
 
     public function updatedDiscountType(): void
@@ -295,7 +290,7 @@ class Form extends Component
 
     public function isAmountPaidEditable(): bool
     {
-        return $this->payment_status === 'partial' && ! $this->isReadonly();
+        return ! $this->isReadonly();
     }
 
     public function isReadonly(): bool
@@ -359,7 +354,7 @@ class Form extends Component
             'paymentOptions' => collect(SaleService::PAYMENT_STATUSES)
                 ->mapWithKeys(fn (string $status): array => [$status => __('pos.payment_statuses.' . $status)])
                 ->all(),
-            'paymentMethodOptions' => collect(SaleService::PAYMENT_METHODS)
+            'paymentMethodOptions' => collect(app(SalesBankAccountService::class)->paymentMethodKeys())
                 ->mapWithKeys(fn (string $method): array => [$method => __('pos.payment_methods.' . $method)])
                 ->all(),
             'bankAccountOptions' => app(SalesBankAccountService::class)->options(),
@@ -508,14 +503,18 @@ class Form extends Component
      */
     private function buildPayload(): array
     {
+        $service = app(SaleService::class);
+        $total = $service->numeric($this->total_amount !== '' ? $this->total_amount : '0');
+        $paid = $service->numeric($this->amount_paid !== '' ? $this->amount_paid : '0');
+
         return [
             'sale_number' => filled($this->sale_number) ? $this->sale_number : null,
             'customer_id' => $this->customer_id,
             'sale_date' => $this->sale_date,
-            'locale' => app(SaleService::class)->normalizeLocale($this->locale),
+            'locale' => $service->normalizeLocale($this->locale),
             'payment_method' => $this->payment_method,
             'bank_account_id' => $this->payment_method === 'bank_transfer' ? $this->bank_account_id : null,
-            'payment_status' => $this->payment_status,
+            'payment_status' => $service->resolvePaymentStatus($total, $paid),
             'price_display' => 'plain',
             'discount_type' => $this->discount_type ?: null,
             'discount_value' => $this->discount_value !== '' ? $this->discount_value : '0',
@@ -580,14 +579,7 @@ class Form extends Component
         $this->discount_amount = $service->formatMoney($discount);
         $this->total_amount = $service->formatMoney($total);
 
-        if ($this->payment_status === 'paid') {
-            $this->amount_paid = $this->total_amount;
-            $paid = $total;
-        } elseif ($this->payment_status === 'unpaid') {
-            $this->amount_paid = $service->formatMoney(0);
-            $paid = 0.0;
-        }
-
+        $this->payment_status = $service->resolvePaymentStatus($total, $paid);
         $this->balance_due = $service->formatMoney(max(0, $total - $paid));
 
         $this->recalculatingTotals = false;
@@ -601,16 +593,16 @@ class Form extends Component
             return false;
         }
 
-        if ($this->payment_status === '') {
-            $this->setStatus(__('pos.messages.payment_status_required'), 'warning');
-
-            return false;
-        }
-
         if ($this->payment_method === 'bank_transfer') {
             $banks = app(SalesBankAccountService::class)->options();
 
-            if ($banks !== [] && $this->bank_account_id === null) {
+            if ($banks === []) {
+                $this->setStatus(__('pos.messages.bank_transfer_unavailable'), 'warning');
+
+                return false;
+            }
+
+            if ($this->bank_account_id === null) {
                 $this->setStatus(__('pos.messages.bank_account_required'), 'warning');
 
                 return false;

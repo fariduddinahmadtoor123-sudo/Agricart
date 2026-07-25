@@ -106,7 +106,7 @@ abstract class ClusterPageToolbar
             'products' => 'products',
             'product-reviews' => 'product-reviews',
             'users' => 'users',
-            'staff' => 'users',
+            'staff' => 'staff',
             'pay-management' => 'staff-salary',
             'attendance' => 'staff-attendance',
             'leave-management' => 'staff-leave',

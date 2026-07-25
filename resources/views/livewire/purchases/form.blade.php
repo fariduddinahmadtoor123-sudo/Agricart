@@ -156,6 +156,9 @@
                         <th>{{ __('purchases.columns.product_name') }}</th>
                         <th>{{ __('purchases.columns.required_qty') }}</th>
                         <th>{{ __('purchases.columns.purchase_qty') }}</th>
+                        @if ($delivery_status === \App\Models\Purchase::DELIVERY_PARTIAL)
+                            <th>{{ __('purchases.columns.received_qty') }}</th>
+                        @endif
                         <th>{{ __('purchases.columns.previous_price') }}</th>
                         <th>{{ __('purchases.columns.current_rate') }}</th>
                         <th>{{ __('purchases.columns.landing_cost') }}</th>
@@ -179,7 +182,12 @@
                                 @endif
                             </td>
                             <td class="agricart-purchase-form__name">{{ $this->rowDisplayName($row) }}</td>
-                            @foreach (['required_qty', 'purchase_qty', 'previous_price', 'current_rate', 'landing_cost', 'cost_price', 'sale_price', 'line_total'] as $field)
+                            @foreach (
+                                $delivery_status === \App\Models\Purchase::DELIVERY_PARTIAL
+                                    ? ['required_qty', 'purchase_qty', 'received_qty', 'previous_price', 'current_rate', 'landing_cost', 'cost_price', 'sale_price', 'line_total']
+                                    : ['required_qty', 'purchase_qty', 'previous_price', 'current_rate', 'landing_cost', 'cost_price', 'sale_price', 'line_total']
+                                as $field
+                            )
                                 <td>
                                     <input
                                         type="text"

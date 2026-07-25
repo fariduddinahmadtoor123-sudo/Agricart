@@ -26,18 +26,52 @@ class BankAccountService
 
     public function balance(BankAccount $account): float
     {
-        $opening = (float) $account->opening_balance;
-        $credits = (float) BankAccountTransaction::query()
-            ->where('bank_account_id', $account->id)
+        $balances = $this->balancesForIds([$account->id]);
+
+        return $balances[$account->id] ?? 0.0;
+    }
+
+    /**
+     * @param  list<int>  $ids
+     * @return array<int, float>
+     */
+    public function balancesForIds(array $ids): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $ids))));
+
+        if ($ids === []) {
+            return [];
+        }
+
+        $openings = BankAccount::query()
+            ->whereIn('id', $ids)
+            ->pluck('opening_balance', 'id');
+
+        $credits = BankAccountTransaction::query()
+            ->whereIn('bank_account_id', $ids)
             ->where('direction', BankAccountTransaction::DIRECTION_CREDIT)
             ->where('type', '!=', BankAccountTransaction::TYPE_OPENING)
-            ->sum('amount');
-        $debits = (float) BankAccountTransaction::query()
-            ->where('bank_account_id', $account->id)
-            ->where('direction', BankAccountTransaction::DIRECTION_DEBIT)
-            ->sum('amount');
+            ->selectRaw('bank_account_id, COALESCE(SUM(amount), 0) as total')
+            ->groupBy('bank_account_id')
+            ->pluck('total', 'bank_account_id');
 
-        return round($opening + $credits - $debits, 2);
+        $debits = BankAccountTransaction::query()
+            ->whereIn('bank_account_id', $ids)
+            ->where('direction', BankAccountTransaction::DIRECTION_DEBIT)
+            ->selectRaw('bank_account_id, COALESCE(SUM(amount), 0) as total')
+            ->groupBy('bank_account_id')
+            ->pluck('total', 'bank_account_id');
+
+        $balances = [];
+
+        foreach ($ids as $id) {
+            $opening = (float) ($openings[$id] ?? 0);
+            $credit = (float) ($credits[$id] ?? 0);
+            $debit = (float) ($debits[$id] ?? 0);
+            $balances[$id] = round($opening + $credit - $debit, 2);
+        }
+
+        return $balances;
     }
 
     /**

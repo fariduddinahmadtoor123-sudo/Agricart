@@ -111,6 +111,7 @@ class OnlineSaleOrder extends Model
         'payment_method',
         'bank_account_id',
         'subtotal',
+        'shipping_amount',
         'total_amount',
         'amount_paid',
         'ship_contact_name',
@@ -144,6 +145,7 @@ class OnlineSaleOrder extends Model
         return [
             'order_date' => 'date',
             'subtotal' => 'decimal:2',
+            'shipping_amount' => 'decimal:2',
             'total_amount' => 'decimal:2',
             'amount_paid' => 'decimal:2',
             'cod_min_advance_percent' => 'decimal:2',
@@ -203,6 +205,20 @@ class OnlineSaleOrder extends Model
                     fn ($assignment) => $assignment->whereNotNull('shipped_at'),
                 );
             });
+    }
+
+    /**
+     * Dispatch queue: converted + queued, not yet forwarded to staff inbox.
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeStillNeedsForward(Builder $query): Builder
+    {
+        return $query->whereDoesntHave(
+            'staffAssignments',
+            fn ($assignment) => $assignment->whereNotNull('sent_at'),
+        );
     }
 
     public function isInDispatchQueue(): bool

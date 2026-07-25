@@ -4,7 +4,6 @@ namespace App\Services\Logistics;
 
 use App\Enums\ShippingChargeMode;
 use App\Models\DeliveryMethod;
-use App\Models\DeliveryMethodRule;
 use App\Models\Product;
 use App\Services\Sales\SaleService;
 use Illuminate\Support\Collection;
@@ -286,6 +285,43 @@ class DeliveryMethodService
         return $allowed;
     }
 
+    public function checkoutShippingAmount(DeliveryMethod $method): float
+    {
+        $rule = $method->rule;
+
+        if ($rule === null || $rule->shipping_charge_mode !== ShippingChargeMode::CollectUpfront) {
+            return 0.0;
+        }
+
+        return max(0.0, (float) ($rule->shipping_fee ?? 0));
+    }
+
+    /**
+     * @throws ValidationException
+     */
+    public function assertFullAdvanceCheckoutRequirements(
+        DeliveryMethod $method,
+        ?string $paymentMethod,
+        ?string $paymentReference,
+        bool $hasReceiptUpload,
+    ): void {
+        if (! (bool) ($method->rule?->full_advance_required ?? false)) {
+            return;
+        }
+
+        if ($paymentMethod !== 'bank_transfer') {
+            throw ValidationException::withMessages([
+                'customer_payment_method' => [__('agricart.storefront.checkout.full_advance_requires_bank_transfer')],
+            ]);
+        }
+
+        if (! filled($paymentReference) && ! $hasReceiptUpload) {
+            throw ValidationException::withMessages([
+                'customer_payment_reference' => [__('agricart.storefront.checkout.full_advance_proof_required')],
+            ]);
+        }
+    }
+
     /**
      * @throws ValidationException
      */
@@ -354,6 +390,7 @@ class DeliveryMethodService
             'customer_notice_en' => ['nullable', 'string', 'max:5000'],
             'customer_notice_ur' => ['nullable', 'string', 'max:5000'],
             'shipping_charge_mode' => ['required', 'string', Rule::in(ShippingChargeMode::values())],
+            'shipping_fee' => ['nullable', 'numeric', 'min:0'],
         ])->validate();
 
         $slug = filled($validated['slug'] ?? null)
@@ -404,6 +441,7 @@ class DeliveryMethodService
                 'customer_notice_en' => $validated['customer_notice_en'] ?? null,
                 'customer_notice_ur' => $validated['customer_notice_ur'] ?? null,
                 'shipping_charge_mode' => $validated['shipping_charge_mode'],
+                'shipping_fee' => (float) ($validated['shipping_fee'] ?? 0),
             ],
         ];
     }

@@ -48,7 +48,13 @@ class PortableArchiveCodec
             return hash('sha256', $configured, true);
         }
 
-        return hash('sha256', 'agricart.portable.archive.v1', true);
+        if (app()->environment(['local', 'testing'])) {
+            return hash('sha256', 'agricart.portable.archive.v1', true);
+        }
+
+        throw ValidationException::withMessages([
+            'archive' => [__('agricart.portable.key_required')],
+        ]);
     }
 
     /**

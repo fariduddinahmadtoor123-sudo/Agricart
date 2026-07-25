@@ -6,6 +6,7 @@ use App\Models\StaffAttendanceRecord;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -116,6 +117,12 @@ class StaffAttendanceService
         }
 
         $dateString = $date->toDateString();
+        $cacheKey = 'staff_attendance:defaults_seeded:'.$dateString;
+
+        if (Cache::has($cacheKey)) {
+            return 0;
+        }
+
         $publicHoliday = $this->leaveService->publicHolidayOn($date);
         $members = app(StaffMemberService::class)->rosterQuery()->get();
         $rows = [];
@@ -138,7 +145,11 @@ class StaffAttendanceService
             ];
         }
 
-        return $rows === [] ? 0 : StaffAttendanceRecord::query()->insertOrIgnore($rows);
+        $created = $rows === [] ? 0 : StaffAttendanceRecord::query()->insertOrIgnore($rows);
+
+        Cache::put($cacheKey, true, $date->copy()->endOfDay());
+
+        return $created;
     }
 
     /**
