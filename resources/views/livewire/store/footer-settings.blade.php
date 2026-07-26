@@ -58,6 +58,14 @@
                 <input type="text" wire:model="footer_policies_title_ur" class="agricart-store-admin__input" dir="rtl" />
             </div>
             <div class="agricart-store-admin__field">
+                <label>{{ __('agricart.store.admin.footer.legal_title_en') }}</label>
+                <input type="text" wire:model="footer_legal_title_en" class="agricart-store-admin__input" />
+            </div>
+            <div class="agricart-store-admin__field">
+                <label>{{ __('agricart.store.admin.footer.legal_title_ur') }}</label>
+                <input type="text" wire:model="footer_legal_title_ur" class="agricart-store-admin__input" dir="rtl" />
+            </div>
+            <div class="agricart-store-admin__field">
                 <label>{{ __('agricart.store.admin.footer.registration_title_en') }}</label>
                 <input type="text" wire:model="footer_registration_title_en" class="agricart-store-admin__input" />
             </div>
@@ -102,6 +110,20 @@
         @else
             <ul class="agricart-store-admin__simple-list">
                 @foreach ($policyPages as $page)
+                    <li>{{ $page->title_en }} — <code>/page/{{ $page->slug }}</code></li>
+                @endforeach
+            </ul>
+        @endif
+    </section>
+
+    <section class="agricart-store-admin__card">
+        <h3 class="agricart-store-admin__title">{{ __('agricart.store.admin.footer.legal_section') }}</h3>
+        <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.footer.legal_hint') }}</p>
+        @if ($legalPages->isEmpty())
+            <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.footer.legal_empty') }}</p>
+        @else
+            <ul class="agricart-store-admin__simple-list">
+                @foreach ($legalPages as $page)
                     <li>{{ $page->title_en }} — <code>/page/{{ $page->slug }}</code></li>
                 @endforeach
             </ul>

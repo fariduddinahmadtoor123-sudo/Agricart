@@ -59,6 +59,8 @@ class StoreSetting extends Model
         'footer_quick_title_ur',
         'footer_policies_title_en',
         'footer_policies_title_ur',
+        'footer_legal_title_en',
+        'footer_legal_title_ur',
         'footer_registration_title_en',
         'footer_registration_title_ur',
         'footer_map_embed',

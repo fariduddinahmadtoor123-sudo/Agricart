@@ -37,6 +37,10 @@ class FooterSettings extends BaseStoreSettings
 
     public string $footer_policies_title_ur = '';
 
+    public string $footer_legal_title_en = '';
+
+    public string $footer_legal_title_ur = '';
+
     public string $footer_registration_title_en = '';
 
     public string $footer_registration_title_ur = '';
@@ -88,6 +92,8 @@ class FooterSettings extends BaseStoreSettings
         $this->footer_quick_title_ur = $settings->footer_quick_title_ur ?? '';
         $this->footer_policies_title_en = $settings->footer_policies_title_en ?? '';
         $this->footer_policies_title_ur = $settings->footer_policies_title_ur ?? '';
+        $this->footer_legal_title_en = $settings->footer_legal_title_en ?? '';
+        $this->footer_legal_title_ur = $settings->footer_legal_title_ur ?? '';
         $this->footer_registration_title_en = $settings->footer_registration_title_en ?? '';
         $this->footer_registration_title_ur = $settings->footer_registration_title_ur ?? '';
         $this->footer_map_embed = $settings->footer_map_embed ?? '';
@@ -141,6 +147,8 @@ class FooterSettings extends BaseStoreSettings
             'footer_quick_title_ur' => ['nullable', 'string', 'max:255'],
             'footer_policies_title_en' => ['nullable', 'string', 'max:255'],
             'footer_policies_title_ur' => ['nullable', 'string', 'max:255'],
+            'footer_legal_title_en' => ['nullable', 'string', 'max:255'],
+            'footer_legal_title_ur' => ['nullable', 'string', 'max:255'],
             'footer_registration_title_en' => ['nullable', 'string', 'max:255'],
             'footer_registration_title_ur' => ['nullable', 'string', 'max:255'],
             'footer_map_embed' => [
@@ -171,6 +179,8 @@ class FooterSettings extends BaseStoreSettings
             'footer_quick_title_ur' => filled($this->footer_quick_title_ur) ? $this->footer_quick_title_ur : null,
             'footer_policies_title_en' => filled($this->footer_policies_title_en) ? $this->footer_policies_title_en : null,
             'footer_policies_title_ur' => filled($this->footer_policies_title_ur) ? $this->footer_policies_title_ur : null,
+            'footer_legal_title_en' => filled($this->footer_legal_title_en) ? $this->footer_legal_title_en : null,
+            'footer_legal_title_ur' => filled($this->footer_legal_title_ur) ? $this->footer_legal_title_ur : null,
             'footer_registration_title_en' => filled($this->footer_registration_title_en) ? $this->footer_registration_title_en : null,
             'footer_registration_title_ur' => filled($this->footer_registration_title_ur) ? $this->footer_registration_title_ur : null,
             'footer_map_embed' => filled($this->footer_map_embed)
@@ -337,6 +347,7 @@ class FooterSettings extends BaseStoreSettings
                 'categories' => collect(),
                 'pages' => collect(),
                 'policyPages' => collect(),
+                'legalPages' => collect(),
             ]);
         }
 
@@ -356,6 +367,7 @@ class FooterSettings extends BaseStoreSettings
             'categories' => Category::query()->where('status', 'active')->orderBy('name_en')->limit(200)->get(['id', 'name_en', 'slug']),
             'pages' => StorePage::query()->where('is_active', true)->orderBy('title_en')->get(['id', 'title_en', 'slug']),
             'policyPages' => StorePage::query()->where('show_in_footer', true)->orderBy('sort_order')->orderBy('id')->get(['id', 'title_en', 'slug']),
+            'legalPages' => StorePage::query()->where('show_in_legal', true)->orderBy('sort_order')->orderBy('id')->get(['id', 'title_en', 'slug']),
         ]);
     }
 }

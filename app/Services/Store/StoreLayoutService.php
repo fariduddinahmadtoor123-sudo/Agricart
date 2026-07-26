@@ -38,6 +38,7 @@ class StoreLayoutService
      *     footer_registration_links: Collection<int, StoreFooterLink>,
      *     footer_registration_pages: Collection<int, StorePage>,
      *     footer_policy_pages: Collection<int, StorePage>,
+     *     footer_legal_pages: Collection<int, StorePage>,
      *     onlineStoreChannel: array{enabled: bool, show_prices: bool, allow_purchase: bool, offline_message: string, banner_message: ?string}
      * }
      */
@@ -71,6 +72,7 @@ class StoreLayoutService
      *     footer_registration_links: Collection<int, StoreFooterLink>,
      *     footer_registration_pages: Collection<int, StorePage>,
      *     footer_policy_pages: Collection<int, StorePage>,
+     *     footer_legal_pages: Collection<int, StorePage>,
      *     onlineStoreChannel: array{enabled: bool, show_prices: bool, allow_purchase: bool, offline_message: string, banner_message: ?string}
      * }
      */
@@ -85,6 +87,7 @@ class StoreLayoutService
             'quick_pages' => StorePage::query()->where('is_active', true)->where('show_in_quick_links', true)->pluck('id')->all(),
             'registration_pages' => StorePage::query()->where('is_active', true)->where('show_in_registration', true)->pluck('id')->all(),
             'policy_pages' => StorePage::query()->where('is_active', true)->where('show_in_footer', true)->pluck('id')->all(),
+            'legal_pages' => StorePage::query()->where('is_active', true)->where('show_in_legal', true)->pluck('id')->all(),
         ]);
 
         $settings = StoreSetting::current();
@@ -145,6 +148,12 @@ class StoreLayoutService
             ->orderBy('id')
             ->get(['id', 'slug', 'title_en', 'title_ur']);
 
+        $footerLegalPages = StorePage::query()
+            ->whereKey($selection['legal_pages'] ?? [])
+            ->orderBy('sort_order')
+            ->orderBy('id')
+            ->get(['id', 'slug', 'title_en', 'title_ur']);
+
         $footerQuickEntries = $this->mergeFooterEntries($footerQuickPages, $footerQuickLinks);
         $footerRegistrationEntries = $this->mergeFooterEntries($footerRegistrationPages, $footerRegistrationLinks);
 
@@ -172,6 +181,7 @@ class StoreLayoutService
             'footer_registration_pages' => $footerRegistrationPages,
             'footer_registration_entries' => $footerRegistrationEntries,
             'footer_policy_pages' => $footerPolicyPages,
+            'footer_legal_pages' => $footerLegalPages,
             'onlineStoreChannel' => app(SalesChannelService::class)->onlineStoreViewState(),
         ];
     }

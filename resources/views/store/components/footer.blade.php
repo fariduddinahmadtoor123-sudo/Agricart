@@ -18,7 +18,7 @@
                         @endif
                     </div>
 
-                    <div class="ag-store-footer__col">
+                    <div class="ag-store-footer__col ag-store-footer__col--quick">
                         <h3 class="ag-store-footer__heading">
                             {{ $settings->localized('footer_quick_title') ?? __('agricart.storefront.footer.quick_links') }}
                         </h3>
@@ -43,7 +43,7 @@
                         </ul>
                     </div>
 
-                    <div class="ag-store-footer__col">
+                    <div class="ag-store-footer__col ag-store-footer__col--policies">
                         <h3 class="ag-store-footer__heading">
                             {{ $settings->localized('footer_policies_title') ?? __('agricart.storefront.footer.policies') }}
                         </h3>
@@ -58,7 +58,22 @@
                         </ul>
                     </div>
 
-                    <div class="ag-store-footer__col">
+                    <div class="ag-store-footer__col ag-store-footer__col--legal">
+                        <h3 class="ag-store-footer__heading">
+                            {{ $settings->localized('footer_legal_title') ?? __('agricart.storefront.footer.legal') }}
+                        </h3>
+                        <ul class="ag-store-footer__links">
+                            @foreach ($footer_legal_pages ?? [] as $page)
+                                <li>
+                                    <a href="{{ $page->publicUrl() }}" class="ag-store-footer__link">
+                                        {{ $page->localizedTitle() }}
+                                    </a>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+
+                    <div class="ag-store-footer__col ag-store-footer__col--registration">
                         <h3 class="ag-store-footer__heading">
                             {{ $settings->localized('footer_registration_title') ?? __('agricart.storefront.footer.registration') }}
                         </h3>

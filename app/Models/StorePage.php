@@ -19,6 +19,7 @@ class StorePage extends Model
         'is_active',
         'show_in_menu',
         'show_in_footer',
+        'show_in_legal',
         'show_in_quick_links',
         'show_in_registration',
         'sort_order',
@@ -33,6 +34,7 @@ class StorePage extends Model
             'is_active' => 'boolean',
             'show_in_menu' => 'boolean',
             'show_in_footer' => 'boolean',
+            'show_in_legal' => 'boolean',
             'show_in_quick_links' => 'boolean',
             'show_in_registration' => 'boolean',
             'sort_order' => 'integer',
@@ -83,6 +85,10 @@ class StorePage extends Model
             $placements[] = 'policies';
         }
 
+        if ($this->show_in_legal) {
+            $placements[] = 'legal';
+        }
+
         if ($this->show_in_registration) {
             $placements[] = 'registration';
         }
@@ -95,6 +101,7 @@ class StorePage extends Model
         return $this->show_in_menu
             || $this->show_in_quick_links
             || $this->show_in_footer
+            || $this->show_in_legal
             || $this->show_in_registration;
     }
 

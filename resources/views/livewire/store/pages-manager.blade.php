@@ -72,10 +72,18 @@
                     </label>
 
                     <label class="agricart-store-admin__placement-card">
-                        <input type="checkbox" wire:model="show_in_footer" />
+                        <input type="checkbox" wire:model.live="show_in_footer" />
                         <span class="agricart-store-admin__placement-card-body">
                             <strong>{{ __('agricart.store.admin.pages.place_policies') }}</strong>
                             <small>{{ __('agricart.store.admin.pages.place_policies_hint') }}</small>
+                        </span>
+                    </label>
+
+                    <label class="agricart-store-admin__placement-card">
+                        <input type="checkbox" wire:model.live="show_in_legal" />
+                        <span class="agricart-store-admin__placement-card-body">
+                            <strong>{{ __('agricart.store.admin.pages.place_legal') }}</strong>
+                            <small>{{ __('agricart.store.admin.pages.place_legal_hint') }}</small>
                         </span>
                     </label>
 
