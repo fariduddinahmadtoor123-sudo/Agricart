@@ -16,6 +16,8 @@ class SitemapController extends Controller
         $xml = Cache::remember('storefront.sitemap.xml', now()->addMinutes(30), function (): string {
             $urls = [];
             $urls[] = $this->url(route('store.home'), now(), 'daily', '1.0');
+            $urls[] = $this->url(route('store.about'), now(), 'monthly', '0.7');
+            $urls[] = $this->url(route('store.testimonials'), now(), 'weekly', '0.7');
 
             Category::query()
                 ->where('status', 'active')
@@ -45,11 +47,12 @@ class SitemapController extends Controller
 
             StorePage::query()
                 ->where('is_active', true)
+                ->where('slug', '!=', 'about-us')
                 ->orderBy('id')
                 ->get(['slug', 'updated_at'])
                 ->each(function (StorePage $page) use (&$urls): void {
                     $urls[] = $this->url(
-                        route('store.page', $page->slug),
+                        $page->publicUrl(),
                         $page->updated_at,
                         'monthly',
                         '0.5',

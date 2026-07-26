@@ -275,4 +275,293 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     });
+
+    document.querySelectorAll('[data-store-star-picker]').forEach((root) => {
+        const labels = root.querySelectorAll('.ag-store-star-picker__star');
+        const status = root.querySelector('[data-store-star-label]');
+        const noneLabel = status?.dataset.noneLabel ?? '';
+        const selectedTemplate = status?.dataset.selectedTemplate ?? ':count';
+
+        const paint = (activeValue) => {
+            labels.forEach((label) => {
+                const input = label.querySelector('input');
+                const value = Number.parseInt(input?.value ?? '0', 10);
+                label.classList.toggle('is-active', Number.isFinite(activeValue) && value <= activeValue);
+            });
+        };
+
+        const selected = root.querySelector('input[type="radio"]:checked');
+        paint(selected ? Number.parseInt(selected.value, 10) : 0);
+
+        labels.forEach((label) => {
+            const input = label.querySelector('input');
+            if (! input) {
+                return;
+            }
+
+            label.addEventListener('mouseenter', () => {
+                paint(Number.parseInt(input.value, 10));
+            });
+
+            label.addEventListener('mouseleave', () => {
+                const checked = root.querySelector('input[type="radio"]:checked');
+                paint(checked ? Number.parseInt(checked.value, 10) : 0);
+            });
+
+            input.addEventListener('change', () => {
+                const value = Number.parseInt(input.value, 10);
+                paint(value);
+                if (status) {
+                    status.textContent = selectedTemplate.replace(':count', String(value));
+                }
+            });
+        });
+
+        if (! selected && status && noneLabel) {
+            status.textContent = noneLabel;
+        }
+    });
+
+    document.querySelectorAll('[data-store-testimonials-carousel]').forEach((root) => {
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const dialog = root.querySelector('[data-store-testimonial-dialog]');
+        let dialogOpen = false;
+
+        const pause = () => root.classList.add('is-paused');
+        const resume = () => {
+            if (! reducedMotion && ! dialogOpen && ! root.contains(document.activeElement)) {
+                root.classList.remove('is-paused');
+            }
+        };
+
+        if (reducedMotion) {
+            pause();
+        }
+
+        root.addEventListener('mouseenter', pause);
+        root.addEventListener('mouseleave', resume);
+        root.addEventListener('focusin', pause);
+        root.addEventListener('focusout', () => {
+            window.setTimeout(resume, 0);
+        });
+
+        if (! (dialog instanceof HTMLDialogElement)) {
+            return;
+        }
+
+        const nameEl = dialog.querySelector('[data-dialog-name]');
+        const titleEl = dialog.querySelector('[data-dialog-title]');
+        const bodyEl = dialog.querySelector('[data-dialog-body]');
+        const starsEl = dialog.querySelector('[data-dialog-stars]');
+        const avatarEl = dialog.querySelector('[data-dialog-avatar]');
+        const replyWrap = dialog.querySelector('[data-dialog-reply-wrap]');
+        const replyEl = dialog.querySelector('[data-dialog-reply]');
+
+        const fillStars = (rating) => {
+            if (! starsEl) {
+                return;
+            }
+            starsEl.innerHTML = '';
+            for (let star = 1; star <= 5; star += 1) {
+                const span = document.createElement('span');
+                span.textContent = '★';
+                if (star <= rating) {
+                    span.className = 'is-on';
+                }
+                starsEl.appendChild(span);
+            }
+        };
+
+        const openReview = (button) => {
+            const card = button.closest('.ag-store-testimonials-carousel__card');
+            const payload = card?.querySelector('[data-store-testimonial-payload]');
+            if (! payload) {
+                return;
+            }
+
+            const rating = Number.parseInt(payload.querySelector('[data-payload-rating]')?.textContent ?? '0', 10);
+            const name = payload.querySelector('[data-payload-name]')?.textContent?.trim() ?? '';
+            const title = payload.querySelector('[data-payload-title]')?.textContent?.trim() ?? '';
+            const body = payload.querySelector('[data-payload-body]')?.textContent ?? '';
+            const photo = payload.querySelector('[data-payload-photo]')?.textContent?.trim() ?? '';
+            const reply = payload.querySelector('[data-payload-reply]')?.textContent?.trim() ?? '';
+
+            if (nameEl) {
+                nameEl.textContent = name;
+            }
+            if (bodyEl) {
+                bodyEl.textContent = body;
+            }
+            fillStars(rating);
+
+            if (titleEl) {
+                if (title) {
+                    titleEl.hidden = false;
+                    titleEl.textContent = title;
+                } else {
+                    titleEl.hidden = true;
+                    titleEl.textContent = '';
+                }
+            }
+
+            if (avatarEl) {
+                avatarEl.replaceChildren();
+                if (photo) {
+                    const img = document.createElement('img');
+                    img.src = photo;
+                    img.alt = '';
+                    img.width = 48;
+                    img.height = 48;
+                    avatarEl.appendChild(img);
+                    avatarEl.hidden = false;
+                } else {
+                    const initial = document.createElement('span');
+                    initial.textContent = (name || '?').slice(0, 1).toUpperCase();
+                    avatarEl.appendChild(initial);
+                    avatarEl.hidden = false;
+                }
+            }
+
+            if (replyWrap && replyEl) {
+                if (reply) {
+                    replyEl.textContent = reply;
+                    replyWrap.hidden = false;
+                } else {
+                    replyEl.textContent = '';
+                    replyWrap.hidden = true;
+                }
+            }
+
+            dialogOpen = true;
+            pause();
+            dialog.showModal();
+        };
+
+        root.querySelectorAll('[data-store-testimonial-open]').forEach((button) => {
+            button.addEventListener('click', () => openReview(button));
+        });
+
+        dialog.querySelectorAll('[data-store-testimonial-close]').forEach((button) => {
+            button.addEventListener('click', () => dialog.close());
+        });
+
+        dialog.addEventListener('click', (event) => {
+            if (event.target === dialog) {
+                dialog.close();
+            }
+        });
+
+        dialog.addEventListener('close', () => {
+            dialogOpen = false;
+            resume();
+        });
+    });
+
+    document.querySelectorAll('[data-store-profile-photo-form]').forEach((form) => {
+        const root = form.querySelector('[data-store-profile-photo]');
+        if (! root) {
+            return;
+        }
+
+        const input = root.querySelector('[data-store-profile-photo-input]');
+        const preview = root.querySelector('[data-store-profile-photo-preview]');
+        const status = root.querySelector('[data-store-profile-photo-status]');
+        const busy = root.querySelector('[data-store-profile-photo-busy]');
+        const remove = root.querySelector('[data-store-profile-photo-remove]');
+        const submit = form.querySelector('[data-store-profile-photo-submit]');
+        const submitLabel = form.querySelector('[data-store-profile-photo-submit-label]');
+        const maxBytes = Number.parseInt(root.dataset.maxBytes ?? '2097152', 10);
+        const allowedTypes = new Set(['image/jpeg', 'image/png', 'image/webp']);
+        let objectUrl = null;
+
+        const setStatus = (message, isError = false) => {
+            if (! status) {
+                return;
+            }
+            status.textContent = message ?? '';
+            status.classList.toggle('is-error', Boolean(isError && message));
+            status.classList.toggle('is-ready', Boolean(! isError && message));
+        };
+
+        const showPreview = (file) => {
+            if (! preview || ! file) {
+                return;
+            }
+
+            if (objectUrl) {
+                URL.revokeObjectURL(objectUrl);
+            }
+            objectUrl = URL.createObjectURL(file);
+
+            let img = preview.querySelector('[data-store-profile-photo-img]');
+            const fallback = preview.querySelector('[data-store-profile-photo-fallback]');
+            if (fallback) {
+                fallback.hidden = true;
+            }
+
+            if (! img) {
+                img = document.createElement('img');
+                img.className = 'ag-store-account__photo-img';
+                img.setAttribute('data-store-profile-photo-img', '');
+                img.alt = '';
+                preview.insertBefore(img, busy ?? null);
+            }
+
+            img.hidden = false;
+            img.src = objectUrl;
+            preview.classList.add('has-local-preview');
+        };
+
+        input?.addEventListener('change', () => {
+            const file = input.files?.[0];
+            if (! file) {
+                setStatus('');
+                return;
+            }
+
+            if (remove) {
+                remove.checked = false;
+            }
+
+            if (! allowedTypes.has(file.type)) {
+                input.value = '';
+                setStatus(root.dataset.msgInvalid ?? '', true);
+                return;
+            }
+
+            if (file.size > maxBytes) {
+                input.value = '';
+                setStatus(root.dataset.msgTooLarge ?? '', true);
+                return;
+            }
+
+            showPreview(file);
+            setStatus(root.dataset.msgReady ?? '', false);
+        });
+
+        form.addEventListener('submit', () => {
+            const hasFile = Boolean(input?.files?.length);
+            const savingLabel = hasFile
+                ? (root.dataset.msgUploading ?? '')
+                : (root.dataset.msgSaving ?? '');
+
+            if (savingLabel) {
+                setStatus(savingLabel, false);
+            }
+
+            if (hasFile && busy) {
+                busy.hidden = false;
+                preview?.classList.add('is-uploading');
+            }
+
+            if (submit) {
+                submit.disabled = true;
+                submit.setAttribute('aria-busy', 'true');
+            }
+
+            if (submitLabel && savingLabel) {
+                submitLabel.textContent = savingLabel;
+            }
+        });
+    });
 });

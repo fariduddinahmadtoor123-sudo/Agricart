@@ -1,5 +1,6 @@
 @php
     $customer = auth('customer')->user();
+    $photoUrl = $customer->profilePhotoUrl();
     $initials = strtoupper(
         substr($customer->first_name ?: $customer->displayLabel(), 0, 1)
         . substr($customer->last_name ?: '', 0, 1)
@@ -9,7 +10,11 @@
 @endphp
 <details class="ag-store-header__user ag-store-user-details">
     <summary class="ag-store-header__user-trigger" aria-label="{{ __('agricart.customer.auth.account_menu') }}">
-        <span class="ag-store-header__user-avatar" aria-hidden="true">{{ $initials }}</span>
+        @if ($photoUrl)
+            <img src="{{ $photoUrl }}" alt="" class="ag-store-header__user-avatar ag-store-header__user-avatar--photo" width="24" height="24" loading="lazy" />
+        @else
+            <span class="ag-store-header__user-avatar" aria-hidden="true">{{ $initials }}</span>
+        @endif
         <span class="ag-store-header__user-name">{{ $customer->displayLabel() }}</span>
         @if ($inboxUnread > 0)
             <span class="ag-store-header__user-trigger-badge" aria-label="{{ __('agricart.inbox.unread_count', ['count' => $inboxUnread]) }}">

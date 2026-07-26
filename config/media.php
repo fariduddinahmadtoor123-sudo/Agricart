@@ -54,6 +54,7 @@ return [
         'products' => 'catalog',
         'products/gallery' => 'gallery',
         'store' => 'logo',
+        'store/about' => 'gallery',
         'customers/photos' => 'avatar',
         'suppliers/profile-photos' => 'avatar',
         'users/profile-photos' => 'avatar',

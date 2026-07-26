@@ -6,10 +6,13 @@ use App\Models\Customer;
 use App\Services\Access\SessionInvalidationService;
 use App\Services\Identifiers\DocumentCounterService;
 use App\Services\Contacts\CustomerService as ContactCustomerService;
+use App\Services\Media\OptimizedImageStorage;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 use Illuminate\Validation\ValidationException;
@@ -129,6 +132,19 @@ class CustomerService
             'last_name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:255', Rule::unique('customers', 'email')->ignore($customer->id)],
             'phone' => ['required', 'string', 'max:30'],
+            'profile_photo' => [
+                'nullable',
+                'image',
+                'mimes:jpeg,jpg,png,webp',
+                'max:2048',
+                'dimensions:min_width=64,min_height=64,max_width=6000,max_height=6000',
+            ],
+            'remove_profile_photo' => ['nullable', 'boolean'],
+        ], [
+            'profile_photo.image' => __('agricart.customer.auth.profile_photo_invalid'),
+            'profile_photo.mimes' => __('agricart.customer.auth.profile_photo_invalid'),
+            'profile_photo.max' => __('agricart.customer.auth.profile_photo_max'),
+            'profile_photo.dimensions' => __('agricart.customer.auth.profile_photo_dimensions'),
         ])->validate();
 
         $existing = app(ContactCustomerService::class)->findByPhone((string) $validated['phone'], $customer->id);
@@ -140,10 +156,25 @@ class CustomerService
         }
 
         $displayName = trim($validated['first_name'] . ' ' . $validated['last_name']);
+        $uploadedPhoto = ($data['profile_photo'] ?? null) instanceof UploadedFile
+            ? $data['profile_photo']
+            : null;
+        $removePhoto = (bool) ($validated['remove_profile_photo'] ?? false);
 
-        return DB::transaction(function () use ($customer, $validated, $displayName): Customer {
+        return DB::transaction(function () use ($customer, $validated, $displayName, $uploadedPhoto, $removePhoto): Customer {
             $customer = Customer::query()->lockForUpdate()->findOrFail($customer->id);
             $contacts = [['mobile_number' => $validated['phone']]];
+            $photoPath = $customer->profile_photo_path;
+
+            if ($uploadedPhoto instanceof UploadedFile) {
+                $newPath = app(OptimizedImageStorage::class)->store($uploadedPhoto, 'customers/photos');
+                $this->deleteProfilePhotoFile($photoPath);
+                $photoPath = $newPath;
+            } elseif ($removePhoto && filled($photoPath)) {
+                $this->deleteProfilePhotoFile($photoPath);
+                $photoPath = null;
+            }
+
             $customer->fill([
                 'first_name' => $validated['first_name'],
                 'last_name' => $validated['last_name'],
@@ -152,12 +183,24 @@ class CustomerService
                 'display_name' => $displayName,
                 'name_en' => $displayName,
                 'contacts' => $contacts,
+                'profile_photo_path' => $photoPath,
             ]);
             $customer->save();
             app(ContactCustomerService::class)->syncNormalizedPhones($customer, $contacts);
 
             return $customer;
         });
+    }
+
+    private function deleteProfilePhotoFile(?string $path): void
+    {
+        if (! filled($path)) {
+            return;
+        }
+
+        if (Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
     }
 
     /**

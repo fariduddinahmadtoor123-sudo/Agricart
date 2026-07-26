@@ -35,23 +35,10 @@
 
         <form method="post" action="{{ route('store.customer.reviews.store', $product->slug) }}" class="ag-store-review-form__form" enctype="multipart/form-data">
             @csrf
-            <fieldset class="ag-store-review-form__stars">
-                <legend>{{ __('agricart.storefront.reviews.rating_label') }}</legend>
-                <div class="ag-store-review-form__star-options">
-                    @for ($star = 5; $star >= 1; $star--)
-                        <label class="ag-store-review-form__star-option">
-                            <input
-                                type="radio"
-                                name="rating"
-                                value="{{ $star }}"
-                                @checked((int) old('rating', $existing?->rating ?? 5) === $star)
-                                required
-                            />
-                            <span>{{ $star }} ★</span>
-                        </label>
-                    @endfor
-                </div>
-            </fieldset>
+            @include('store.components.star-rating-input', [
+                'existingRating' => $existing?->rating,
+                'legend' => __('agricart.storefront.reviews.rating_label'),
+            ])
 
             <div class="ag-store-review-form__field">
                 <label for="review-body">{{ __('agricart.storefront.reviews.body_label') }}</label>

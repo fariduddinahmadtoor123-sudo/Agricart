@@ -111,6 +111,8 @@
         </div>
     </main>
 
+    @include('store.components.testimonials-carousel')
+
     @if ($settings->footer_enabled)
         @include('store.components.footer')
     @endif

@@ -23,6 +23,11 @@
                             {{ $settings->localized('footer_quick_title') ?? __('agricart.storefront.footer.quick_links') }}
                         </h3>
                         <ul class="ag-store-footer__links">
+                            <li>
+                                <a href="{{ route('store.testimonials') }}" class="ag-store-footer__link">
+                                    {{ __('agricart.storefront.testimonials.nav') }}
+                                </a>
+                            </li>
                             @foreach ($footer_quick_entries ?? [] as $entry)
                                 <li>
                                     @if ($entry['type'] === 'page')

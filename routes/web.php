@@ -39,6 +39,7 @@ use App\Http\Controllers\Store\CustomerPaymentProofController;
 use App\Http\Controllers\Store\CustomerPasswordResetController;
 use App\Http\Controllers\Store\CustomerProductReviewController;
 use App\Http\Controllers\Store\CustomerProfileController;
+use App\Http\Controllers\Store\AboutController;
 use App\Http\Controllers\Store\HomeController;
 use App\Http\Controllers\Store\PageController;
 use App\Http\Controllers\Store\ProductController;
@@ -50,6 +51,8 @@ use App\Http\Controllers\Store\SitemapController;
 use App\Http\Controllers\Store\StaffRegisterController;
 use App\Http\Controllers\Store\SupplierRegisterController;
 use App\Http\Controllers\Store\StoreInquiryController;
+use App\Http\Controllers\Store\TestimonialsController;
+use App\Http\Controllers\Store\CustomerCompanyTestimonialController;
 use App\Http\Middleware\BlockOnlineStoreMaintenance;
 use App\Http\Middleware\EnsureActiveAdminUser;
 use App\Http\Middleware\EnsureActiveCustomer;
@@ -118,6 +121,11 @@ Route::middleware([
         Route::post('/account/reviews/{slug}', [CustomerProductReviewController::class, 'store'])
             ->middleware('throttle:10,1')
             ->name('store.customer.reviews.store');
+        Route::get('/account/testimonials/create', [CustomerCompanyTestimonialController::class, 'create'])
+            ->name('store.customer.testimonials.create');
+        Route::post('/account/testimonials', [CustomerCompanyTestimonialController::class, 'store'])
+            ->middleware('throttle:10,1')
+            ->name('store.customer.testimonials.store');
     });
     Route::get('/register', [RegisterController::class, 'show'])->name('auth.register');
     Route::get('/staff-register', [StaffRegisterController::class, 'show'])
@@ -133,6 +141,8 @@ Route::middleware([
     Route::post('/contact-message', [StoreInquiryController::class, 'store'])
         ->middleware('throttle:5,1')
         ->name('store.contact-message');
+    Route::get('/reviews', [TestimonialsController::class, 'index'])->name('store.testimonials');
+    Route::get('/about', [AboutController::class, 'show'])->name('store.about');
     Route::get('/page/{slug}', [PageController::class, 'show'])->name('store.page');
     Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('store.category');
     Route::get('/product/{slug}', [ProductController::class, 'show'])->name('store.product');

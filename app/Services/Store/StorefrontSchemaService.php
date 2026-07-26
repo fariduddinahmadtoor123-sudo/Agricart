@@ -146,6 +146,8 @@ class StorefrontSchemaService
             $settings->social_twitter ?? null,
         ]));
 
+        $companyRating = $this->aggregateRating(app(CompanyTestimonialService::class)->publicSummary());
+
         $business = array_filter([
             '@type' => 'LocalBusiness',
             'name' => $profile->localized('business_name') ?: $siteName,
@@ -156,6 +158,7 @@ class StorefrontSchemaService
             'email' => filled($profile->email) ? $profile->email : null,
             'address' => $address,
             'sameAs' => $sameAs !== [] ? $sameAs : null,
+            'aggregateRating' => $companyRating,
         ], static fn ($value): bool => $value !== null && $value !== [] && $value !== '');
 
         return [
@@ -180,6 +183,93 @@ class StorefrontSchemaService
             ],
         ];
     }
+
+    /**
+     * @param  array{average: float|null, count: int}  $summary
+     * @return array<string, mixed>
+     */
+    public function testimonialsDocument(array $summary): array
+    {
+        $settings = StoreSetting::current();
+        $siteName = $settings->localized('site_name') ?? config('app.name');
+        $rating = $this->aggregateRating($summary);
+
+        $page = array_filter([
+            '@type' => 'WebPage',
+            'name' => __('agricart.storefront.testimonials.page_title'),
+            'url' => route('store.testimonials'),
+            'isPartOf' => [
+                '@type' => 'WebSite',
+                'name' => $siteName,
+                'url' => route('store.home'),
+            ],
+            'about' => array_filter([
+                '@type' => 'Organization',
+                'name' => $siteName,
+                'url' => route('store.home'),
+                'aggregateRating' => $rating,
+            ], static fn ($value): bool => $value !== null && $value !== []),
+        ], static fn ($value): bool => $value !== null && $value !== []);
+
+        return [
+            '@context' => 'https://schema.org',
+            '@graph' => [$page],
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $page
+     * @return array<string, mixed>
+     */
+    public function aboutDocument(array $page): array
+    {
+        $siteName = (string) ($page['siteName'] ?? config('app.name'));
+        $description = filled($page['story'] ?? null)
+            ? \Illuminate\Support\Str::limit(strip_tags((string) $page['story']), 160)
+            : __('agricart.storefront.about.page_lead');
+
+        $organization = array_filter([
+            '@type' => 'Organization',
+            'name' => $siteName,
+            'url' => route('store.home'),
+            'description' => $description,
+            'logo' => $page['logoUrl'] ?? null,
+            'founder' => filled($page['ceoName'] ?? null)
+                ? array_filter([
+                    '@type' => 'Person',
+                    'name' => $page['ceoName'],
+                    'jobTitle' => $page['ceoTitle'] ?? null,
+                    'image' => $page['ceoPhotoUrl'] ?? null,
+                ], static fn ($value): bool => $value !== null && $value !== '')
+                : null,
+        ], static fn ($value): bool => $value !== null && $value !== []);
+
+        return [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                [
+                    '@type' => 'AboutPage',
+                    'name' => __('agricart.storefront.about.page_title'),
+                    'url' => route('store.about'),
+                    'description' => $description,
+                    'isPartOf' => [
+                        '@type' => 'WebSite',
+                        'name' => $siteName,
+                        'url' => route('store.home'),
+                    ],
+                    'mainEntity' => $organization,
+                ],
+                [
+                    '@type' => 'BreadcrumbList',
+                    'itemListElement' => [
+                        ['@type' => 'ListItem', 'position' => 1, 'name' => __('agricart.storefront.category.home'), 'item' => route('store.home')],
+                        ['@type' => 'ListItem', 'position' => 2, 'name' => __('agricart.storefront.about.nav'), 'item' => route('store.about')],
+                    ],
+                ],
+            ],
+        ];
+    }
+
 
     public function toJson(array $document): string
     {

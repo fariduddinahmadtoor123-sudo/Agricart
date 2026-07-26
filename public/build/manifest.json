@@ -22,7 +22,7 @@
     "isEntry": true
   },
   "resources/css/store/theme.css": {
-    "file": "assets/theme-DisQ73fi.css",
+    "file": "assets/theme-BD-cLC1G.css",
     "name": "theme",
     "names": [
       "theme.css"
@@ -40,7 +40,7 @@
     ]
   },
   "resources/js/store.js": {
-    "file": "assets/store-D2DcX5LV.js",
+    "file": "assets/store-DQC9EoMu.js",
     "name": "store",
     "src": "resources/js/store.js",
     "isEntry": true,

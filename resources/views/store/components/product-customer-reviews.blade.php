@@ -49,7 +49,12 @@
             @foreach ($reviews as $review)
                 <li class="ag-store-pdp__customer-review-item">
                     <div class="ag-store-pdp__customer-review-meta">
-                        <span class="ag-store-pdp__customer-review-author">{{ $review->customer?->displayName() ?: __('agricart.storefront.reviews.anonymous') }}</span>
+                        <span class="ag-store-pdp__customer-review-author">
+                            @if ($review->customer?->profilePhotoUrl())
+                                <img src="{{ $review->customer->profilePhotoUrl() }}" alt="" class="ag-store-pdp__customer-review-avatar" width="28" height="28" loading="lazy" />
+                            @endif
+                            {{ $review->customer?->displayName() ?: __('agricart.storefront.reviews.anonymous') }}
+                        </span>
                         @if ($review->isVerifiedPurchase())
                             <span class="ag-store-pdp__customer-review-verified">{{ __('agricart.storefront.reviews.verified') }}</span>
                         @elseif ($review->isProofSubmission())

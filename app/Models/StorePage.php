@@ -63,6 +63,10 @@ class StorePage extends Model
 
     public function publicUrl(): string
     {
+        if ($this->slug === 'about-us') {
+            return route('store.about');
+        }
+
         return route('store.page', $this->slug);
     }
 

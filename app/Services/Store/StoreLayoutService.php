@@ -166,6 +166,8 @@ class StoreLayoutService
             ? Storage::disk('public')->url($footerLogoPath)
             : null;
 
+        $footerTestimonials = app(CompanyTestimonialService::class)->publicReviews(12);
+
         return [
             'settings' => $settings,
             'ticker_messages' => $tickerMessages,
@@ -182,6 +184,7 @@ class StoreLayoutService
             'footer_registration_entries' => $footerRegistrationEntries,
             'footer_policy_pages' => $footerPolicyPages,
             'footer_legal_pages' => $footerLegalPages,
+            'footerTestimonials' => $footerTestimonials,
             'onlineStoreChannel' => app(SalesChannelService::class)->onlineStoreViewState(),
         ];
     }
