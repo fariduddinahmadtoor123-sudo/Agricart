@@ -26,7 +26,7 @@
         @foreach ($languages as $code => $language)
             <li role="presentation">
                 <a
-                    href="{{ route('agricart.locale', ['locale' => $code, 'redirect' => request()->getRequestUri()]) }}"
+                    href="{{ route('agricart.locale', ['locale' => $code, 'scope' => 'store', 'redirect' => request()->getRequestUri()]) }}"
                     role="option"
                     @class(['ag-store-locale__option', 'is-active' => $currentLocale === $code])
                     @if ($currentLocale === $code) aria-selected="true" @endif

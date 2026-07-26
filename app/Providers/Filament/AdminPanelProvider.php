@@ -96,7 +96,7 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
-                SetAgricartLocale::class,
+                SetAgricartLocale::class.':admin',
                 EagerLoadUserRole::class,
             ])
             ->authMiddleware([

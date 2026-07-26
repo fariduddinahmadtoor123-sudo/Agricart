@@ -86,8 +86,10 @@ return [
     ],
 
     'statuses' => [
+        'pending' => 'زیر التواء',
         'active' => 'فعال',
         'inactive' => 'غیر فعال',
+        'rejected' => 'مسترد',
     ],
 
     'messages' => [

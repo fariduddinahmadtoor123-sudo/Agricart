@@ -13,10 +13,10 @@
 <script>
     (function () {
         const serverLocale = @js($serverLocale);
-        const stored = localStorage.getItem('agricart-locale');
+        const stored = localStorage.getItem('agricart-admin-locale');
 
         if (stored !== serverLocale) {
-            localStorage.setItem('agricart-locale', serverLocale);
+            localStorage.setItem('agricart-admin-locale', serverLocale);
         }
 
         document.documentElement.lang = serverLocale === 'ur' ? 'ur' : 'en';
@@ -189,7 +189,7 @@
 
             const redirect = encodeURIComponent(window.location.pathname + window.location.search);
 
-            window.location.href = `/locale/${code}?redirect=${redirect}`;
+            window.location.href = `/locale/${code}?scope=admin&redirect=${redirect}`;
         },
         openAi() {
             window.dispatchEvent(new CustomEvent('open-form-panel', {

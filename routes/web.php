@@ -46,6 +46,7 @@ use App\Http\Controllers\Store\RobotsController;
 use App\Http\Controllers\Store\SearchController;
 use App\Http\Controllers\Store\SitemapController;
 use App\Http\Controllers\Store\StaffRegisterController;
+use App\Http\Controllers\Store\SupplierRegisterController;
 use App\Http\Controllers\Store\StoreInquiryController;
 use App\Http\Middleware\BlockOnlineStoreMaintenance;
 use App\Http\Middleware\EnsureActiveAdminUser;
@@ -118,6 +119,8 @@ Route::middleware([
     Route::get('/register', [RegisterController::class, 'show'])->name('auth.register');
     Route::get('/staff-register', [StaffRegisterController::class, 'show'])
         ->name('auth.staff.register');
+    Route::get('/supplier-register', [SupplierRegisterController::class, 'show'])
+        ->name('auth.supplier.register');
     Route::get('/search/fragment', [SearchController::class, 'fragment'])->name('store.search.fragment');
     Route::get('/search/suggest', [SearchController::class, 'suggest'])->name('store.search.suggest');
     Route::get('/search', [SearchController::class, 'index'])->name('store.search');
@@ -155,8 +158,11 @@ Route::get('/locale/{locale}', function (string $locale) {
         '/',
     ) ?? '/';
 
+    $scope = \App\Support\AgricartLocale::resolveScope(request(), $redirect);
+    $cookieName = \App\Support\AgricartLocale::cookieName($scope);
+
     return redirect($redirect)
-        ->withCookie(cookie()->forever('agricart-locale', $locale));
+        ->withCookie(cookie()->forever($cookieName, $locale));
 })->name('agricart.locale');
 
 Route::middleware('web')->get('/ai/status', function () {

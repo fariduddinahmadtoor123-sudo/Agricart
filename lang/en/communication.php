@@ -99,9 +99,9 @@ return [
 
     'messenger' => [
         'title' => 'Private Messenger',
-        'fab_label' => 'Agricart Messenger',
+        'fab_label' => 'Chat',
         'lead' => 'Message one person or a small staff group.',
-        'open' => 'Open Agricart Messenger',
+        'open' => 'Open chat',
         'close' => 'Close',
         'back' => 'Back',
         'change' => 'Change',

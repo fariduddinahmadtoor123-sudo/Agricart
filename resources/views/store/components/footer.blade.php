@@ -68,6 +68,11 @@
                                     {{ __('agricart.auth.register_title') }}
                                 </a>
                             </li>
+                            <li>
+                                <a href="{{ route('auth.supplier.register') }}" class="ag-store-footer__link">
+                                    {{ __('agricart.supplier_register.title') }}
+                                </a>
+                            </li>
                             @foreach ($footer_registration_entries ?? [] as $entry)
                                 <li>
                                     @if ($entry['type'] === 'page')

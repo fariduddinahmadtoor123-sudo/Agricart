@@ -86,8 +86,10 @@ return [
     ],
 
     'statuses' => [
+        'pending' => 'Pending',
         'active' => 'Active',
         'inactive' => 'Inactive',
+        'rejected' => 'Rejected',
     ],
 
     'messages' => [

@@ -637,6 +637,7 @@
 }
 
 .ag-store-header__user-trigger {
+    position: relative;
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
@@ -741,6 +742,21 @@
     text-decoration: none;
 }
 
+.ag-store-header__user-trigger-badge {
+    display: inline-grid;
+    min-width: 1.05rem;
+    height: 1.05rem;
+    place-items: center;
+    padding-inline: 0.2rem;
+    background: #dc2626;
+    color: #fff;
+    font-size: 0.625rem;
+    font-weight: 800;
+    line-height: 1;
+    box-shadow: 0 0 0 2px #fff;
+    animation: ag-store-inbox-badge-pulse 1.6s ease-in-out infinite;
+}
+
 .ag-store-header__user-badge {
     display: inline-grid;
     min-width: 1.25rem;
@@ -748,11 +764,22 @@
     place-items: center;
     padding-inline: 0.3rem;
     border-radius: 0;
-    background: var(--agricart-primary);
+    background: #dc2626;
     color: #fff;
     font-size: 0.6875rem;
     font-weight: 800;
     line-height: 1;
+}
+
+@keyframes ag-store-inbox-badge-pulse {
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.08);
+    }
 }
 
 .ag-store-header__user-menu .ag-store-header__user-link:hover,
@@ -4046,26 +4073,45 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.45rem;
-    min-width: 3.25rem;
-    height: 3.25rem;
-    padding: 0 0.9rem 0 0.75rem;
+    gap: 0.3rem;
+    min-width: 2.25rem;
+    height: 2.25rem;
+    padding: 0 0.55rem 0 0.45rem;
     border: 0;
     border-radius: 0;
     cursor: pointer;
     color: #fff;
-    box-shadow: 0 0.35rem 1rem rgb(15 23 42 / 18%);
+    box-shadow: 0 0.25rem 0.75rem rgb(15 23 42 / 16%);
     font-family: Arial, sans-serif;
 }
 
 .ag-store-whatsapp-float {
     background: #25d366;
-    width: 3.25rem;
+    width: 2.25rem;
     padding: 0;
 }
 
 .ag-store-message-float {
+    position: relative;
     background: #83b735;
+}
+
+.ag-store-message-float__badge {
+    position: absolute;
+    top: -0.3rem;
+    inset-inline-end: -0.3rem;
+    min-width: 1rem;
+    height: 1rem;
+    padding: 0 0.2rem;
+    display: grid;
+    place-items: center;
+    background: #dc2626;
+    color: #fff;
+    font-size: 0.625rem;
+    font-weight: 800;
+    line-height: 1;
+    box-shadow: 0 0 0 2px #fff;
+    animation: ag-store-inbox-badge-pulse 1.6s ease-in-out infinite;
 }
 
 .ag-store-whatsapp-float:hover,
@@ -4079,10 +4125,11 @@
     background: color-mix(in oklab, #83b735 85%, #0f172a);
     color: #fff;
     outline: none;
+    box-shadow: 0 0.3rem 0.85rem rgb(15 23 42 / 20%);
 }
 
 .ag-store-message-float__label {
-    font-size: 0.8125rem;
+    font-size: 0.6875rem;
     font-weight: 700;
     letter-spacing: 0.01em;
     white-space: nowrap;
@@ -4091,8 +4138,8 @@
 
 .ag-store-whatsapp-float svg,
 .ag-store-message-float svg {
-    width: 1.25rem;
-    height: 1.25rem;
+    width: 15px;
+    height: 15px;
     flex: 0 0 auto;
 }
 
@@ -4117,18 +4164,15 @@
 }
 
 @media (max-width: 640px) {
-    .ag-store-message-float__label {
-        display: none;
-    }
-
     .ag-store-message-float {
-        padding: 0;
-        width: 3.25rem;
+        padding: 0 0.45rem 0 0.4rem;
+        min-width: 2.25rem;
+        height: 2.25rem;
     }
 
     .ag-store-message-float svg {
-        width: 1.75rem;
-        height: 1.75rem;
+        width: 15px;
+        height: 15px;
     }
 }
 
@@ -4236,6 +4280,36 @@ html[dir='rtl'] .ag-store-contact-floats {
     border: 1px solid color-mix(in oklab, var(--agricart-primary) 45%, var(--agricart-border));
     background: color-mix(in oklab, var(--agricart-primary) 10%, #fff);
     color: var(--agricart-text);
+}
+
+.ag-store-message-dialog__gate-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 0 1rem 1rem;
+}
+
+.ag-store-message-dialog__form .ag-store-message-dialog__gate-actions {
+    margin: 0;
+}
+
+.ag-store-message-dialog__inbox-badge {
+    display: inline-grid;
+    min-width: 1.05rem;
+    height: 1.05rem;
+    margin-inline-start: 0.35rem;
+    place-items: center;
+    padding-inline: 0.2rem;
+    background: #dc2626;
+    color: #fff;
+    font-size: 0.625rem;
+    font-weight: 800;
+    line-height: 1;
+    vertical-align: middle;
+}
+
+.ag-store-message-dialog--gate .ag-store-message-dialog__header {
+    border-bottom: 0;
 }
 
 .ag-store-page {
@@ -4821,6 +4895,13 @@ html[dir='rtl'] .ag-store-footer__col--map {
     border-color: #fecaca;
 }
 
+.ag-store-register__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.55rem;
+}
+
 .ag-store-register__chip {
     display: inline-flex;
     min-height: 2.25rem;
@@ -4829,6 +4910,66 @@ html[dir='rtl'] .ag-store-footer__col--map {
     gap: 0.25rem;
     padding: 0.35rem 0.55rem;
     background: var(--agricart-bg);
+    border: 1px solid var(--agricart-border);
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+}
+
+.ag-store-register__picker-list {
+    list-style: none;
+    margin: 0.4rem 0 0;
+    padding: 0.35rem;
+    max-height: 12rem;
+    overflow-y: auto;
+    border: 1px solid var(--agricart-border);
+    background: #fff;
+}
+
+.ag-store-register__picker-item {
+    display: block;
+    width: 100%;
+    padding: 0.45rem 0.55rem;
+    border: 0;
+    background: transparent;
+    text-align: start;
+    cursor: pointer;
+    font: inherit;
+}
+
+.ag-store-register__picker-item:hover {
+    background: color-mix(in oklab, var(--agricart-primary) 10%, white);
+}
+
+.ag-store-register__terms-box {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.85rem;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-bg);
+}
+
+.ag-store-register__terms-link {
+    color: var(--agricart-primary);
+    font-weight: 700;
+}
+
+.ag-store-register__checkbox {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ag-store-register__checkbox input {
+    margin-top: 0.15rem;
+}
+
+.ag-store-register__btn--ghost {
+    background: #fff;
+    color: var(--agricart-text);
     border: 1px solid var(--agricart-border);
 }
 

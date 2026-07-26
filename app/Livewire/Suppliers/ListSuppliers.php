@@ -281,7 +281,11 @@ class ListSuppliers extends Component
                     }
                 });
             })
-            ->when(filled($this->statusFilter), fn ($query) => $query->where('status', $this->statusFilter))
+            ->when(
+                filled($this->statusFilter),
+                fn ($query) => $query->where('status', $this->statusFilter),
+                fn ($query) => $query->whereIn('status', [Supplier::STATUS_ACTIVE, Supplier::STATUS_INACTIVE]),
+            )
             ->when(filled($this->cityFilter), fn ($query) => $query->where('city_key', $this->cityFilter))
             ->latest('created_at')
             ->latest('id')

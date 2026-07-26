@@ -53,6 +53,19 @@ class ApprovalsPageToolbar extends ClusterPageToolbar
                 ],
                 'columns' => [],
             ],
+            'suppliers' => [
+                ...$config,
+                'addLabel' => null,
+                'formKey' => null,
+                'livewirePrefix' => 'supplier-approvals',
+                'interactive' => true,
+                'filters' => [
+                    ['label' => __('agricart.toolbar.filter_pending'), 'value' => 'status:pending'],
+                    ['label' => __('agricart.toolbar.filter_approved'), 'value' => 'status:active'],
+                    ['label' => __('agricart.toolbar.filter_rejected'), 'value' => 'status:rejected'],
+                ],
+                'columns' => [],
+            ],
             default => $config,
         };
     }

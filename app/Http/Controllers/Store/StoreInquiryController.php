@@ -6,34 +6,55 @@ use App\Http\Controllers\Controller;
 use App\Models\Customer;
 use App\Models\StoreInquiry;
 use App\Services\Store\AgricartInboxService;
+use App\Support\SafeInternalRedirect;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class StoreInquiryController extends Controller
 {
     public function store(Request $request, AgricartInboxService $inbox): RedirectResponse
     {
+        $customer = $request->user('customer');
+
+        if (! $customer instanceof Customer) {
+            $intended = SafeInternalRedirect::normalize(
+                $request->input('source_url') ?: $request->headers->get('referer'),
+                '/',
+            ) ?? '/';
+
+            SafeInternalRedirect::putIntended($intended);
+
+            return redirect()
+                ->route('store.customer.login', ['redirect' => $intended])
+                ->with('customer_auth_status', __('agricart.storefront.contact.login_required'));
+        }
+
         if (filled($request->input('company_website'))) {
             return back()->with('store_message_sent', __('agricart.storefront.contact.sent'));
         }
 
         $validated = $request->validateWithBag('storeMessage', [
-            'name' => ['required', 'string', 'max:120'],
-            'phone' => ['required', 'string', 'max:30', 'regex:/^\+?[0-9\s()\-]+$/'],
-            'email' => ['nullable', 'email', 'max:255'],
             'message' => ['required', 'string', 'min:5', 'max:3000'],
             'source_url' => ['nullable', 'url', 'max:2048'],
         ]);
 
-        $customer = $request->user('customer');
-        $customer = $customer instanceof Customer ? $customer : null;
+        $name = trim($customer->displayName());
+        $phone = trim($customer->primaryPhone());
+        $email = filled($customer->email) ? strtolower(trim((string) $customer->email)) : null;
+
+        if ($name === '' || $phone === '') {
+            throw ValidationException::withMessages([
+                'message' => [__('agricart.storefront.contact.profile_incomplete')],
+            ])->errorBag('storeMessage');
+        }
 
         // Keep a StoreInquiry row for legacy admin filters / analytics.
         $inquiry = StoreInquiry::query()->create([
-            'name' => trim($validated['name']),
-            'phone' => trim($validated['phone']),
-            'email' => filled($validated['email'] ?? null) ? strtolower(trim($validated['email'])) : null,
+            'name' => $name,
+            'phone' => $phone,
+            'email' => $email,
             'message' => trim($validated['message']),
             'status' => StoreInquiry::STATUS_NEW,
             'source_url' => $validated['source_url'] ?? null,
@@ -42,21 +63,17 @@ class StoreInquiryController extends Controller
         ]);
 
         $conversation = $inbox->startContactConversation($customer, [
-            'name' => $validated['name'],
-            'phone' => $validated['phone'],
-            'email' => $validated['email'] ?? null,
+            'name' => $name,
+            'phone' => $phone,
+            'email' => $email,
             'message' => $validated['message'],
             'source_url' => $validated['source_url'] ?? null,
         ]);
 
         $conversation->update(['store_inquiry_id' => $inquiry->id]);
 
-        if ($customer !== null) {
-            return redirect()
-                ->route('store.customer.inbox.show', $conversation->id)
-                ->with('store_message_sent', __('agricart.storefront.contact.sent_inbox'));
-        }
-
-        return back()->with('store_message_sent', __('agricart.storefront.contact.sent'));
+        return redirect()
+            ->route('store.customer.inbox.show', $conversation->id)
+            ->with('store_message_sent', __('agricart.storefront.contact.sent_inbox'));
     }
 }

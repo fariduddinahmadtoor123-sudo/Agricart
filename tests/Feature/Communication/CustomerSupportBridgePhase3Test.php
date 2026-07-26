@@ -38,9 +38,11 @@ class CustomerSupportBridgePhase3Test extends TestCase
         );
     }
 
-    public function test_guest_contact_dual_writes_to_customer_support_channel(): void
+    public function test_customer_contact_dual_writes_to_customer_support_channel(): void
     {
-        $this->post(route('store.contact-message'), [
+        $customer = $this->customer('phase3-contact@test.test');
+
+        $this->actingAs($customer, 'customer')->post(route('store.contact-message'), [
             'name' => 'Ali Khan',
             'phone' => '03001234567',
             'email' => 'ali@example.com',
@@ -56,7 +58,7 @@ class CustomerSupportBridgePhase3Test extends TestCase
         $this->assertNotNull($conversation);
         $this->assertSame('customer_support', $conversation->channel->key);
         $this->assertSame($legacy->id, $conversation->meta['legacy_agricart_conversation_id'] ?? null);
-        $this->assertSame('Ali Khan', $conversation->meta['guest_name'] ?? null);
+        $this->assertSame($customer->id, $legacy->customer_id);
 
         $this->assertTrue(
             Message::query()

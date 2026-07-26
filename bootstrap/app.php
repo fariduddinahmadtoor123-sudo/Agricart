@@ -4,6 +4,7 @@ use App\Services\Backup\BackupScheduleRegistrar;
 use App\Services\SystemErrors\SystemErrorCaptureService;
 use App\Http\Middleware\RunSchedulerWebTick;
 use App\Http\Middleware\SecurityHeaders;
+use App\Http\Middleware\SetAgricartLocale;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Application;
@@ -87,6 +88,10 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withMiddleware(function (Middleware $middleware) use ($trustedProxies): void {
         $middleware->trustProxies(at: $trustedProxies);
+        // Auto scope (admin vs store) via path/referer so Livewire updates keep the right locale.
+        $middleware->web(append: [
+            SetAgricartLocale::class,
+        ]);
         $middleware->append(SecurityHeaders::class);
         $middleware->append(RunSchedulerWebTick::class);
         $middleware->redirectGuestsTo(

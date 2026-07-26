@@ -5,11 +5,17 @@
         . substr($customer->last_name ?: '', 0, 1)
     );
     $initials = filled(trim($initials)) ? trim($initials) : strtoupper(substr($customer->displayLabel(), 0, 2));
+    $inboxUnread = app(\App\Services\Store\AgricartInboxService::class)->unreadCountForCustomer($customer);
 @endphp
 <details class="ag-store-header__user ag-store-user-details">
     <summary class="ag-store-header__user-trigger" aria-label="{{ __('agricart.customer.auth.account_menu') }}">
         <span class="ag-store-header__user-avatar" aria-hidden="true">{{ $initials }}</span>
         <span class="ag-store-header__user-name">{{ $customer->displayLabel() }}</span>
+        @if ($inboxUnread > 0)
+            <span class="ag-store-header__user-trigger-badge" aria-label="{{ __('agricart.inbox.unread_count', ['count' => $inboxUnread]) }}">
+                {{ $inboxUnread > 9 ? '9+' : $inboxUnread }}
+            </span>
+        @endif
         <span class="ag-store-header__user-chevron" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="square">
                 <path d="M6 9l6 6 6-6"/>
@@ -23,7 +29,6 @@
         </a>
         <a href="{{ route('store.customer.inbox') }}" class="ag-store-header__user-link">
             {{ __('agricart.customer.auth.agricart_inbox') }}
-            @php($inboxUnread = app(\App\Services\Store\AgricartInboxService::class)->unreadCountForCustomer($customer))
             @if ($inboxUnread > 0)
                 <span class="ag-store-header__user-badge">{{ $inboxUnread > 99 ? '99+' : $inboxUnread }}</span>
             @endif

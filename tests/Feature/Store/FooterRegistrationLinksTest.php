@@ -26,6 +26,8 @@ class FooterRegistrationLinksTest extends TestCase
 
         $this->assertStringContainsString(route('auth.staff.register'), $html);
         $this->assertStringContainsString(__('agricart.auth.register_title'), $html);
+        $this->assertStringContainsString(route('auth.supplier.register'), $html);
+        $this->assertStringContainsString(__('agricart.supplier_register.title'), $html);
         $this->assertStringNotContainsString('href="'.route('store.customer.login').'"', $html);
         $this->assertStringNotContainsString('tab=register', $html);
     }

@@ -3,6 +3,7 @@
 namespace App\Services\Notifications;
 
 use App\Filament\Clusters\Approvals\StaffPage;
+use App\Filament\Clusters\Approvals\SuppliersPage;
 use App\Filament\Clusters\Sales\InboxPage;
 use App\Filament\Clusters\Sales\OnlineQuotationsPage;
 use App\Filament\Clusters\Settings\SystemErrorsPage;
@@ -10,6 +11,7 @@ use App\Filament\Clusters\Store\MessagesPage;
 use App\Filament\Clusters\Store\ReviewsPage;
 use App\Models\OnlineSaleOrder;
 use App\Models\ProductReview;
+use App\Models\Supplier;
 use App\Models\SystemError;
 use App\Models\User;
 use App\Services\Staff\StaffMessagingService;
@@ -34,6 +36,11 @@ class TopbarNotificationService
                 key: 'staff_approvals',
                 count: User::query()->where('status', User::STATUS_PENDING)->count(),
                 pageClass: StaffPage::class,
+            ),
+            $this->item(
+                key: 'supplier_approvals',
+                count: Supplier::query()->where('status', Supplier::STATUS_PENDING)->count(),
+                pageClass: SuppliersPage::class,
             ),
             $this->item(
                 key: 'customer_messages',

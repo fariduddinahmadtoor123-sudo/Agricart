@@ -33,10 +33,227 @@ class SupplierService
             unset($validated['password']);
         }
 
+        $validated['source'] = $validated['source'] ?? Supplier::SOURCE_ADMIN;
+
         $supplier = Supplier::query()->create($validated);
         $supplier->categories()->sync($categoryIds);
 
         return $supplier->fresh(['categories']);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function registerPublic(array $data): Supplier
+    {
+        $validated = $this->validatePublicRegistration($data);
+        $categoryIds = $validated['category_ids'] ?? [];
+        unset($validated['category_ids']);
+
+        $primaryMobile = $this->primaryMobileFromContacts($validated['contacts'] ?? []);
+        $rejected = $this->findRejectedByPrimaryMobile($primaryMobile);
+
+        if ($rejected !== null) {
+            return $this->resubmitRejected($rejected, $data);
+        }
+
+        $pending = $this->findPendingByPrimaryMobile($primaryMobile);
+
+        if ($pending !== null) {
+            throw ValidationException::withMessages([
+                'contactRows.0.mobile_number' => [__('agricart.supplier_register.errors.already_pending')],
+            ]);
+        }
+
+        $validated['supplier_code'] = $this->nextSupplierCode();
+        $validated['status'] = Supplier::STATUS_PENDING;
+        $validated['source'] = Supplier::SOURCE_PUBLIC;
+        $validated['portal_enabled'] = false;
+        $validated['opening_balance'] = 0;
+        $validated['ai_status'] = 'none';
+        $validated['rejection_reason'] = null;
+        $validated['rejected_at'] = null;
+
+        $supplier = Supplier::query()->create($validated);
+        $supplier->categories()->sync($categoryIds);
+
+        return $supplier->fresh(['categories']);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function resubmitRejected(Supplier $supplier, array $data): Supplier
+    {
+        if ($supplier->status !== Supplier::STATUS_REJECTED) {
+            throw ValidationException::withMessages([
+                'supplier' => [__('agricart.supplier_register.errors.not_rejected')],
+            ]);
+        }
+
+        $validated = $this->validatePublicRegistration($data, $supplier->id);
+        $categoryIds = $validated['category_ids'] ?? [];
+        unset($validated['category_ids']);
+
+        $validated['status'] = Supplier::STATUS_PENDING;
+        $validated['source'] = Supplier::SOURCE_PUBLIC;
+        $validated['rejection_reason'] = null;
+        $validated['rejected_at'] = null;
+        $validated['portal_enabled'] = false;
+        $validated['ai_status'] = $supplier->ai_status?->value ?? 'none';
+
+        $supplier->update($validated);
+        $supplier->categories()->sync($categoryIds);
+
+        return $supplier->fresh(['categories']);
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    public function validatePublicRegistration(array $data, ?int $exceptId = null): array
+    {
+        $typeKeys = array_keys(config('supplier_types', []));
+
+        $rules = [
+            'business_name_en' => ['required', 'string', 'max:255'],
+            'business_name_ur' => ['nullable', 'string', 'max:255'],
+            'supplier_type' => ['required', 'string', Rule::in($typeKeys)],
+            'country_code' => ['nullable', 'string', 'max:8'],
+            'city_en' => ['required', 'string', 'max:255'],
+            'address_en' => ['required', 'string', 'max:2000'],
+            'address_ur' => ['nullable', 'string', 'max:2000'],
+            'contacts' => ['required', 'array', 'min:1'],
+            'contacts.*.contact_name_en' => ['required', 'string', 'max:255'],
+            'contacts.*.contact_name_ur' => ['nullable', 'string', 'max:255'],
+            'contacts.*.mobile_number' => ['required', 'string', 'max:30', 'regex:/^\+?[0-9\s()\-]+$/'],
+            'category_ids' => ['nullable', 'array'],
+            'category_ids.*' => ['integer', 'exists:categories,id'],
+            'custom_categories' => ['nullable', 'string', 'max:2000'],
+            'application_note' => ['nullable', 'string', 'max:5000'],
+            'terms_accepted' => ['accepted'],
+        ];
+
+        $validator = validator($data, $rules, [
+            'terms_accepted.accepted' => __('agricart.supplier_register.errors.terms_required'),
+        ]);
+
+        if ($validator->fails()) {
+            throw ValidationException::withMessages($validator->errors()->toArray());
+        }
+
+        $validated = Arr::only($validator->validated(), [
+            'business_name_en',
+            'business_name_ur',
+            'supplier_type',
+            'country_code',
+            'city_en',
+            'address_en',
+            'address_ur',
+            'contacts',
+            'category_ids',
+            'custom_categories',
+            'application_note',
+        ]);
+
+        $validated['country_code'] = filled($validated['country_code'] ?? null) ? $validated['country_code'] : 'PK';
+        $validated['contacts'] = $this->normalizeContacts(is_array($validated['contacts'] ?? null) ? $validated['contacts'] : []);
+        $validated['category_ids'] = array_values(array_unique(array_map('intval', $validated['category_ids'] ?? [])));
+        $validated['custom_categories'] = filled($validated['custom_categories'] ?? null)
+            ? trim((string) $validated['custom_categories'])
+            : null;
+        $validated['application_note'] = filled($validated['application_note'] ?? null)
+            ? trim((string) $validated['application_note'])
+            : null;
+        $validated['bank_accounts'] = [];
+        $validated['terms_accepted_at'] = now();
+
+        if ($validated['contacts'] === []) {
+            throw ValidationException::withMessages([
+                'contactRows.0.mobile_number' => [__('suppliers.validation.contact_required')],
+            ]);
+        }
+
+        $primaryMobile = $this->primaryMobileFromContacts($validated['contacts']);
+
+        if ($primaryMobile === null) {
+            throw ValidationException::withMessages([
+                'contactRows.0.mobile_number' => [__('suppliers.validation.mobile_required')],
+            ]);
+        }
+
+        $conflict = Supplier::query()
+            ->whereIn('status', [Supplier::STATUS_ACTIVE, Supplier::STATUS_INACTIVE, Supplier::STATUS_PENDING])
+            ->when($exceptId !== null, fn ($query) => $query->whereKeyNot($exceptId))
+            ->get(['id', 'contacts', 'status'])
+            ->first(function (Supplier $supplier) use ($primaryMobile): bool {
+                return $this->primaryMobileFromContacts(
+                    is_array($supplier->contacts) ? $supplier->contacts : [],
+                ) === $primaryMobile;
+            });
+
+        if ($conflict !== null) {
+            throw ValidationException::withMessages([
+                'contactRows.0.mobile_number' => [__('agricart.supplier_register.errors.mobile_taken')],
+            ]);
+        }
+
+        return $validated;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $contacts
+     */
+    public function primaryMobileFromContacts(array $contacts): ?string
+    {
+        foreach ($contacts as $contact) {
+            if (! is_array($contact)) {
+                continue;
+            }
+
+            $mobile = preg_replace('/\D+/', '', (string) ($contact['mobile_number'] ?? '')) ?? '';
+
+            if ($mobile !== '') {
+                return $mobile;
+            }
+        }
+
+        return null;
+    }
+
+    public function findRejectedByPrimaryMobile(?string $mobileDigits): ?Supplier
+    {
+        if ($mobileDigits === null || $mobileDigits === '') {
+            return null;
+        }
+
+        return Supplier::query()
+            ->where('status', Supplier::STATUS_REJECTED)
+            ->latest('id')
+            ->get()
+            ->first(function (Supplier $supplier) use ($mobileDigits): bool {
+                return $this->primaryMobileFromContacts(
+                    is_array($supplier->contacts) ? $supplier->contacts : [],
+                ) === $mobileDigits;
+            });
+    }
+
+    public function findPendingByPrimaryMobile(?string $mobileDigits): ?Supplier
+    {
+        if ($mobileDigits === null || $mobileDigits === '') {
+            return null;
+        }
+
+        return Supplier::query()
+            ->where('status', Supplier::STATUS_PENDING)
+            ->latest('id')
+            ->get()
+            ->first(function (Supplier $supplier) use ($mobileDigits): bool {
+                return $this->primaryMobileFromContacts(
+                    is_array($supplier->contacts) ? $supplier->contacts : [],
+                ) === $mobileDigits;
+            });
     }
 
     public function update(Supplier $supplier, array $data): Supplier

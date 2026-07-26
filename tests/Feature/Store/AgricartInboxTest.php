@@ -25,7 +25,7 @@ class AgricartInboxTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_guest_contact_creates_inbox_conversation(): void
+    public function test_guest_contact_is_blocked_and_redirected_to_login(): void
     {
         $this->post(route('store.contact-message'), [
             'name' => 'Ali Khan',
@@ -34,18 +34,12 @@ class AgricartInboxTest extends TestCase
             'message' => 'Please help with seed availability.',
             'source_url' => route('store.home'),
             'company_website' => '',
-        ])->assertRedirect()->assertSessionHas('store_message_sent');
+        ])
+            ->assertRedirect(route('store.customer.login', ['redirect' => '/']))
+            ->assertSessionHas('customer_auth_status');
 
-        $conversation = AgricartConversation::query()->sole();
-        $this->assertSame(AgricartConversation::TOPIC_CONTACT, $conversation->topic);
-        $this->assertNull($conversation->customer_id);
-        $this->assertSame('Ali Khan', $conversation->guest_name);
-        $this->assertDatabaseHas('agricart_messages', [
-            'agricart_conversation_id' => $conversation->id,
-            'sender_type' => AgricartMessage::SENDER_CUSTOMER,
-            'body' => 'Please help with seed availability.',
-        ]);
-        $this->assertSame(1, app(AgricartInboxService::class)->unreadCountForAdmin());
+        $this->assertDatabaseCount('agricart_conversations', 0);
+        $this->assertDatabaseCount('agricart_messages', 0);
     }
 
     public function test_logged_in_customer_contact_redirects_to_inbox_thread(): void
