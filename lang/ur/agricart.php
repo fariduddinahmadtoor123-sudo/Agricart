@@ -3140,6 +3140,7 @@ return [
         'products' => [
             'title' => 'مصنوعات',
             'empty' => 'اس زمرے میں ابھی کوئی مصنوعات نہیں۔',
+            'coming_soon' => 'جلد آ رہا ہے',
             'price' => 'Rs :amount',
             'photo_count' => ':count تصاویر',
         ],
@@ -3150,6 +3151,7 @@ return [
             'back_to_category' => ':category پر واپس',
             'quantity' => 'مقدار',
             'add_to_cart' => 'کارٹ میں شامل کریں',
+            'coming_soon' => 'جلد آ رہا ہے — یہ پروڈکٹ ابھی خریداری کے لیے دستیاب نہیں۔',
             'deactivated' => 'غیر فعال',
             'in_stock' => ':qty دستیاب',
             'out_of_stock' => 'ابھی اسٹاک ختم ہے۔ ضرورت ہو تو سائٹ میسنجر سے پیغام بھیجیں۔',

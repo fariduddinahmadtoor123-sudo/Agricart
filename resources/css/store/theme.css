@@ -1378,6 +1378,42 @@
     color: var(--agricart-primary);
 }
 
+.ag-store-product-card__badge {
+    position: absolute;
+    z-index: 2;
+    top: 0.5rem;
+    inset-inline-start: 0.5rem;
+    padding: 0.2rem 0.45rem;
+    border: 1px solid var(--agricart-accent);
+    background: color-mix(in oklab, var(--agricart-accent) 88%, white);
+    color: var(--agricart-text);
+    font-size: 0.625rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.ag-store-product-card__coming-soon {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--agricart-accent);
+}
+
+.ag-store-product-card--coming-soon .ag-store-product-card__image {
+    opacity: 0.72;
+}
+
+.ag-store-pdp__status--coming-soon {
+    margin: 0 0 0.75rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--agricart-accent);
+    background: color-mix(in oklab, var(--agricart-accent) 15%, white);
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
 /* Product detail */
 .ag-store-breadcrumb {
     display: flex;

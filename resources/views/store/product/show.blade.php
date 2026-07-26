@@ -102,8 +102,8 @@
                 <h1 class="ag-store-pdp__title">{{ $productName }}</h1>
 
                 @if (! $isActive)
-                    <p class="ag-store-pdp__status ag-store-pdp__status--deactivated">
-                        {{ __('agricart.storefront.product.deactivated') }}
+                    <p class="ag-store-pdp__status ag-store-pdp__status--coming-soon" role="status">
+                        {{ __('agricart.storefront.product.coming_soon') }}
                     </p>
                 @endif
 

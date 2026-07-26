@@ -27,7 +27,7 @@ class ProductController extends Controller
         DeliveryMethodService $deliveryMethods,
         ProductReviewService $productReviews,
     ): View {
-        $product = $products->findActiveBySlug($slug);
+        $product = $products->findStorefrontBySlug($slug);
 
         if ($product === null) {
             abort(404);
@@ -35,12 +35,13 @@ class ProductController extends Controller
 
         $analytics->setPage('product', $product->id, $product->slug);
 
+        $comingSoon = $products->isComingSoon($product);
         $defaultQty = 1.0;
-        $buyPrice = $channels->onlineStoreShowsPrices()
+        $buyPrice = (! $comingSoon && $channels->onlineStoreShowsPrices())
             ? $presenter->priceForQuantity($product, $defaultQty)
             : null;
-        // Quantity pricing is catalog info — always show when tiers exist; buy price stays gated.
-        $priceTable = $presenter->quantityPriceTable($product);
+        // Quantity pricing is catalog info — hide for Coming soon (no commerce).
+        $priceTable = $comingSoon ? [] : $presenter->quantityPriceTable($product);
 
         $customer = auth('customer')->user();
         $canWriteReview = $customer instanceof Customer

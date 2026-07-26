@@ -84,14 +84,18 @@
                             $imageUrl = $productService->imageUrl($product);
                             $productUrl = route('store.product', $product->slug);
                             $name = $productService->localizedName($product);
+                            $comingSoon = $productService->isComingSoon($product);
                         @endphp
-                        <article class="ag-store-product-card">
+                        <article @class(['ag-store-product-card', 'ag-store-product-card--coming-soon' => $comingSoon])>
                             <a href="{{ $productUrl }}" class="ag-store-product-card__image-link">
                                 <div class="ag-store-product-card__image-wrap">
                                     @if ($imageUrl)
                                         <img src="{{ $imageUrl }}" alt="{{ $productService->localizedName($product) }}" class="ag-store-product-card__image" loading="lazy" decoding="async" width="320" height="320" />
                                     @else
                                         <span class="ag-store-product-card__placeholder">{{ mb_strtoupper(mb_substr($name, 0, 1)) }}</span>
+                                    @endif
+                                    @if ($comingSoon)
+                                        <span class="ag-store-product-card__badge">{{ __('agricart.storefront.products.coming_soon') }}</span>
                                     @endif
                                 </div>
                             </a>
@@ -120,7 +124,9 @@
                                         ])
                                     </p>
                                 @endif
-                                @if ($price = $productService->formattedRetailPrice($product))
+                                @if ($comingSoon)
+                                    <p class="ag-store-product-card__coming-soon">{{ __('agricart.storefront.products.coming_soon') }}</p>
+                                @elseif ($price = $productService->formattedRetailPrice($product))
                                     <p class="ag-store-product-card__price">{{ __('agricart.storefront.products.price', ['amount' => $price]) }}</p>
                                 @elseif (! ($onlineStoreChannel['show_prices'] ?? true))
                                     <p class="ag-store-product-card__offline-msg">{{ $onlineStoreChannel['offline_message'] ?? __('sales_channels.defaults.offline_message') }}</p>

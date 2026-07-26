@@ -3141,6 +3141,7 @@ return [
         'products' => [
             'title' => 'Products',
             'empty' => 'No products in this category yet.',
+            'coming_soon' => 'Coming soon',
             'price' => 'Rs :amount',
             'photo_count' => ':count photos',
         ],
@@ -3151,6 +3152,7 @@ return [
             'back_to_category' => 'Back to :category',
             'quantity' => 'Quantity',
             'add_to_cart' => 'Add to cart',
+            'coming_soon' => 'Coming soon — this product is not available for purchase yet.',
             'deactivated' => 'Deactivated',
             'in_stock' => ':qty available',
             'out_of_stock' => 'Out of stock right now. Message us on the site messenger if you need this product.',

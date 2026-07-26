@@ -23,7 +23,7 @@ class StoreProductService
     public function paginatedProductsForCategory(Category $category, int $perPage = 36): LengthAwarePaginator
     {
         $products = Product::query()
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'inactive'])
             ->where(function ($query) use ($category): void {
                 $query->where('category_id', $category->id)
                     ->orWhereIn('id', function ($sub) use ($category): void {
@@ -95,8 +95,37 @@ class StoreProductService
     private function storefrontSearchQuery(string $term): Builder
     {
         return Product::query()
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'inactive'])
             ->tap(fn (Builder $query) => $this->applyStorefrontSearch($query, $term));
+    }
+
+    /**
+     * Inactive products stay visible on the storefront as "Coming soon".
+     */
+    public function isComingSoon(Product $product): bool
+    {
+        return ($product->status ?? '') !== 'active';
+    }
+
+    public function findStorefrontBySlug(string $slug): ?Product
+    {
+        return Product::query()
+            ->where('slug', $slug)
+            ->whereIn('status', ['active', 'inactive'])
+            ->with([
+                'brand',
+                'category',
+                'unit',
+                'packUnit',
+                'attributes',
+                'controls' => fn ($query) => $query->where('status', 'active'),
+                'deliveryMethods' => fn ($query) => $query
+                    ->where('delivery_methods.status', 'active')
+                    ->orderBy('delivery_methods.sort_order')
+                    ->orderBy('delivery_methods.name_en')
+                    ->with('rule'),
+            ])
+            ->first();
     }
 
     public function isSearchableTerm(string $term): bool

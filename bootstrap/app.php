@@ -85,6 +85,12 @@ return Application::configure(basePath: dirname(__DIR__))
         $protect($schedule->command('analytics:geoip-update')
             ->monthlyOn(2, '04:15')
             ->timezone(config('app.timezone')));
+
+        // Shared hosting often has no long-running worker or shell crontab.
+        // Drain the database queue every minute via schedule:run / web tick.
+        $protect($schedule->command('queue:work --stop-when-empty --tries=3 --max-time=55')
+            ->everyMinute()
+            ->timezone(config('app.timezone')));
     })
     ->withMiddleware(function (Middleware $middleware) use ($trustedProxies): void {
         $middleware->trustProxies(at: $trustedProxies);

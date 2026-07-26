@@ -67,7 +67,8 @@ class StorefrontSearchTest extends TestCase
             ->assertSee($product->name_en)
             ->assertSee(route('store.product', $product->slug))
             ->assertDontSee('Hidden Agriculture')
-            ->assertDontSee($inactiveProduct->name_en)
+            ->assertSee($inactiveProduct->name_en)
+            ->assertSee(__('agricart.storefront.products.coming_soon'), false)
             ->assertDontSee('Hidden Category Product');
     }
 

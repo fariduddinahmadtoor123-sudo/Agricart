@@ -20,8 +20,9 @@
                     $mainImage = $imageData[0] ?? null;
                     $productUrl = route('store.product', $product->slug);
                     $priority = $loop->index < 4;
+                    $comingSoon = $productService->isComingSoon($product);
                 @endphp
-                <article class="ag-store-product-card">
+                <article @class(['ag-store-product-card', 'ag-store-product-card--coming-soon' => $comingSoon])>
                     <div class="ag-store-product-card__media" data-store-product-card>
                         <a href="{{ $productUrl }}" class="ag-store-product-card__image-link">
                             <div class="ag-store-product-card__image-wrap">
@@ -40,7 +41,9 @@
                                     />
                                 @endif
 
-                                @if (count($imageUrls) > 1)
+                                @if ($comingSoon)
+                                    <span class="ag-store-product-card__badge">{{ __('agricart.storefront.products.coming_soon') }}</span>
+                                @elseif (count($imageUrls) > 1)
                                     <span class="ag-store-product-card__photo-count">
                                         {{ __('agricart.storefront.products.photo_count', ['count' => count($imageUrls)]) }}
                                     </span>
@@ -93,7 +96,9 @@
                                 ])
                             </p>
                         @endif
-                        @if ($price = $productService->formattedRetailPrice($product))
+                        @if ($comingSoon)
+                            <p class="ag-store-product-card__coming-soon">{{ __('agricart.storefront.products.coming_soon') }}</p>
+                        @elseif ($price = $productService->formattedRetailPrice($product))
                             <p class="ag-store-product-card__price">{{ __('agricart.storefront.products.price', ['amount' => $price]) }}</p>
                         @elseif (! ($onlineStoreChannel['show_prices'] ?? true))
                             <p class="ag-store-product-card__offline-msg">{{ $onlineStoreChannel['offline_message'] ?? __('sales_channels.defaults.offline_message') }}</p>
