@@ -94,9 +94,10 @@
                     </div>
 
                     <div class="ag-store-footer__col ag-store-footer__col--map">
-                        @if (filled($settings->footer_map_embed))
+                        @php($footerMapEmbed = \App\Support\MapEmbedSanitizer::sanitize($settings->footer_map_embed))
+                        @if (filled($footerMapEmbed))
                             <div class="ag-store-footer__map">
-                                {!! $settings->footer_map_embed !!}
+                                {!! $footerMapEmbed !!}
                             </div>
                         @endif
                     </div>

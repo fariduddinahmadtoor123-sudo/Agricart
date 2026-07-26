@@ -20,7 +20,8 @@
                     $imageUrl = $categoryService->imageUrl($item);
                     $categoryName = $categoryService->localizedName($item);
                     $letter = mb_strtoupper(mb_substr($categoryName, 0, 1));
-                    $priority = $loop->first;
+                    // First row (up to 6) eager — rest lazy. Typical home grids stay under ~100 images.
+                    $priority = $loop->index < 6;
                     $productCount = (int) ($productCounts[$item->id] ?? 0);
                 @endphp
                 <a href="{{ route('store.category', $item->slug) }}" class="ag-store-category-card">

@@ -32,7 +32,7 @@ class InactiveAdminRouteAccessTest extends TestCase
             ->assertOk();
     }
 
-    public function test_inactive_staff_receives_forbidden_on_admin_routes(): void
+    public function test_inactive_staff_is_logged_out_and_redirected_from_admin_routes(): void
     {
         $user = User::factory()->create([
             'role_id' => $this->nonSuperAdminRoleId(),
@@ -42,7 +42,9 @@ class InactiveAdminRouteAccessTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('admin.notifications.summary'))
-            ->assertForbidden();
+            ->assertRedirect('/admin/login');
+
+        $this->assertGuest();
     }
 
     private function nonSuperAdminRoleId(): int

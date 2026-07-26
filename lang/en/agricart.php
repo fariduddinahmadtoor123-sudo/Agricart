@@ -3720,6 +3720,7 @@ return [
                 'registration_title_ur' => 'Registration heading (Urdu)',
                 'map_embed' => 'Google Maps embed code',
                 'map_hint' => 'Paste the full iframe code from Google Maps → Share → Embed a map.',
+                'map_embed_invalid' => 'Map embed must be a single HTTPS Google Maps or OpenStreetMap iframe (no scripts or other HTML).',
                 'copyright_en' => 'Copyright line (English)',
                 'copyright_ur' => 'Copyright line (Urdu)',
                 'copyright_hint' => 'Use {year} for the current year, e.g. © {year} Agricart. All rights reserved.',

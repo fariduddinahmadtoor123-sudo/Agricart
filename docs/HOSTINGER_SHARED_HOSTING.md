@@ -158,8 +158,8 @@ See also [PRODUCTION_DEPLOYMENT.md](./PRODUCTION_DEPLOYMENT.md).
 | Command | Purpose |
 |---------|---------|
 | `php artisan hostinger:sync-public --clean` | Publish `public/` and remove stale/duplicate build directories safely |
-| `php artisan hostinger:sync-storage --dry-run --delete-stale` | Preview approved copies and stale deletions |
-| `php artisan hostinger:sync-storage --delete-stale` | Guarded mirror fallback; excludes private prefixes |
+| `php artisan hostinger:sync-storage --replace-link --dry-run --delete-stale` | Preview mirror into Apache-facing storage (`public/storage` for direct checkout) |
+| `php artisan hostinger:sync-storage --replace-link --delete-stale` | Refresh static media mirror after uploads / full restore; excludes private prefixes |
 | `php artisan hostinger:sync-public --dry-run` | Preview files |
 | `php artisan hostinger:verify` | Test Laravel root resolution |
 | `php artisan deploy:preflight` | Includes `hostinger:verify` when `HOSTINGER_PUBLIC_HTML` is set |

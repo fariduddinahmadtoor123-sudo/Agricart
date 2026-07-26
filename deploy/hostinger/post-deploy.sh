@@ -35,8 +35,8 @@ MAINTENANCE=1
 php artisan migrate --force
 php artisan hostinger:sync-public --clean
 php artisan storage:link
-php artisan hostinger:sync-storage --dry-run --delete-stale
-php artisan hostinger:sync-storage --delete-stale
+php artisan hostinger:sync-storage --replace-link --dry-run --delete-stale
+php artisan hostinger:sync-storage --replace-link --delete-stale
 
 # Harden public uploads against PHP webshells (Apache).
 if [ -f deploy/hostinger/storage-public.htaccess ]; then

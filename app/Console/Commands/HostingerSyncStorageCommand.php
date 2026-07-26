@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\Media\HostingerPublicStorageTarget;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use RecursiveDirectoryIterator;
@@ -13,11 +14,12 @@ class HostingerSyncStorageCommand extends Command
     protected $signature = 'hostinger:sync-storage
                             {--target= : Absolute path to public_html (overrides HOSTINGER_PUBLIC_HTML)}
                             {--dry-run : List copy/delete operations without changing files}
-                            {--delete-stale : Delete target files absent from the approved public source}';
+                            {--delete-stale : Delete target files absent from the approved public source}
+                            {--replace-link : Replace a public/storage symlink with a real directory mirror (Hostinger Apache)}';
 
-    protected $description = 'Mirror storage/app/public into public_html/storage for fast static image serving on shared hosting';
+    protected $description = 'Mirror storage/app/public into the Apache-facing storage directory for fast static image serving';
 
-    public function handle(): int
+    public function handle(HostingerPublicStorageTarget $targets): int
     {
         $publicHtml = $this->option('target') ?: config('hostinger.public_html');
 
@@ -27,9 +29,14 @@ class HostingerSyncStorageCommand extends Command
             return self::FAILURE;
         }
 
-        $publicHtml = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $publicHtml), DIRECTORY_SEPARATOR);
         $source = storage_path('app/public');
-        $target = $publicHtml.DIRECTORY_SEPARATOR.'storage';
+        $target = $targets->resolve($publicHtml);
+
+        if ($target === null) {
+            $this->components->error('Could not resolve a safe public storage mirror target.');
+
+            return self::FAILURE;
+        }
 
         if (! File::isDirectory($source)) {
             $this->components->error('Source storage/app/public missing.');
@@ -37,46 +44,47 @@ class HostingerSyncStorageCommand extends Command
             return self::FAILURE;
         }
 
-        $resolvedSource = realpath($source);
-        $resolvedTarget = realpath($target);
-        $resolvedLaravelStorage = realpath(storage_path());
-
-        if (is_string($resolvedSource) && is_string($resolvedTarget) && strcasecmp($resolvedSource, $resolvedTarget) === 0) {
-            $this->components->info('Verified public_html/storage link points to storage/app/public; no mirror is needed.');
-
-            return self::SUCCESS;
-        }
-
-        // Direct Git checkout inside public_html: HOSTINGER_PUBLIC_HTML/storage is the
-        // Laravel storage root (contains app/private, framework, logs). Never mirror or
-        // --delete-stale against that tree — it would wipe CNIC docs and backups.
-        if (
-            is_string($resolvedTarget)
-            && is_string($resolvedLaravelStorage)
-            && (
-                strcasecmp($resolvedTarget, $resolvedLaravelStorage) === 0
-                || (
-                    is_string($resolvedSource)
-                    && str_starts_with(
-                        strtolower(rtrim($resolvedSource, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR),
-                        strtolower(rtrim($resolvedTarget, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR),
-                    )
-                )
-            )
-        ) {
-            $this->components->info('Laravel storage root detected as sync target; skipping media mirror (use storage:link).');
-
-            return self::SUCCESS;
-        }
-
-        if ($this->isLinkOrJunction($target)) {
-            $this->components->error('public_html/storage is a link or junction that does not resolve exactly to storage/app/public.');
+        if ($targets->isLaravelStorageTree($target, $source)) {
+            $this->components->error('Refusing to mirror into Laravel storage root (would risk private files).');
 
             return self::FAILURE;
         }
 
-        if (File::exists($target) && ! File::isDirectory($target)) {
-            $this->components->error('public_html/storage exists and is not a directory.');
+        if ($targets->isExactLinkToSource($target, $source)) {
+            $replace = (bool) $this->option('replace-link')
+                || $targets->isDirectCheckout($publicHtml)
+                || filled(config('hostinger.public_html'));
+
+            if (! $replace) {
+                $this->components->info('public/storage already links to storage/app/public; no mirror needed.');
+
+                return self::SUCCESS;
+            }
+
+            if ($this->option('dry-run')) {
+                $this->components->warn('Would replace storage symlink/junction with a real directory mirror for Apache.');
+            } else {
+                $this->components->warn('Replacing storage symlink/junction with a real directory mirror for Apache.');
+                File::delete($target);
+
+                if (File::exists($target) || is_link($target)) {
+                    $this->components->error('Could not remove existing storage link: '.$target);
+
+                    return self::FAILURE;
+                }
+
+                File::ensureDirectoryExists($target);
+            }
+        }
+
+        if ($this->isLinkOrJunction($target) && ! $targets->isExactLinkToSource($target, $source)) {
+            $this->components->error('public storage target is a link or junction that does not resolve to storage/app/public.');
+
+            return self::FAILURE;
+        }
+
+        if (File::exists($target) && ! File::isDirectory($target) && ! is_link($target)) {
+            $this->components->error('Public storage target exists and is not a directory.');
 
             return self::FAILURE;
         }
@@ -86,12 +94,13 @@ class HostingerSyncStorageCommand extends Command
         }
 
         if (File::isDirectory($target) && $this->containsDestinationLink($target)) {
-            $this->components->error('Destination contains a symlink or junction; refusing to copy or delete through it.');
+            $this->components->error('Destination contains a nested symlink or junction; refusing to copy or delete through it.');
 
             return self::FAILURE;
         }
 
-        $this->components->info("Sync {$source} → {$target}");
+        $mode = $targets->isDirectCheckout($publicHtml) ? 'direct-checkout public/storage' : 'split public_html/storage';
+        $this->components->info("Sync {$source} → {$target} ({$mode})");
 
         $copied = 0;
         $approved = [];
@@ -194,6 +203,10 @@ class HostingerSyncStorageCommand extends Command
 
     private function containsDestinationLink(string $target): bool
     {
+        if (! File::isDirectory($target)) {
+            return false;
+        }
+
         $iterator = new RecursiveIteratorIterator(
             new RecursiveDirectoryIterator($target, RecursiveDirectoryIterator::SKIP_DOTS),
             RecursiveIteratorIterator::SELF_FIRST,

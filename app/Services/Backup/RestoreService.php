@@ -65,6 +65,7 @@ class RestoreService
 
             if ($entry->type === BackupService::TYPE_FULL) {
                 $this->restorePublicFiles($workDir . DIRECTORY_SEPARATOR . 'files');
+                $this->remirrorPublicMediaForHosting();
             }
 
             $merged = 0;
@@ -159,6 +160,25 @@ class RestoreService
         File::ensureDirectoryExists($targetRoot);
 
         File::copyDirectory($filesDir, $targetRoot);
+    }
+
+    /**
+     * After a full restore, refresh the Apache-facing public storage mirror.
+     * Without this, Hostinger keeps serving stale/missing files via slow PHP fallback.
+     */
+    private function remirrorPublicMediaForHosting(): void
+    {
+        if (! filled(config('hostinger.public_html'))) {
+            return;
+        }
+
+        try {
+            Artisan::call('hostinger:sync-storage', [
+                '--replace-link' => true,
+            ]);
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
     }
 
     private function writeLoginAudit(string $backupId, int $inserted, int $replaced, bool $authoritative): void

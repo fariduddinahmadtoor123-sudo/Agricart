@@ -11,6 +11,7 @@ class DatabaseDumper
     public function __construct(
         private readonly MysqlCliToolResolver $cliTools,
         private readonly PhpMysqlDumper $phpDumper,
+        private readonly MysqlClientCredentialsFile $credentialsFiles,
     ) {}
 
     public function dumpTo(string $targetPath): void
@@ -106,9 +107,10 @@ class DatabaseDumper
      */
     private function dumpMysqlViaCli(string $targetPath, array $config, string $binary): void
     {
-        $credentialsFile = $this->writeMysqlCredentialsFile(
+        $credentialsFile = $this->credentialsFiles->create(
             (string) ($config['username'] ?? ''),
             (string) ($config['password'] ?? ''),
+            'backup',
         );
 
         try {
@@ -141,19 +143,4 @@ class DatabaseDumper
         }
     }
 
-    private function writeMysqlCredentialsFile(string $username, string $password): string
-    {
-        $path = tempnam(sys_get_temp_dir(), 'agricart-mysql-');
-
-        if ($path === false) {
-            throw ValidationException::withMessages([
-                'backup' => __('agricart.backups.messages.dump_failed'),
-            ]);
-        }
-
-        $contents = "[client]\nuser=\"{$username}\"\npassword=\"{$password}\"\n";
-        file_put_contents($path, $contents);
-
-        return $path;
-    }
 }

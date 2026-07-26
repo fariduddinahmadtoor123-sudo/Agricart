@@ -11,6 +11,7 @@ class DatabaseImporter
     public function __construct(
         private readonly MysqlCliToolResolver $cliTools,
         private readonly PhpMysqlImporter $phpImporter,
+        private readonly MysqlClientCredentialsFile $credentialsFiles,
     ) {}
 
     public function importFrom(string $sourcePath): void
@@ -132,9 +133,10 @@ class DatabaseImporter
      */
     private function importMysqlViaCli(string $sourcePath, array $config, string $binary): void
     {
-        $credentialsFile = $this->writeMysqlCredentialsFile(
+        $credentialsFile = $this->credentialsFiles->create(
             (string) ($config['username'] ?? ''),
             (string) ($config['password'] ?? ''),
+            'restore',
         );
 
         try {
@@ -162,19 +164,4 @@ class DatabaseImporter
         }
     }
 
-    private function writeMysqlCredentialsFile(string $username, string $password): string
-    {
-        $path = tempnam(sys_get_temp_dir(), 'agricart-mysql-');
-
-        if ($path === false) {
-            throw ValidationException::withMessages([
-                'restore' => __('agricart.backups.messages.restore_failed'),
-            ]);
-        }
-
-        $contents = "[client]\nuser=\"{$username}\"\npassword=\"{$password}\"\n";
-        file_put_contents($path, $contents);
-
-        return $path;
-    }
 }

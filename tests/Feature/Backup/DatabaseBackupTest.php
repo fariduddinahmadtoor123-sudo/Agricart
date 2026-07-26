@@ -70,7 +70,7 @@ class DatabaseBackupTest extends TestCase
         $cli = $this->createMock(MysqlCliToolResolver::class);
         $cli->method('resolveMysqldump')->willReturn(null);
 
-        $dumper = new DatabaseDumper($cli, $phpDumper);
+        $dumper = new DatabaseDumper($cli, $phpDumper, new \App\Services\Backup\MysqlClientCredentialsFile);
         $target = storage_path('app/backup-php-fallback-test.sql');
 
         try {

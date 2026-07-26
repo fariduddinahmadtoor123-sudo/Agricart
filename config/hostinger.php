@@ -15,9 +15,14 @@ return [
     'public_html' => env('HOSTINGER_PUBLIC_HTML'),
 
     /*
-    | When public_html/storage is a real directory (symlink disabled), copy/delete
-    | each public media file there immediately after upload/delete so Apache does
-    | not keep serving a stale mirror. No-op on Laragon/VPS with a correct symlink.
+    | Mirror storage/app/public into the Apache-facing directory after each
+    | upload/delete (and after full backup restore via hostinger:sync-storage).
+    |
+    | Split layout (app outside web root): {HOSTINGER_PUBLIC_HTML}/storage
+    | Direct Git checkout inside public_html: {app}/public/storage
+    | Never mirrors into Laravel's storage/ root (private files).
+    |
+    | No-op on Laragon/VPS when public/storage is already a correct symlink.
     */
     'mirror_public_media_on_write' => filter_var(
         env('HOSTINGER_MIRROR_PUBLIC_MEDIA_ON_WRITE', true),

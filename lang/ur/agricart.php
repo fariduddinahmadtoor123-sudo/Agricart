@@ -3719,6 +3719,7 @@ return [
                 'registration_title_ur' => 'رجسٹریشن عنوان (اردو)',
                 'map_embed' => 'گوگل میپ embed کوڈ',
                 'map_hint' => 'Google Maps → Share → Embed a map سے پورا iframe کوڈ paste کریں۔',
+                'map_embed_invalid' => 'میپ embed صرف ایک HTTPS Google Maps یا OpenStreetMap iframe ہو سکتا ہے (کوئی اسکرپٹ یا دوسرا HTML نہیں)۔',
                 'copyright_en' => 'Copyright لائن (انگریزی)',
                 'copyright_ur' => 'Copyright لائن (اردو)',
                 'copyright_hint' => '{year} = موجودہ سال، مثال: © {year} Agricart. All rights reserved.',

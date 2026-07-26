@@ -7,19 +7,25 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Keeps Hostinger's public_html/storage mirror in sync with storage/app/public
- * after each upload/delete. On Laragon (symlink) or when HOSTINGER_PUBLIC_HTML
- * is unset, this is a no-op.
+ * Keeps the Apache-facing public storage mirror in sync with storage/app/public
+ * after each upload/delete. On Laragon (working symlink) this is a no-op.
+ *
+ * Split Hostinger layout: public_html/storage
+ * Direct checkout in public_html: public/storage (real directory, not Laravel storage/)
  */
 class PublicMediaMirror
 {
+    public function __construct(
+        private readonly HostingerPublicStorageTarget $targets,
+    ) {}
+
     public function isActive(): bool
     {
         return $this->mirrorRoot() !== null;
     }
 
     /**
-     * Absolute path to public_html/storage when a real directory mirror is in use.
+     * Absolute path to the Apache-facing storage mirror when a real directory is in use.
      */
     public function mirrorRoot(): ?string
     {
@@ -27,29 +33,20 @@ class PublicMediaMirror
             return null;
         }
 
-        $publicHtml = config('hostinger.public_html');
+        $target = $this->targets->resolve();
 
-        if (! is_string($publicHtml) || trim($publicHtml) === '') {
+        if ($target === null) {
             return null;
         }
 
-        $publicHtml = rtrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $publicHtml), DIRECTORY_SEPARATOR);
-        $target = $publicHtml.DIRECTORY_SEPARATOR.'storage';
         $source = storage_path('app'.DIRECTORY_SEPARATOR.'public');
 
-        if ($this->isLinkOrJunction($target)) {
-            $resolvedSource = realpath($source);
-            $resolvedTarget = realpath($target);
+        // Symlink/junction already pointing at the live files — nothing to mirror into.
+        if ($this->targets->isExactLinkToSource($target, $source)) {
+            return null;
+        }
 
-            if (
-                is_string($resolvedSource)
-                && is_string($resolvedTarget)
-                && strcasecmp($resolvedSource, $resolvedTarget) === 0
-            ) {
-                // Correct symlink — Apache already sees live files.
-                return null;
-            }
-
+        if ($this->isLinkOrJunction($target) && File::exists($target)) {
             return null;
         }
 
@@ -57,29 +54,10 @@ class PublicMediaMirror
             return null;
         }
 
-        $resolvedTarget = realpath($target);
-        $resolvedLaravelStorage = realpath(storage_path());
-        $resolvedSource = realpath($source);
-
-        if (
-            is_string($resolvedTarget)
-            && is_string($resolvedLaravelStorage)
-            && (
-                strcasecmp($resolvedTarget, $resolvedLaravelStorage) === 0
-                || (
-                    is_string($resolvedSource)
-                    && str_starts_with(
-                        strtolower(rtrim($resolvedSource, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR),
-                        strtolower(rtrim($resolvedTarget, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR),
-                    )
-                )
-            )
-        ) {
-            // Never treat Laravel's storage root as a public mirror.
+        if ($this->targets->isLaravelStorageTree($target, $source)) {
             return null;
         }
 
-        // Mirror mode: public_html/storage is (or will be) a real directory.
         return $target;
     }
 

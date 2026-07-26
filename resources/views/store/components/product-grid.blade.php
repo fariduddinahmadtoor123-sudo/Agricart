@@ -19,6 +19,7 @@
                     $imageUrls = array_column($imageData, 'url');
                     $mainImage = $imageData[0] ?? null;
                     $productUrl = route('store.product', $product->slug);
+                    $priority = $loop->index < 4;
                 @endphp
                 <article class="ag-store-product-card">
                     <div class="ag-store-product-card__media" data-store-product-card>
@@ -34,7 +35,7 @@
                                         width="{{ $mainImage['width'] ?? 320 }}"
                                         height="{{ $mainImage['height'] ?? 320 }}"
                                         decoding="async"
-                                        loading="lazy"
+                                        @if ($priority) loading="eager" fetchpriority="high" @else loading="lazy" @endif
                                         onerror="this.classList.add('is-failed')"
                                     />
                                 @endif

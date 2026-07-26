@@ -7,6 +7,8 @@ use App\Models\StoreFooterLink;
 use App\Models\StorePage;
 use App\Rules\SafeUrl;
 use App\Services\Media\OptimizedImageStorage;
+use App\Support\MapEmbedSanitizer;
+use Closure;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
 use Livewire\WithFileUploads;
@@ -141,7 +143,20 @@ class FooterSettings extends BaseStoreSettings
             'footer_policies_title_ur' => ['nullable', 'string', 'max:255'],
             'footer_registration_title_en' => ['nullable', 'string', 'max:255'],
             'footer_registration_title_ur' => ['nullable', 'string', 'max:255'],
-            'footer_map_embed' => ['nullable', 'string', 'max:5000'],
+            'footer_map_embed' => [
+                'nullable',
+                'string',
+                'max:5000',
+                function (string $attribute, mixed $value, Closure $fail): void {
+                    if (! is_string($value) || trim($value) === '') {
+                        return;
+                    }
+
+                    if (MapEmbedSanitizer::sanitize($value) === null) {
+                        $fail(__('agricart.store.admin.footer.map_embed_invalid'));
+                    }
+                },
+            ],
             'footer_copyright_en' => ['nullable', 'string', 'max:500'],
             'footer_copyright_ur' => ['nullable', 'string', 'max:500'],
         ]);
@@ -158,7 +173,9 @@ class FooterSettings extends BaseStoreSettings
             'footer_policies_title_ur' => filled($this->footer_policies_title_ur) ? $this->footer_policies_title_ur : null,
             'footer_registration_title_en' => filled($this->footer_registration_title_en) ? $this->footer_registration_title_en : null,
             'footer_registration_title_ur' => filled($this->footer_registration_title_ur) ? $this->footer_registration_title_ur : null,
-            'footer_map_embed' => filled($this->footer_map_embed) ? $this->footer_map_embed : null,
+            'footer_map_embed' => filled($this->footer_map_embed)
+                ? MapEmbedSanitizer::sanitize($this->footer_map_embed)
+                : null,
             'footer_copyright_en' => filled($this->footer_copyright_en) ? $this->footer_copyright_en : null,
             'footer_copyright_ur' => filled($this->footer_copyright_ur) ? $this->footer_copyright_ur : null,
             'footer_show_social' => $this->footer_show_social,

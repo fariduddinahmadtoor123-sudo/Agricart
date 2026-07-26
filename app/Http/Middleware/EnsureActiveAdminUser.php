@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\User;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 class EnsureActiveAdminUser
@@ -13,10 +14,19 @@ class EnsureActiveAdminUser
     {
         $user = $request->user();
 
-        if (! $user instanceof User || ! $user->canUseAdmin()) {
-            abort(403);
+        if ($user instanceof User && $user->canUseAdmin()) {
+            return $next($request);
         }
 
-        return $next($request);
+        Auth::logout();
+
+        if ($request->hasSession()) {
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
+
+        return redirect()
+            ->guest('/admin/login')
+            ->with('status', __('agricart.auth.inactive'));
     }
 }
