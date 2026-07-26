@@ -22,9 +22,13 @@
                     $letter = mb_strtoupper(mb_substr($categoryName, 0, 1));
                     // First row (up to 6) eager — rest lazy. Typical home grids stay under ~100 images.
                     $priority = $loop->index < 6;
-                    $productCount = (int) ($productCounts[$item->id] ?? 0);
+                    $comingSoon = $categoryService->isComingSoon($item);
+                    $productCount = $comingSoon ? 0 : (int) ($productCounts[$item->id] ?? 0);
                 @endphp
-                <a href="{{ route('store.category', $item->slug) }}" class="ag-store-category-card">
+                <a
+                    href="{{ route('store.category', $item->slug) }}"
+                    @class(['ag-store-category-card', 'ag-store-category-card--coming-soon' => $comingSoon])
+                >
                     <div class="ag-store-category-card__image-wrap">
                         <span class="ag-store-category-card__placeholder" aria-hidden="true">{{ $letter }}</span>
                         @if ($imageUrl)
@@ -39,11 +43,18 @@
                                 onerror="this.classList.add('is-failed')"
                             />
                         @endif
+                        @if ($comingSoon)
+                            <span class="ag-store-category-card__badge">{{ __('agricart.storefront.categories.coming_soon') }}</span>
+                        @endif
                     </div>
                     <div class="ag-store-category-card__body">
                         <span class="ag-store-category-card__name">{{ $categoryName }}</span>
                         <span class="ag-store-category-card__meta">
-                            {{ trans_choice('agricart.storefront.categories.product_count', $productCount, ['count' => number_format($productCount)]) }}
+                            @if ($comingSoon)
+                                {{ __('agricart.storefront.categories.coming_soon') }}
+                            @else
+                                {{ trans_choice('agricart.storefront.categories.product_count', $productCount, ['count' => number_format($productCount)]) }}
+                            @endif
                         </span>
                     </div>
                 </a>

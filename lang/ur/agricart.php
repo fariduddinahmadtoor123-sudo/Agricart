@@ -3133,6 +3133,7 @@ return [
         ],
         'categories' => [
             'empty' => 'ابھی کوئی روٹ کیٹگری نہیں۔ کیٹalog میں فعال زمرے شامل کریں۔',
+            'coming_soon' => 'جلد آ رہا ہے',
             'product_count' => '{0} 0 مصنوعات|{1} :count مصنوعہ|[2,*] :count مصنوعات',
             'products_inside' => '{0} No products in this category|{1} :count product in this category|[2,*] :count products in this category',
         ],

@@ -3134,6 +3134,7 @@ return [
         ],
         'categories' => [
             'empty' => 'No root categories yet. Add active categories in Catalog.',
+            'coming_soon' => 'Coming soon',
             'product_count' => '{0} 0 products|{1} :count product|[2,*] :count products',
             'products_inside' => '{0} No products in this category|{1} :count product in this category|[2,*] :count products in this category',
         ],

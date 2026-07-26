@@ -1,6 +1,7 @@
 @extends('store.layouts.app')
 
 @php
+    $comingSoon = (bool) ($comingSoon ?? false);
     $categoryName = $categoryService->localizedName($category);
     $categorySeoTitle = $categoryService->localizedField($category, 'seo_title') ?: $categoryName;
     $categorySeoDescription = $categoryService->localizedField($category, 'seo_description')
@@ -40,9 +41,19 @@
     <h1 class="ag-store-page-title">
         {{ $categoryName }}
         <span class="ag-store-page-title__meta">
-            {{ trans_choice('agricart.storefront.categories.product_count', $categoryProductCount, ['count' => number_format($categoryProductCount)]) }}
+            @if ($comingSoon)
+                {{ __('agricart.storefront.categories.coming_soon') }}
+            @else
+                {{ trans_choice('agricart.storefront.categories.product_count', $categoryProductCount, ['count' => number_format($categoryProductCount)]) }}
+            @endif
         </span>
     </h1>
+
+    @if ($comingSoon)
+        <div class="ag-store-placeholder-note" role="status">
+            {{ __('agricart.storefront.category.coming_soon') }}
+        </div>
+    @endif
 
     @if ($childCategories->isNotEmpty())
         @include('store.components.category-grid', [
@@ -53,7 +64,7 @@
         ])
     @endif
 
-    @if ($products->isNotEmpty())
+    @if (! $comingSoon && $products->isNotEmpty())
         @include('store.components.product-grid', [
             'products' => $products,
             'sectionTitle' => __('agricart.storefront.products.title'),
@@ -64,7 +75,7 @@
                 {{ $products->links() }}
             </div>
         @endif
-    @elseif ($childCategories->isEmpty() && ! $hasStorefrontContent)
+    @elseif (! $comingSoon && $childCategories->isEmpty() && ! $hasStorefrontContent)
         <div class="ag-store-placeholder-note">
             {{ __('agricart.storefront.category.coming_soon') }}
         </div>

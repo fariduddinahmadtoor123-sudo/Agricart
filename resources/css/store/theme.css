@@ -1165,6 +1165,31 @@
     color: color-mix(in oklab, var(--agricart-store-ticker-text) 78%, transparent);
 }
 
+.ag-store-category-card__badge {
+    position: absolute;
+    z-index: 2;
+    top: 0.5rem;
+    inset-inline-start: 0.5rem;
+    padding: 0.2rem 0.45rem;
+    border: 1px solid var(--agricart-accent);
+    background: color-mix(in oklab, var(--agricart-accent) 88%, white);
+    color: var(--agricart-text);
+    font-size: 0.625rem;
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.ag-store-category-card--coming-soon .ag-store-category-card__image {
+    opacity: 0.72;
+}
+
+.ag-store-category-card--coming-soon .ag-store-category-card__meta {
+    color: var(--agricart-accent);
+    font-weight: 700;
+}
+
 /* Product grid */
 .ag-store-product-section {
     margin-top: 1.5rem;

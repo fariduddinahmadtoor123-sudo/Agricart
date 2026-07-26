@@ -15,7 +15,7 @@ class StoreCategoryService
      */
     public function rootCategories(): Collection
     {
-        return $this->activeChildrenOf(null);
+        return $this->storefrontChildrenOf(null);
     }
 
     /**
@@ -23,13 +23,29 @@ class StoreCategoryService
      */
     public function childCategories(Category $parent): Collection
     {
-        return $this->activeChildrenOf($parent->id);
+        return $this->storefrontChildrenOf($parent->id);
+    }
+
+    /**
+     * Inactive categories stay visible on the storefront as "Coming soon".
+     */
+    public function isComingSoon(Category $category): bool
+    {
+        return ($category->status ?? '') !== 'active';
+    }
+
+    public function findStorefrontBySlug(string $slug): ?Category
+    {
+        return Category::query()
+            ->where('slug', $slug)
+            ->whereIn('status', ['active', 'inactive'])
+            ->first();
     }
 
     /**
      * @return Collection<int, Category>
      */
-    private function activeChildrenOf(?int $parentId): Collection
+    private function storefrontChildrenOf(?int $parentId): Collection
     {
         $direct = Category::query()
             ->when(
@@ -37,7 +53,7 @@ class StoreCategoryService
                 fn ($query) => $query->whereNull('parent_id'),
                 fn ($query) => $query->where('parent_id', $parentId),
             )
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'inactive'])
             ->orderBy('name_en')
             ->get();
 
@@ -46,7 +62,7 @@ class StoreCategoryService
         }
 
         $alsoShown = Category::query()
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'inactive'])
             ->whereIn('id', function ($sub) use ($parentId): void {
                 $sub->select('category_id')
                     ->from('category_display')

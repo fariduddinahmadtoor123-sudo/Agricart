@@ -58,7 +58,7 @@ class StoreCategoryDisplayTest extends TestCase
         );
     }
 
-    public function test_inactive_also_show_in_categories_are_excluded(): void
+    public function test_inactive_also_show_in_categories_remain_as_coming_soon(): void
     {
         $parent = Category::query()->create([
             'slug' => 'tools',
@@ -78,9 +78,58 @@ class StoreCategoryDisplayTest extends TestCase
 
         $inactive->displayInCategories()->attach($parent->id);
 
-        $children = app(StoreCategoryService::class)->childCategories($parent);
+        $service = app(StoreCategoryService::class);
+        $children = $service->childCategories($parent);
 
-        $this->assertTrue($children->isEmpty());
+        $this->assertSame([$inactive->id], $children->pluck('id')->all());
+        $this->assertTrue($service->isComingSoon($inactive));
+
+        $this->get(route('store.category', $parent->slug))
+            ->assertOk()
+            ->assertSee('Old Tools', false)
+            ->assertSee(__('agricart.storefront.categories.coming_soon'), false);
+    }
+
+    public function test_inactive_root_category_stays_on_home_as_coming_soon(): void
+    {
+        Category::query()->create([
+            'slug' => 'soon-root',
+            'code' => 'CAT-SOON-ROOT',
+            'status' => 'inactive',
+            'name_en' => 'Soon Root',
+            'name_ur' => 'جلد روٹ',
+        ]);
+
+        $this->get(route('store.home'))
+            ->assertOk()
+            ->assertSee('Soon Root', false)
+            ->assertSee(__('agricart.storefront.categories.coming_soon'), false);
+    }
+
+    public function test_inactive_category_page_shows_coming_soon_without_products(): void
+    {
+        $category = Category::query()->create([
+            'slug' => 'inactive-page',
+            'code' => 'CAT-INACTIVE-PAGE',
+            'status' => 'inactive',
+            'name_en' => 'Inactive Page',
+            'name_ur' => 'غیر فعال صفحہ',
+        ]);
+
+        Product::query()->create([
+            'category_id' => $category->id,
+            'slug' => 'hidden-when-inactive',
+            'code' => 'PRD-HIDDEN-INACTIVE',
+            'status' => 'active',
+            'name_en' => 'Hidden When Inactive',
+            'name_ur' => 'چھپی پروڈکٹ',
+        ]);
+
+        $this->get(route('store.category', $category->slug))
+            ->assertOk()
+            ->assertSee('Inactive Page', false)
+            ->assertSee(__('agricart.storefront.category.coming_soon'), false)
+            ->assertDontSee('Hidden When Inactive', false);
     }
 
     public function test_root_categories_do_not_pull_display_placements(): void
