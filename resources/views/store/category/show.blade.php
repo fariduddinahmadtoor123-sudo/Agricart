@@ -8,25 +8,8 @@
         ?: $categoryService->localizedField($category, 'short_description')
         ?: $categoryName;
     $categoryImage = $categoryService->imageUrl($category);
-    $categorySchema = [
-        '@context' => 'https://schema.org',
-        '@graph' => [
-            [
-                '@type' => 'CollectionPage',
-                'name' => $categoryName,
-                'description' => strip_tags($categorySeoDescription),
-                'url' => route('store.category', $category->slug),
-                'image' => $categoryImage,
-            ],
-            [
-                '@type' => 'BreadcrumbList',
-                'itemListElement' => [
-                    ['@type' => 'ListItem', 'position' => 1, 'name' => __('agricart.storefront.category.home'), 'item' => route('store.home')],
-                    ['@type' => 'ListItem', 'position' => 2, 'name' => $categoryName, 'item' => route('store.category', $category->slug)],
-                ],
-            ],
-        ],
-    ];
+    $schemaService = app(\App\Services\Store\StorefrontSchemaService::class);
+    $categorySchema = $schemaService->categoryDocument($category, $categoryService, $faqs ?? []);
 @endphp
 
 @section('title', $categorySeoTitle . ' — ' . ($settings->localized('site_name') ?? config('app.name')))
@@ -34,7 +17,7 @@
 @section('canonical', route('store.category', $category->slug))
 @if ($categoryImage) @section('seo_image', $categoryImage) @endif
 @push('structured-data')
-    <script type="application/ld+json">{!! json_encode($categorySchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
+    <script type="application/ld+json">{!! $schemaService->toJson($categorySchema) !!}</script>
 @endpush
 
 @section('content')

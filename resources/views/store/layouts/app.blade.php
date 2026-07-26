@@ -6,7 +6,10 @@
         $seoTitle = trim($__env->yieldContent('title', $siteName));
         $seoDescription = trim($__env->yieldContent('seo_description', (string) ($settings->localized('footer_tagline') ?? $siteName)));
         $canonical = trim($__env->yieldContent('canonical', request()->url()));
-        $seoImage = trim($__env->yieldContent('seo_image', (string) ($logo_url ?? '')));
+        $seoImage = trim($__env->yieldContent('seo_image', ''));
+        if ($seoImage === '') {
+            $seoImage = trim((string) ($settings->defaultOgImageUrl() ?? $logo_url ?? ''));
+        }
         if ($seoImage !== '' && ! preg_match('#^https?://#i', $seoImage)) {
             $seoImage = url($seoImage);
         }
@@ -14,6 +17,8 @@
             'store.search', 'store.search.*', 'store.cart', 'store.checkout', 'store.checkout.*',
             'store.customer.*', 'auth.*'
         );
+        $googleVerification = trim((string) ($settings->google_site_verification ?? ''));
+        $bingVerification = trim((string) ($settings->bing_site_verification ?? ''));
     @endphp
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -22,6 +27,12 @@
     <meta name="description" content="{{ $seoDescription }}">
     <meta name="robots" content="{{ $noindex ? 'noindex,follow' : 'index,follow,max-image-preview:large' }}">
     <link rel="canonical" href="{{ $canonical }}">
+    @if ($googleVerification !== '')
+        <meta name="google-site-verification" content="{{ $googleVerification }}">
+    @endif
+    @if ($bingVerification !== '')
+        <meta name="msvalidate.01" content="{{ $bingVerification }}">
+    @endif
     <meta property="og:locale" content="{{ app()->getLocale() === 'ur' ? 'ur_PK' : 'en_PK' }}">
     <meta property="og:type" content="@yield('seo_type', 'website')">
     <meta property="og:site_name" content="{{ $siteName }}">
@@ -36,12 +47,14 @@
     <meta name="twitter:title" content="{{ $seoTitle }}">
     <meta name="twitter:description" content="{{ $seoDescription }}">
     @stack('structured-data')
+    @include('store.components.seo-tracking')
     @livewireStyles
     @vite(['resources/css/app.css', 'resources/css/store/theme.css', 'resources/js/store.js'])
     @include('store.components.search-box-styles')
     @stack('styles')
 </head>
 <body class="ag-store">
+    @include('store.components.seo-tracking-body')
     <a href="#store-main" class="ag-store-skip-link">{{ __('agricart.storefront.accessibility.skip_to_main') }}</a>
     @if ($settings->top_bar_enabled)
         @include('store.components.top-bar')

@@ -6,36 +6,16 @@
     $productSeoDescription = $productService->localizedField($product, 'seo_description')
         ?: $productService->localizedField($product, 'short_description')
         ?: $productName;
-    $productSchema = [
-        '@context' => 'https://schema.org',
-        '@graph' => [
-            [
-                '@type' => 'Product',
-                'name' => $productName,
-                'description' => strip_tags($productSeoDescription),
-                'sku' => $product->sku ?: $product->code,
-                'image' => $imageUrls,
-                'brand' => $product->brand ? ['@type' => 'Brand', 'name' => $productService->localizedBrandName($product)] : null,
-                'offers' => $buyPrice ? [
-                    '@type' => 'Offer',
-                    'url' => route('store.product', $product->slug),
-                    'priceCurrency' => 'PKR',
-                    'price' => $buyPrice['amount'] ?? $buyPrice['unit_price'],
-                    'availability' => (float) ($product->stock_qty ?? 0) > 0
-                        ? 'https://schema.org/InStock'
-                        : 'https://schema.org/OutOfStock',
-                ] : null,
-            ],
-            [
-                '@type' => 'BreadcrumbList',
-                'itemListElement' => array_values(array_filter([
-                    ['@type' => 'ListItem', 'position' => 1, 'name' => __('agricart.storefront.category.home'), 'item' => route('store.home')],
-                    $product->category ? ['@type' => 'ListItem', 'position' => 2, 'name' => $categoryService->localizedName($product->category), 'item' => route('store.category', $product->category->slug)] : null,
-                    ['@type' => 'ListItem', 'position' => $product->category ? 3 : 2, 'name' => $productName, 'item' => route('store.product', $product->slug)],
-                ])),
-            ],
-        ],
-    ];
+    $schemaService = app(\App\Services\Store\StorefrontSchemaService::class);
+    $productSchema = $schemaService->productDocument(
+        $product,
+        $productService,
+        $categoryService,
+        $imageUrls,
+        $buyPrice ?? null,
+        $reviewSummary ?? null,
+        ($product->status ?? '') !== 'active',
+    );
 @endphp
 
 @section('title', $productSeoTitle . ' — ' . ($settings->localized('site_name') ?? config('app.name')))
@@ -44,7 +24,7 @@
 @section('seo_type', 'product')
 @if ($imageUrls !== []) @section('seo_image', $imageUrls[0]) @endif
 @push('structured-data')
-    <script type="application/ld+json">{!! json_encode($productSchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
+    <script type="application/ld+json">{!! $schemaService->toJson($productSchema) !!}</script>
 @endpush
 
 @section('content')
@@ -173,6 +153,11 @@
                             >{{ __('agricart.storefront.product.ask_via_messenger') }}</button>
                         @endif
                     @endif
+
+                    @include('store.components.product-share', [
+                        'product' => $product,
+                        'productService' => $productService,
+                    ])
                 </section>
             </div>
         </div>

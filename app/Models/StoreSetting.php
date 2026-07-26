@@ -69,6 +69,12 @@ class StoreSetting extends Model
         'footer_show_register_link',
         'brand_review_notice_en',
         'brand_review_notice_ur',
+        'google_site_verification',
+        'bing_site_verification',
+        'default_og_image_path',
+        'ga_measurement_id',
+        'gtm_container_id',
+        'meta_pixel_id',
     ];
 
     /**
@@ -189,6 +195,13 @@ class StoreSetting extends Model
 
         return filled($path)
             ? Storage::disk('public')->url($path)
+            : null;
+    }
+
+    public function defaultOgImageUrl(): ?string
+    {
+        return filled($this->default_og_image_path)
+            ? Storage::disk('public')->url($this->default_og_image_path)
             : null;
     }
 

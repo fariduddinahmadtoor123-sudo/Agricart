@@ -5,43 +5,10 @@
 @section('canonical', route('store.home'))
 @push('structured-data')
     @php
-        $organization = array_filter([
-            '@type' => 'Organization',
-            'name' => $settings->localized('site_name') ?? config('app.name'),
-            'url' => route('store.home'),
-            'logo' => $logo_url ?: null,
-            'telephone' => $settings->top_bar_phone ?: null,
-            'sameAs' => array_values(array_filter([
-                $settings->social_facebook ?? null,
-                $settings->social_instagram ?? null,
-                $settings->social_youtube ?? null,
-                $settings->social_twitter ?? null,
-            ])),
-        ], static fn ($value): bool => $value !== null && $value !== [] && $value !== '');
-
-        $homeSchema = [
-            '@context' => 'https://schema.org',
-            '@graph' => [
-                $organization,
-                [
-                    '@type' => 'WebSite',
-                    'name' => $settings->localized('site_name') ?? config('app.name'),
-                    'url' => route('store.home'),
-                    'inLanguage' => app()->getLocale(),
-                    'publisher' => ['@type' => 'Organization', 'name' => $settings->localized('site_name') ?? config('app.name')],
-                    'potentialAction' => [
-                        '@type' => 'SearchAction',
-                        'target' => [
-                            '@type' => 'EntryPoint',
-                            'urlTemplate' => route('store.search').'?q={search_term_string}',
-                        ],
-                        'query-input' => 'required name=search_term_string',
-                    ],
-                ],
-            ],
-        ];
+        $schemaService = app(\App\Services\Store\StorefrontSchemaService::class);
+        $homeSchema = $schemaService->homeDocument($settings, $logo_url ?: null);
     @endphp
-    <script type="application/ld+json">{!! json_encode($homeSchema, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) !!}</script>
+    <script type="application/ld+json">{!! $schemaService->toJson($homeSchema) !!}</script>
 @endpush
 
 @section('content')

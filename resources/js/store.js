@@ -253,4 +253,26 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }, true);
     });
+
+    document.querySelectorAll('[data-store-copy-link]').forEach((button) => {
+        button.addEventListener('click', async () => {
+            const url = button.getAttribute('data-copy-url') ?? '';
+            const copiedLabel = button.getAttribute('data-copied-label') ?? 'Copied';
+            const originalLabel = button.textContent;
+
+            if (! url) {
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(url);
+                button.textContent = copiedLabel;
+                window.setTimeout(() => {
+                    button.textContent = originalLabel;
+                }, 2000);
+            } catch {
+                window.prompt(copiedLabel, url);
+            }
+        });
+    });
 });

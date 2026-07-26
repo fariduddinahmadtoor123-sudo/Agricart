@@ -1414,6 +1414,28 @@
     font-weight: 600;
 }
 
+.ag-store-product-share {
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--agricart-border);
+}
+
+.ag-store-product-share__title {
+    margin: 0 0 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+}
+
+.ag-store-product-share__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.ag-store-product-share__btn {
+    font-size: 0.75rem;
+}
+
 /* Product detail */
 .ag-store-breadcrumb {
     display: flex;

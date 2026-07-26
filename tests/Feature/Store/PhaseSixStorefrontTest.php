@@ -74,7 +74,7 @@ class PhaseSixStorefrontTest extends TestCase
     {
         $this->get(route('store.home'))
             ->assertOk()
-            ->assertSee('"@type":"Organization"', false)
+            ->assertSee('"@type":"LocalBusiness"', false)
             ->assertSee('"@type":"WebSite"', false)
             ->assertSee('"@type":"SearchAction"', false)
             ->assertSee('"@type":"EntryPoint"', false)
