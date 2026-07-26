@@ -49,6 +49,7 @@ return [
         'cancel_edit' => 'ترمیم منسوخ',
         'cancel' => 'منسوخ',
         'view' => 'View',
+        'print' => 'پرنٹ',
         'mark_done' => 'مکمل نشان لگائیں',
         'reopen' => 'دوبارہ کھولیں',
         'edit' => 'ترمیم',
@@ -56,6 +57,15 @@ return [
         'send_forward' => 'بھیجیں',
         'delete' => 'حذف',
         'delete_confirm' => 'یہ نوٹ حذف کریں؟',
+    ],
+
+    'print' => [
+        'title' => 'اسٹاف نوٹ',
+        'from' => 'طرف سے',
+        'to' => 'تفویض',
+        'due' => 'آخری تاریخ',
+        'created' => 'بنایا گیا',
+        'done_by' => 'مکمل کیا',
     ],
 
     'errors' => [

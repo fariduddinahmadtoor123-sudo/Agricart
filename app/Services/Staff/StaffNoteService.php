@@ -175,6 +175,16 @@ class StaffNoteService
             ->paginate(20);
     }
 
+    public function canView(User $actor, StaffNote $note): bool
+    {
+        if ($actor->isSuperAdmin()) {
+            return true;
+        }
+
+        return (int) $note->created_by === (int) $actor->id
+            || (int) $note->assigned_to === (int) $actor->id;
+    }
+
     private function assertCanEdit(User $actor, StaffNote $note): void
     {
         if ($actor->isSuperAdmin()) {
@@ -192,21 +202,11 @@ class StaffNoteService
 
     private function assertCanAct(User $actor, StaffNote $note): void
     {
-        if ($actor->isSuperAdmin()) {
-            return;
+        if (! $this->canView($actor, $note)) {
+            throw ValidationException::withMessages([
+                'note' => [__('staff_notes.errors.forbidden')],
+            ]);
         }
-
-        if ((int) $note->created_by === (int) $actor->id) {
-            return;
-        }
-
-        if ((int) $note->assigned_to === (int) $actor->id) {
-            return;
-        }
-
-        throw ValidationException::withMessages([
-            'note' => [__('staff_notes.errors.forbidden')],
-        ]);
     }
 
     private function assertAssignable(int $userId): void

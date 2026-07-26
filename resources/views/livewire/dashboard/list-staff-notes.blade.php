@@ -86,6 +86,13 @@
                 </p>
 
                 <div class="agricart-staff-notes__item-actions">
+                    <a
+                        href="{{ route('admin.staff-notes.print', $viewingNote) }}"
+                        class="agricart-categories__action"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >{{ __('staff_notes.actions.print') }}</a>
+
                     @if ($viewingNote->isOpen())
                         <button type="button" class="agricart-categories__action is-primary" wire:click="markDone({{ $viewingNote->id }})">
                             {{ __('staff_notes.actions.mark_done') }}
@@ -178,6 +185,12 @@
                             <button type="button" class="agricart-categories__action is-primary" wire:click="viewNote({{ $note->id }})">
                                 {{ __('staff_notes.actions.view') }}
                             </button>
+                            <a
+                                href="{{ route('admin.staff-notes.print', $note) }}"
+                                class="agricart-categories__action"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >{{ __('staff_notes.actions.print') }}</a>
                             @if ($note->isOpen())
                                 <button type="button" class="agricart-categories__action" wire:click="markDone({{ $note->id }})">
                                     {{ __('staff_notes.actions.mark_done') }}

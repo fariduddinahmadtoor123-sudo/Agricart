@@ -128,6 +128,53 @@ class StaffNotesTest extends TestCase
         $this->assertTrue(StaffNote::query()->whereKey($note->id)->exists());
     }
 
+    public function test_note_print_supports_a4_and_receipt_layouts(): void
+    {
+        $admin = $this->superAdmin();
+        $note = app(StaffNoteService::class)->create($admin, [
+            'title' => 'Printable note',
+            'body' => 'Please call the supplier tomorrow.',
+            'due_on' => '2026-07-30',
+        ]);
+
+        $this->actingAs($admin)
+            ->get(route('admin.staff-notes.print', ['note' => $note, 'autoprint' => 0]))
+            ->assertOk()
+            ->assertSee('Printable note', false)
+            ->assertSee('paper=a4', false)
+            ->assertSee('paper=receipt', false)
+            ->assertSee('note-sheet--a4', false);
+
+        $this->actingAs($admin)
+            ->get(route('admin.staff-notes.print', ['note' => $note, 'paper' => 'receipt', 'autoprint' => 0]))
+            ->assertOk()
+            ->assertSee('note-sheet--receipt', false)
+            ->assertSee('Please call the supplier tomorrow.', false);
+    }
+
+    public function test_outsider_cannot_print_staff_note(): void
+    {
+        $admin = $this->superAdmin();
+        $limitedRole = Role::query()->create([
+            'name' => 'Notes Outsider',
+            'slug' => 'notes-outsider-'.uniqid(),
+            'is_system' => false,
+        ]);
+        $outsider = User::factory()->create([
+            'role_id' => $limitedRole->id,
+            'status' => User::STATUS_ACTIVE,
+            'email' => 'outsider-notes@test.test',
+        ]);
+
+        $note = app(StaffNoteService::class)->create($admin, [
+            'title' => 'Private note',
+        ]);
+
+        $this->actingAs($outsider)
+            ->get(route('admin.staff-notes.print', $note))
+            ->assertForbidden();
+    }
+
     private function superAdmin(): User
     {
         $role = Role::query()->firstOrCreate(

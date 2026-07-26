@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\PurchasePrintController;
 use App\Http\Controllers\Admin\PurchaseQuotationPrintController;
 use App\Http\Controllers\Admin\ReorderPrintController;
 use App\Http\Controllers\Admin\SalePrintController;
+use App\Http\Controllers\Admin\StaffNotePrintController;
 use App\Http\Controllers\Admin\SaleQuotationPrintController;
 use App\Http\Controllers\Admin\SaleReturnPrintController;
 use App\Http\Controllers\Admin\CommunicationAttachmentController;
@@ -228,6 +229,8 @@ Route::middleware(['web', 'auth', AuthenticateSession::class, EnsureActiveAdminU
         ->name('admin.purchases.print');
     Route::get('/sales/{sale}/print', [SalePrintController::class, 'show'])
         ->name('admin.sales.print');
+    Route::get('/staff-notes/{note}/print', [StaffNotePrintController::class, 'show'])
+        ->name('admin.staff-notes.print');
     Route::get('/brands/{brand}/print', [BrandAgricartReviewPrintController::class, 'show'])
         ->name('admin.brands.print');
     Route::get('/sale-quotations/{quotation}/print', [SaleQuotationPrintController::class, 'show'])

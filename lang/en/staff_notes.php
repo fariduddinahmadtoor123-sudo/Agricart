@@ -49,6 +49,7 @@ return [
         'cancel_edit' => 'Cancel edit',
         'cancel' => 'Cancel',
         'view' => 'View',
+        'print' => 'Print',
         'mark_done' => 'Mark done',
         'reopen' => 'Reopen',
         'edit' => 'Edit',
@@ -56,6 +57,15 @@ return [
         'send_forward' => 'Send',
         'delete' => 'Delete',
         'delete_confirm' => 'Delete this note?',
+    ],
+
+    'print' => [
+        'title' => 'Staff note',
+        'from' => 'From',
+        'to' => 'Assigned to',
+        'due' => 'Due date',
+        'created' => 'Created',
+        'done_by' => 'Completed by',
     ],
 
     'errors' => [
