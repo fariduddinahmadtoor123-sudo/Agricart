@@ -271,6 +271,96 @@ class StorefrontSchemaService
     }
 
 
+    /**
+     * @return array<string, mixed>
+     */
+    public function brandsIndexDocument(int $count): array
+    {
+        $settings = StoreSetting::current();
+        $siteName = $settings->localized('site_name') ?? config('app.name');
+
+        return [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                [
+                    '@type' => 'CollectionPage',
+                    'name' => __('agricart.storefront.brands.page_title'),
+                    'url' => route('store.brands'),
+                    'description' => __('agricart.storefront.brands.page_lead'),
+                    'isPartOf' => [
+                        '@type' => 'WebSite',
+                        'name' => $siteName,
+                        'url' => route('store.home'),
+                    ],
+                    'numberOfItems' => $count,
+                ],
+                [
+                    '@type' => 'BreadcrumbList',
+                    'itemListElement' => [
+                        ['@type' => 'ListItem', 'position' => 1, 'name' => __('agricart.storefront.category.home'), 'item' => route('store.home')],
+                        ['@type' => 'ListItem', 'position' => 2, 'name' => __('agricart.storefront.brands.nav'), 'item' => route('store.brands')],
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function brandDocument(\App\Models\Brand $brand, StoreBrandService $brands): array
+    {
+        $settings = StoreSetting::current();
+        $siteName = $settings->localized('site_name') ?? config('app.name');
+        $name = $brands->localizedName($brand);
+        $description = $brands->localizedDescription($brand)
+            ?? __('agricart.storefront.brands.page_lead');
+        $summary = $brands->ratingSummary($brand);
+
+        $brandEntity = array_filter([
+            '@type' => 'Brand',
+            'name' => $name,
+            'url' => route('store.brand', $brand->slug),
+            'logo' => $brands->imageUrl($brand),
+            'description' => $description,
+            'aggregateRating' => is_array($summary)
+                ? [
+                    '@type' => 'AggregateRating',
+                    'ratingValue' => $summary['score'],
+                    'bestRating' => $summary['max'],
+                    'worstRating' => 0,
+                    'ratingCount' => 1,
+                ]
+                : null,
+        ], static fn ($value): bool => $value !== null && $value !== '');
+
+        return [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                [
+                    '@type' => 'WebPage',
+                    'name' => $name,
+                    'url' => route('store.brand', $brand->slug),
+                    'description' => \Illuminate\Support\Str::limit(strip_tags((string) $description), 160),
+                    'isPartOf' => [
+                        '@type' => 'WebSite',
+                        'name' => $siteName,
+                        'url' => route('store.home'),
+                    ],
+                    'mainEntity' => $brandEntity,
+                ],
+                [
+                    '@type' => 'BreadcrumbList',
+                    'itemListElement' => [
+                        ['@type' => 'ListItem', 'position' => 1, 'name' => __('agricart.storefront.category.home'), 'item' => route('store.home')],
+                        ['@type' => 'ListItem', 'position' => 2, 'name' => __('agricart.storefront.brands.nav'), 'item' => route('store.brands')],
+                        ['@type' => 'ListItem', 'position' => 3, 'name' => $name, 'item' => route('store.brand', $brand->slug)],
+                    ],
+                ],
+            ],
+        ];
+    }
+
     public function toJson(array $document): string
     {
         return (string) json_encode(

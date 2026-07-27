@@ -39,6 +39,7 @@ use App\Http\Controllers\Store\CustomerPaymentProofController;
 use App\Http\Controllers\Store\CustomerPasswordResetController;
 use App\Http\Controllers\Store\CustomerProductReviewController;
 use App\Http\Controllers\Store\CustomerProfileController;
+use App\Http\Controllers\Store\BrandController;
 use App\Http\Controllers\Store\AboutController;
 use App\Http\Controllers\Store\HomeController;
 use App\Http\Controllers\Store\PageController;
@@ -52,6 +53,7 @@ use App\Http\Controllers\Store\StaffRegisterController;
 use App\Http\Controllers\Store\SupplierRegisterController;
 use App\Http\Controllers\Store\StoreInquiryController;
 use App\Http\Controllers\Store\TestimonialsController;
+use App\Http\Controllers\Store\CustomerBrandReviewController;
 use App\Http\Controllers\Store\CustomerCompanyTestimonialController;
 use App\Http\Middleware\BlockOnlineStoreMaintenance;
 use App\Http\Middleware\EnsureActiveAdminUser;
@@ -126,6 +128,11 @@ Route::middleware([
         Route::post('/account/testimonials', [CustomerCompanyTestimonialController::class, 'store'])
             ->middleware('throttle:10,1')
             ->name('store.customer.testimonials.store');
+        Route::get('/account/brand-reviews/{slug}/create', [CustomerBrandReviewController::class, 'create'])
+            ->name('store.customer.brand-reviews.create');
+        Route::post('/account/brand-reviews/{slug}', [CustomerBrandReviewController::class, 'store'])
+            ->middleware('throttle:10,1')
+            ->name('store.customer.brand-reviews.store');
     });
     Route::get('/register', [RegisterController::class, 'show'])->name('auth.register');
     Route::get('/staff-register', [StaffRegisterController::class, 'show'])
@@ -143,6 +150,8 @@ Route::middleware([
         ->name('store.contact-message');
     Route::get('/reviews', [TestimonialsController::class, 'index'])->name('store.testimonials');
     Route::get('/about', [AboutController::class, 'show'])->name('store.about');
+    Route::get('/brands', [BrandController::class, 'index'])->name('store.brands');
+    Route::get('/brand/{slug}', [BrandController::class, 'show'])->name('store.brand');
     Route::get('/page/{slug}', [PageController::class, 'show'])->name('store.page');
     Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('store.category');
     Route::get('/product/{slug}', [ProductController::class, 'show'])->name('store.product');

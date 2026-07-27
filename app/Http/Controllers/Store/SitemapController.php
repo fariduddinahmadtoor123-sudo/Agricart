@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Store;
 
 use App\Http\Controllers\Controller;
+use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\StorePage;
@@ -17,6 +18,7 @@ class SitemapController extends Controller
             $urls = [];
             $urls[] = $this->url(route('store.home'), now(), 'daily', '1.0');
             $urls[] = $this->url(route('store.about'), now(), 'monthly', '0.7');
+            $urls[] = $this->url(route('store.brands'), now(), 'weekly', '0.7');
             $urls[] = $this->url(route('store.testimonials'), now(), 'weekly', '0.7');
 
             Category::query()
@@ -42,6 +44,19 @@ class SitemapController extends Controller
                         $product->updated_at,
                         'weekly',
                         '0.7',
+                    );
+                });
+
+            Brand::query()
+                ->where('status', 'active')
+                ->orderBy('id')
+                ->get(['slug', 'updated_at'])
+                ->each(function (Brand $brand) use (&$urls): void {
+                    $urls[] = $this->url(
+                        route('store.brand', $brand->slug),
+                        $brand->updated_at,
+                        'weekly',
+                        '0.6',
                     );
                 });
 

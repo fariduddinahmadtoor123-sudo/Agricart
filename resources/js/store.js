@@ -457,6 +457,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    document.querySelectorAll('[data-store-brands-carousel]').forEach((root) => {
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const pause = () => root.classList.add('is-paused');
+        const resume = () => {
+            if (! reducedMotion && ! root.contains(document.activeElement)) {
+                root.classList.remove('is-paused');
+            }
+        };
+
+        if (reducedMotion) {
+            pause();
+        }
+
+        root.addEventListener('mouseenter', pause);
+        root.addEventListener('mouseleave', resume);
+        root.addEventListener('focusin', pause);
+        root.addEventListener('focusout', () => {
+            window.setTimeout(resume, 0);
+        });
+    });
+
     document.querySelectorAll('[data-store-profile-photo-form]').forEach((form) => {
         const root = form.querySelector('[data-store-profile-photo]');
         if (! root) {
