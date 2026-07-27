@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\CategoryAiStatus;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Brand extends Model
 {
@@ -41,5 +42,13 @@ class Brand extends Model
             'agricart_rating' => 'integer',
             'agricart_rating_criteria' => 'array',
         ];
+    }
+
+    /**
+     * @return HasMany<Product, $this>
+     */
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
     }
 }

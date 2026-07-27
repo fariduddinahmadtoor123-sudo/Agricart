@@ -10,10 +10,12 @@ use App\Services\Store\StoreBrandService;
 use App\Services\Store\StorefrontSchemaService;
 use App\Services\Store\StoreLayoutService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Request;
 
 class BrandController extends Controller
 {
     public function index(
+        Request $request,
         StoreLayoutService $layout,
         StoreBrandService $brands,
         BrandCustomerReviewService $customerReviews,
@@ -21,16 +23,18 @@ class BrandController extends Controller
         AnalyticsContext $analytics,
     ): View {
         $analytics->setPage('brands', null, 'brands');
-        $items = $brands->listedBrands();
+        $searchQuery = mb_substr(trim((string) $request->query('q', '')), 0, 80);
+        $items = $brands->listedBrands($searchQuery !== '' ? $searchQuery : null);
 
         return view('store.brands.index', [
             ...$layout->layoutData(),
             'brands' => $items,
             'brandService' => $brands,
+            'searchQuery' => $searchQuery,
             'brandCustomerSummaries' => $customerReviews->publicSummariesForBrandIds(
-                $items->pluck('id')->all(),
+                $items->getCollection()->pluck('id')->all(),
             ),
-            'schemaDocument' => $schema->brandsIndexDocument($items->count()),
+            'schemaDocument' => $schema->brandsIndexDocument($items->total()),
         ]);
     }
 

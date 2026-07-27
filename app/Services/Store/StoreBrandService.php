@@ -4,12 +4,15 @@ namespace App\Services\Store;
 
 use App\Models\Brand;
 use App\Support\Catalog\BrandAgricartReviewCriteria;
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 
 class StoreBrandService
 {
+    public const LIST_PER_PAGE = 500;
+
     /**
      * Active brands for the footer marquee (logo preferred, then name).
      *
@@ -25,13 +28,44 @@ class StoreBrandService
     }
 
     /**
-     * @return Collection<int, Brand>
+     * @return LengthAwarePaginator<int, Brand>
      */
-    public function listedBrands(): Collection
+    public function listedBrands(?string $search = null, ?int $perPage = null): LengthAwarePaginator
     {
-        return $this->publicBrandQuery()
+        $perPage = max(1, $perPage ?? self::LIST_PER_PAGE);
+        $query = $this->publicBrandQuery();
+
+        if ($this->isSearchableTerm((string) $search)) {
+            $this->applyBrandSearch($query, trim((string) $search));
+        }
+
+        return $query
             ->orderBy('name_en')
-            ->get();
+            ->paginate($perPage)
+            ->withQueryString();
+    }
+
+    public function isSearchableTerm(string $term): bool
+    {
+        $term = trim($term);
+
+        if ($term === '') {
+            return false;
+        }
+
+        $tokens = $this->searchTokens($term);
+
+        if ($tokens === []) {
+            return mb_strlen($term) >= 2;
+        }
+
+        foreach ($tokens as $token) {
+            if (mb_strlen($token) >= 2) {
+                return true;
+            }
+        }
+
+        return mb_strlen($term) >= 2;
     }
 
     public function findPublicBySlug(string $slug): Brand
@@ -140,5 +174,86 @@ class StoreBrandService
     private function publicBrandQuery(): Builder
     {
         return Brand::query()->where('status', 'active');
+    }
+
+    /**
+     * Match brand names/descriptions and storefront products sold under the brand.
+     *
+     * @param  Builder<Brand>  $query
+     */
+    private function applyBrandSearch(Builder $query, string $term): void
+    {
+        $tokens = $this->searchTokens($term);
+        $matchedAnyToken = false;
+
+        foreach ($tokens as $token) {
+            if (mb_strlen($token) < 2) {
+                continue;
+            }
+
+            $matchedAnyToken = true;
+            $needle = '%'.$this->escapeLike($token).'%';
+
+            $query->where(function (Builder $inner) use ($needle): void {
+                $this->applyBrandToken($inner, $needle);
+            });
+        }
+
+        if (! $matchedAnyToken) {
+            $needle = '%'.$this->escapeLike($term).'%';
+
+            $query->where(function (Builder $inner) use ($needle): void {
+                $this->applyBrandToken($inner, $needle);
+            });
+        }
+    }
+
+    /**
+     * @param  Builder<Brand>  $query
+     */
+    private function applyBrandToken(Builder $query, string $needle): void
+    {
+        $query->where(function (Builder $brand) use ($needle): void {
+            $brand->whereRaw("name_en LIKE ? ESCAPE '!'", [$needle])
+                ->orWhereRaw("name_ur LIKE ? ESCAPE '!'", [$needle])
+                ->orWhereRaw("code LIKE ? ESCAPE '!'", [$needle])
+                ->orWhereRaw("slug LIKE ? ESCAPE '!'", [$needle])
+                ->orWhereRaw("description_en LIKE ? ESCAPE '!'", [$needle])
+                ->orWhereRaw("description_ur LIKE ? ESCAPE '!'", [$needle])
+                ->orWhereRaw("agricart_rating_reason_en LIKE ? ESCAPE '!'", [$needle])
+                ->orWhereRaw("agricart_rating_reason_ur LIKE ? ESCAPE '!'", [$needle])
+                ->orWhereHas('products', function (Builder $products) use ($needle): void {
+                    $products->whereIn('status', ['active', 'inactive'])
+                        ->where(function (Builder $product) use ($needle): void {
+                            $product->whereRaw("name_en LIKE ? ESCAPE '!'", [$needle])
+                                ->orWhereRaw("name_ur LIKE ? ESCAPE '!'", [$needle])
+                                ->orWhereRaw("slug LIKE ? ESCAPE '!'", [$needle])
+                                ->orWhereRaw("code LIKE ? ESCAPE '!'", [$needle])
+                                ->orWhereRaw("sku LIKE ? ESCAPE '!'", [$needle])
+                                ->orWhereRaw("short_description_en LIKE ? ESCAPE '!'", [$needle])
+                                ->orWhereRaw("short_description_ur LIKE ? ESCAPE '!'", [$needle])
+                                ->orWhereRaw("full_description_en LIKE ? ESCAPE '!'", [$needle])
+                                ->orWhereRaw("full_description_ur LIKE ? ESCAPE '!'", [$needle])
+                                ->orWhereRaw("search_terms LIKE ? ESCAPE '!'", [$needle])
+                                ->orWhereRaw("seo_keywords_en LIKE ? ESCAPE '!'", [$needle])
+                                ->orWhereRaw("seo_keywords_ur LIKE ? ESCAPE '!'", [$needle]);
+                        });
+                });
+        });
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function searchTokens(string $term): array
+    {
+        $parts = preg_split('/\s+/u', trim($term), -1, PREG_SPLIT_NO_EMPTY);
+
+        return is_array($parts) ? array_slice(array_values($parts), 0, 8) : [];
+    }
+
+    private function escapeLike(string $value): string
+    {
+        return str_replace(['!', '%', '_'], ['!!', '!%', '!_'], $value);
     }
 }

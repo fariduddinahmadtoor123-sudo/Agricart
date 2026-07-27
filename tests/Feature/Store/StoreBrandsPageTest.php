@@ -4,7 +4,10 @@ namespace Tests\Feature\Store;
 
 use App\Models\Brand;
 use App\Models\BrandCustomerReview;
+use App\Models\Category;
 use App\Models\Customer;
+use App\Models\Product;
+use App\Services\Store\StoreBrandService;
 use App\Support\Catalog\BrandAgricartReviewCriteria;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -49,9 +52,104 @@ class StoreBrandsPageTest extends TestCase
         $this->get(route('store.brands'))
             ->assertOk()
             ->assertSee(__('agricart.storefront.brands.heading'), false)
+            ->assertSee(__('agricart.storefront.brands.search_placeholder'), false)
             ->assertSee('Trusted Brand', false)
             ->assertSee(route('store.brand', $brand->slug), false)
             ->assertDontSee('Hidden Brand', false);
+    }
+
+    public function test_brands_index_search_filters_by_description_and_product_name(): void
+    {
+        $pipeBrand = Brand::query()->create([
+            'code' => 'BR-PIPE',
+            'slug' => 'pipe-brand',
+            'status' => 'active',
+            'name_en' => 'AquaFlow',
+            'name_ur' => 'ایکوا فلو',
+            'image_path' => 'brands/pipe.webp',
+            'description_en' => 'Specialist pipe and irrigation fittings.',
+        ]);
+
+        $tireBrand = Brand::query()->create([
+            'code' => 'BR-TIRE',
+            'slug' => 'tire-brand',
+            'status' => 'active',
+            'name_en' => 'RoadGrip',
+            'name_ur' => 'روڈ گرپ',
+            'image_path' => 'brands/tire.webp',
+            'description_en' => 'Agricultural and light truck tires.',
+        ]);
+
+        Brand::query()->create([
+            'code' => 'BR-OTHER',
+            'slug' => 'other-brand',
+            'status' => 'active',
+            'name_en' => 'Generic Tools',
+            'name_ur' => 'عام اوزار',
+            'image_path' => 'brands/other.webp',
+            'description_en' => 'Hand tools and workshop supplies.',
+        ]);
+
+        $category = Category::query()->create([
+            'code' => 'CAT-BRAND-SEARCH',
+            'slug' => 'brand-search-cat',
+            'status' => 'active',
+            'name_en' => 'Brand Search Category',
+            'name_ur' => 'برانڈ سرچ زمرہ',
+        ]);
+
+        Product::query()->create([
+            'category_id' => $category->id,
+            'brand_id' => $tireBrand->id,
+            'slug' => 'tractor-tire-set',
+            'code' => 'PRD-TIRE-1',
+            'status' => 'active',
+            'name_en' => 'Tractor Tire Set',
+            'name_ur' => 'ٹریکٹر ٹائر سیٹ',
+        ]);
+
+        $this->get(route('store.brands', ['q' => 'pipe']))
+            ->assertOk()
+            ->assertSee('AquaFlow', false)
+            ->assertDontSee('RoadGrip', false)
+            ->assertDontSee('Generic Tools', false)
+            ->assertSee(__('agricart.storefront.brands.search_clear'), false);
+
+        $this->get(route('store.brands', ['q' => 'tire']))
+            ->assertOk()
+            ->assertSee('RoadGrip', false)
+            ->assertDontSee('AquaFlow', false)
+            ->assertDontSee('Generic Tools', false);
+
+        $this->get(route('store.brands', ['q' => 'wrench-plus-missing']))
+            ->assertOk()
+            ->assertSee(__('agricart.storefront.brands.search_no_results', ['query' => 'wrench-plus-missing']), false)
+            ->assertDontSee('AquaFlow', false)
+            ->assertDontSee('RoadGrip', false);
+
+        $this->assertNotNull($pipeBrand->id);
+    }
+
+    public function test_brands_index_paginates_when_more_than_page_limit(): void
+    {
+        for ($i = 1; $i <= 3; $i++) {
+            Brand::query()->create([
+                'code' => 'BR-PAGE-'.$i,
+                'slug' => 'page-brand-'.$i,
+                'status' => 'active',
+                'name_en' => 'Page Brand '.$i,
+                'name_ur' => 'صفحہ برانڈ '.$i,
+                'image_path' => 'brands/page-'.$i.'.webp',
+            ]);
+        }
+
+        $page = app(StoreBrandService::class)->listedBrands(null, 2);
+
+        $this->assertSame(3, $page->total());
+        $this->assertSame(2, $page->perPage());
+        $this->assertTrue($page->hasPages());
+        $this->assertCount(2, $page->items());
+        $this->assertSame(StoreBrandService::LIST_PER_PAGE, 500);
     }
 
     public function test_brand_detail_shows_agricart_review_like_product_page(): void

@@ -3,7 +3,7 @@
 @section('title', __('agricart.storefront.brands.page_title') . ' — ' . ($settings->localized('site_name') ?? config('app.name')))
 @section('seo_description', __('agricart.storefront.brands.page_lead'))
 @section('canonical', route('store.brands'))
-@section('robots', 'index,follow,max-image-preview:large')
+@section('robots', filled($searchQuery ?? '') ? 'noindex,follow' : 'index,follow,max-image-preview:large')
 @push('structured-data')
     <script type="application/ld+json">{!! app(\App\Services\Store\StorefrontSchemaService::class)->toJson($schemaDocument) !!}</script>
 @endpush
@@ -15,9 +15,49 @@
             <p class="ag-store-brands__lead">{{ __('agricart.storefront.brands.page_lead') }}</p>
         </header>
 
-        @if ($brands->isEmpty())
+        <form
+            class="ag-store-brands__search"
+            action="{{ route('store.brands') }}"
+            method="get"
+            role="search"
+        >
+            <label class="ag-store-visually-hidden" for="ag-store-brands-search">{{ __('agricart.storefront.brands.search_label') }}</label>
+            <input
+                id="ag-store-brands-search"
+                type="search"
+                name="q"
+                class="ag-store-brands__search-input"
+                value="{{ $searchQuery ?? '' }}"
+                placeholder="{{ __('agricart.storefront.brands.search_placeholder') }}"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+                maxlength="80"
+                enterkeyhint="search"
+            />
+            <button type="submit" class="ag-store-brands__search-submit">
+                {{ __('agricart.storefront.brands.search_submit') }}
+            </button>
+            @if (filled($searchQuery ?? ''))
+                <a href="{{ route('store.brands') }}" class="ag-store-brands__search-clear">
+                    {{ __('agricart.storefront.brands.search_clear') }}
+                </a>
+            @endif
+        </form>
+
+        @if (filled($searchQuery ?? ''))
+            <p class="ag-store-brands__search-meta" aria-live="polite">
+                @if ($brands->isEmpty())
+                    {{ __('agricart.storefront.brands.search_no_results', ['query' => $searchQuery]) }}
+                @else
+                    {{ __('agricart.storefront.brands.search_results', ['query' => $searchQuery, 'count' => $brands->total()]) }}
+                @endif
+            </p>
+        @endif
+
+        @if ($brands->isEmpty() && blank($searchQuery ?? ''))
             <p class="ag-store-brands__empty">{{ __('agricart.storefront.brands.empty') }}</p>
-        @else
+        @elseif ($brands->isNotEmpty())
             <div class="ag-store-brands__grid">
                 @foreach ($brands as $brand)
                     @php
@@ -47,6 +87,12 @@
                     </a>
                 @endforeach
             </div>
+
+            @if ($brands->hasPages())
+                <div class="ag-store-pagination ag-store-brands__pagination">
+                    {{ $brands->links() }}
+                </div>
+            @endif
         @endif
     </section>
 @endsection
