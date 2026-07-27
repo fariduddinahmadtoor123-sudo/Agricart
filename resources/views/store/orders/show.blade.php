@@ -21,6 +21,20 @@
                 <div class="ag-store-orders__print-brand ag-store-print-only" aria-hidden="true">
                     <strong>{{ $siteName }}</strong>
                     <span>{{ __('agricart.customer.orders.print_heading') }}</span>
+                    <div class="ag-store-orders__print-meta">
+                        <span>{{ __('agricart.customer.orders.col_number') }}: {{ $order->order_number }}</span>
+                        <span>{{ $order->order_date?->format('Y-m-d') }}</span>
+                    </div>
+                    <div class="ag-store-orders__print-customer">
+                        <span class="ag-store-orders__print-customer-label">{{ __('agricart.customer.orders.print_bill_to') }}</span>
+                        <strong>{{ $order->ship_contact_name }}</strong>
+                        @if (filled($order->ship_phone))
+                            <span>{{ $order->ship_phone }}</span>
+                        @endif
+                        @if (filled($order->ship_address) || filled($order->ship_city))
+                            <span>{{ trim(implode(', ', array_filter([$order->ship_address, $order->ship_city]))) }}</span>
+                        @endif
+                    </div>
                 </div>
 
                 <div class="ag-store-orders__detail-title-row">
@@ -88,10 +102,12 @@
                     </section>
 
                     @if ($order->requiresCustomerPaymentProof())
-                        @include('store.orders.partials.payment-proof', [
-                            'order' => $order,
-                            'bankTransferAccounts' => $bankTransferAccounts ?? collect(),
-                        ])
+                        <div class="ag-store-no-print">
+                            @include('store.orders.partials.payment-proof', [
+                                'order' => $order,
+                                'bankTransferAccounts' => $bankTransferAccounts ?? collect(),
+                            ])
+                        </div>
                     @endif
                 </div>
 
@@ -209,6 +225,10 @@
                     </div>
                 </aside>
             </div>
+
+            <p class="ag-store-orders__print-footer ag-store-print-only" aria-hidden="true">
+                {{ __('agricart.customer.orders.print_footer_note', ['store' => $siteName]) }}
+            </p>
         </div>
     </div>
 

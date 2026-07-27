@@ -423,6 +423,14 @@ class DeliveryMethodService
             ]);
         }
 
+        $fullAdvance = (bool) ($validated['full_advance_required'] ?? false);
+
+        if ($fullAdvance && ! in_array('bank_transfer', $effectivePayments, true)) {
+            throw ValidationException::withMessages([
+                'full_advance_required' => [__('agricart.delivery_methods.messages.full_advance_requires_bank')],
+            ]);
+        }
+
         return [
             'method' => [
                 'name_en' => trim((string) $validated['name_en']),

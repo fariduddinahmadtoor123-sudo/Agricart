@@ -9,6 +9,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Role extends Model
 {
     /**
+     * Runtime-only permission keys from EagerLoadUserRole cache (never persisted).
+     *
+     * @var list<string>|null
+     */
+    private ?array $runtimePermissionKeys = null;
+
+    /**
      * @var list<string>
      */
     protected $fillable = [
@@ -47,5 +54,21 @@ class Role extends Model
     public function isSuperAdmin(): bool
     {
         return $this->slug === 'super-admin';
+    }
+
+    /**
+     * @param  list<string>  $keys
+     */
+    public function setPermissionKeys(array $keys): void
+    {
+        $this->runtimePermissionKeys = array_values($keys);
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    public function permissionKeys(): ?array
+    {
+        return $this->runtimePermissionKeys;
     }
 }

@@ -38,6 +38,8 @@ class Form extends Component
     /** @var list<string> */
     public array $allowed_payment_methods = [];
 
+    public bool $bank_transfer_allowed = true;
+
     public bool $cod_allowed = true;
 
     public string $cod_min_advance_percent = '0';
@@ -59,6 +61,8 @@ class Form extends Component
     public function mount(): void
     {
         $this->allowed_payment_methods = SaleService::PAYMENT_METHODS;
+        $this->bank_transfer_allowed = true;
+        $this->cod_allowed = true;
     }
 
     public function openForm(?int $deliveryMethodId = null, string $mode = 'create'): void
@@ -116,7 +120,6 @@ class Form extends Component
     public function render(): View
     {
         return view('livewire.delivery-methods.form', [
-            'paymentOptions' => SaleService::PAYMENT_METHODS,
             'shippingModes' => ShippingChargeMode::cases(),
         ]);
     }
@@ -130,6 +133,7 @@ class Form extends Component
         $this->authorizeAction($this->mutationAction());
         $this->saving = true;
         $this->statusMessage = null;
+        $this->syncAllowedPaymentMethodsFromUi();
 
         try {
             $payload = [
@@ -190,6 +194,7 @@ class Form extends Component
         $this->sort_order = (int) $method->sort_order;
         $this->status = $method->status;
         $this->allowed_payment_methods = $rule?->allowedPaymentMethods() ?: SaleService::PAYMENT_METHODS;
+        $this->bank_transfer_allowed = in_array('bank_transfer', $this->allowed_payment_methods, true);
         $this->cod_allowed = (bool) ($rule?->cod_allowed ?? true);
         $this->cod_min_advance_percent = (string) ($rule?->cod_min_advance_percent ?? '0');
         $this->full_advance_required = (bool) ($rule?->full_advance_required ?? false);
@@ -209,6 +214,7 @@ class Form extends Component
         $this->sort_order = 0;
         $this->status = DeliveryMethod::STATUS_ACTIVE;
         $this->allowed_payment_methods = SaleService::PAYMENT_METHODS;
+        $this->bank_transfer_allowed = true;
         $this->cod_allowed = true;
         $this->cod_min_advance_percent = '0';
         $this->full_advance_required = false;
@@ -218,6 +224,21 @@ class Form extends Component
         $this->statusMessage = null;
         $this->statusType = 'success';
         $this->saving = false;
+    }
+
+    private function syncAllowedPaymentMethodsFromUi(): void
+    {
+        $payments = [];
+
+        if ($this->cod_allowed) {
+            $payments[] = 'cash';
+        }
+
+        if ($this->bank_transfer_allowed) {
+            $payments[] = 'bank_transfer';
+        }
+
+        $this->allowed_payment_methods = $payments;
     }
 
     private function mutationAction(): string

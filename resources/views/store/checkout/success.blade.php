@@ -59,27 +59,31 @@
 
             @if ($needsProof)
                 <div class="ag-store-checkout-success__grid">
-                    <div class="ag-store-checkout-success__pay-next">
-                        <h2 class="ag-store-checkout-success__proof-title">{{ __('agricart.storefront.checkout.success_pay_next_heading') }}</h2>
-                        <ol class="ag-store-checkout-success__steps">
-                            <li>{{ __('agricart.storefront.checkout.success_pay_step_transfer') }}</li>
-                            <li>{{ __('agricart.storefront.checkout.success_pay_step_proof') }}</li>
-                        </ol>
+                    <section class="ag-store-checkout-success__pay-next" aria-labelledby="checkout-success-pay-heading">
+                        <h2 id="checkout-success-pay-heading" class="ag-store-checkout-success__section-title">
+                            {{ __('agricart.storefront.checkout.success_pay_next_heading') }}
+                        </h2>
+                        <p class="ag-store-checkout-success__section-lead">
+                            {{ __('agricart.storefront.checkout.success_pay_next_lead') }}
+                        </p>
 
                         @include('store.components.bank-transfer-accounts', [
                             'accounts' => $bankTransferAccounts ?? collect(),
+                            'heading' => '',
+                            'lead' => '',
                         ])
-                    </div>
+                    </section>
 
-                    <div class="ag-store-checkout-success__proof">
-                        <h2 class="ag-store-checkout-success__proof-title">{{ __('agricart.storefront.checkout.success_proof_heading') }}</h2>
-                        <p class="ag-store-checkout-success__proof-lead">{{ __('agricart.storefront.checkout.success_proof_lead') }}</p>
+                    <section class="ag-store-checkout-success__proof" aria-labelledby="checkout-success-proof-heading">
+                        <h2 id="checkout-success-proof-heading" class="ag-store-checkout-success__section-title">
+                            {{ __('agricart.storefront.checkout.success_proof_heading') }}
+                        </h2>
+                        <p class="ag-store-checkout-success__section-lead">
+                            {{ __('agricart.storefront.checkout.success_proof_lead') }}
+                        </p>
 
                         @if ($canUploadHere)
-                            <div class="ag-store-orders__proof-panel">
-                                <h3 class="ag-store-orders__proof-option-title">{{ __('agricart.customer.orders.proof_upload_title') }}</h3>
-                                <p class="ag-store-orders__proof-option-text">{{ __('agricart.customer.orders.proof_upload_text') }}</p>
-
+                            <div class="ag-store-orders__proof-panel ag-store-orders__proof-panel--form-only">
                                 <form method="post" action="{{ route('store.customer.orders.payment-proof', $orderNumber) }}" enctype="multipart/form-data" class="ag-store-checkout__form ag-store-orders__proof-form">
                                     @csrf
                                     <label class="ag-store-checkout__field">
@@ -108,7 +112,7 @@
                                 <span class="ag-store-checkout-success__option-text">{{ __('agricart.storefront.checkout.success_proof_upload_text') }}</span>
                             </a>
                         @endif
-                    </div>
+                    </section>
                 </div>
             @endif
 

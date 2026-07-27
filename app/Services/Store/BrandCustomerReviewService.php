@@ -40,24 +40,51 @@ class BrandCustomerReviewService
      */
     public function publicSummary(Brand $brand): array
     {
-        $count = (int) BrandCustomerReview::query()
-            ->where('brand_id', $brand->id)
-            ->where('status', BrandCustomerReview::STATUS_APPROVED)
-            ->count();
+        return $this->publicSummariesForBrandIds([$brand->id])[$brand->id]
+            ?? ['average' => null, 'count' => 0];
+    }
 
-        if ($count === 0) {
-            return ['average' => null, 'count' => 0];
+    /**
+     * Batch approved averages for list/carousel surfaces (avoids N+1).
+     *
+     * @param  list<int|string>  $brandIds
+     * @return array<int, array{average: float|null, count: int}>
+     */
+    public function publicSummariesForBrandIds(array $brandIds): array
+    {
+        $ids = array_values(array_unique(array_filter(
+            array_map(static fn (mixed $id): int => (int) $id, $brandIds),
+            static fn (int $id): bool => $id > 0,
+        )));
+
+        if ($ids === []) {
+            return [];
         }
 
-        $average = (float) BrandCustomerReview::query()
-            ->where('brand_id', $brand->id)
-            ->where('status', BrandCustomerReview::STATUS_APPROVED)
-            ->avg('rating');
+        /** @var array<int, array{average: float|null, count: int}> $summaries */
+        $summaries = [];
+        foreach ($ids as $id) {
+            $summaries[$id] = ['average' => null, 'count' => 0];
+        }
 
-        return [
-            'average' => round($average, 1),
-            'count' => $count,
-        ];
+        $rows = BrandCustomerReview::query()
+            ->selectRaw('brand_id, AVG(rating) as average_rating, COUNT(*) as review_count')
+            ->whereIn('brand_id', $ids)
+            ->where('status', BrandCustomerReview::STATUS_APPROVED)
+            ->groupBy('brand_id')
+            ->get();
+
+        foreach ($rows as $row) {
+            $brandId = (int) $row->brand_id;
+            $count = (int) $row->review_count;
+
+            $summaries[$brandId] = [
+                'average' => $count > 0 ? round((float) $row->average_rating, 1) : null,
+                'count' => $count,
+            ];
+        }
+
+        return $summaries;
     }
 
     /**

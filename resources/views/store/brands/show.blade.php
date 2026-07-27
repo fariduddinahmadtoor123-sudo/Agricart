@@ -52,12 +52,11 @@
                 @if (filled($brand->name_ur))
                     <p class="ag-store-brand__title-ur" dir="rtl">{{ $brand->name_ur }}</p>
                 @endif
-                @if ($ratingSummary)
-                    @include('store.components.brand-rating', [
-                        'summary' => $ratingSummary,
-                        'variant' => 'full',
-                    ])
-                @endif
+                @include('store.components.brand-ratings-pair', [
+                    'agricartSummary' => $ratingSummary,
+                    'customerSummary' => $customerReviewSummary,
+                    'variant' => 'full',
+                ])
                 @if ($websiteUrl)
                     <a href="{{ $websiteUrl }}" class="ag-store-brand__website" target="_blank" rel="noopener noreferrer">
                         {{ __('agricart.storefront.product.brand_website') }}

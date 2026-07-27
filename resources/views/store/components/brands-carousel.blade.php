@@ -1,6 +1,7 @@
 @php
     $carouselItems = $footerBrands ?? collect();
     $brandService = app(\App\Services\Store\StoreBrandService::class);
+    $customerSummaries = $footerBrandCustomerSummaries ?? [];
 @endphp
 
 @if ($carouselItems->isNotEmpty() && ! request()->routeIs(['store.brands', 'store.brand']))
@@ -26,6 +27,7 @@
                             @php
                                 $logoUrl = $brandService->imageUrl($brand);
                                 $ratingSummary = $brandService->ratingSummary($brand);
+                                $customerSummary = $customerSummaries[$brand->id] ?? ['average' => null, 'count' => 0];
                             @endphp
                             <a
                                 href="{{ route('store.brand', $brand->slug) }}"
@@ -45,12 +47,11 @@
                                         <span class="ag-store-brands-carousel__name-ur" dir="rtl">{{ $brand->name_ur }}</span>
                                     @endif
                                 </span>
-                                @if ($ratingSummary)
-                                    @include('store.components.brand-rating', [
-                                        'summary' => $ratingSummary,
-                                        'variant' => 'compact',
-                                    ])
-                                @endif
+                                @include('store.components.brand-ratings-pair', [
+                                    'agricartSummary' => $ratingSummary,
+                                    'customerSummary' => $customerSummary,
+                                    'variant' => 'compact',
+                                ])
                             </a>
                         @endforeach
                     </div>

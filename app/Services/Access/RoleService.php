@@ -135,6 +135,8 @@ class RoleService
             ->all();
 
         $role->permissions()->sync($permissionIds);
+        // Bump updated_at so EagerLoadUserRole cache keys invalidate.
+        $role->touch();
     }
 
     private function ensureEditable(Role $role): void

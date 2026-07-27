@@ -59,7 +59,16 @@ class BrandCustomerReviewsTest extends TestCase
         $this->get(route('store.brand', $brand->slug))
             ->assertOk()
             ->assertSee('This brand spare parts quality is excellent', false)
-            ->assertSee(__('agricart.storefront.brand_reviews.eyebrow'), false);
+            ->assertSee(__('agricart.storefront.brand_reviews.eyebrow'), false)
+            ->assertSee(__('agricart.storefront.brand_reviews.rating_customers_label'), false)
+            ->assertSee('5.0 / 5', false);
+
+        $batch = app(BrandCustomerReviewService::class)
+            ->publicSummariesForBrandIds([$brand->id, 999999]);
+
+        $this->assertSame(5.0, $batch[$brand->id]['average']);
+        $this->assertSame(1, $batch[$brand->id]['count']);
+        $this->assertSame(['average' => null, 'count' => 0], $batch[999999]);
     }
 
     public function test_admin_livewire_can_approve_pending_brand_review(): void

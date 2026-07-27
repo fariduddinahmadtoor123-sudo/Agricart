@@ -3,8 +3,11 @@
 namespace Tests\Feature\Store;
 
 use App\Models\Brand;
+use App\Models\BrandCustomerReview;
+use App\Models\Customer;
 use App\Support\Catalog\BrandAgricartReviewCriteria;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class StoreBrandsPageTest extends TestCase
@@ -74,7 +77,64 @@ class StoreBrandsPageTest extends TestCase
             ->assertSee('Full editorial brand profile for farmers.', false)
             ->assertSee(__('agricart.storefront.product.brand_review.eyebrow'), false)
             ->assertSee('Excellent durability and after-sales service.', false)
-            ->assertSee(__('agricart.brands.review_criteria.product_quality.label'), false);
+            ->assertSee(__('agricart.brands.review_criteria.product_quality.label'), false)
+            ->assertSee(__('agricart.storefront.brand_reviews.rating_agricart_label'), false);
+    }
+
+    public function test_brand_surfaces_show_dual_agricart_and_customer_ratings(): void
+    {
+        $brand = Brand::query()->create([
+            'code' => 'BR-DUAL',
+            'slug' => 'dual-rating-brand',
+            'status' => 'active',
+            'name_en' => 'Dual Rating Brand',
+            'name_ur' => 'دو ریٹنگ برانڈ',
+            'image_path' => 'brands/dual.webp',
+            'agricart_rating' => 8,
+            'agricart_rating_criteria' => BrandAgricartReviewCriteria::forStorage($this->completeCriteria()),
+        ]);
+
+        $customer = Customer::query()->create([
+            'customer_number' => 'CUS-'.str_pad((string) random_int(1, 99999), 5, '0', STR_PAD_LEFT),
+            'customer_channel' => Customer::CHANNEL_ONLINE,
+            'first_name' => 'Dual',
+            'last_name' => 'Rater',
+            'display_name' => 'Dual Rater',
+            'email' => 'dual-rater@test.test',
+            'phone' => '0300'.random_int(1000000, 9999999),
+            'password' => Hash::make('password'),
+            'address_line1' => '1 Test Street',
+            'city' => 'Lahore',
+            'state' => 'Punjab',
+            'country' => 'Pakistan',
+            'is_active' => true,
+        ]);
+
+        BrandCustomerReview::query()->create([
+            'brand_id' => $brand->id,
+            'customer_id' => $customer->id,
+            'rating' => 4,
+            'body' => 'Good brand overall with reliable spare parts availability.',
+            'status' => BrandCustomerReview::STATUS_APPROVED,
+        ]);
+
+        $this->get(route('store.brand', $brand->slug))
+            ->assertOk()
+            ->assertSee(__('agricart.storefront.brand_reviews.rating_agricart_label'), false)
+            ->assertSee(__('agricart.storefront.brand_reviews.rating_customers_label'), false)
+            ->assertSee('4.0 / 5', false)
+            ->assertSee('"ratingValue":4', false)
+            ->assertSee('"bestRating":5', false);
+
+        $this->get(route('store.brands'))
+            ->assertOk()
+            ->assertSee(__('agricart.storefront.brand_reviews.rating_customers_label'), false)
+            ->assertSee('4.0 / 5', false);
+
+        $this->get(route('store.home'))
+            ->assertOk()
+            ->assertSee(__('agricart.storefront.brand_reviews.rating_customers_label'), false)
+            ->assertSee('4.0 / 5', false);
     }
 
     /**

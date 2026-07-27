@@ -110,11 +110,32 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
             return false;
         }
 
+        $cachedKeys = $role->permissionKeys();
+
+        if (is_array($cachedKeys)) {
+            return in_array($key, $cachedKeys, true);
+        }
+
         if (! $role->relationLoaded('permissions')) {
             $role->load('permissions');
         }
 
-        return $role->permissions->contains('key', $key);
+        $permissions = $role->getRelation('permissions');
+
+        if (! $permissions instanceof \Illuminate\Support\Collection) {
+            $role->unsetRelation('permissions');
+            $role->load('permissions');
+            $permissions = $role->permissions;
+        }
+
+        try {
+            return $permissions->contains('key', $key);
+        } catch (\Error) {
+            $role->unsetRelation('permissions');
+            $role->load('permissions');
+
+            return $role->permissions->contains('key', $key);
+        }
     }
 
     /**

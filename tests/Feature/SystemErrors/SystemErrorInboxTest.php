@@ -12,11 +12,13 @@ use App\Models\SystemError;
 use App\Models\User;
 use App\Services\Notifications\TopbarNotificationService;
 use App\Services\SystemErrors\SystemErrorCaptureService;
+use App\Services\SystemErrors\SystemErrorGuidance;
 use App\Services\SystemErrors\SystemErrorLifecycleService;
 use App\Services\SystemErrors\SystemErrorReadService;
 use App\Services\SystemErrors\SystemErrorReportFormatter;
 use App\Services\SystemErrors\SystemErrorSanitizer;
 use App\Services\SystemErrors\SystemLogFileReader;
+use Error;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\ConnectionException;
@@ -150,6 +152,8 @@ class SystemErrorInboxTest extends TestCase
         $this->assertStringNotContainsString('secret-value', $report);
         $this->assertStringNotContainsString('abc123token', $report);
         $this->assertStringNotContainsString('customer@example.com', $report);
+        $this->assertStringContainsString('آسان وضاحت', $report);
+        $this->assertStringContainsString('Plain summary (English)', $report);
 
         $path = storage_path('logs/laravel-2099-01-01.log');
 
@@ -170,6 +174,35 @@ class SystemErrorInboxTest extends TestCase
         } finally {
             File::delete($path);
         }
+    }
+
+    public function test_incomplete_collection_error_is_classified_as_agricart_permission_cache(): void
+    {
+        $this->actingAs($this->superAdmin());
+
+        $error = $this->systemError([
+            'severity' => SystemError::SEVERITY_CRITICAL,
+            'exception_class' => Error::class,
+            'message' => 'The script tried to call a method on an incomplete object. Please ensure that the class definition "Illuminate\Database\Eloquent\Collection" of the object you are trying to operate on was loaded _before_ unserialize() gets called',
+            'file' => 'app/Models/User.php',
+            'line' => 117,
+            'trace' => '#0 app/Models/User.php(117): hasPermission()',
+        ]);
+
+        $guidance = app(SystemErrorGuidance::class)->for($error);
+
+        $this->assertSame('permission_cache', $guidance['pattern']);
+        $this->assertSame('agricart', $guidance['bucket']);
+        $this->assertSame('medium', $guidance['worry']);
+        $this->assertStringContainsString('اجازت', $guidance['title']);
+        $this->assertStringContainsString('Staff permission', $guidance['title_en']);
+
+        Livewire::test(Detail::class)
+            ->call('loadError', $error->id)
+            ->assertSee('آسان وضاحت', false)
+            ->assertSee('اجازت', false)
+            ->assertSee('Show technical details', false)
+            ->assertSee('Staff permission check failed', false);
     }
 
     public function test_resolved_error_retention_and_critical_bell_count(): void

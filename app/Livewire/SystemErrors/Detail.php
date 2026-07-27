@@ -4,6 +4,7 @@ namespace App\Livewire\SystemErrors;
 
 use App\Livewire\SystemErrors\Concerns\AuthorizesSystemErrors;
 use App\Models\SystemError;
+use App\Services\SystemErrors\SystemErrorGuidance;
 use App\Services\SystemErrors\SystemErrorReadService;
 use App\Services\SystemErrors\SystemErrorReportFormatter;
 use App\Services\SystemErrors\SystemLogFileReader;
@@ -23,6 +24,9 @@ class Detail extends Component
 
     public string $report = '';
 
+    /** @var array<string, string>|null */
+    public ?array $guidance = null;
+
     public bool $canManage = false;
 
     #[On('system-error-detail-open')]
@@ -34,6 +38,9 @@ class Detail extends Component
         $this->error = SystemError::query()
             ->with(['user', 'resolvedBy'])
             ->find($errorId);
+        $this->guidance = $this->error instanceof SystemError
+            ? app(SystemErrorGuidance::class)->for($this->error)
+            : null;
         $this->report = $this->error instanceof SystemError
             ? app(SystemErrorReportFormatter::class)->format($this->error)
             : '';
@@ -52,6 +59,9 @@ class Detail extends Component
         $this->error = null;
         $this->fileEntry = collect(app(SystemLogFileReader::class)->recent(200))
             ->firstWhere('key', $fileKey);
+        $this->guidance = $this->fileEntry === null
+            ? null
+            : app(SystemErrorGuidance::class)->forFileEntry($this->fileEntry);
         $this->report = $this->fileEntry === null
             ? ''
             : implode(PHP_EOL, [
@@ -83,6 +93,7 @@ class Detail extends Component
             'verified_at' => now(),
         ]);
         $this->error->refresh()->load(['user', 'resolvedBy']);
+        $this->guidance = app(SystemErrorGuidance::class)->for($this->error);
         $this->report = app(SystemErrorReportFormatter::class)->format($this->error);
         $this->dispatch('system-errors-updated');
 
@@ -109,6 +120,7 @@ class Detail extends Component
             'verified_at' => null,
         ]);
         $this->error->refresh()->load(['user', 'resolvedBy']);
+        $this->guidance = app(SystemErrorGuidance::class)->for($this->error);
         $this->report = app(SystemErrorReportFormatter::class)->format($this->error);
         $this->dispatch('system-errors-updated');
 

@@ -101,6 +101,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-copy-value]').forEach((button) => {
         button.addEventListener('click', async () => {
             const value = button.dataset.copyValue ?? '';
+            const successLabel = button.dataset.copySuccess ?? button.textContent;
+            const originalLabel = button.dataset.copyLabel ?? button.textContent;
+
             try {
                 await navigator.clipboard.writeText(value);
             } catch {
@@ -114,7 +117,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.execCommand('copy');
                 input.remove();
             }
-            button.textContent = button.dataset.copySuccess ?? button.textContent;
+
+            button.textContent = successLabel;
+            window.setTimeout(() => {
+                button.textContent = originalLabel;
+            }, 1600);
         });
     });
 

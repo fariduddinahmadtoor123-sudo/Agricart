@@ -168,6 +168,8 @@ class StoreLayoutService
 
         $footerTestimonials = app(CompanyTestimonialService::class)->publicReviews(12);
         $footerBrands = app(StoreBrandService::class)->carouselBrands(24);
+        $footerBrandCustomerSummaries = app(BrandCustomerReviewService::class)
+            ->publicSummariesForBrandIds($footerBrands->pluck('id')->all());
 
         return [
             'settings' => $settings,
@@ -187,6 +189,7 @@ class StoreLayoutService
             'footer_legal_pages' => $footerLegalPages,
             'footerTestimonials' => $footerTestimonials,
             'footerBrands' => $footerBrands,
+            'footerBrandCustomerSummaries' => $footerBrandCustomerSummaries,
             'onlineStoreChannel' => app(SalesChannelService::class)->onlineStoreViewState(),
         ];
     }

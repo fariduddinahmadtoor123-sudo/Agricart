@@ -16,6 +16,7 @@ class BrandController extends Controller
     public function index(
         StoreLayoutService $layout,
         StoreBrandService $brands,
+        BrandCustomerReviewService $customerReviews,
         StorefrontSchemaService $schema,
         AnalyticsContext $analytics,
     ): View {
@@ -26,6 +27,9 @@ class BrandController extends Controller
             ...$layout->layoutData(),
             'brands' => $items,
             'brandService' => $brands,
+            'brandCustomerSummaries' => $customerReviews->publicSummariesForBrandIds(
+                $items->pluck('id')->all(),
+            ),
             'schemaDocument' => $schema->brandsIndexDocument($items->count()),
         ]);
     }

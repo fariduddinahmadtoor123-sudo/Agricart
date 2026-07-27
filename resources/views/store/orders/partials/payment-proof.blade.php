@@ -21,10 +21,7 @@
         </p>
     @endif
 
-    <div class="ag-store-orders__proof-panel">
-        <h3 class="ag-store-orders__proof-option-title">{{ __('agricart.customer.orders.proof_upload_title') }}</h3>
-        <p class="ag-store-orders__proof-option-text">{{ __('agricart.customer.orders.proof_upload_text') }}</p>
-
+    <div class="ag-store-orders__proof-panel ag-store-orders__proof-panel--form-only">
         <form method="post" action="{{ route('store.customer.orders.payment-proof', $order->order_number) }}" enctype="multipart/form-data" class="ag-store-checkout__form ag-store-orders__proof-form">
             @csrf
             <label class="ag-store-checkout__field">

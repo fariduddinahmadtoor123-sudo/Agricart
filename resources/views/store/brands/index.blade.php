@@ -23,6 +23,7 @@
                     @php
                         $logoUrl = $brandService->imageUrl($brand);
                         $summary = $brandService->ratingSummary($brand);
+                        $customerSummary = ($brandCustomerSummaries ?? [])[$brand->id] ?? ['average' => null, 'count' => 0];
                     @endphp
                     <a href="{{ route('store.brand', $brand->slug) }}" class="ag-store-brands__card">
                         <span class="ag-store-brands__card-logo">
@@ -37,12 +38,11 @@
                             @if (filled($brand->name_ur))
                                 <span class="ag-store-brands__card-name-ur" dir="rtl">{{ $brand->name_ur }}</span>
                             @endif
-                            @if ($summary)
-                                @include('store.components.brand-rating', [
-                                    'summary' => $summary,
-                                    'variant' => 'compact',
-                                ])
-                            @endif
+                            @include('store.components.brand-ratings-pair', [
+                                'agricartSummary' => $summary,
+                                'customerSummary' => $customerSummary,
+                                'variant' => 'compact',
+                            ])
                         </span>
                     </a>
                 @endforeach

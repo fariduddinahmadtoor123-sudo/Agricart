@@ -315,15 +315,12 @@ class StorefrontSchemaService
         $name = $brands->localizedName($brand);
         $description = $brands->localizedDescription($brand)
             ?? __('agricart.storefront.brands.page_lead');
-        $summary = $brands->ratingSummary($brand);
+        $customerSummary = app(BrandCustomerReviewService::class)->publicSummary($brand);
+        $aggregate = $this->aggregateRating($customerSummary);
 
-        $brandEntity = array_filter([
-            '@type' => 'Brand',
-            'name' => $name,
-            'url' => route('store.brand', $brand->slug),
-            'logo' => $brands->imageUrl($brand),
-            'description' => $description,
-            'aggregateRating' => is_array($summary)
+        if ($aggregate === null) {
+            $summary = $brands->ratingSummary($brand);
+            $aggregate = is_array($summary)
                 ? [
                     '@type' => 'AggregateRating',
                     'ratingValue' => $summary['score'],
@@ -331,7 +328,16 @@ class StorefrontSchemaService
                     'worstRating' => 0,
                     'ratingCount' => 1,
                 ]
-                : null,
+                : null;
+        }
+
+        $brandEntity = array_filter([
+            '@type' => 'Brand',
+            'name' => $name,
+            'url' => route('store.brand', $brand->slug),
+            'logo' => $brands->imageUrl($brand),
+            'description' => $description,
+            'aggregateRating' => $aggregate,
         ], static fn ($value): bool => $value !== null && $value !== '');
 
         return [

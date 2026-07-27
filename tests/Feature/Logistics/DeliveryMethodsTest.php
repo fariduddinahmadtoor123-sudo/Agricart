@@ -45,7 +45,7 @@ class DeliveryMethodsTest extends TestCase
             ->set('name_en', 'Courier Delivery')
             ->set('name_ur', 'کورئیر ڈیلیوری')
             ->set('description_en', 'Doorstep courier')
-            ->set('allowed_payment_methods', ['cash', 'bank_transfer'])
+            ->set('bank_transfer_allowed', true)
             ->set('cod_allowed', true)
             ->set('cod_min_advance_percent', '10')
             ->set('full_advance_required', false)

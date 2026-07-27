@@ -6,10 +6,32 @@ use App\Models\SystemError;
 
 class SystemErrorReportFormatter
 {
+    public function __construct(
+        private readonly SystemErrorGuidance $guidance,
+    ) {}
+
     public function format(SystemError $error): string
     {
+        $guide = $this->guidance->for($error);
+
         $lines = [
             'Agricart System Error Report',
+            '',
+            '=== آسان وضاحت ===',
+            'نوعیت: '.$guide['title'],
+            'ذریعہ: '.$guide['bucket_label'],
+            'پریشانی: '.$guide['worry_label'],
+            'کیا ہوا: '.$guide['summary'],
+            'کیا کریں: '.$guide['action'],
+            '',
+            '=== Plain summary (English) ===',
+            'Nature: '.$guide['title_en'],
+            'Source type: '.$guide['bucket_label_en'],
+            'Worry level: '.$guide['worry_label_en'],
+            'What happened: '.$guide['summary_en'],
+            'What to do: '.$guide['action_en'],
+            '',
+            '=== Technical details (for developers) ===',
             'Reference: '.$error->reference,
             'Status: '.$error->status,
             'Severity: '.$error->severity,
