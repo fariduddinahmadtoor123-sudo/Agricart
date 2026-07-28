@@ -3645,6 +3645,8 @@ return [
             'position' => 'Position',
             'size_percent' => 'Badge width (% of logo)',
             'opacity' => 'Opacity (%)',
+            'existing_title' => 'Brands already uploaded',
+            'existing_hint' => 'Save your settings, then use Apply to all brands (or Force re-apply) to watermark logos that were uploaded before this feature. New uploads and logo changes in Catalog apply the watermark automatically.',
         ],
         'positions' => [
             'bottom-right' => 'Bottom right',

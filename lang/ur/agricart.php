@@ -3644,6 +3644,8 @@ return [
             'position' => 'جگہ',
             'size_percent' => 'بیج چوڑائی (لوگو کا %)',
             'opacity' => 'شفافیت (%)',
+            'existing_title' => 'پہلے سے اپ لوڈ شدہ برانڈز',
+            'existing_hint' => 'سیٹنگز Save کریں، پھر Apply to all brands (یا Force re-apply) سے پرانی لوگوز پر واٹرمارک لگائیں۔ نئی اپ لوڈ یا Catalog میں لوگو بدلنے پر واٹرمارک خود لگ جاتا ہے۔',
         ],
         'positions' => [
             'bottom-right' => 'نیچے دائیں',

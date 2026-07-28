@@ -61,6 +61,11 @@
                 <input type="number" min="10" max="100" wire:model="opacity" @disabled(! $canManage || $saving || $applying)>
             </label>
 
+            <div class="agricart-product-watermark__note">
+                <p class="agricart-product-watermark__note-title">{{ __('agricart.brand_watermark.fields.existing_title') }}</p>
+                <p class="agricart-product-watermark__help">{{ __('agricart.brand_watermark.fields.existing_hint') }}</p>
+            </div>
+
             <div class="agricart-product-watermark__actions">
                 <button type="submit" class="agricart-product-watermark__btn is-primary" @disabled(! $canManage || $saving || $applying)>
                     {{ $saving ? __('agricart.brand_watermark.actions.saving') : __('agricart.brand_watermark.actions.save') }}
@@ -75,3 +80,5 @@
         </form>
     </section>
 </div>
+
+@include('livewire.settings.partials.watermark-settings-styles')
