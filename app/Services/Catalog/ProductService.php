@@ -16,7 +16,7 @@ use App\Models\ReorderQueueItem;
 use App\Models\SaleItem;
 use App\Models\SaleQuotationItem;
 use App\Models\SaleReturnItem;
-use App\Services\Media\MediaLibraryService;
+use App\Services\Catalog\ProductImageWatermarkService;
 use App\Services\Identifiers\DocumentCounterService;
 use App\Support\Catalog\BrandAgricartReviewCriteria;
 use Illuminate\Support\Arr;
@@ -121,6 +121,10 @@ class ProductService
             $validated['image_path'] = $product->image_path;
         }
 
+        if (empty($validated['image_original_path']) && filled($product->image_original_path)) {
+            $validated['image_original_path'] = $product->image_original_path;
+        }
+
         return DB::transaction(function () use ($product, $validated, $displayCategoryIds, $attributes, $controlIds, $deliveryMethodIds): Product {
             $categoryId = $validated['category_id'] ?? $product->category_id;
             $categoryChanged = (int) $categoryId !== (int) $product->category_id;
@@ -175,11 +179,21 @@ class ProductService
             [$product->image_path],
             $product->gallery_images ?? [],
         )));
+        $originalPaths = array_values(array_filter(array_merge(
+            [$product->image_original_path],
+            $product->gallery_original_images ?? [],
+        )));
 
         $product->delete();
 
+        $watermark = app(ProductImageWatermarkService::class);
+
         foreach (array_unique($mediaPaths) as $path) {
-            app(MediaLibraryService::class)->deleteFileIfUnused($path);
+            $watermark->deletePair($path, null);
+        }
+
+        foreach (array_unique($originalPaths) as $path) {
+            $watermark->deletePair(null, $path);
         }
 
         CatalogCache::forgetOverviewStats();
@@ -418,8 +432,12 @@ class ProductService
             'category_id' => ['required', 'integer', 'exists:categories,id'],
             'brand_id' => ['required', 'integer', 'exists:brands,id'],
             'image_path' => ['nullable', 'string', 'max:500'],
+            'image_original_path' => ['nullable', 'string', 'max:500'],
             'gallery_images' => ['nullable', 'array'],
             'gallery_images.*' => ['string', 'max:500'],
+            'gallery_original_images' => ['nullable', 'array'],
+            'gallery_original_images.*' => ['nullable', 'string', 'max:500'],
+            'images_watermark_version' => ['nullable', 'integer', 'min:1'],
             'sku' => ['nullable', 'string', 'max:128'],
             'unit_id' => ['required', 'integer', 'exists:units,id'],
             'unit_qty' => ['required', 'numeric', 'min:0'],
@@ -507,6 +525,10 @@ class ProductService
 
         if ($exceptId && empty($validated['image_path'])) {
             unset($validated['image_path']);
+        }
+
+        if ($exceptId && empty($validated['image_original_path'])) {
+            unset($validated['image_original_path']);
         }
 
         return $validated;

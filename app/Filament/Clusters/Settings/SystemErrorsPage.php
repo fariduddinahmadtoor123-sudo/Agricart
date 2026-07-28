@@ -12,9 +12,9 @@ class SystemErrorsPage extends BaseModulePage
 {
     protected static ?string $cluster = SettingsCluster::class;
 
-    protected static ?string $navigationLabel = 'System Errors';
+    protected static ?string $navigationLabel = 'Errors';
 
-    protected static ?int $navigationSort = 8;
+    protected static ?int $navigationSort = 10;
 
     protected static ?string $slug = 'system-errors';
 

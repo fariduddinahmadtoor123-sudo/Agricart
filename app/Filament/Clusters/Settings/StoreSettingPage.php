@@ -12,7 +12,7 @@ class StoreSettingPage extends BaseModulePage
 {
     protected static ?string $cluster = SettingsCluster::class;
 
-    protected static ?string $navigationLabel = 'Store Profile';
+    protected static ?string $navigationLabel = 'Profile';
 
     protected static ?int $navigationSort = 2;
 

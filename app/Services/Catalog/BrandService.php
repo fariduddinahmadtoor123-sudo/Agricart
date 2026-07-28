@@ -4,8 +4,8 @@ namespace App\Services\Catalog;
 
 use App\Models\Brand;
 use App\Models\Product;
+use App\Services\Catalog\BrandImageWatermarkService;
 use App\Services\Identifiers\DocumentCounterService;
-use App\Services\Media\MediaLibraryService;
 use App\Support\Catalog\BrandAgricartReviewCriteria;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
@@ -53,6 +53,10 @@ class BrandService
                     $validated['image_path'] = $brand->image_path;
                 }
 
+                if (empty($validated['image_original_path']) && filled($brand->image_original_path)) {
+                    $validated['image_original_path'] = $brand->image_original_path;
+                }
+
                 return DB::transaction(function () use ($brand, $validated): Brand {
                     $wasActive = $brand->status === 'active';
                     $brand->update($validated);
@@ -75,9 +79,12 @@ class BrandService
 
     public function delete(Brand $brand): void
     {
-        $imagePath = Cache::lock('catalog-brand-write', 30)->block(
+        $imagePath = null;
+        $imageOriginalPath = null;
+
+        Cache::lock('catalog-brand-write', 30)->block(
             10,
-            function () use ($brand): ?string {
+            function () use ($brand, &$imagePath, &$imageOriginalPath): void {
                 $brand->refresh();
 
                 if (Product::query()->where('brand_id', $brand->id)->exists()) {
@@ -86,16 +93,13 @@ class BrandService
                     ]);
                 }
 
-                $path = $brand->image_path;
+                $imagePath = $brand->image_path;
+                $imageOriginalPath = $brand->image_original_path;
                 $brand->delete();
-
-                return $path;
             },
         );
 
-        if (filled($imagePath)) {
-            app(MediaLibraryService::class)->deleteFileIfUnused($imagePath);
-        }
+        app(BrandImageWatermarkService::class)->deletePair($imagePath, $imageOriginalPath);
 
         CatalogCache::forgetOverviewStats();
     }
@@ -153,6 +157,8 @@ class BrandService
             'name_en' => ['required', 'string', 'max:255'],
             'name_ur' => ['required', 'string', 'max:255'],
             'image_path' => [$exceptId ? 'nullable' : 'required', 'string', 'max:255'],
+            'image_original_path' => ['nullable', 'string', 'max:500'],
+            'image_watermark_version' => ['nullable', 'integer', 'min:1'],
             'description_en' => ['nullable', 'string'],
             'description_ur' => ['nullable', 'string'],
             'website_url' => ['nullable', 'url:http,https', 'max:255'],
@@ -211,6 +217,8 @@ class BrandService
             'name_en',
             'name_ur',
             'image_path',
+            'image_original_path',
+            'image_watermark_version',
             'description_en',
             'description_ur',
             'website_url',
@@ -247,6 +255,10 @@ class BrandService
 
         if ($exceptId && empty($validated['image_path'])) {
             unset($validated['image_path']);
+        }
+
+        if ($exceptId && empty($validated['image_original_path'])) {
+            unset($validated['image_original_path']);
         }
 
         return $validated;

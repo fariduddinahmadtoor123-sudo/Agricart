@@ -77,6 +77,20 @@ class StoreSetting extends Model
         'ga_measurement_id',
         'gtm_container_id',
         'meta_pixel_id',
+        'product_watermark_enabled',
+        'product_watermark_logo_path',
+        'product_watermark_position',
+        'product_watermark_size_percent',
+        'product_watermark_opacity',
+        'product_watermark_version',
+        'marketplace_image_preferences',
+        'brand_watermark_enabled',
+        'brand_watermark_logo_path',
+        'brand_watermark_text',
+        'brand_watermark_position',
+        'brand_watermark_size_percent',
+        'brand_watermark_opacity',
+        'brand_watermark_version',
     ];
 
     /**
@@ -103,6 +117,15 @@ class StoreSetting extends Model
             'footer_show_register_link' => 'boolean',
             'ticker_speed' => 'integer',
             'category_grid_columns' => 'integer',
+            'product_watermark_enabled' => 'boolean',
+            'product_watermark_size_percent' => 'integer',
+            'product_watermark_opacity' => 'integer',
+            'product_watermark_version' => 'integer',
+            'marketplace_image_preferences' => 'array',
+            'brand_watermark_enabled' => 'boolean',
+            'brand_watermark_size_percent' => 'integer',
+            'brand_watermark_opacity' => 'integer',
+            'brand_watermark_version' => 'integer',
         ];
     }
 

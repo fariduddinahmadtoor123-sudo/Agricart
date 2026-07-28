@@ -14,7 +14,7 @@ class ActivityPage extends BaseModulePage
 
     protected static ?string $navigationLabel = 'Activity';
 
-    protected static ?int $navigationSort = 9;
+    protected static ?int $navigationSort = 11;
 
     protected static ?string $slug = 'activity';
 

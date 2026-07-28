@@ -14,7 +14,7 @@ class AiSettingsPage extends BaseModulePage
 
     protected static ?string $navigationLabel = 'AI';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 7;
 
     protected static ?string $slug = 'ai-settings';
 

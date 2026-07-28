@@ -12,9 +12,9 @@ class PermissionPage extends BaseModulePage
 {
     protected static ?string $cluster = SettingsCluster::class;
 
-    protected static ?string $navigationLabel = 'Permission';
+    protected static ?string $navigationLabel = 'Access';
 
-    protected static ?int $navigationSort = 10;
+    protected static ?int $navigationSort = 12;
 
     protected static ?string $slug = 'permission';
 

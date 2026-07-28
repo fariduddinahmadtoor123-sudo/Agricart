@@ -2,11 +2,14 @@
     $carouselItems = $footerBrands ?? collect();
     $brandService = app(\App\Services\Store\StoreBrandService::class);
     $customerSummaries = $footerBrandCustomerSummaries ?? [];
+    // Infinite marquee duplicates the strip; with few brands both copies stay on-screen and look "doubled".
+    $useMarquee = $carouselItems->count() >= 6;
+    $loopCopies = $useMarquee ? [1, 2] : [1];
 @endphp
 
 @if ($carouselItems->isNotEmpty() && ! request()->routeIs(['store.brands', 'store.brand']))
     <section
-        class="ag-store-brands-carousel"
+        class="ag-store-brands-carousel{{ $useMarquee ? '' : ' is-static' }}"
         aria-label="{{ __('agricart.storefront.brands.carousel_label') }}"
         data-store-brands-carousel
     >
@@ -21,7 +24,7 @@
 
         <div class="ag-store-brands-carousel__viewport">
             <div class="ag-store-brands-carousel__track">
-                @foreach ([1, 2] as $loopCopy)
+                @foreach ($loopCopies as $loopCopy)
                     <div class="ag-store-brands-carousel__group" @if ($loopCopy === 2) aria-hidden="true" @endif>
                         @foreach ($carouselItems as $brand)
                             @php

@@ -8068,6 +8068,22 @@ html[dir='rtl'] .ag-store-footer__col--map {
     animation: ag-store-brands-marquee 55s linear infinite;
 }
 
+.ag-store-brands-carousel.is-static .ag-store-brands-carousel__track {
+    width: 100%;
+    max-width: var(--ag-store-container, 72rem);
+    margin-inline: auto;
+    justify-content: center;
+    flex-wrap: wrap;
+    animation: none;
+    padding-inline: 1rem;
+}
+
+.ag-store-brands-carousel.is-static .ag-store-brands-carousel__group {
+    flex-wrap: wrap;
+    justify-content: center;
+    padding-inline-end: 0;
+}
+
 .ag-store-brands-carousel.is-paused .ag-store-brands-carousel__track {
     animation-play-state: paused;
 }

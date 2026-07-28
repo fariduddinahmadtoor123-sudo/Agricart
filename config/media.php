@@ -51,13 +51,82 @@ return [
     'directory_presets' => [
         'categories' => 'catalog',
         'brands' => 'catalog',
+        'brands/originals' => 'catalog',
         'products' => 'catalog',
         'products/gallery' => 'gallery',
+        'products/originals' => 'catalog',
+        'products/gallery/originals' => 'gallery',
         'store' => 'logo',
         'store/about' => 'gallery',
+        'store/watermarks' => 'logo',
         'customers/photos' => 'avatar',
         'suppliers/profile-photos' => 'avatar',
         'users/profile-photos' => 'avatar',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Product image watermarks
+    |--------------------------------------------------------------------------
+    |
+    | Clean originals live on the private "local" disk. Storefront only serves
+    | watermarked copies from the public disk.
+    |
+    */
+
+    'product_watermark' => [
+        'private_disk' => 'local',
+        'public_disk' => 'public',
+        'positions' => [
+            'bottom-right',
+            'bottom-left',
+            'top-right',
+            'top-left',
+            'center',
+        ],
+        'default_position' => 'bottom-right',
+        'default_size_percent' => 15,
+        'default_opacity' => 55,
+        'marketplace_platforms' => [
+            'daraz',
+            'amazon',
+            'alibaba',
+            'facebook',
+            'whatsapp',
+        ],
+        'default_marketplace_preferences' => [
+            'daraz' => 'original',
+            'amazon' => 'original',
+            'alibaba' => 'original',
+            'facebook' => 'watermarked',
+            'whatsapp' => 'original',
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Brand logo watermarks
+    |--------------------------------------------------------------------------
+    |
+    | Brand logos Agricart creates are protected the same way as product photos:
+    | private clean originals + public watermarked copies for the storefront.
+    |
+    */
+
+    'brand_watermark' => [
+        'private_disk' => 'local',
+        'public_disk' => 'public',
+        'positions' => [
+            'bottom-right',
+            'bottom-left',
+            'top-right',
+            'top-left',
+            'center',
+        ],
+        'default_position' => 'bottom-right',
+        'default_size_percent' => 18,
+        'default_opacity' => 70,
+        'default_text' => 'Available at Agricart.pk',
     ],
 
 ];

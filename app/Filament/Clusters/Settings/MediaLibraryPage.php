@@ -12,7 +12,7 @@ class MediaLibraryPage extends BaseModulePage
 {
     protected static ?string $cluster = SettingsCluster::class;
 
-    protected static ?string $navigationLabel = 'Media Library';
+    protected static ?string $navigationLabel = 'Media';
 
     protected static ?int $navigationSort = 4;
 

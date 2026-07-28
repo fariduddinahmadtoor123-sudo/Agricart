@@ -12,9 +12,9 @@ class BrandReviewMessagesPage extends BaseModulePage
 {
     protected static ?string $cluster = SettingsCluster::class;
 
-    protected static ?string $navigationLabel = 'Review Messages';
+    protected static ?string $navigationLabel = 'Reviews';
 
-    protected static ?int $navigationSort = 13;
+    protected static ?int $navigationSort = 15;
 
     protected static ?string $slug = 'brand-review-messages';
 

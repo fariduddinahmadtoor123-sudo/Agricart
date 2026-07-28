@@ -12,9 +12,9 @@ class BackupsPage extends BaseModulePage
 {
     protected static ?string $cluster = SettingsCluster::class;
 
-    protected static ?string $navigationLabel = 'Backups';
+    protected static ?string $navigationLabel = 'Backup';
 
-    protected static ?int $navigationSort = 12;
+    protected static ?int $navigationSort = 14;
 
     protected static ?string $slug = 'backups';
 

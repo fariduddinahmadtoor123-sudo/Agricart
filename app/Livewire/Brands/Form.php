@@ -9,9 +9,8 @@ use App\Models\StoreSetting;
 use App\Services\Catalog\BrandAgricartReviewAiService;
 use App\Services\Catalog\BrandAgricartReviewMessageService;
 use App\Services\Catalog\BrandEnrichmentService;
+use App\Services\Catalog\BrandImageWatermarkService;
 use App\Services\Catalog\BrandService;
-use App\Services\Media\MediaLibraryService;
-use App\Services\Media\OptimizedImageStorage;
 use App\Support\Catalog\BrandAgricartReviewCriteria;
 use App\Support\Catalog\BrandAgricartReviewNotice;
 use App\Support\FriendlyError;
@@ -41,6 +40,9 @@ class Form extends Component
 
     #[Locked]
     public ?string $storedImagePath = null;
+
+    #[Locked]
+    public ?string $storedImageOriginalPath = null;
 
     public string $enrichmentPrompt = '';
 
@@ -492,7 +494,11 @@ class Form extends Component
         $originalImagePath = $this->brandId
             ? Brand::query()->whereKey($this->brandId)->value('image_path')
             : null;
+        $originalImageOriginalPath = $this->brandId
+            ? Brand::query()->whereKey($this->brandId)->value('image_original_path')
+            : null;
         $this->storedImagePath = $originalImagePath;
+        $this->storedImageOriginalPath = $originalImageOriginalPath;
         $missing = [];
 
         if (! filled(trim($this->name_en))) {
@@ -541,10 +547,12 @@ class Form extends Component
         $this->saving = true;
         $this->dispatchBusyState();
         $newImagePath = null;
+        $newImageOriginalPath = null;
         $committed = false;
 
         try {
             $newImagePath = $this->persistUploadedImage();
+            $newImageOriginalPath = $newImagePath !== null ? $this->storedImageOriginalPath : null;
             $service = app(BrandService::class);
             $payload = $this->buildPayload($service);
 
@@ -563,10 +571,21 @@ class Form extends Component
             $this->persistCriterionMessageDefaults();
 
             if (filled($originalImagePath) && $originalImagePath !== $this->storedImagePath) {
-                app(MediaLibraryService::class)->deleteFileIfUnused($originalImagePath);
+                app(BrandImageWatermarkService::class)->deletePair(
+                    $originalImagePath,
+                    filled($originalImageOriginalPath) && $originalImageOriginalPath !== $this->storedImageOriginalPath
+                        ? $originalImageOriginalPath
+                        : null,
+                );
+            } elseif (
+                filled($originalImageOriginalPath)
+                && $originalImageOriginalPath !== $this->storedImageOriginalPath
+            ) {
+                app(BrandImageWatermarkService::class)->deletePair(null, $originalImageOriginalPath);
             }
 
             $this->storedImagePath = $payload['image_path'] ?? $this->storedImagePath;
+            $this->storedImageOriginalPath = $payload['image_original_path'] ?? $this->storedImageOriginalPath;
             $this->imagePreviewUrl = filled($this->storedImagePath)
                 ? Storage::disk('public')->url($this->storedImagePath)
                 : null;
@@ -575,8 +594,8 @@ class Form extends Component
             return true;
         } catch (ValidationException $exception) {
             if (! $committed && filled($newImagePath)) {
-                app(MediaLibraryService::class)->deleteFileIfUnused($newImagePath);
-                $this->restoreOriginalImage($originalImagePath);
+                app(BrandImageWatermarkService::class)->deletePair($newImagePath, $newImageOriginalPath);
+                $this->restoreOriginalImage($originalImagePath, $originalImageOriginalPath);
             }
 
             $message = collect($exception->errors())->flatten()->first();
@@ -585,8 +604,8 @@ class Form extends Component
             return false;
         } catch (\Throwable $exception) {
             if (! $committed && filled($newImagePath)) {
-                app(MediaLibraryService::class)->deleteFileIfUnused($newImagePath);
-                $this->restoreOriginalImage($originalImagePath);
+                app(BrandImageWatermarkService::class)->deletePair($newImagePath, $newImageOriginalPath);
+                $this->restoreOriginalImage($originalImagePath, $originalImageOriginalPath);
             }
 
             $this->setStatus(FriendlyError::message($exception), 'danger');
@@ -627,6 +646,8 @@ class Form extends Component
             'name_en' => $this->name_en,
             'name_ur' => $this->name_ur,
             'image_path' => $this->storedImagePath,
+            'image_original_path' => $this->storedImageOriginalPath,
+            'image_watermark_version' => (int) (StoreSetting::current()->brand_watermark_version ?: 1),
             'description_en' => $this->description_en ?: null,
             'description_ur' => $this->description_ur ?: null,
             'website_url' => filled($this->website_url) ? $this->website_url : null,
@@ -640,18 +661,27 @@ class Form extends Component
             return null;
         }
 
-        $path = app(OptimizedImageStorage::class)->store($this->imageUpload, 'brands');
-        $this->storedImagePath = $path;
-        $this->imagePreviewUrl = Storage::disk('public')->url($path);
+        $pair = app(BrandImageWatermarkService::class)->processUpload($this->imageUpload);
+        $this->storedImagePath = $pair['public'];
+        $this->storedImageOriginalPath = $pair['original'];
+        $this->imagePreviewUrl = Storage::disk('public')->url($pair['public']);
         $this->imageUpload = null;
 
-        return $path;
+        return $pair['public'];
     }
 
     private function resolveImagePathForAi(): ?string
     {
         if ($this->imageUpload !== null) {
             return $this->imageUpload->getRealPath() ?: null;
+        }
+
+        if (filled($this->storedImageOriginalPath)) {
+            $path = Storage::disk('local')->path($this->storedImageOriginalPath);
+
+            if (is_readable($path)) {
+                return $path;
+            }
         }
 
         if (filled($this->storedImagePath)) {
@@ -710,6 +740,7 @@ class Form extends Component
         $this->loadSiteReviewNotice();
         $this->ai_status = $brand->ai_status?->value ?? 'none';
         $this->storedImagePath = $brand->image_path;
+        $this->storedImageOriginalPath = $brand->image_original_path;
         $this->imagePreviewUrl = filled($brand->image_path)
             ? Storage::disk('public')->url($brand->image_path)
             : null;
@@ -723,6 +754,7 @@ class Form extends Component
         $this->imageUpload = null;
         $this->imagePreviewUrl = null;
         $this->storedImagePath = null;
+        $this->storedImageOriginalPath = null;
         $this->enrichmentPrompt = BrandEnrichmentService::defaultPrompt();
         $this->name_en = '';
         $this->name_ur = '';
@@ -833,10 +865,11 @@ class Form extends Component
         return $flags;
     }
 
-    private function restoreOriginalImage(?string $imagePath): void
+    private function restoreOriginalImage(?string $imagePath, ?string $imageOriginalPath = null): void
     {
         $this->imageUpload = null;
         $this->storedImagePath = $imagePath;
+        $this->storedImageOriginalPath = $imageOriginalPath;
         $this->imagePreviewUrl = filled($imagePath)
             ? Storage::disk('public')->url($imagePath)
             : null;

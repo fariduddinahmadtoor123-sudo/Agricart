@@ -57,15 +57,15 @@ class PhaseCBatch1AdminUxTest extends TestCase
             ->assertRedirect(ReportsOverviewPage::getUrl());
     }
 
-    public function test_settings_tax_tab_shows_coming_soon_in_sub_nav(): void
+    public function test_settings_tax_tab_has_no_coming_soon_badge(): void
     {
-        $this->get('/admin/settings/overview')->assertOk();
+        $this->get('/admin/settings/tax-system')->assertOk();
 
         $taxItem = collect(SettingsSubNavigation::items())
             ->first(fn (array $item): bool => $item['label'] === 'Tax');
 
         $this->assertNotNull($taxItem);
-        $this->assertTrue($taxItem['comingSoon']);
-        $this->assertSame(__('agricart.placeholder.sub_nav_badge'), $taxItem['comingSoonBadge']);
+        $this->assertFalse($taxItem['comingSoon']);
+        $this->assertNull($taxItem['comingSoonBadge']);
     }
 }

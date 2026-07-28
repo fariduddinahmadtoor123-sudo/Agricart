@@ -15,9 +15,8 @@ use App\Models\Unit;
 use App\Models\User;
 use App\Services\Catalog\CategoryVisualMappingService;
 use App\Services\Catalog\ProductEnrichmentService;
+use App\Services\Catalog\ProductImageWatermarkService;
 use App\Services\Catalog\ProductService;
-use App\Services\Media\MediaLibraryService;
-use App\Services\Media\OptimizedImageStorage;
 use App\Services\PricingControls\QuantityPricingEngine;
 use App\Support\FriendlyError;
 use Illuminate\Contracts\View\View;
@@ -56,6 +55,8 @@ class Form extends Component
 
     public ?string $storedImagePath = null;
 
+    public ?string $storedImageOriginalPath = null;
+
     /** @var array<int, TemporaryUploadedFile|null> */
     public array $galleryUploads = [];
 
@@ -65,8 +66,14 @@ class Form extends Component
     /** @var array<int, string|null> */
     public array $storedGalleryPaths = [];
 
+    /** @var array<int, string|null> */
+    public array $storedGalleryOriginalPaths = [];
+
     /** @var list<string> */
     public array $galleryOverflowPaths = [];
+
+    /** @var list<string> */
+    public array $galleryOverflowOriginalPaths = [];
 
     public string $slug = '';
 
@@ -329,6 +336,7 @@ class Form extends Component
         }
 
         $this->storedGalleryPaths[$index] = null;
+        $this->storedGalleryOriginalPaths[$index] = null;
         $this->galleryPreviewUrls[$index] = null;
         $this->galleryUploads[$index] = null;
     }
@@ -854,8 +862,11 @@ class Form extends Component
             ? Product::query()->findOrFail($this->productId)
             : null;
         $originalImagePath = $originalProduct?->image_path;
+        $originalImageOriginalPath = $originalProduct?->image_original_path;
         $originalGalleryPaths = $originalProduct?->gallery_images ?? [];
+        $originalGalleryOriginalPaths = $originalProduct?->gallery_original_images ?? [];
         $newlyStoredPaths = [];
+        $newlyStoredOriginalPaths = [];
         $committed = false;
 
         try {
@@ -863,9 +874,15 @@ class Form extends Component
 
             if ($mainImagePath !== null) {
                 $newlyStoredPaths[] = $mainImagePath;
+
+                if (filled($this->storedImageOriginalPath)) {
+                    $newlyStoredOriginalPaths[] = $this->storedImageOriginalPath;
+                }
             }
 
-            $newlyStoredPaths = array_merge($newlyStoredPaths, $this->persistGalleryUploads());
+            $galleryResult = $this->persistGalleryUploads();
+            $newlyStoredPaths = array_merge($newlyStoredPaths, $galleryResult['public']);
+            $newlyStoredOriginalPaths = array_merge($newlyStoredOriginalPaths, $galleryResult['original']);
 
             $service = app(ProductService::class);
             $payload = $this->buildPayload($service);
@@ -884,15 +901,26 @@ class Form extends Component
             }
 
             $committed = true;
-            $this->deleteSupersededMedia($originalImagePath, $originalGalleryPaths, $product);
+            $this->deleteSupersededMedia(
+                $originalImagePath,
+                $originalImageOriginalPath,
+                $originalGalleryPaths,
+                $originalGalleryOriginalPaths,
+                $product,
+            );
             $this->applyProductToForm($product);
             $this->setStatus(__('agricart.products.messages.saved'), 'success');
 
             return true;
         } catch (ValidationException $exception) {
             if (! $committed) {
-                $this->deleteStoredPaths($newlyStoredPaths);
-                $this->restoreOriginalMedia($originalImagePath, $originalGalleryPaths);
+                $this->deleteStoredPaths($newlyStoredPaths, $newlyStoredOriginalPaths);
+                $this->restoreOriginalMedia(
+                    $originalImagePath,
+                    $originalImageOriginalPath,
+                    $originalGalleryPaths,
+                    $originalGalleryOriginalPaths,
+                );
             }
 
             $message = collect($exception->errors())->flatten()->first();
@@ -901,8 +929,13 @@ class Form extends Component
             return false;
         } catch (\Throwable $exception) {
             if (! $committed) {
-                $this->deleteStoredPaths($newlyStoredPaths);
-                $this->restoreOriginalMedia($originalImagePath, $originalGalleryPaths);
+                $this->deleteStoredPaths($newlyStoredPaths, $newlyStoredOriginalPaths);
+                $this->restoreOriginalMedia(
+                    $originalImagePath,
+                    $originalImageOriginalPath,
+                    $originalGalleryPaths,
+                    $originalGalleryOriginalPaths,
+                );
             }
 
             $this->setStatus(FriendlyError::message($exception), 'danger');
@@ -934,10 +967,10 @@ class Form extends Component
             'category_id' => $this->parent_id,
             'brand_id' => $this->brand_id,
             'image_path' => $this->storedImagePath,
-            'gallery_images' => array_values(array_filter(
-                array_merge($this->storedGalleryPaths, $this->galleryOverflowPaths),
-                fn (?string $path): bool => filled($path),
-            )),
+            'image_original_path' => $this->storedImageOriginalPath,
+            'gallery_images' => ($galleryPairs = $this->normalizedGalleryPairs())['public'],
+            'gallery_original_images' => $galleryPairs['original'],
+            'images_watermark_version' => (int) (\App\Models\StoreSetting::current()->product_watermark_version ?: 1),
             'sku' => filled($this->sku) ? $this->sku : null,
             'unit_id' => $this->unit_id,
             'unit_qty' => filled($this->unit_qty) ? $this->unit_qty : null,
@@ -1009,81 +1042,149 @@ class Form extends Component
         return $rows;
     }
 
+    /**
+     * @return array{public: list<string>, original: list<string>}
+     */
+    private function normalizedGalleryPairs(): array
+    {
+        $public = [];
+        $original = [];
+
+        foreach ($this->storedGalleryPaths as $index => $path) {
+            if (! is_string($path) || ! filled($path)) {
+                continue;
+            }
+
+            $public[] = $path;
+            $original[] = is_string($this->storedGalleryOriginalPaths[$index] ?? null)
+                && filled($this->storedGalleryOriginalPaths[$index])
+                ? $this->storedGalleryOriginalPaths[$index]
+                : null;
+        }
+
+        foreach ($this->galleryOverflowPaths as $index => $path) {
+            if (! is_string($path) || ! filled($path)) {
+                continue;
+            }
+
+            $public[] = $path;
+            $original[] = is_string($this->galleryOverflowOriginalPaths[$index] ?? null)
+                && filled($this->galleryOverflowOriginalPaths[$index])
+                ? $this->galleryOverflowOriginalPaths[$index]
+                : null;
+        }
+
+        return [
+            'public' => $public,
+            'original' => $original,
+        ];
+    }
+
     private function persistUploadedImage(): ?string
     {
         if ($this->imageUpload === null) {
             return null;
         }
 
-        $path = app(OptimizedImageStorage::class)->store($this->imageUpload, 'products');
-        $this->storedImagePath = $path;
-        $this->imagePreviewUrl = Storage::disk('public')->url($path);
+        $pair = app(ProductImageWatermarkService::class)->processUpload($this->imageUpload, 'main');
+        $this->storedImagePath = $pair['public'];
+        $this->storedImageOriginalPath = $pair['original'];
+        $this->imagePreviewUrl = Storage::disk('public')->url($pair['public']);
         $this->imageUpload = null;
 
-        return $path;
+        return $pair['public'];
     }
 
     /**
-     * @return list<string>
+     * @return array{public: list<string>, original: list<string>}
      */
     private function persistGalleryUploads(): array
     {
-        $stored = [];
+        $storedPublic = [];
+        $storedOriginal = [];
 
         foreach ($this->galleryUploads as $index => $upload) {
             if (! $upload instanceof TemporaryUploadedFile) {
                 continue;
             }
 
-            $path = app(OptimizedImageStorage::class)->store($upload, 'products/gallery');
-            $this->storedGalleryPaths[$index] = $path;
-            $this->galleryPreviewUrls[$index] = Storage::disk('public')->url($path);
+            $pair = app(ProductImageWatermarkService::class)->processUpload($upload, 'gallery');
+            $this->storedGalleryPaths[$index] = $pair['public'];
+            $this->storedGalleryOriginalPaths[$index] = $pair['original'];
+            $this->galleryPreviewUrls[$index] = Storage::disk('public')->url($pair['public']);
             $this->galleryUploads[$index] = null;
-            $stored[] = $path;
+            $storedPublic[] = $pair['public'];
+            $storedOriginal[] = $pair['original'];
         }
 
-        return $stored;
+        return [
+            'public' => $storedPublic,
+            'original' => $storedOriginal,
+        ];
     }
 
     /**
      * @param  list<string>  $originalGalleryPaths
+     * @param  list<string>  $originalGalleryOriginalPaths
      */
     private function deleteSupersededMedia(
         ?string $originalImagePath,
+        ?string $originalImageOriginalPath,
         array $originalGalleryPaths,
+        array $originalGalleryOriginalPaths,
         Product $savedProduct,
     ): void {
-        $currentPaths = array_values(array_filter(array_merge(
+        $currentPublic = array_values(array_filter(array_merge(
             [$savedProduct->image_path],
             $savedProduct->gallery_images ?? [],
         )));
-        $superseded = array_values(array_diff(
+        $currentOriginal = array_values(array_filter(array_merge(
+            [$savedProduct->image_original_path],
+            $savedProduct->gallery_original_images ?? [],
+        )));
+
+        $supersededPublic = array_values(array_diff(
             array_values(array_filter(array_merge([$originalImagePath], $originalGalleryPaths))),
-            $currentPaths,
+            $currentPublic,
+        ));
+        $supersededOriginal = array_values(array_diff(
+            array_values(array_filter(array_merge([$originalImageOriginalPath], $originalGalleryOriginalPaths))),
+            $currentOriginal,
         ));
 
-        $this->deleteStoredPaths($superseded);
+        $this->deleteStoredPaths($supersededPublic, $supersededOriginal);
     }
 
     /**
-     * @param  list<string>  $paths
+     * @param  list<string>  $publicPaths
+     * @param  list<string>  $originalPaths
      */
-    private function deleteStoredPaths(array $paths): void
+    private function deleteStoredPaths(array $publicPaths, array $originalPaths = []): void
     {
-        foreach (array_unique($paths) as $path) {
-            if (filled($path)) {
-                app(MediaLibraryService::class)->deleteFileIfUnused($path);
-            }
+        $watermark = app(ProductImageWatermarkService::class);
+
+        foreach (array_unique(array_filter($publicPaths)) as $path) {
+            $watermark->deletePair((string) $path, null);
+        }
+
+        foreach (array_unique(array_filter($originalPaths)) as $path) {
+            $watermark->deletePair(null, (string) $path);
         }
     }
 
     /**
      * @param  list<string>  $galleryPaths
+     * @param  list<string>  $galleryOriginalPaths
      */
-    private function restoreOriginalMedia(?string $imagePath, array $galleryPaths): void
-    {
+    private function restoreOriginalMedia(
+        ?string $imagePath,
+        ?string $imageOriginalPath,
+        array $galleryPaths,
+        array $galleryOriginalPaths = [],
+    ): void {
         $this->imageUpload = null;
         $this->storedImagePath = $imagePath;
+        $this->storedImageOriginalPath = $imageOriginalPath;
         $this->imagePreviewUrl = filled($imagePath)
             ? Storage::disk('public')->url($imagePath)
             : null;
@@ -1095,11 +1196,18 @@ class Form extends Component
             }
 
             $this->storedGalleryPaths[$index] = $path;
+            $this->storedGalleryOriginalPaths[$index] = is_string($galleryOriginalPaths[$index] ?? null)
+                ? $galleryOriginalPaths[$index]
+                : null;
             $this->galleryPreviewUrls[$index] = Storage::disk('public')->url($path);
         }
 
         $this->galleryOverflowPaths = array_values(array_filter(
             array_slice($galleryPaths, self::GALLERY_SLOT_COUNT),
+            fn (mixed $path): bool => is_string($path) && filled($path),
+        ));
+        $this->galleryOverflowOriginalPaths = array_values(array_filter(
+            array_slice($galleryOriginalPaths, self::GALLERY_SLOT_COUNT),
             fn (mixed $path): bool => is_string($path) && filled($path),
         ));
     }
@@ -1108,6 +1216,14 @@ class Form extends Component
     {
         if ($this->imageUpload !== null) {
             return $this->imageUpload->getRealPath();
+        }
+
+        if (filled($this->storedImageOriginalPath)) {
+            $full = Storage::disk('local')->path($this->storedImageOriginalPath);
+
+            if (is_readable($full)) {
+                return $full;
+            }
         }
 
         if (filled($this->storedImagePath)) {
@@ -1165,7 +1281,9 @@ class Form extends Component
         $this->galleryUploads = array_fill(0, self::GALLERY_SLOT_COUNT, null);
         $this->galleryPreviewUrls = array_fill(0, self::GALLERY_SLOT_COUNT, null);
         $this->storedGalleryPaths = array_fill(0, self::GALLERY_SLOT_COUNT, null);
+        $this->storedGalleryOriginalPaths = array_fill(0, self::GALLERY_SLOT_COUNT, null);
         $this->galleryOverflowPaths = [];
+        $this->galleryOverflowOriginalPaths = [];
     }
 
     private function loadProduct(int $productId): void
@@ -1186,13 +1304,19 @@ class Form extends Component
         $this->parent_id = $product->category_id;
         $this->brand_id = $product->brand_id;
         $this->storedImagePath = $product->image_path;
+        $this->storedImageOriginalPath = $product->image_original_path;
         $this->imagePreviewUrl = filled($product->image_path)
             ? Storage::disk('public')->url($product->image_path)
             : null;
         $this->resetGallerySlots();
         $galleryImages = $product->gallery_images ?? [];
+        $galleryOriginals = $product->gallery_original_images ?? [];
         $this->galleryOverflowPaths = array_values(array_filter(
             array_slice($galleryImages, self::GALLERY_SLOT_COUNT),
+            fn (mixed $path): bool => is_string($path) && filled($path),
+        ));
+        $this->galleryOverflowOriginalPaths = array_values(array_filter(
+            array_slice($galleryOriginals, self::GALLERY_SLOT_COUNT),
             fn (mixed $path): bool => is_string($path) && filled($path),
         ));
 
@@ -1206,6 +1330,9 @@ class Form extends Component
             }
 
             $this->storedGalleryPaths[$index] = $path;
+            $this->storedGalleryOriginalPaths[$index] = is_string($galleryOriginals[$index] ?? null)
+                ? $galleryOriginals[$index]
+                : null;
             $this->galleryPreviewUrls[$index] = Storage::disk('public')->url($path);
         }
 
@@ -1653,6 +1780,7 @@ class Form extends Component
         $this->imageUpload = null;
         $this->imagePreviewUrl = null;
         $this->storedImagePath = null;
+        $this->storedImageOriginalPath = null;
         $this->resetGallerySlots();
         $this->slug = '';
         $this->name_en = '';

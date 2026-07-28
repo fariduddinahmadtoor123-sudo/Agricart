@@ -42,7 +42,7 @@ class MediaLibraryService
         array $metadata = [],
     ): ?MediaAsset {
         $path = $this->normalizePath($path);
-        $allowsPrivateDocument = $disk === 'local' && str_starts_with($path, 'users/cnic/');
+        $allowsPrivateDocument = $disk === 'local' && $this->isAllowedPrivatePath($path);
 
         if (! Schema::hasTable('media_assets') || ($disk !== 'public' && ! $allowsPrivateDocument)) {
             return null;
@@ -538,12 +538,32 @@ class MediaLibraryService
         }
 
         return Product::query()
-            ->whereNotNull('gallery_images')
+            ->where(function ($query) use ($path): void {
+                $query->where('image_original_path', $path)
+                    ->orWhereNotNull('gallery_images')
+                    ->orWhereNotNull('gallery_original_images');
+            })
             ->cursor()
             ->contains(function (Product $product) use ($path): bool {
-                return is_array($product->gallery_images)
-                    && in_array($path, $product->gallery_images, true);
+                if ($product->image_original_path === $path) {
+                    return true;
+                }
+
+                if (is_array($product->gallery_images) && in_array($path, $product->gallery_images, true)) {
+                    return true;
+                }
+
+                return is_array($product->gallery_original_images)
+                    && in_array($path, $product->gallery_original_images, true);
             });
+    }
+
+    private function isAllowedPrivatePath(string $path): bool
+    {
+        return str_starts_with($path, 'users/cnic/')
+            || str_starts_with($path, 'products/originals/')
+            || str_starts_with($path, 'products/gallery/originals/')
+            || str_starts_with($path, 'brands/originals/');
     }
 
     public function pruneTrashed(int $days = 30): int
@@ -632,10 +652,14 @@ class MediaLibraryService
         return [
             [Category::class, 'image_path', 'main', 'categories'],
             [Brand::class, 'image_path', 'main', 'brands'],
+            [Brand::class, 'image_original_path', 'original', 'brands'],
             [Product::class, 'image_path', 'main', 'products'],
+            [Product::class, 'image_original_path', 'original', 'products'],
             [CompanyProfile::class, 'logo_path', 'logo', 'company'],
             [StoreSetting::class, 'logo_path', 'logo', 'store'],
             [StoreSetting::class, 'footer_logo_path', 'footer-logo', 'store'],
+            [StoreSetting::class, 'product_watermark_logo_path', 'watermark-logo', 'store'],
+            [StoreSetting::class, 'brand_watermark_logo_path', 'brand-watermark-logo', 'store'],
             [Customer::class, 'profile_photo_path', 'profile-photo', 'customers'],
             [Supplier::class, 'profile_photo_path', 'profile-photo', 'suppliers'],
             [User::class, 'profile_photo_path', 'profile-photo', 'users'],

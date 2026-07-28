@@ -13,9 +13,9 @@ class AiLogsPage extends BaseModulePage
 
     protected static ?string $cluster = SettingsCluster::class;
 
-    protected static ?string $navigationLabel = 'Logs';
+    protected static ?string $navigationLabel = 'AI Logs';
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 8;
 
     protected static ?string $slug = 'ai-logs';
 

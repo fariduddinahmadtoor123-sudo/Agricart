@@ -26,6 +26,8 @@ class Brand extends Model
         'name_en',
         'name_ur',
         'image_path',
+        'image_original_path',
+        'image_watermark_version',
         'description_en',
         'description_ur',
         'website_url',
@@ -41,6 +43,7 @@ class Brand extends Model
             'ai_status' => CategoryAiStatus::class,
             'agricart_rating' => 'integer',
             'agricart_rating_criteria' => 'array',
+            'image_watermark_version' => 'integer',
         ];
     }
 
