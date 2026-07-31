@@ -681,7 +681,9 @@ class CatalogPortableArchiveService
                 continue;
             }
 
-            $existing = $this->findByCodeOrSlug(Category::class, $row);
+            // Legacy Hostinger data can share the same code across different slugs.
+            // Match by slug only so distinct categories are not collapsed on import.
+            $existing = $this->findCategoryForImport($row);
             $mediaMap = is_array($row['media'] ?? null) ? $row['media'] : [];
             $imagePath = $existing?->image_path;
             $restored = $this->codec->restoreMediaFile($extracted, $mediaMap['image'] ?? null, 'categories');
@@ -732,6 +734,8 @@ class CatalogPortableArchiveService
                 continue;
             }
 
+            $this->releaseCategoryUniqueKeys($data, $existing?->id);
+
             if ($existing === null) {
                 Category::query()->create($data);
                 $created++;
@@ -746,7 +750,7 @@ class CatalogPortableArchiveService
                 continue;
             }
 
-            $category = $this->findByCodeOrSlug(Category::class, $row);
+            $category = $this->findCategoryForImport($row);
             if ($category === null) {
                 continue;
             }
@@ -772,6 +776,54 @@ class CatalogPortableArchiveService
             }
             $category->displayInCategories()->sync(array_values(array_unique($displayIds)));
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function findCategoryForImport(array $row): ?Category
+    {
+        if (filled($row['slug'] ?? null)) {
+            return Category::query()->where('slug', (string) $row['slug'])->first();
+        }
+
+        if (filled($row['code'] ?? null)) {
+            return Category::query()->where('code', (string) $row['code'])->first();
+        }
+
+        return null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    private function releaseCategoryUniqueKeys(array $data, ?int $exceptId): void
+    {
+        $slug = (string) ($data['slug'] ?? '');
+
+        if ($slug !== '') {
+            $slugConflict = Category::query()
+                ->where('slug', $slug)
+                ->when($exceptId !== null, fn ($query) => $query->where('id', '!=', $exceptId))
+                ->first();
+
+            if ($slugConflict !== null) {
+                $slugConflict->update([
+                    'slug' => $this->temporaryUniqueSlug(Category::class, $slug, (int) $slugConflict->id),
+                ]);
+            }
+        }
+
+        $mapCode = $data['visual_map_code'] ?? null;
+        if (! filled($mapCode)) {
+            return;
+        }
+
+        // visual_map_code is unique — clear conflicts so a full archive import does not abort.
+        Category::query()
+            ->where('visual_map_code', $mapCode)
+            ->when($exceptId !== null, fn ($query) => $query->where('id', '!=', $exceptId))
+            ->update(['visual_map_code' => null]);
     }
 
     /**

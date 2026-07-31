@@ -339,4 +339,39 @@ class CatalogPortableArchiveTest extends TestCase
         $this->assertSame('Kilogram', Unit::query()->where('code', 'UNT-00035')->value('name_en'));
         $this->assertSame('kilogram', Unit::query()->where('code', 'UNT-00035')->value('slug'));
     }
+
+    public function test_categories_import_keeps_rows_that_share_duplicate_codes(): void
+    {
+        Storage::fake('public');
+
+        Category::query()->create([
+            'code' => 'DB001',
+            'slug' => 'dust-blower-a',
+            'status' => 'active',
+            'name_en' => 'Dust Blower A',
+            'name_ur' => 'اے',
+            'ai_status' => 'none',
+        ]);
+        Category::query()->create([
+            'code' => 'DB001',
+            'slug' => 'dust-blower-b',
+            'status' => 'active',
+            'name_en' => 'Dust Blower B',
+            'name_ur' => 'بی',
+            'ai_status' => 'none',
+        ]);
+
+        $service = app(CatalogPortableArchiveService::class);
+        $export = $service->export(CatalogPortableArchiveService::SCOPE_CATEGORIES);
+
+        Category::query()->delete();
+        $result = $service->importFromPath($export['path'], CatalogPortableArchiveService::SCOPE_CATEGORIES);
+        @unlink($export['path']);
+
+        $this->assertSame(2, Category::query()->count());
+        $this->assertSame(2, Category::query()->where('code', 'DB001')->count());
+        $this->assertNotNull(Category::query()->where('slug', 'dust-blower-a')->first());
+        $this->assertNotNull(Category::query()->where('slug', 'dust-blower-b')->first());
+        $this->assertSame(0, $result['skipped']);
+    }
 }
