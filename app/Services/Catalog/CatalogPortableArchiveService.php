@@ -418,10 +418,15 @@ class CatalogPortableArchiveService
                         'visual_map_code' => $category->visual_map_code,
                         'faqs' => $category->faqs ?? [],
                         'ai_status' => $category->ai_status?->value ?? 'none',
-                        'display_categories' => $category->displayInCategories->map(static fn (Category $c): array => [
-                            'code' => $c->code,
-                            'slug' => $c->slug,
-                        ])->values()->all(),
+                        'display_categories' => $category->displayInCategories
+                            ->map(static function (Category $linked): array {
+                                return [
+                                    'code' => $linked->code,
+                                    'slug' => $linked->slug,
+                                ];
+                            })
+                            ->values()
+                            ->all(),
                         'media' => [
                             'image' => $this->codec->copyMediaIntoArchive($workDir, 'category-'.$key, 'image', $category->image_path),
                         ],
