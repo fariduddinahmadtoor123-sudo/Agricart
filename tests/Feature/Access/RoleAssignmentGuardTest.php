@@ -67,7 +67,7 @@ class RoleAssignmentGuardTest extends TestCase
         );
     }
 
-    public function test_owner_can_assign_super_admin_to_another_user(): void
+    public function test_nobody_can_assign_super_admin_via_role_ui_after_bootstrap(): void
     {
         $owner = $this->makeSuperAdmin('owner3@test.test');
         $staffRoleId = $this->nonSuperAdminRoleId();
@@ -80,14 +80,14 @@ class RoleAssignmentGuardTest extends TestCase
 
         $superId = (int) Role::query()->where('slug', 'super-admin')->value('id');
 
-        $updated = app(UserService::class)->update($peer, [
+        $this->expectException(ValidationException::class);
+
+        app(UserService::class)->update($peer, [
             'name' => $peer->name,
             'email' => $peer->email,
             'role_id' => $superId,
             'status' => User::STATUS_ACTIVE,
         ], $owner);
-
-        $this->assertTrue($updated->isSuperAdmin());
     }
 
     public function test_owner_status_cannot_be_deactivated(): void
@@ -100,7 +100,7 @@ class RoleAssignmentGuardTest extends TestCase
         app(StaffMemberService::class)->setInactive($owner, $other);
     }
 
-    public function test_super_admin_role_hidden_from_non_owner_options(): void
+    public function test_super_admin_role_hidden_from_all_role_options(): void
     {
         $owner = $this->makeSuperAdmin('owner5@test.test');
         $staff = User::factory()->create([
@@ -112,7 +112,7 @@ class RoleAssignmentGuardTest extends TestCase
         $guard = app(RoleAssignmentGuard::class);
         $superId = (int) Role::query()->where('slug', 'super-admin')->value('id');
 
-        $this->assertArrayHasKey($superId, $guard->assignableRoleOptions($owner));
+        $this->assertArrayNotHasKey($superId, $guard->assignableRoleOptions($owner));
         $this->assertArrayNotHasKey($superId, $guard->assignableRoleOptions($staff));
     }
 

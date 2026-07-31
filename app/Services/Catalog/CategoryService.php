@@ -222,7 +222,12 @@ class CategoryService
                 'max:255',
                 Rule::unique('categories', 'slug')->ignore($exceptId),
             ],
-            'code' => ['nullable', 'string', 'max:255'],
+            'code' => [
+                'nullable',
+                'string',
+                'max:255',
+                Rule::unique('categories', 'code')->ignore($exceptId),
+            ],
             'status' => ['nullable', 'string', 'in:active,inactive,draft'],
             'name_en' => ['required', 'string', 'max:255'],
             'name_ur' => ['required', 'string', 'max:255'],

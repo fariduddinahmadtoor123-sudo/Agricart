@@ -39,7 +39,8 @@ class BootstrapSuperAdminService
             return false;
         }
 
-        if ($user->status !== User::STATUS_ACTIVE) {
+        // First system owner may still be pending right after public registration.
+        if (! in_array($user->status, [User::STATUS_ACTIVE, User::STATUS_PENDING], true)) {
             return false;
         }
 
@@ -68,12 +69,18 @@ class BootstrapSuperAdminService
     {
         $role = $this->superAdminRole();
 
-        $user->update([
+        $payload = [
             'role_id' => $role->id,
             'status' => User::STATUS_ACTIVE,
             'rejection_reason' => null,
             'rejected_at' => null,
-        ]);
+        ];
+
+        if (! filled($user->user_number)) {
+            $payload['user_number'] = app(UserService::class)->nextUserNumber();
+        }
+
+        $user->update($payload);
 
         return $user->fresh(['role']);
     }

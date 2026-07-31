@@ -61,7 +61,9 @@ class RoleAssignmentGuard
 
     public function actorCanAssignSuperAdmin(?User $actor): bool
     {
-        return $actor instanceof User && $this->isOwner($actor);
+        // Super Admin is exclusive to the bootstrap system owner.
+        // Never assign (or demote via role UI) through Settings — use bootstrap/repair only.
+        return false;
     }
 
     /**
