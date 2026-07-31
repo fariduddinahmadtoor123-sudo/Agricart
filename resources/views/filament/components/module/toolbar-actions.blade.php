@@ -1,13 +1,31 @@
 @php
     $actions = $toolbar['toolbarActions'] ?? [];
     $livewirePrefix = $toolbar['livewirePrefix'] ?? '';
+    $livewireComponent = $toolbar['livewireComponent'] ?? null;
 @endphp
 
 @foreach ($actions as $action)
     @php
-        $dispatch = filled($toolbar['livewireComponent'] ?? null)
-            ? "Livewire.dispatchTo(" . json_encode($toolbar['livewireComponent']) . ", 'handleToolbarAction', { action: " . json_encode($action['value']) . " })"
-            : "Livewire.dispatch(" . json_encode($livewirePrefix . '-action') . ", { action: " . json_encode($action['value']) . " })";
+        /*
+         * Prefer $wire.call() over Livewire.dispatch / dispatchTo.
+         * Returning BinaryFileResponse (export download) only works for real
+         * Livewire actions — browser events ignore the download response.
+         */
+        if (filled($livewireComponent)) {
+            $dispatch = '(() => { const components = Livewire.getByName('
+                . json_encode($livewireComponent)
+                . '); if (components[0]) { components[0].call('
+                . json_encode('handleToolbarAction')
+                . ', '
+                . json_encode($action['value'])
+                . '); } })()';
+        } else {
+            $dispatch = 'Livewire.dispatch('
+                . json_encode($livewirePrefix . '-action')
+                . ', { action: '
+                . json_encode($action['value'])
+                . ' })';
+        }
     @endphp
     @if (filled($action['tab'] ?? null))
         <x-filament::button

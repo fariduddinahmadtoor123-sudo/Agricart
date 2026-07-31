@@ -46,6 +46,7 @@ class ContactsPageToolbar extends ClusterPageToolbar
             'suppliers' => [
                 ...$config,
                 'livewirePrefix' => 'suppliers',
+                'livewireComponent' => 'suppliers.list-suppliers',
                 'columnDataAttr' => 'data-supplier-column',
                 'interactive' => true,
                 'formKey' => 'suppliers',
@@ -79,6 +80,7 @@ class ContactsPageToolbar extends ClusterPageToolbar
             'customers' => [
                 ...$config,
                 'livewirePrefix' => 'customers',
+                'livewireComponent' => 'customers.list-customers',
                 'columnDataAttr' => 'data-customer-column',
                 'interactive' => true,
                 'formKey' => 'customers',

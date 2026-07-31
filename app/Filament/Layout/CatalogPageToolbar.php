@@ -92,6 +92,7 @@ class CatalogPageToolbar extends ClusterPageToolbar
             'products' => [
                 ...$config,
                 'livewirePrefix' => 'products',
+                'livewireComponent' => 'products.list-products',
                 'columnDataAttr' => 'data-product-column',
                 'interactive' => true,
                 'filters' => [
@@ -130,6 +131,7 @@ class CatalogPageToolbar extends ClusterPageToolbar
             'categories' => [
                 ...$config,
                 'livewirePrefix' => 'categories',
+                'livewireComponent' => 'categories.list-categories',
                 'columnDataAttr' => 'data-category-column',
                 'interactive' => true,
                 'toolbarActions' => static::portableArchiveToolbarActions(),
@@ -151,6 +153,7 @@ class CatalogPageToolbar extends ClusterPageToolbar
             'brands' => [
                 ...$config,
                 'livewirePrefix' => 'brands',
+                'livewireComponent' => 'brands.list-brands',
                 'columnDataAttr' => 'data-brand-column',
                 'interactive' => true,
                 'toolbarActions' => static::portableArchiveToolbarActions(),
@@ -171,6 +174,7 @@ class CatalogPageToolbar extends ClusterPageToolbar
             'units' => [
                 ...$config,
                 'livewirePrefix' => 'units',
+                'livewireComponent' => 'units.list-units',
                 'columnDataAttr' => 'data-unit-column',
                 'interactive' => true,
                 'toolbarActions' => static::portableArchiveToolbarActions(),
@@ -192,6 +196,7 @@ class CatalogPageToolbar extends ClusterPageToolbar
             'packing-units' => [
                 ...$config,
                 'livewirePrefix' => 'packing-units',
+                'livewireComponent' => 'packing-units.list-packing-units',
                 'columnDataAttr' => 'data-packing-unit-column',
                 'interactive' => true,
                 'toolbarActions' => static::portableArchiveToolbarActions(),
@@ -211,6 +216,7 @@ class CatalogPageToolbar extends ClusterPageToolbar
             'attributes' => [
                 ...$config,
                 'livewirePrefix' => 'attributes',
+                'livewireComponent' => 'attributes.list-attributes',
                 'columnDataAttr' => 'data-attribute-column',
                 'interactive' => true,
                 'toolbarActions' => static::portableArchiveToolbarActions(),
@@ -230,6 +236,7 @@ class CatalogPageToolbar extends ClusterPageToolbar
             'controls' => [
                 ...$config,
                 'livewirePrefix' => 'controls',
+                'livewireComponent' => 'controls.list-controls',
                 'columnDataAttr' => 'data-control-column',
                 'interactive' => true,
                 'toolbarActions' => static::portableArchiveToolbarActions(),
