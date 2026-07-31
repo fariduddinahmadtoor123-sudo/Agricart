@@ -3,7 +3,9 @@
 namespace App\Models;
 
 use App\Filament\Layout\ModuleChrome;
+use App\Filament\Auth\Notifications\ResetPassword as ResetPasswordNotification;
 use Database\Factories\UserFactory;
+use Filament\Facades\Filament;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasAvatar;
 use Filament\Panel;
@@ -17,6 +19,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use SensitiveParameter;
 
 #[Fillable([
     'user_number',
@@ -202,6 +205,17 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
     public function getFilamentAvatarUrl(): ?string
     {
         return $this->publicFileUrl($this->profile_photo_path);
+    }
+
+    /**
+     * Staff password reset — sync mail with Filament signed reset URL.
+     */
+    public function sendPasswordResetNotification(#[SensitiveParameter] $token): void
+    {
+        $notification = new ResetPasswordNotification($token);
+        $notification->url = Filament::getResetPasswordUrl($token, $this);
+
+        $this->notify($notification);
     }
 
     protected function casts(): array

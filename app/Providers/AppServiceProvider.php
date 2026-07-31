@@ -33,6 +33,7 @@ use App\Services\PricingControls\QuantityPricingEngine;
 use App\Services\Store\LogSmsSender;
 use App\Services\Store\StoreCartService;
 use App\Services\Store\StoreLayoutService;
+use Filament\Facades\Filament;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
@@ -150,14 +151,20 @@ class AppServiceProvider extends ServiceProvider
         }
 
         ResetPassword::createUrlUsing(function (object $notifiable, string $token): string {
-            if (! $notifiable instanceof Customer) {
-                return url('/');
+            // Online store customers → storefront reset form.
+            if ($notifiable instanceof Customer) {
+                return route('store.customer.password.reset', [
+                    'token' => $token,
+                    'email' => $notifiable->getEmailForPasswordReset(),
+                ]);
             }
 
-            return route('store.customer.password.reset', [
-                'token' => $token,
-                'email' => $notifiable->getEmailForPasswordReset(),
-            ]);
+            // Staff / admin users → Filament signed reset URL (never the storefront homepage).
+            if ($notifiable instanceof User) {
+                return Filament::getResetPasswordUrl($token, $notifiable);
+            }
+
+            return url('/');
         });
 
         View::composer('store.components.header', function ($view): void {
