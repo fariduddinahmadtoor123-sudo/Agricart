@@ -35,12 +35,13 @@ return [
 
     'temporary_file_upload' => [
         // Keep temp uploads off the public disk so /storage/livewire-tmp is not web-reachable.
+        // max is KB (Laravel). Keep room for portable .ags archives (categories/media).
         'disk' => 'local',
         'rules' => [
             'required',
             'file',
-            'max:12288',
-            'mimetypes:image/jpeg,image/png,image/webp,image/gif,image/bmp,image/avif,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,application/x-zip-compressed,text/plain,text/csv',
+            'max:512000',
+            'mimetypes:image/jpeg,image/png,image/webp,image/gif,image/bmp,image/avif,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/zip,application/x-zip-compressed,application/octet-stream,text/plain,text/csv',
         ],
         'directory' => 'livewire-tmp',
         'middleware' => null,
@@ -49,7 +50,8 @@ return [
             'mov', 'avi', 'wmv', 'mp3', 'm4a',
             'jpg', 'jpeg', 'jfif', 'pjpeg', 'mpga', 'webp', 'wma', 'avif',
         ],
-        'max_upload_time' => 30,
+        // Minutes — large category archives need longer than the Livewire default.
+        'max_upload_time' => 120,
         'cleanup' => true,
     ],
 

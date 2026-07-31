@@ -15881,6 +15881,54 @@ body.agricart-form-panel-open .agricart-staff-messenger {
     color: var(--agricart-muted, #64748b);
 }
 
+.agricart-portable-import__progress {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin: 0;
+}
+
+.agricart-portable-import__progress[x-cloak] {
+    display: none !important;
+}
+
+.agricart-portable-import__progress-track {
+    position: relative;
+    height: 0.5rem;
+    border: 1px solid var(--agricart-border, #ebedf0);
+    background: color-mix(in oklab, var(--agricart-border, #ebedf0) 40%, var(--agricart-surface, #fff));
+    overflow: hidden;
+}
+
+.agricart-portable-import__progress-bar {
+    height: 100%;
+    width: 0;
+    background: var(--agricart-primary, #83b735);
+    transition: width 0.12s linear;
+}
+
+.agricart-portable-import__progress-bar.is-pulse {
+    width: 35%;
+    animation: agricart-portable-progress-pulse 1.1s ease-in-out infinite;
+}
+
+.agricart-portable-import__progress-label {
+    margin: 0;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--agricart-text, #0f172a);
+}
+
+@keyframes agricart-portable-progress-pulse {
+    0% {
+        transform: translateX(-120%);
+    }
+    100% {
+        transform: translateX(320%);
+    }
+}
+
 .agricart-portable-import__ready {
     color: var(--agricart-text, #0f172a);
     font-weight: 600;
