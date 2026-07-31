@@ -81,6 +81,8 @@ class CatalogPortableArchiveService
      */
     public function export(string $scope = self::SCOPE_FULL): array
     {
+        $this->codec->prepareLargeArchiveOperation();
+
         $scope = $this->assertScope($scope);
         $workDir = storage_path('app/tmp/catalog-export-'.Str::lower(Str::random(8)));
         File::ensureDirectoryExists($workDir.'/media');
@@ -172,8 +174,9 @@ class CatalogPortableArchiveService
             'category_count' => $categoryCount,
         ];
 
-        File::put($workDir.'/manifest.json', json_encode($manifest, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
-        File::put($workDir.'/catalog.json', json_encode($bundle, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+        // Compact JSON — pretty-print doubles size/time on large catalogs (10k+ rows).
+        File::put($workDir.'/manifest.json', json_encode($manifest, JSON_UNESCAPED_UNICODE));
+        File::put($workDir.'/catalog.json', json_encode($bundle, JSON_UNESCAPED_UNICODE));
 
         $filenameParts = $scope === self::SCOPE_FULL ? ['catalog'] : [$scope];
 
@@ -200,6 +203,8 @@ class CatalogPortableArchiveService
      */
     public function importFromPath(string $archivePath, string $expectedScope = self::SCOPE_FULL): array
     {
+        $this->codec->prepareLargeArchiveOperation();
+
         $expectedScope = $this->assertScope($expectedScope);
         $expectedFormat = self::formatForScope($expectedScope);
         $pack = $this->codec->unsealToExtracted($archivePath);
@@ -364,61 +369,65 @@ class CatalogPortableArchiveService
     {
         $categories = [];
 
-        foreach (Category::query()->with('displayInCategories:id,code,slug')->orderBy('id')->get() as $category) {
-            $key = $this->entityKey($category->code, $category->slug, $category->id);
-            $parent = $category->parent_id
-                ? Category::query()->find($category->parent_id)
-                : null;
+        Category::query()
+            ->with(['displayInCategories:id,code,slug', 'parent:id,code,slug'])
+            ->orderBy('id')
+            ->chunkById(250, function ($chunk) use (&$categories, $workDir): void {
+                foreach ($chunk as $category) {
+                    /** @var Category $category */
+                    $key = $this->entityKey($category->code, $category->slug, $category->id);
+                    $parent = $category->parent;
 
-            $categories[] = [
-                'code' => $category->code,
-                'slug' => $category->slug,
-                'status' => $category->status,
-                'name_en' => $category->name_en,
-                'name_ur' => $category->name_ur,
-                'parent_code' => $parent?->code,
-                'parent_slug' => $parent?->slug,
-                'short_description_en' => $category->short_description_en,
-                'short_description_ur' => $category->short_description_ur,
-                'full_description_en' => $category->full_description_en,
-                'full_description_ur' => $category->full_description_ur,
-                'usage_guidelines_en' => $category->usage_guidelines_en,
-                'usage_guidelines_ur' => $category->usage_guidelines_ur,
-                'benefits_en' => $category->benefits_en,
-                'benefits_ur' => $category->benefits_ur,
-                'warnings_en' => $category->warnings_en,
-                'warnings_ur' => $category->warnings_ur,
-                'buying_guide_en' => $category->buying_guide_en,
-                'buying_guide_ur' => $category->buying_guide_ur,
-                'seo_title_en' => $category->seo_title_en,
-                'seo_title_ur' => $category->seo_title_ur,
-                'seo_description_en' => $category->seo_description_en,
-                'seo_description_ur' => $category->seo_description_ur,
-                'seo_keywords_en' => $category->seo_keywords_en,
-                'seo_keywords_ur' => $category->seo_keywords_ur,
-                'seo_focus_keyword_en' => $category->seo_focus_keyword_en,
-                'seo_focus_keyword_ur' => $category->seo_focus_keyword_ur,
-                'search_terms' => $category->search_terms ?? [],
-                'hs_code' => $category->hs_code,
-                'customs_notes_en' => $category->customs_notes_en,
-                'customs_notes_ur' => $category->customs_notes_ur,
-                'import_notes_en' => $category->import_notes_en,
-                'import_notes_ur' => $category->import_notes_ur,
-                'export_notes_en' => $category->export_notes_en,
-                'export_notes_ur' => $category->export_notes_ur,
-                'visual_mapping' => $category->visual_mapping ?? [],
-                'visual_map_code' => $category->visual_map_code,
-                'faqs' => $category->faqs ?? [],
-                'ai_status' => $category->ai_status?->value ?? 'none',
-                'display_categories' => $category->displayInCategories->map(static fn (Category $c): array => [
-                    'code' => $c->code,
-                    'slug' => $c->slug,
-                ])->values()->all(),
-                'media' => [
-                    'image' => $this->codec->copyMediaIntoArchive($workDir, 'category-'.$key, 'image', $category->image_path),
-                ],
-            ];
-        }
+                    $categories[] = [
+                        'code' => $category->code,
+                        'slug' => $category->slug,
+                        'status' => $category->status,
+                        'name_en' => $category->name_en,
+                        'name_ur' => $category->name_ur,
+                        'parent_code' => $parent?->code,
+                        'parent_slug' => $parent?->slug,
+                        'short_description_en' => $category->short_description_en,
+                        'short_description_ur' => $category->short_description_ur,
+                        'full_description_en' => $category->full_description_en,
+                        'full_description_ur' => $category->full_description_ur,
+                        'usage_guidelines_en' => $category->usage_guidelines_en,
+                        'usage_guidelines_ur' => $category->usage_guidelines_ur,
+                        'benefits_en' => $category->benefits_en,
+                        'benefits_ur' => $category->benefits_ur,
+                        'warnings_en' => $category->warnings_en,
+                        'warnings_ur' => $category->warnings_ur,
+                        'buying_guide_en' => $category->buying_guide_en,
+                        'buying_guide_ur' => $category->buying_guide_ur,
+                        'seo_title_en' => $category->seo_title_en,
+                        'seo_title_ur' => $category->seo_title_ur,
+                        'seo_description_en' => $category->seo_description_en,
+                        'seo_description_ur' => $category->seo_description_ur,
+                        'seo_keywords_en' => $category->seo_keywords_en,
+                        'seo_keywords_ur' => $category->seo_keywords_ur,
+                        'seo_focus_keyword_en' => $category->seo_focus_keyword_en,
+                        'seo_focus_keyword_ur' => $category->seo_focus_keyword_ur,
+                        'search_terms' => $category->search_terms ?? [],
+                        'hs_code' => $category->hs_code,
+                        'customs_notes_en' => $category->customs_notes_en,
+                        'customs_notes_ur' => $category->customs_notes_ur,
+                        'import_notes_en' => $category->import_notes_en,
+                        'import_notes_ur' => $category->import_notes_ur,
+                        'export_notes_en' => $category->export_notes_en,
+                        'export_notes_ur' => $category->export_notes_ur,
+                        'visual_mapping' => $category->visual_mapping ?? [],
+                        'visual_map_code' => $category->visual_map_code,
+                        'faqs' => $category->faqs ?? [],
+                        'ai_status' => $category->ai_status?->value ?? 'none',
+                        'display_categories' => $category->displayInCategories->map(static fn (Category $c): array => [
+                            'code' => $c->code,
+                            'slug' => $c->slug,
+                        ])->values()->all(),
+                        'media' => [
+                            'image' => $this->codec->copyMediaIntoArchive($workDir, 'category-'.$key, 'image', $category->image_path),
+                        ],
+                    ];
+                }
+            });
 
         return $categories;
     }

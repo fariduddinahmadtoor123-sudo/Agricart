@@ -31,16 +31,22 @@ trait ImportsPortableArchive
             ]);
         }
 
-        $raw = (string) file_get_contents($realPath);
+        $size = filesize($realPath);
         $minLen = strlen(PortableArchiveCodec::MAGIC) + 12 + 16 + 1;
 
-        if (strlen($raw) < $minLen) {
+        if ($size === false || $size < $minLen) {
             throw ValidationException::withMessages([
                 'archive' => [__('agricart.portable.import_truncated')],
             ]);
         }
 
-        if (! str_starts_with($raw, PortableArchiveCodec::MAGIC)) {
+        $handle = fopen($realPath, 'rb');
+        $magic = $handle === false ? false : fread($handle, strlen(PortableArchiveCodec::MAGIC));
+        if (is_resource($handle)) {
+            fclose($handle);
+        }
+
+        if ($magic !== PortableArchiveCodec::MAGIC && $magic !== PortableArchiveCodec::MAGIC_V2) {
             throw ValidationException::withMessages([
                 'archive' => [__('agricart.portable.import_invalid')],
             ]);
@@ -48,7 +54,12 @@ trait ImportsPortableArchive
 
         $dest = storage_path('app/tmp/'.$prefix.'-'.Str::lower(Str::random(10)).'.'.PortableArchiveCodec::EXTENSION);
         File::ensureDirectoryExists(dirname($dest));
-        file_put_contents($dest, $raw);
+
+        if (! @copy($realPath, $dest)) {
+            throw ValidationException::withMessages([
+                'archive' => [__('agricart.portable.import_missing')],
+            ]);
+        }
 
         return [
             'path' => $dest,

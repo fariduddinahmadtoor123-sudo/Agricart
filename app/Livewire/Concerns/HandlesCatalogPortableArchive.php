@@ -3,8 +3,10 @@
 namespace App\Livewire\Concerns;
 
 use App\Services\Catalog\CatalogPortableArchiveService;
+use Filament\Notifications\Notification;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
+use Throwable;
 
 /**
  * Scoped catalog .ags export/import for Brands, Categories, Units, etc.
@@ -50,6 +52,19 @@ trait HandlesCatalogPortableArchive
         $this->importArchive = null;
     }
 
+    /**
+     * After the .ags finishes uploading, import automatically so the list refreshes
+     * without a separate “load” step (upload alone never writes to the database).
+     */
+    public function updatedImportArchive(): void
+    {
+        if ($this->importArchive === null) {
+            return;
+        }
+
+        $this->importUploadedArchive();
+    }
+
     public function exportArchive(): ?BinaryFileResponse
     {
         if (! $this->catalogPortableCan('view')) {
@@ -89,7 +104,7 @@ trait HandlesCatalogPortableArchive
         $scope = $this->catalogPortableScope();
 
         $this->validate([
-            'importArchive' => ['required', 'file', 'max:512000'],
+            'importArchive' => ['required', 'file', 'max:1024000'],
         ], [], [
             'importArchive' => __('agricart.products.actions.import_archive'),
         ]);
@@ -106,14 +121,51 @@ trait HandlesCatalogPortableArchive
             $this->portableStatusTone = 'success';
             $this->showImportPanel = false;
             $this->importArchive = null;
-            $this->resetPage();
+            $this->afterSuccessfulPortableImport();
+
+            Notification::make()
+                ->title($this->portableStatus)
+                ->success()
+                ->send();
         } catch (ValidationException $exception) {
             $this->portableStatus = collect($exception->errors())->flatten()->first();
             $this->portableStatusTone = 'danger';
+
+            Notification::make()
+                ->title((string) $this->portableStatus)
+                ->danger()
+                ->send();
+        } catch (Throwable $exception) {
+            report($exception);
+            $this->portableStatus = __('agricart.errors.generic');
+            $this->portableStatusTone = 'danger';
+
+            Notification::make()
+                ->title($this->portableStatus)
+                ->danger()
+                ->send();
         } finally {
             if ($materialized['delete'] && is_file($absolute)) {
                 @unlink($absolute);
             }
+        }
+    }
+
+    /**
+     * Clear list filters and refresh pagination after a successful import.
+     */
+    protected function afterSuccessfulPortableImport(): void
+    {
+        if (property_exists($this, 'search') && is_string($this->search)) {
+            $this->search = '';
+        }
+
+        if (property_exists($this, 'statusFilter') && is_string($this->statusFilter)) {
+            $this->statusFilter = '';
+        }
+
+        if (method_exists($this, 'resetPage')) {
+            $this->resetPage();
         }
     }
 

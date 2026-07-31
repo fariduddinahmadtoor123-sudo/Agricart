@@ -67,7 +67,7 @@ class SupplierPortableArchiveTest extends TestCase
         $this->assertSame(1, $export['count']);
         $this->assertStringEndsWith('.ags', $export['filename']);
         $this->assertStringStartsWith(
-            PortableArchiveCodec::MAGIC,
+            PortableArchiveCodec::MAGIC_V2,
             (string) file_get_contents($export['path']),
         );
 

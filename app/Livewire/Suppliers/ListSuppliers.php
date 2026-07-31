@@ -167,7 +167,7 @@ class ListSuppliers extends Component
         }
 
         $this->validate([
-            'importArchive' => ['required', 'file', 'max:512000'],
+            'importArchive' => ['required', 'file', 'max:1024000'],
         ], [], [
             'importArchive' => __('suppliers.actions.import_archive'),
         ]);

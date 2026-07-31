@@ -76,6 +76,14 @@
             >
                 {{ __('agricart.portable.file_ready', ['name' => $importArchive->getClientOriginalName()]) }}
             </p>
+            <p
+                class="agricart-portable-import__hint"
+                x-show="!uploading"
+                wire:loading.remove
+                wire:target="importArchive,importUploadedArchive"
+            >
+                {{ __('agricart.portable.click_import_hint') }}
+            </p>
         @endif
 
         @error('importArchive')
