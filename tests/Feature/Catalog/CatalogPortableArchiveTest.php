@@ -279,4 +279,64 @@ class CatalogPortableArchiveTest extends TestCase
 
         @unlink($export['path']);
     }
+
+    public function test_units_import_survives_remapped_codes_without_slug_collision(): void
+    {
+        // Archive source (local 70-list style): Piece owns UNT-00001, Kilogram owns UNT-00035.
+        Unit::query()->create([
+            'code' => 'UNT-00001',
+            'slug' => 'piece',
+            'status' => 'active',
+            'name_en' => 'Piece',
+            'name_ur' => 'عدد',
+            'abbreviation_en' => 'pc',
+            'abbreviation_ur' => 'عدد',
+            'ai_status' => 'manual',
+        ]);
+        Unit::query()->create([
+            'code' => 'UNT-00035',
+            'slug' => 'kilogram',
+            'status' => 'active',
+            'name_en' => 'Kilogram',
+            'name_ur' => 'کلوگرام',
+            'abbreviation_en' => 'kg',
+            'abbreviation_ur' => 'کلو',
+            'ai_status' => 'manual',
+        ]);
+
+        $service = app(CatalogPortableArchiveService::class);
+        $export = $service->export(CatalogPortableArchiveService::SCOPE_UNITS);
+
+        // Target (Hostinger old seed style): Kilogram owns UNT-00001, Piece owns UNT-00008.
+        Unit::query()->delete();
+        Unit::query()->create([
+            'code' => 'UNT-00001',
+            'slug' => 'kilogram',
+            'status' => 'active',
+            'name_en' => 'Kilogram',
+            'name_ur' => 'کلوگرام',
+            'abbreviation_en' => 'kg',
+            'abbreviation_ur' => 'کلو',
+            'ai_status' => 'manual',
+        ]);
+        Unit::query()->create([
+            'code' => 'UNT-00008',
+            'slug' => 'piece',
+            'status' => 'active',
+            'name_en' => 'Piece',
+            'name_ur' => 'عدد',
+            'abbreviation_en' => 'pc',
+            'abbreviation_ur' => 'عدد',
+            'ai_status' => 'manual',
+        ]);
+
+        $result = $service->importFromPath($export['path'], CatalogPortableArchiveService::SCOPE_UNITS);
+        @unlink($export['path']);
+
+        $this->assertSame(0, $result['skipped']);
+        $this->assertSame('Piece', Unit::query()->where('code', 'UNT-00001')->value('name_en'));
+        $this->assertSame('piece', Unit::query()->where('code', 'UNT-00001')->value('slug'));
+        $this->assertSame('Kilogram', Unit::query()->where('code', 'UNT-00035')->value('name_en'));
+        $this->assertSame('kilogram', Unit::query()->where('code', 'UNT-00035')->value('slug'));
+    }
 }

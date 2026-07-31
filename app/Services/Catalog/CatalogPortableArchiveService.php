@@ -997,15 +997,103 @@ class CatalogPortableArchiveService
             return;
         }
 
-        $existing = $this->findByCodeOrSlug($modelClass, $row);
+        $byCode = filled($row['code'] ?? null)
+            ? $modelClass::query()->where('code', $row['code'])->first()
+            : null;
+        $bySlug = filled($data['slug'] ?? null)
+            ? $modelClass::query()->where('slug', $data['slug'])->first()
+            : null;
+
+        // Prefer slug identity (same named master) when code was remapped between environments.
+        $existing = $bySlug ?? $byCode;
 
         if ($existing === null) {
+            $this->releaseSimpleMasterKeys($modelClass, (string) $data['code'], (string) $data['slug'], null);
             $modelClass::query()->create($data);
             $created++;
-        } else {
-            $existing->update($data);
-            $updated++;
+
+            return;
         }
+
+        if ($bySlug !== null && $byCode !== null && (int) $bySlug->id !== (int) $byCode->id) {
+            // Code belongs to a different row — free it so this slug-matched row can take the imported code.
+            $byCode->update([
+                'code' => $this->temporaryUniqueCode($modelClass, (string) $byCode->code, (int) $byCode->id),
+            ]);
+        }
+
+        $this->releaseSimpleMasterKeys(
+            $modelClass,
+            (string) $data['code'],
+            (string) $data['slug'],
+            (int) $existing->id,
+        );
+        $existing->update($data);
+        $updated++;
+    }
+
+    /**
+     * Free unique code/slug held by other rows before create/update.
+     *
+     * @param  class-string  $modelClass
+     */
+    private function releaseSimpleMasterKeys(string $modelClass, string $code, string $slug, ?int $exceptId): void
+    {
+        $codeConflict = $modelClass::query()
+            ->where('code', $code)
+            ->when($exceptId !== null, fn ($query) => $query->where('id', '!=', $exceptId))
+            ->first();
+
+        if ($codeConflict !== null) {
+            $codeConflict->update([
+                'code' => $this->temporaryUniqueCode($modelClass, $code, (int) $codeConflict->id),
+            ]);
+        }
+
+        $slugConflict = $modelClass::query()
+            ->where('slug', $slug)
+            ->when($exceptId !== null, fn ($query) => $query->where('id', '!=', $exceptId))
+            ->first();
+
+        if ($slugConflict !== null) {
+            $slugConflict->update([
+                'slug' => $this->temporaryUniqueSlug($modelClass, $slug, (int) $slugConflict->id),
+            ]);
+        }
+    }
+
+    /**
+     * @param  class-string  $modelClass
+     */
+    private function temporaryUniqueCode(string $modelClass, string $code, int $id): string
+    {
+        $base = mb_substr($code.'-old-'.$id, 0, 32);
+        $candidate = $base;
+        $n = 1;
+
+        while ($modelClass::query()->where('code', $candidate)->where('id', '!=', $id)->exists()) {
+            $candidate = mb_substr($base.'-'.$n, 0, 32);
+            $n++;
+        }
+
+        return $candidate;
+    }
+
+    /**
+     * @param  class-string  $modelClass
+     */
+    private function temporaryUniqueSlug(string $modelClass, string $slug, int $id): string
+    {
+        $base = Str::slug($slug.'-old-'.$id) ?: 'item-old-'.$id;
+        $candidate = $base;
+        $n = 1;
+
+        while ($modelClass::query()->where('slug', $candidate)->where('id', '!=', $id)->exists()) {
+            $candidate = $base.'-'.$n;
+            $n++;
+        }
+
+        return $candidate;
     }
 
     /**
@@ -1042,15 +1130,15 @@ class CatalogPortableArchiveService
      */
     private function findByCodeOrSlug(string $modelClass, array $row): mixed
     {
-        if (filled($row['code'] ?? null)) {
-            $found = $modelClass::query()->where('code', $row['code'])->first();
+        if (filled($row['slug'] ?? null)) {
+            $found = $modelClass::query()->where('slug', $row['slug'])->first();
             if ($found !== null) {
                 return $found;
             }
         }
 
-        if (filled($row['slug'] ?? null)) {
-            return $modelClass::query()->where('slug', $row['slug'])->first();
+        if (filled($row['code'] ?? null)) {
+            return $modelClass::query()->where('code', $row['code'])->first();
         }
 
         return null;
