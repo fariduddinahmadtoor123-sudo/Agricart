@@ -1907,6 +1907,23 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
     box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.08);
 }
 
+.agricart-login-forgot {
+    margin: 0.25rem 0 0;
+    text-align: start;
+}
+
+.agricart-login-forgot__link {
+    color: var(--agricart-text);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
+.agricart-login-forgot__link:hover {
+    color: var(--agricart-primary);
+}
+
 /* ── Avatars & file upload previews (square, not circular) ── */
 .fi-avatar,
 .fi-fo-file-upload-panel,
@@ -16009,6 +16026,50 @@ body.agricart-form-panel-open .agricart-staff-messenger {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     font-size: 0.875rem;
+}
+
+.agricart-store-inbox__attachments {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.65rem;
+}
+
+.agricart-store-inbox__attachment {
+    display: grid;
+    gap: 0.35rem;
+    border: 1px solid #EBEDF0;
+    background: #fff;
+    padding: 0.35rem;
+}
+
+.agricart-store-inbox__attachment img {
+    display: block;
+    width: 7.5rem;
+    height: 7.5rem;
+    object-fit: cover;
+}
+
+.agricart-store-inbox__attachment-delete {
+    border: 1px solid #EBEDF0;
+    background: #fff;
+    padding: 0.25rem 0.5rem;
+    font: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+    border-radius: 0;
+}
+
+.agricart-store-inbox__images {
+    display: grid;
+    gap: 0.35rem;
+    font-size: 0.8125rem;
+}
+
+.agricart-store-inbox__error {
+    margin: 0;
+    color: #dc2626;
+    font-size: 0.8125rem;
 }
 
 .agricart-store-inbox__reply-editor {

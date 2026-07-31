@@ -26,19 +26,16 @@ class CustomerPasswordResetController extends Controller
             'email' => ['required', 'email'],
         ]);
 
-        $status = Password::broker('customers')->sendResetLink(
+        // Storefront always uses the customers broker (never staff/users).
+        // Same person may be staff + customer — only the customer account is reset here.
+        // Always show the generic success copy (industry standard: do not reveal whether the email exists).
+        Password::broker('customers')->sendResetLink(
             $request->only('email')
         );
 
-        if ($status === Password::RESET_LINK_SENT) {
-            return back()
-                ->with('customer_auth_status', __('agricart.customer.auth.reset_link_sent'))
-                ->with('customer_auth_status_type', 'success');
-        }
-
         return back()
-            ->withInput($request->only('email'))
-            ->withErrors(['email' => __('agricart.customer.auth.reset_link_failed')]);
+            ->with('customer_auth_status', __('agricart.customer.auth.reset_link_sent'))
+            ->with('customer_auth_status_type', 'success');
     }
 
     public function edit(Request $request, string $token, StoreLayoutService $layout): View
