@@ -240,6 +240,13 @@ return [
         'inactive' => 'Your account is inactive. Please contact the administrator.',
         'no_role' => 'Your account is active but no role has been assigned yet.',
         'login_link' => 'Already registered? Sign in',
+        'reset_password_mail' => [
+            'subject' => 'Reset your Agricart staff password',
+            'line' => 'You are receiving this email because we received a password reset request for your Agricart staff account.',
+            'action' => 'Reset password',
+            'expire' => 'This password reset link will expire in :count minutes.',
+            'ignore' => 'If you did not request a password reset, no further action is required.',
+        ],
     ],
 
     'supplier_register' => [
@@ -3099,7 +3106,20 @@ return [
         ],
         'errors' => [
             'subject' => 'Please enter a subject (3–200 characters).',
-            'body' => 'Please enter a message (2–5000 characters).',
+            'body' => 'Please enter a message, or attach an image.',
+        ],
+        'attachments' => [
+            'label' => 'Images (optional)',
+            'hint' => 'JPEG, PNG or WebP. Up to :max images, :size each. Chat images only — not catalog photos.',
+            'image_placeholder' => '[Image]',
+            'too_many' => 'You can attach at most :max images per message.',
+            'too_large' => 'Each image must be :max or smaller.',
+            'invalid_type' => 'Only JPEG, PNG and WebP images are allowed.',
+            'store_failed' => 'Could not save the image. Please try again.',
+            'not_found' => 'That image was not found.',
+            'delete' => 'Delete image',
+            'delete_confirm' => 'Delete this chat image permanently?',
+            'uploading' => 'Uploading…',
         ],
         'admin' => [
             'summary' => 'Agricart Inbox summary',

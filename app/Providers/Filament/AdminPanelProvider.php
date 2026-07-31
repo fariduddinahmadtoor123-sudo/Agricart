@@ -4,6 +4,7 @@ namespace App\Providers\Filament;
 
 use App\Filament\Auth\EditProfile;
 use App\Filament\Auth\Login;
+use App\Filament\Auth\Pages\RequestPasswordReset;
 use App\Filament\Clusters\Dashboard\OverviewPage as DashboardOverviewPage;
 use App\Http\Middleware\EagerLoadUserRole;
 use App\Http\Middleware\SetAgricartLocale;
@@ -35,6 +36,7 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login(Login::class)
+            ->passwordReset(RequestPasswordReset::class)
             ->profile(EditProfile::class, isSimple: false)
             ->brandName('Agricart')
             ->font('Arial, sans-serif', provider: LocalFontProvider::class)
