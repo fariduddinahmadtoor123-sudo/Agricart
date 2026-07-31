@@ -4,7 +4,7 @@ namespace Tests\Feature\Store;
 
 use App\Models\Customer;
 use App\Models\User;
-use Illuminate\Auth\Notifications\ResetPassword;
+use App\Notifications\Store\CustomerResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -44,7 +44,7 @@ class CustomerForgotPasswordTest extends TestCase
             ->assertRedirect()
             ->assertSessionHas('customer_auth_status_type', 'success');
 
-        Notification::assertSentTo($customer, ResetPassword::class);
+        Notification::assertSentTo($customer, CustomerResetPassword::class);
         Notification::assertCount(1);
     }
 
