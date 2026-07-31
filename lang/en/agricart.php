@@ -2995,7 +2995,7 @@ return [
             'address_updated' => 'Your delivery address has been updated.',
             'forgot_password_link' => 'Forgot your password?',
             'forgot_password_heading' => 'Reset your password',
-            'forgot_password_lead' => 'Enter your email and we will send you a link to choose a new password.',
+            'forgot_password_lead' => 'Enter your email and we will send you a link to choose a new password for your online store customer account.',
             'forgot_password_submit' => 'Send reset link',
             'back_to_login' => 'Back to sign in',
             'reset_link_sent' => 'If that email is registered, we have sent a password reset link.',
@@ -3005,6 +3005,13 @@ return [
             'reset_password_submit' => 'Reset password',
             'password_reset_success' => 'Your password has been reset. You can sign in now.',
             'password_reset_failed' => 'This reset link is invalid or has expired. Please request a new one.',
+            'reset_password_mail' => [
+                'subject' => 'Reset your Agricart store password',
+                'line' => 'You are receiving this email because we received a password reset request for your Agricart online store customer account. This does not change any staff or supplier login.',
+                'action' => 'Reset store password',
+                'expire' => 'This password reset link will expire in :count minutes.',
+                'ignore' => 'If you did not request a password reset, no further action is required.',
+            ],
         ],
         'orders' => [
             'page_title' => 'My orders',

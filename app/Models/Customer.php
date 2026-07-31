@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\CategoryAiStatus;
+use App\Notifications\Store\CustomerResetPassword;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Auth\Passwords\CanResetPassword;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Storage;
+use SensitiveParameter;
 
 #[Fillable([
     'customer_number',
@@ -158,6 +160,14 @@ class Customer extends Authenticatable implements CanResetPasswordContract
     public function phones(): HasMany
     {
         return $this->hasMany(CustomerPhone::class)->orderBy('sort_order');
+    }
+
+    /**
+     * Online-store customer reset only — never staff/admin Filament URLs.
+     */
+    public function sendPasswordResetNotification(#[SensitiveParameter] $token): void
+    {
+        $this->notify(new CustomerResetPassword($token));
     }
 
     /**
