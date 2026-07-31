@@ -152,6 +152,10 @@ class DeployPreflightCommand extends Command
             $fail('Database queue requires jobs and failed_jobs tables.');
         }
 
+        if (! filled(config('agricart.portable_archive_key')) && ! filled(config('agricart.supplier_archive_key'))) {
+            $fail('AGRICART_PORTABLE_ARCHIVE_KEY must be set (same secret on every server that exports or imports .ags archives).');
+        }
+
         foreach ([storage_path(), storage_path('framework'), base_path('bootstrap/cache')] as $path) {
             if (! File::isDirectory($path) || ! is_writable($path)) {
                 $fail("Required writable directory is missing or not writable: {$path}");
