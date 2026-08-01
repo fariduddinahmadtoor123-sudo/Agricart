@@ -20,7 +20,7 @@
         toggleColumn(column, visible) {
             @if ($interactive)
                 @if (filled($livewireComponent))
-                    window.Livewire.dispatchTo(@js($livewireComponent), 'toggleColumn', { column, visible });
+                    window.Livewire.dispatchTo(@js($livewireComponent), @js($livewirePrefix . '-column-toggle'), { column, visible });
                 @else
                     window.Livewire.dispatch(@js($livewirePrefix . '-column-toggle'), { column, visible });
                 @endif

@@ -20,7 +20,7 @@
         applyFilter(value) {
             @if ($interactive)
                 @if (filled($livewireComponent))
-                    window.Livewire.dispatchTo(@js($livewireComponent), 'applyFilter', { filter: value });
+                    window.Livewire.dispatchTo(@js($livewireComponent), @js($livewirePrefix . '-filter'), { filter: value });
                 @else
                     window.Livewire.dispatch(@js($livewirePrefix . '-filter'), { filter: value });
                 @endif
@@ -30,7 +30,7 @@
         clearFilters() {
             @if ($interactive)
                 @if (filled($livewireComponent))
-                    window.Livewire.dispatchTo(@js($livewireComponent), 'clearFilters');
+                    window.Livewire.dispatchTo(@js($livewireComponent), @js($livewirePrefix . '-clear-filters'));
                 @else
                     window.Livewire.dispatch(@js($livewirePrefix . '-clear-filters'));
                 @endif

@@ -33,7 +33,7 @@
                     class="fi-input fi-input-has-inline-prefix agricart-catalog-toolbar__search-input"
                     @if ($livewirePrefix)
                         @if (filled($livewireComponent))
-                            x-on:input.debounce.300ms="Livewire.dispatchTo(@js($livewireComponent), 'updateSearch', { query: $event.target.value })"
+                            x-on:input.debounce.300ms="Livewire.dispatchTo(@js($livewireComponent), @js($livewirePrefix . '-search'), { query: $event.target.value })"
                         @else
                             x-on:input.debounce.300ms="window.Livewire.dispatch(@js($livewirePrefix . '-search'), { query: $event.target.value })"
                         @endif
