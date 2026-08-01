@@ -3248,6 +3248,8 @@ return [
             'policies' => 'Policies',
             'legal' => 'Legal',
             'registration' => 'Registration',
+            'staff' => 'Staff',
+            'supplier' => 'Supplier',
         ],
         'categories' => [
             'empty' => 'No root categories yet. Add active categories in Catalog.',

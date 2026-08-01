@@ -22,7 +22,7 @@ class PublicSupplierRegistrationTest extends TestCase
         $this->get(route('store.home'))
             ->assertOk()
             ->assertSee(route('auth.supplier.register'), false)
-            ->assertSee(__('agricart.supplier_register.title'), false);
+            ->assertSee(__('agricart.storefront.footer.supplier'), false);
     }
 
     public function test_public_supplier_application_is_pending_and_visible_in_approvals(): void

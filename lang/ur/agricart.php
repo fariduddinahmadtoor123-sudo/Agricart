@@ -3240,6 +3240,8 @@ return [
             'policies' => 'پالیسیاں',
             'legal' => 'قانونی',
             'registration' => 'رجسٹریشن',
+            'staff' => 'سٹاف',
+            'supplier' => 'سپلائر',
         ],
         'ticker' => [
             'controls' => 'ٹکر کنٹرول',

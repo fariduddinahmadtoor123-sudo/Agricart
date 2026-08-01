@@ -33,6 +33,16 @@
                                     {{ __('agricart.storefront.brands.nav') }}
                                 </a>
                             </li>
+                            <li>
+                                <a href="{{ route('auth.staff.register') }}" class="ag-store-footer__link">
+                                    {{ __('agricart.storefront.footer.staff') }}
+                                </a>
+                            </li>
+                            <li>
+                                <a href="{{ route('auth.supplier.register') }}" class="ag-store-footer__link">
+                                    {{ __('agricart.storefront.footer.supplier') }}
+                                </a>
+                            </li>
                             @foreach ($footer_quick_entries ?? [] as $entry)
                                 <li>
                                     @if ($entry['type'] === 'page')
@@ -88,16 +98,6 @@
                             {{ $settings->localized('footer_registration_title') ?? __('agricart.storefront.footer.registration') }}
                         </h3>
                         <ul class="ag-store-footer__links">
-                            <li>
-                                <a href="{{ route('auth.staff.register') }}" class="ag-store-footer__link">
-                                    {{ __('agricart.auth.register_title') }}
-                                </a>
-                            </li>
-                            <li>
-                                <a href="{{ route('auth.supplier.register') }}" class="ag-store-footer__link">
-                                    {{ __('agricart.supplier_register.title') }}
-                                </a>
-                            </li>
                             @foreach ($footer_registration_entries ?? [] as $entry)
                                 <li>
                                     @if ($entry['type'] === 'page')
