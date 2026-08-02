@@ -2,6 +2,7 @@
 
 namespace App\Filament\Auth\Pages;
 
+use Filament\Auth\Http\Responses\Contracts\PasswordResetResponse;
 use Filament\Auth\Pages\PasswordReset\ResetPassword as BaseResetPassword;
 use Filament\Facades\Filament;
 use Filament\Models\Contracts\FilamentUser;
@@ -16,7 +17,7 @@ use SensitiveParameter;
 
 class ResetPassword extends BaseResetPassword
 {
-    public function resetPassword(): mixed
+    public function resetPassword(): ?PasswordResetResponse
     {
         try {
             $this->rateLimit(2);
@@ -69,7 +70,7 @@ class ResetPassword extends BaseResetPassword
                 ->success()
                 ->send();
 
-            return app(\Filament\Auth\Http\Responses\Contracts\PasswordResetResponse::class);
+            return app(PasswordResetResponse::class);
         }
 
         Notification::make()
