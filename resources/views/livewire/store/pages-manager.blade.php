@@ -5,11 +5,16 @@
         <h3 class="agricart-store-admin__title">{{ __('agricart.store.admin.pages.title') }}</h3>
         <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.pages.hint') }}</p>
 
-        <form wire:submit="savePage" class="agricart-store-admin__form">
+        <form
+            wire:submit="savePage"
+            wire:key="page-form-{{ $editingId ?? 'new' }}"
+            id="store-pages-form"
+            class="agricart-store-admin__form"
+        >
             <div class="agricart-store-admin__grid-2">
                 <div class="agricart-store-admin__field">
                     <label>{{ __('agricart.store.admin.pages.title_en') }}</label>
-                    <input type="text" wire:model.live="title_en" class="agricart-store-admin__input" required />
+                    <input type="text" wire:model.live.debounce.400ms="title_en" class="agricart-store-admin__input" required />
                     @error('title_en')
                         <p class="agricart-store-admin__error">{{ $message }}</p>
                     @enderror

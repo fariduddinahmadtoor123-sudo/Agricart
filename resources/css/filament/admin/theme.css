@@ -1360,8 +1360,9 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
     margin: 0;
     padding: 0.5rem 0.75rem;
     list-style: none;
-    flex-wrap: nowrap;
-    min-width: max-content;
+    flex-wrap: wrap;
+    max-width: 100%;
+    row-gap: 0.25rem;
 }
 
 .agricart-catalog-subnav__list-item {

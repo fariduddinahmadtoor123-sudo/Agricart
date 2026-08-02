@@ -366,7 +366,7 @@ return [
             'seasonal-purchases' => 'Season Purch',
         ],
         'staff' => [
-            'overview' => 'Overview', 'staff' => 'Staff', 'pay-management' => 'Pay Management', 'attendance' => 'Attendance',
+            'overview' => 'Overview', 'staff' => 'Staff', 'pay-management' => 'Pay', 'attendance' => 'Attendance',
             'advances' => 'Advances', 'payroll' => 'Payroll', 'leave-management' => 'Leave',
         ],
         'finance' => [

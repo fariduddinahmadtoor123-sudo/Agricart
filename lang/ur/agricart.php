@@ -365,8 +365,8 @@ return [
             'seasonal-purchases' => 'موسم خرید',
         ],
         'staff' => [
-            'overview' => 'جائزہ', 'staff' => 'عملہ', 'pay-management' => 'تنخواہ / Pay', 'attendance' => 'حاضری',
-            'advances' => 'ایڈوانس', 'payroll' => 'تنخواہ', 'leave-management' => 'رخصت',
+            'overview' => 'جائزہ', 'staff' => 'عملہ', 'pay-management' => 'پے', 'attendance' => 'حاضری',
+            'advances' => 'ایڈوانس', 'payroll' => 'پے رول', 'leave-management' => 'رخصت',
         ],
         'finance' => [
             'overview' => 'جائزہ',

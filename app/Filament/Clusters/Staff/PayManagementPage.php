@@ -14,7 +14,7 @@ class PayManagementPage extends BaseModulePage
 {
     protected static ?string $cluster = StaffCluster::class;
 
-    protected static ?string $navigationLabel = 'Pay Management';
+    protected static ?string $navigationLabel = 'Pay';
 
     protected static ?int $navigationSort = 3;
 

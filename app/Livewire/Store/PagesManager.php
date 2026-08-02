@@ -157,6 +157,8 @@ class PagesManager extends BaseStoreSettings
         $this->show_in_registration = $page->show_in_registration;
         $this->showSlugField = false;
         $this->slugManuallyEdited = true;
+
+        $this->js('document.getElementById("store-pages-form")?.scrollIntoView({behavior:"smooth",block:"start"})');
     }
 
     public function deletePage(int $id): void
