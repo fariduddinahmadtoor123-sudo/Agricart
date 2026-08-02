@@ -65,10 +65,15 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
     public function canUseAdmin(): bool
     {
         if ($this->isSuperAdmin()) {
-            return $this->status === self::STATUS_ACTIVE;
+            return $this->isActive();
         }
 
-        return $this->status === self::STATUS_ACTIVE && $this->role_id !== null;
+        return $this->isActive() && $this->role_id !== null;
+    }
+
+    public function isActive(): bool
+    {
+        return ($this->status ?? self::STATUS_ACTIVE) === self::STATUS_ACTIVE;
     }
 
     public function isPending(): bool

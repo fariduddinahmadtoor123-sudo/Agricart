@@ -3,6 +3,7 @@
 namespace App\Livewire\Store;
 
 use App\Models\StorePage;
+use App\Services\Store\StoreAboutService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Str;
 use Livewire\Component;
@@ -120,12 +121,17 @@ class PagesManager extends BaseStoreSettings
 
         if ($this->editingId) {
             StorePage::query()->whereKey($this->editingId)->update($payload);
+            $page = StorePage::query()->find($this->editingId);
         } else {
             $maxSort = (int) StorePage::query()->max('sort_order');
-            StorePage::query()->create([
+            $page = StorePage::query()->create([
                 ...$payload,
                 'sort_order' => $maxSort + 1,
             ]);
+        }
+
+        if ($page instanceof StorePage) {
+            app(StoreAboutService::class)->syncStoryFromCmsPage($page);
         }
 
         $this->resetPageForm();

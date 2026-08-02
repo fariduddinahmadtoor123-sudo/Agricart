@@ -4,6 +4,7 @@ namespace App\Services\Store;
 
 use App\Models\CompanyProfile;
 use App\Models\StoreAboutSetting;
+use App\Models\StorePage;
 use App\Models\StoreSetting;
 use App\Services\Media\OptimizedImageStorage;
 use Illuminate\Http\UploadedFile;
@@ -21,6 +22,43 @@ class StoreAboutService
     public function settings(): StoreAboutSetting
     {
         return StoreAboutSetting::current();
+    }
+
+    /**
+     * Prefer Store → About story; fall back to CMS page slug "about-us"
+     * so footer/CMS edits still appear on /about.
+     */
+    public function resolvedStory(?StoreAboutSetting $about = null): ?string
+    {
+        $about ??= $this->settings();
+        $story = $about->localized('story');
+
+        if (filled($story)) {
+            return $story;
+        }
+
+        $page = StorePage::query()
+            ->where('slug', 'about-us')
+            ->where('is_active', true)
+            ->first();
+
+        return $page?->localizedContent();
+    }
+
+    /**
+     * Keep dedicated About settings in sync when the legacy CMS about-us page is saved.
+     */
+    public function syncStoryFromCmsPage(StorePage $page): void
+    {
+        if ($page->slug !== 'about-us') {
+            return;
+        }
+
+        $about = $this->settings();
+        $about->forceFill([
+            'story_en' => filled($page->content_en) ? $page->content_en : null,
+            'story_ur' => filled($page->content_ur) ? $page->content_ur : null,
+        ])->save();
     }
 
     /**
@@ -63,7 +101,7 @@ class StoreAboutService
             'logoUrl' => $company->displayLogoUrl() ?? (
                 filled($store->logo_path) ? Storage::disk('public')->url($store->logo_path) : null
             ),
-            'story' => $about->localized('story'),
+            'story' => $this->resolvedStory($about),
             'heroYears' => filled($about->hero_years_label) ? $about->hero_years_label : null,
             'ceoName' => filled($about->ceo_name) ? $about->ceo_name : null,
             'ceoTitle' => $about->localized('ceo_title'),

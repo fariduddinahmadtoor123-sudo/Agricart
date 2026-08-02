@@ -62,6 +62,30 @@ class AboutPageTest extends TestCase
             ->assertSee('ag-store-about__team', false);
     }
 
+    public function test_about_page_falls_back_to_cms_about_us_content_when_story_empty(): void
+    {
+        $about = StoreAboutSetting::current();
+        $about->forceFill([
+            'story_en' => null,
+            'story_ur' => null,
+        ])->save();
+
+        StorePage::query()->create([
+            'title_en' => 'About Us',
+            'title_ur' => null,
+            'slug' => 'about-us',
+            'content_en' => 'CMS about body that should appear on /about.',
+            'content_ur' => null,
+            'is_active' => true,
+            'show_in_quick_links' => true,
+            'sort_order' => 1,
+        ]);
+
+        $this->get(route('store.about'))
+            ->assertOk()
+            ->assertSee('CMS about body that should appear on /about.');
+    }
+
     public function test_about_us_cms_slug_redirects_to_about_route(): void
     {
         StorePage::query()->create([
