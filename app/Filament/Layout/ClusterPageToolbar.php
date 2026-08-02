@@ -76,7 +76,7 @@ abstract class ClusterPageToolbar
     {
         $user = auth()->user();
 
-        if (! $user instanceof User) {
+        if (! $user instanceof User || ! $user->canUseAdmin()) {
             return false;
         }
 

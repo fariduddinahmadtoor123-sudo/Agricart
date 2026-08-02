@@ -13,13 +13,22 @@ abstract class BaseAgricartCluster extends Cluster
 
     public static function isComingSoon(): bool
     {
-        $slug = static::$slug ?? '';
+        $slug = static::moduleSlug();
 
         if ($slug === '') {
             return false;
         }
 
         return in_array($slug, config('agricart.modules_coming_soon', []), true);
+    }
+
+    /**
+     * Public accessor for the cluster module key used by chrome/toolbars.
+     * Protected static::$slug cannot be read from outside this class hierarchy.
+     */
+    public static function moduleSlug(): string
+    {
+        return static::$slug ?? '';
     }
 
     public static function canAccess(): bool
@@ -34,9 +43,9 @@ abstract class BaseAgricartCluster extends Cluster
             return true;
         }
 
-        $slug = static::$slug ?? null;
+        $slug = static::moduleSlug();
 
-        if (! filled($slug)) {
+        if ($slug === '') {
             return false;
         }
 
@@ -45,16 +54,16 @@ abstract class BaseAgricartCluster extends Cluster
 
     public static function viewPermission(): ?string
     {
-        $slug = static::$slug ?? null;
+        $slug = static::moduleSlug();
 
-        return filled($slug) ? "{$slug}.view" : null;
+        return $slug !== '' ? "{$slug}.view" : null;
     }
 
     public static function getNavigationLabel(): string
     {
-        $slug = static::$slug ?? 'app';
+        $slug = static::moduleSlug();
 
-        return AgricartTranslator::module($slug);
+        return AgricartTranslator::module($slug !== '' ? $slug : 'app');
     }
 
     public function getHeading(): string|Htmlable|null

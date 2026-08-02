@@ -15,7 +15,13 @@ abstract class ClusterSubNavigation
 
     public static function moduleKey(): string
     {
-        return static::clusterClass()::$slug ?? '';
+        $cluster = static::clusterClass();
+
+        if (is_subclass_of($cluster, BaseAgricartCluster::class)) {
+            return $cluster::moduleSlug();
+        }
+
+        return '';
     }
 
     protected static function pathPrefix(): string
