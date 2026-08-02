@@ -15,9 +15,10 @@
             <div>
                 <span class="ag-store-register-page__eyebrow">{{ __('agricart.auth.register_kicker') }}</span>
                 <h1 class="ag-store-register-page__title">{{ __('agricart.auth.register_title') }}</h1>
-                <p class="ag-store-register-page__lead">{{ __('agricart.auth.register_lead') }}</p>
             </div>
         </header>
+
+        @include('store.auth.partials.registration-notice', $registrationNotice)
 
         <livewire:auth.register-form />
     </div>

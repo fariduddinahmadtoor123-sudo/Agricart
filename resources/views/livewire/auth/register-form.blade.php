@@ -295,6 +295,18 @@
                 </div>
             </section>
 
+            @if ($requireNoticeAcceptance)
+                <section class="ag-store-register__section">
+                    <div class="ag-store-register__terms-box">
+                        <label class="ag-store-register__checkbox">
+                            <input type="checkbox" wire:model="terms_accepted" />
+                            <span>{{ __('agricart.auth.terms_accepted') }} <span class="ag-store-register__required" aria-hidden="true">*</span></span>
+                        </label>
+                        @error('terms_accepted') <span class="ag-store-register__error">{{ $message }}</span> @enderror
+                    </div>
+                </section>
+            @endif
+
             <div class="ag-store-register__actions">
                 <button type="submit" class="ag-store-register__btn" wire:loading.attr="disabled">
                     <span wire:loading.remove wire:target="submit">{{ __('agricart.auth.register_submit') }}</span>

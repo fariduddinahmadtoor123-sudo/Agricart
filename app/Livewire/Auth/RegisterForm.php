@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Services\Access\UserService;
 use App\Services\Media\MediaLibraryService;
 use App\Services\Media\OptimizedImageStorage;
+use App\Services\Store\StoreRegistrationService;
 use App\Support\FriendlyError;
 use App\Support\LivewireImagePreview;
 use App\Support\PakistaniBanks;
@@ -76,6 +77,15 @@ class RegisterForm extends Component
     public ?string $statusMessage = null;
 
     public string $statusType = 'danger';
+
+    public bool $terms_accepted = false;
+
+    public bool $requireNoticeAcceptance = false;
+
+    public function mount(StoreRegistrationService $registration): void
+    {
+        $this->requireNoticeAcceptance = $registration->publicNotice('staff')['requireAcceptance'];
+    }
 
     public function updatedProfilePhotoUpload(): void
     {
@@ -200,7 +210,7 @@ class RegisterForm extends Component
 
             $this->isResubmit = $rejectedUser !== null;
 
-            $this->validate([
+            $rules = [
                 'name' => ['required', 'string', 'max:255'],
                 'name_ur' => ['required', 'string', 'max:255'],
                 'email' => [
@@ -228,6 +238,14 @@ class RegisterForm extends Component
                 'profilePhotoUpload' => ['required', 'image', 'max:5120'],
                 'cnicFrontUpload' => ['required', 'image', 'max:5120'],
                 'cnicBackUpload' => ['required', 'image', 'max:5120'],
+            ];
+
+            if ($this->requireNoticeAcceptance) {
+                $rules['terms_accepted'] = ['accepted'];
+            }
+
+            $this->validate($rules, [
+                'terms_accepted.accepted' => __('agricart.auth.terms_required'),
             ]);
 
             $service = app(UserService::class);

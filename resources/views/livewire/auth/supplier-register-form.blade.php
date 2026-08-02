@@ -202,6 +202,14 @@
                 </header>
 
                 <div class="ag-store-register__terms-box">
+                    @if ($requireNoticeAcceptance)
+                        <label class="ag-store-register__checkbox">
+                            <input type="checkbox" wire:model="notice_accepted" />
+                            <span>{{ __('agricart.supplier_register.fields.notice_accepted') }} <span class="ag-store-register__required" aria-hidden="true">*</span></span>
+                        </label>
+                        @error('notice_accepted') <span class="ag-store-register__error">{{ $message }}</span> @enderror
+                    @endif
+
                     @if ($termsUrl)
                         <p>
                             <a href="{{ $termsUrl }}" target="_blank" rel="noopener noreferrer" class="ag-store-register__terms-link">

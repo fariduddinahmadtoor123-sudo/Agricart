@@ -5,6 +5,7 @@ namespace App\Livewire\Auth;
 use App\Filament\Forms\CategoryForm;
 use App\Models\StorePage;
 use App\Services\Contacts\SupplierService;
+use App\Services\Store\StoreRegistrationService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
@@ -40,6 +41,10 @@ class SupplierRegisterForm extends Component
 
     public bool $terms_accepted = false;
 
+    public bool $notice_accepted = false;
+
+    public bool $requireNoticeAcceptance = false;
+
     public bool $saving = false;
 
     public bool $submitted = false;
@@ -51,6 +56,11 @@ class SupplierRegisterForm extends Component
     public ?string $statusMessage = null;
 
     public string $statusType = 'danger';
+
+    public function mount(StoreRegistrationService $registration): void
+    {
+        $this->requireNoticeAcceptance = $registration->publicNotice('supplier')['requireAcceptance'];
+    }
 
     public function addContactRow(): void
     {
@@ -116,6 +126,12 @@ class SupplierRegisterForm extends Component
 
             RateLimiter::hit($rateLimitKey, 60);
             RateLimiter::hit($ipRateLimitKey, 3600);
+
+            if ($this->requireNoticeAcceptance && ! $this->notice_accepted) {
+                throw ValidationException::withMessages([
+                    'notice_accepted' => [__('agricart.supplier_register.errors.notice_required')],
+                ]);
+            }
 
             $service = app(SupplierService::class);
             $contacts = $service->normalizeContacts($this->contactRows);

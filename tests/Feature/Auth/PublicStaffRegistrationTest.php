@@ -62,6 +62,7 @@ class PublicStaffRegistrationTest extends TestCase
             ->set('profilePhotoUpload', UploadedFile::fake()->image('profile.jpg', 500, 500))
             ->set('cnicFrontUpload', UploadedFile::fake()->image('cnic-front.jpg', 800, 500))
             ->set('cnicBackUpload', UploadedFile::fake()->image('cnic-back.jpg', 800, 500))
+            ->set('terms_accepted', true)
             ->call('submit')
             ->assertHasNoErrors()
             ->assertSet('submitted', true)

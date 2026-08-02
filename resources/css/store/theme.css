@@ -4946,6 +4946,28 @@ html[dir='rtl'] .ag-store-footer__col--map {
     font-size: clamp(1.25rem, 2.5vw, 1.625rem);
 }
 
+.ag-store-register-notice {
+    margin-bottom: 1rem;
+    padding: 1rem 1.125rem;
+    background: #f8faf5;
+    border: 1px solid var(--agricart-border);
+    border-inline-start: 4px solid var(--agricart-primary);
+}
+
+.ag-store-register-notice__title {
+    margin: 0 0 0.5rem;
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--agricart-text);
+}
+
+.ag-store-register-notice__body {
+    margin: 0;
+    color: var(--agricart-muted);
+    font-size: 0.9375rem;
+    line-height: 1.65;
+}
+
 .ag-store-register-page__lead {
     max-width: 46rem;
     margin: 0;
