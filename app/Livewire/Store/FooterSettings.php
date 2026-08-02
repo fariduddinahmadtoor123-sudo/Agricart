@@ -270,6 +270,8 @@ class FooterSettings extends BaseStoreSettings
         $this->category_id = $link->category_id;
         $this->store_page_id = $link->store_page_id;
         $this->opens_in_new_tab = $link->opens_in_new_tab;
+
+        $this->js('document.getElementById("store-footer-link-form")?.scrollIntoView({behavior:"smooth",block:"start"})');
     }
 
     public function deleteLink(int $id): void

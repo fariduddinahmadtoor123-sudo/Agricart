@@ -31,7 +31,12 @@
     <section class="agricart-store-admin__card">
         <h3 class="agricart-store-admin__title">{{ __('agricart.store.admin.menu.items') }}</h3>
 
-        <form wire:submit="saveItem" class="agricart-store-admin__form">
+        <form
+            wire:submit="saveItem"
+            wire:key="menu-item-form-{{ $editingId ?? 'new' }}"
+            id="store-menu-item-form"
+            class="agricart-store-admin__form"
+        >
             <div class="agricart-store-admin__grid-2">
                 <div class="agricart-store-admin__field">
                     <label>{{ __('agricart.store.admin.fields.label_en') }}</label>

@@ -21,7 +21,12 @@
     <section class="agricart-store-admin__card">
         <h3 class="agricart-store-admin__title">{{ __('agricart.store.admin.ticker.messages') }}</h3>
 
-        <form wire:submit="saveMessage" class="agricart-store-admin__form">
+        <form
+            wire:submit="saveMessage"
+            wire:key="ticker-message-form-{{ $editingId ?? 'new' }}"
+            id="store-ticker-message-form"
+            class="agricart-store-admin__form"
+        >
             <div class="agricart-store-admin__grid-2">
                 <div class="agricart-store-admin__field">
                     <label>{{ __('agricart.store.admin.fields.text_en') }}</label>
@@ -34,7 +39,7 @@
             </div>
             <div class="agricart-store-admin__field">
                 <label>{{ __('agricart.store.admin.ticker.link') }}</label>
-                <input type="url" wire:model="link" class="agricart-store-admin__input" placeholder="https://" />
+                <input type="text" wire:model="link" class="agricart-store-admin__input" placeholder="https://" />
             </div>
             <div class="agricart-store-admin__actions">
                 <button type="submit" class="agricart-store-admin__btn">

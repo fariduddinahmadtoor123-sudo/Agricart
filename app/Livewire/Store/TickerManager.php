@@ -87,6 +87,8 @@ class TickerManager extends BaseStoreSettings
         $this->text_en = $message->text_en;
         $this->text_ur = $message->text_ur ?? '';
         $this->link = $message->link ?? '';
+
+        $this->js('document.getElementById("store-ticker-message-form")?.scrollIntoView({behavior:"smooth",block:"start"})');
     }
 
     public function deleteMessage(int $id): void

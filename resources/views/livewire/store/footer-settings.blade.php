@@ -134,7 +134,12 @@
         <h3 class="agricart-store-admin__title">{{ __('agricart.store.admin.footer.manage_links') }}</h3>
         <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.footer.manage_links_hint') }}</p>
 
-        <form wire:submit="saveLink" class="agricart-store-admin__form">
+        <form
+            wire:submit="saveLink"
+            wire:key="footer-link-form-{{ $editingId ?? 'new' }}"
+            id="store-footer-link-form"
+            class="agricart-store-admin__form"
+        >
             <div class="agricart-store-admin__field">
                 <label>{{ __('agricart.store.admin.footer.link_group') }}</label>
                 <select wire:model="link_group" class="agricart-store-admin__input">

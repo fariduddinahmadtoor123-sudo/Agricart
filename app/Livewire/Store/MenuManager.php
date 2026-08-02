@@ -118,6 +118,8 @@ class MenuManager extends BaseStoreSettings
         $this->category_id = $item->category_id;
         $this->store_page_id = $item->store_page_id;
         $this->opens_in_new_tab = $item->opens_in_new_tab;
+
+        $this->js('document.getElementById("store-menu-item-form")?.scrollIntoView({behavior:"smooth",block:"start"})');
     }
 
     public function deleteItem(int $id): void
