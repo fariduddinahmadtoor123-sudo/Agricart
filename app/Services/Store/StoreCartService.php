@@ -212,8 +212,8 @@ class StoreCartService
             }
 
             $resolved = $this->quantityPricing->resolveForQuantity($product, $qty, forPos: false);
-            $unitPrice = $resolved['price'] ?? $product->retail_price ?? '0';
-            $tierKey = $resolved['tier']->tier_key ?? 'retail';
+            $unitPrice = $resolved['price'] ?? $product->wholesale_price ?? $product->retail_price ?? '0';
+            $tierKey = $resolved['tier']->tier_key ?? 'wholesale';
             $unitNumeric = $this->saleService->numeric((string) $unitPrice);
             $lineTotal = $unitNumeric * $qty;
 

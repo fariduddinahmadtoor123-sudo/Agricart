@@ -16355,3 +16355,102 @@ body.agricart-form-panel-open .agricart-staff-messenger {
         grid-template-columns: 1fr;
     }
 }
+
+/* Price Update (list + form panel sheet) — reuse purchase-form search/grid; tighten value cells */
+.agricart-price-updates__meta {
+    margin-top: 0.15rem;
+    font-size: 0.7rem;
+    color: var(--agricart-muted, var(--gray-500));
+    font-weight: 400;
+}
+
+.agricart-price-update-form__grid th {
+    font-size: 0.65rem;
+    line-height: 1.15;
+    white-space: nowrap;
+    padding: 0.25rem 0.2rem !important;
+}
+
+.agricart-price-update-form__pct {
+    display: block;
+    font-weight: 500;
+    color: var(--gray-500);
+    font-size: 0.6rem;
+}
+
+.agricart-price-update-form__grid .agricart-purchase-form__name {
+    min-width: 16rem;
+    max-width: 22rem;
+    white-space: normal;
+    line-height: 1.25;
+}
+
+.agricart-price-update-form__grid th,
+.agricart-price-update-form__grid td {
+    border-inline-end: 1px solid color-mix(in srgb, var(--gray-200) 90%, transparent);
+}
+
+.agricart-price-update-form__grid th:last-child,
+.agricart-price-update-form__grid td:last-child {
+    border-inline-end: 0;
+}
+
+.agricart-price-update-form__cell--price {
+    min-width: 3.5rem !important;
+    max-width: 4.75rem;
+    width: 4.25rem;
+}
+
+.agricart-price-update-form__cell--qty {
+    min-width: 2.75rem !important;
+    max-width: 3.5rem;
+    width: 3.25rem;
+}
+
+.agricart-price-update-form__category-row {
+    margin-top: 0.75rem;
+}
+
+.agricart-price-update-form__category-hint {
+    margin-inline-start: auto;
+    opacity: 0.65;
+    font-size: 0.8em;
+    white-space: nowrap;
+}
+
+.agricart-price-update-form__result,
+.agricart-price-update-form .agricart-purchase-form__result {
+    width: 100%;
+}
+
+.agricart-price-update-form .agricart-purchase-form__result {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+
+.agricart-price-update-form__row-actions {
+    white-space: nowrap;
+}
+
+.agricart-price-update-form__row-actions .agricart-purchase-form__remove {
+    display: inline-block;
+    margin-inline-start: 0.35rem;
+}
+
+.agricart-price-update-form__markups {
+    font-weight: 600;
+}
+
+.agricart-price-update-form__grid input[type='number']::-webkit-outer-spin-button,
+.agricart-price-update-form__grid input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.agricart-price-update-form__grid input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+

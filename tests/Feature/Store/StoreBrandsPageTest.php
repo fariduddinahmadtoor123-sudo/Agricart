@@ -130,6 +130,96 @@ class StoreBrandsPageTest extends TestCase
         $this->assertNotNull($pipeBrand->id);
     }
 
+    public function test_brands_search_finds_full_name_even_with_filler_words(): void
+    {
+        Brand::query()->create([
+            'code' => 'BR-SKF',
+            'slug' => 'skf',
+            'status' => 'active',
+            'name_en' => 'SKF',
+            'name_ur' => 'ایس کے ایف',
+            'image_path' => 'brands/skf.webp',
+            'description_en' => 'Premium bearing brand.',
+        ]);
+
+        Brand::query()->create([
+            'code' => 'BR-NOISE',
+            'slug' => 'noise-brand',
+            'status' => 'active',
+            'name_en' => 'Farm Tools Co',
+            'name_ur' => 'فارم ٹولز',
+            'image_path' => 'brands/noise.webp',
+            'description_en' => 'Every brand company in Pakistan needs hand tools.',
+        ]);
+
+        $this->get(route('store.brands', ['q' => 'SKF Brand Company Pakistan']))
+            ->assertOk()
+            ->assertSee('SKF', false)
+            ->assertDontSee('Farm Tools Co', false);
+
+        $this->get(route('store.brands', ['q' => 'SKF']))
+            ->assertOk()
+            ->assertSee('SKF', false)
+            ->assertDontSee('Farm Tools Co', false);
+    }
+
+    public function test_brands_search_bearing_uses_product_titles_not_seo_noise(): void
+    {
+        $bearingBrand = Brand::query()->create([
+            'code' => 'BR-BEAR',
+            'slug' => 'bearing-house',
+            'status' => 'active',
+            'name_en' => 'Bearing House',
+            'name_ur' => 'بیرنگ ہاؤس',
+            'image_path' => 'brands/bearing.webp',
+        ]);
+
+        $noiseBrand = Brand::query()->create([
+            'code' => 'BR-SEO',
+            'slug' => 'seo-noise',
+            'status' => 'active',
+            'name_en' => 'Green Pumps',
+            'name_ur' => 'گرین پمپس',
+            'image_path' => 'brands/pumps.webp',
+            'description_en' => 'Irrigation pumps and motors.',
+        ]);
+
+        $category = Category::query()->create([
+            'code' => 'CAT-BEARING',
+            'slug' => 'bearing-cat',
+            'status' => 'active',
+            'name_en' => 'Bearings',
+            'name_ur' => 'بیرنگز',
+        ]);
+
+        Product::query()->create([
+            'category_id' => $category->id,
+            'brand_id' => $bearingBrand->id,
+            'slug' => 'deep-groove-bearing',
+            'code' => 'PRD-BEAR-1',
+            'status' => 'active',
+            'name_en' => 'Deep Groove Ball Bearing',
+            'name_ur' => 'ڈیپ گروو بال بیرنگ',
+        ]);
+
+        Product::query()->create([
+            'category_id' => $category->id,
+            'brand_id' => $noiseBrand->id,
+            'slug' => 'pump-motor',
+            'code' => 'PRD-PUMP-1',
+            'status' => 'active',
+            'name_en' => 'Submersible Pump',
+            'name_ur' => 'سبمرسیبل پمپ',
+            'full_description_en' => 'Also useful near bearing housings on farms.',
+            'seo_keywords_en' => 'bearing,farm,pump',
+        ]);
+
+        $this->get(route('store.brands', ['q' => 'bearing']))
+            ->assertOk()
+            ->assertSee('Bearing House', false)
+            ->assertDontSee('Green Pumps', false);
+    }
+
     public function test_brands_index_paginates_when_more_than_page_limit(): void
     {
         for ($i = 1; $i <= 3; $i++) {

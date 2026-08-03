@@ -23,14 +23,16 @@ return [
     ],
 
     'hints' => [
-        'form' => 'Set how much markup to add on purchase price for each sales channel. Retail price is entered manually on purchase.',
+        'form' => 'Set how much markup to add on purchase price for each sales channel. Retail price on a purchase invoice is still entered by hand.',
+        'form_retail' => 'Retail markup is used on Purchasing → Price Update (buy price → retail). Purchases still use the sale price field for retail.',
+        'retail_field' => 'Retail always maps to the product retail price field.',
         'custom_field' => 'Extra channels are stored in the product JSON field for future marketplace sync.',
         'example_preview' => 'Example: purchase price :base → channel price :price',
     ],
 
     'list' => [
-        'intro' => 'When you save a purchase, enter purchase price and retail price. The system auto-generates channel prices using the markup below.',
-        'retail_note' => 'Retail price is entered manually on each purchase (POS). Channel tiers below apply markup on purchase price only.',
+        'intro' => 'When you save a purchase, enter purchase price and retail price. Other channels use the markup below. Price Update also uses retail markup when set.',
+        'retail_note' => 'On purchases, retail is typed by hand. Set a retail markup % for Price Update auto-fill. Other tiers always use markup on buy price.',
         'empty' => 'No channel tiers yet. Use Add to create the first tier.',
         'col_name' => 'Channel',
         'col_markup' => 'Markup %',
@@ -40,7 +42,9 @@ return [
         'col_status' => 'Status',
         'col_actions' => 'Actions',
         'manual_markup' => 'By hand',
-        'manual_example' => 'Enter on purchase',
+        'manual_example' => 'Enter on purchase (or set % for Price Update)',
+        'retail_markup_note' => 'Purchases: manual · Price Update: uses this %',
+        'retail_example_note' => 'Used by Price Update sheet',
     ],
 
     'statuses' => [
@@ -60,7 +64,7 @@ return [
         'delete_confirm' => 'Delete channel tier ":name"?',
         'field_in_use' => 'This product field is already mapped to another tier.',
         'cannot_delete_last_profile' => 'At least one price profile must remain.',
-        'cannot_edit_retail' => 'Retail price is entered manually on purchase and cannot be changed here.',
+        'cannot_edit_retail' => 'Retail channel names and mapping stay fixed. You can edit the retail markup % for Price Update.',
         'cannot_delete_retail' => 'Retail price tier cannot be removed.',
         'retail_field_reserved' => 'Retail price is managed separately on purchase.',
     ],

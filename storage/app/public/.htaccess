@@ -1,3 +1,4 @@
+# Copy to public_html/storage/.htaccess (and storage/app/public/.htaccess).
 # Deny script execution under public uploads (Hostinger / Apache).
 <IfModule mod_authz_core.c>
     Require all granted

@@ -23,7 +23,9 @@
         </div>
     @endif
 
-    <p class="agricart-form-panel__hint">{{ __('price_controls.hints.form') }}</p>
+    <p class="agricart-form-panel__hint">
+        {{ $isRetailTier ? __('price_controls.hints.form_retail') : __('price_controls.hints.form') }}
+    </p>
 
     <section class="agricart-form-panel__section agricart-user-form__section">
         <div class="agricart-user-form__identity-grid">
@@ -33,14 +35,14 @@
                     <span class="agricart-form-panel__required">*</span>
                 </label>
                 <x-filament::input.wrapper>
-                    <input id="agricart-price-channel-name-en" type="text" wire:model="name_en" class="fi-input" @disabled($this->isReadonly()) />
+                    <input id="agricart-price-channel-name-en" type="text" wire:model="name_en" class="fi-input" @disabled($this->isReadonly() || $isRetailTier) />
                 </x-filament::input.wrapper>
             </div>
 
             <div class="agricart-form-panel__field">
                 <label class="agricart-form-panel__label" for="agricart-price-channel-name-ur">{{ __('price_controls.fields.name_ur') }}</label>
                 <x-filament::input.wrapper>
-                    <input id="agricart-price-channel-name-ur" type="text" wire:model="name_ur" class="fi-input" @disabled($this->isReadonly()) dir="rtl" />
+                    <input id="agricart-price-channel-name-ur" type="text" wire:model="name_ur" class="fi-input" @disabled($this->isReadonly() || $isRetailTier) dir="rtl" />
                 </x-filament::input.wrapper>
             </div>
 
@@ -67,11 +69,15 @@
 
             <div class="agricart-form-panel__field agricart-form-panel__field--full">
                 <label class="agricart-form-panel__label" for="agricart-price-channel-product-field">{{ __('price_controls.fields.product_field') }}</label>
-                @if ($usesCustomField)
+                @if ($isRetailTier || $usesCustomField)
                     <x-filament::input.wrapper>
                         <input type="text" class="fi-input" value="{{ $productFieldLabel }}" readonly />
                     </x-filament::input.wrapper>
-                    <p class="agricart-form-panel__field-hint">{{ __('price_controls.hints.custom_field') }}</p>
+                    @if ($isRetailTier)
+                        <p class="agricart-form-panel__field-hint">{{ __('price_controls.hints.retail_field') }}</p>
+                    @else
+                        <p class="agricart-form-panel__field-hint">{{ __('price_controls.hints.custom_field') }}</p>
+                    @endif
                 @else
                     <x-filament::input.wrapper>
                         <select id="agricart-price-channel-product-field" wire:model="product_field" class="fi-input" @disabled($this->isReadonly())>

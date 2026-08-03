@@ -46,6 +46,7 @@ final class FormPanelRegistry
             'purchase-payment-summary' => ['component' => 'purchase-payment-summaries.form', 'permission' => 'purchasing.view'],
             'purchase-quotations' => ['component' => 'purchase-quotations.form', 'permission' => 'purchasing.view'],
             'purchases' => ['component' => 'purchases.form', 'permission' => 'purchasing.view'],
+            'price-update' => ['component' => 'price-updates.sheet', 'permission' => 'purchasing.edit'],
             'sales' => ['component' => 'sales.form', 'permission' => 'sales.view'],
             'sale-quotations' => ['component' => 'sale-quotations.form', 'permission' => 'sales.view'],
             'sale-returns' => ['component' => 'sale-returns.form', 'permission' => 'sales.view'],

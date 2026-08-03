@@ -33,6 +33,7 @@ class Product extends Model
         'required_qty',
         'alert_qty',
         'stock_qty',
+        'last_buy_price',
         'retail_price',
         'wholesale_price',
         'super_wholesale_price',
@@ -101,6 +102,7 @@ class Product extends Model
             'ai_status' => CategoryAiStatus::class,
             'ai_generated_at' => 'datetime',
             'stock_qty' => 'decimal:2',
+            'last_buy_price' => 'decimal:4',
             'agricart_rating' => 'integer',
             'agricart_rating_criteria' => 'array',
         ];

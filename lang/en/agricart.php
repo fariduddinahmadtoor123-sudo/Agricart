@@ -344,7 +344,7 @@ return [
             'overview' => 'Overview', 'purchases' => 'Purchases',             'purchase-planning' => 'Purchase Planning',
             'purchase-payment-summary' => 'Purchase Payment Summary',
             'purchase-quotations' => 'Purchase Quotations',
-            're-order-center' => 'Purchase Re-Orders', 'price-tags' => 'Price Tags',
+            're-order-center' => 'Purchase Re-Orders', 'price-tags' => 'Price Tags', 'price-update' => 'Price Update',
         ],
         'sales' => [
             'overview' => 'Overview', 'pos-sales' => 'Sales & POS',

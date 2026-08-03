@@ -40,10 +40,9 @@
                             @endif
                             @if (in_array('markup_percent', $visibleColumns, true))
                                 <td>
+                                    {{ rtrim(rtrim(number_format((float) $tier->markup_percent, 3, '.', ''), '0'), '.') }}%
                                     @if ($tier->isManual())
-                                        {{ __('price_controls.list.manual_markup') }}
-                                    @else
-                                        {{ rtrim(rtrim(number_format((float) $tier->markup_percent, 3, '.', ''), '0'), '.') }}%
+                                        <div class="agricart-price-controls__muted">{{ __('price_controls.list.retail_markup_note') }}</div>
                                     @endif
                                 </td>
                             @endif
@@ -52,10 +51,13 @@
                             @endif
                             @if (in_array('example_price', $visibleColumns, true))
                                 <td>
-                                    @if ($tier->isManual())
+                                    @if ($tier->isManual() && (float) $tier->markup_percent <= 0)
                                         <span class="agricart-price-controls__muted">{{ __('price_controls.list.manual_example') }}</span>
                                     @else
                                         <code>{{ $engine->computeTierPrice($exampleBase, $tier) }}</code>
+                                        @if ($tier->isManual())
+                                            <div class="agricart-price-controls__muted">{{ __('price_controls.list.retail_example_note') }}</div>
+                                        @endif
                                     @endif
                                 </td>
                             @endif
@@ -63,11 +65,9 @@
                                 <td>{{ __('price_controls.statuses.' . $tier->status) }}</td>
                             @endif
                             <td>
-                                @unless ($tier->isManual())
-                                    <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $tier->id }})">
-                                        {{ __('price_controls.actions.edit_short') }}
-                                    </button>
-                                @endunless
+                                <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $tier->id }})">
+                                    {{ __('price_controls.actions.edit_short') }}
+                                </button>
                             </td>
                         </tr>
                     @endforeach

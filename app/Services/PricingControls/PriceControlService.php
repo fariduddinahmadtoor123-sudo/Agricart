@@ -99,13 +99,30 @@ class PriceControlService
     public function updateTier(PriceChannelTier $tier, array $data): PriceChannelTier
     {
         if ($tier->isManual()) {
-            throw ValidationException::withMessages([
-                'tier' => __('price_controls.messages.cannot_edit_retail'),
-            ]);
+            return $this->updateRetailMarkup($tier, $data);
         }
 
         $validated = $this->validateTier($data, $tier->priceControl, $tier->id);
         $tier->update($validated);
+
+        return $tier->fresh();
+    }
+
+    /**
+     * Retail stays purchase-manual for sale_price, but markup % drives Purchasing → Price Update.
+     */
+    private function updateRetailMarkup(PriceChannelTier $tier, array $data): PriceChannelTier
+    {
+        $validated = validator($data, [
+            'markup_percent' => ['required', 'numeric', 'min:0', 'max:500'],
+            'status' => ['nullable', Rule::in(self::STATUSES)],
+        ])->validate();
+
+        $tier->update([
+            'markup_percent' => $validated['markup_percent'],
+            'status' => $validated['status'] ?? $tier->status,
+            'product_field' => 'retail_price',
+        ]);
 
         return $tier->fresh();
     }

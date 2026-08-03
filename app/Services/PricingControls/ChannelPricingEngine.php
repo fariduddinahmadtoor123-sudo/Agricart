@@ -137,6 +137,22 @@ class ChannelPricingEngine
         return $prices;
     }
 
+    /**
+     * All active tiers including retail (markup %). Used by Price Update sheet — not purchases.
+     *
+     * @return array<string, string> tier_key => formatted price
+     */
+    public function computeAllTierPrices(float $purchasePrice): array
+    {
+        $prices = [];
+
+        foreach ($this->activeTiers() as $tier) {
+            $prices[$tier->tier_key] = $this->computeTierPrice($purchasePrice, $tier);
+        }
+
+        return $prices;
+    }
+
     public function computeTierPrice(float $purchasePrice, PriceChannelTier $tier): string
     {
         $markup = (float) $tier->markup_percent;
@@ -164,6 +180,37 @@ class ChannelPricingEngine
             if (str_starts_with($tier->product_field, 'channel:')) {
                 $channelPrices[substr($tier->product_field, 8)] = $formatted;
             } elseif (in_array($tier->product_field, self::CORE_PRODUCT_FIELDS, true)) {
+                $updates[$tier->product_field] = $formatted;
+            }
+        }
+
+        if ($channelPrices !== []) {
+            $updates['channel_prices'] = $channelPrices;
+        }
+
+        if ($updates !== []) {
+            $product->update($updates);
+        }
+    }
+
+    /**
+     * Apply buy price markup to every active tier including retail. Does not touch stock.
+     */
+    public function applyBuyPriceToProduct(Product $product, float $purchasePrice): void
+    {
+        if ($purchasePrice <= 0) {
+            return;
+        }
+
+        $updates = [];
+        $channelPrices = is_array($product->channel_prices) ? $product->channel_prices : [];
+
+        foreach ($this->activeTiers() as $tier) {
+            $formatted = $this->computeTierPrice($purchasePrice, $tier);
+
+            if (str_starts_with($tier->product_field, 'channel:')) {
+                $channelPrices[substr($tier->product_field, 8)] = $formatted;
+            } elseif ($tier->product_field === 'retail_price' || in_array($tier->product_field, self::CORE_PRODUCT_FIELDS, true)) {
                 $updates[$tier->product_field] = $formatted;
             }
         }
@@ -236,10 +283,18 @@ class ChannelPricingEngine
         $value = (float) str_replace(',', '', (string) $amount);
 
         if (! $profile->price_use_decimals) {
-            return number_format((int) round($value));
+            return (string) (int) round($value);
         }
 
-        return rtrim(rtrim(number_format($value, (int) $profile->price_decimal_places, '.', ''), '0'), '.');
+        $places = max(0, (int) $profile->price_decimal_places);
+        $formatted = number_format($value, $places, '.', '');
+
+        if ($places === 0 || ! str_contains($formatted, '.')) {
+            return $formatted;
+        }
+
+        // Only trim fractional trailing zeros — never strip zeros from the integer part.
+        return rtrim(rtrim($formatted, '0'), '.') ?: '0';
     }
 
     public function examplePurchasePrice(): float

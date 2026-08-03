@@ -246,11 +246,18 @@ class StoreProductService
             return null;
         }
 
-        if ($product->retail_price === null || $product->retail_price === '') {
+        // Storefront cards use the online entry price (wholesale); retail is POS-facing.
+        $amount = $product->wholesale_price;
+
+        if ($amount === null || $amount === '') {
+            $amount = $product->retail_price;
+        }
+
+        if ($amount === null || $amount === '') {
             return null;
         }
 
-        return number_format((float) $product->retail_price, 0);
+        return number_format((float) $amount, 0);
     }
 
     public function findActiveBySlug(string $slug): ?Product

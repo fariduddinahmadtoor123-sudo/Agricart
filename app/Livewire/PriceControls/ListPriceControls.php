@@ -77,7 +77,7 @@ class ListPriceControls extends Component
     {
         $tier = PriceChannelTier::query()->find($tierId);
 
-        if ($tier === null || $tier->isManual()) {
+        if ($tier === null) {
             return;
         }
 

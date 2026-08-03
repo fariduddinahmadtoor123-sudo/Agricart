@@ -1,0 +1,93 @@
+<?php
+
+return [
+    'intro' => 'Update buy price without creating a purchase. Empty channel prices fill from Price Channel markups (including retail); you can edit any price or quantity per product. Use “Markups” to refill all prices from the buy price.',
+
+    'toolbar' => [
+        'search' => 'Search updated products…',
+    ],
+
+    'fields' => [
+        'add_product' => 'Add product',
+        'add_product_placeholder' => 'Search name, code, SKU, or scan…',
+        'load_category' => 'Load category',
+        'load_category_placeholder' => 'Search any category level (includes nested products)…',
+    ],
+
+    'list' => [
+        'empty' => 'No price updates yet. Click Add to update product prices.',
+        'no_results' => 'No updated products match your search.',
+        'col_number' => '#',
+        'col_thumb' => 'Photo',
+        'col_name' => 'Product',
+        'col_code' => 'Code',
+        'col_buy' => 'Buy',
+        'col_retail' => 'Retail',
+        'col_wholesale' => 'Wholesale',
+        'col_bulk' => 'Bulk',
+        'col_distributor' => 'Dist',
+        'col_updated' => 'Updated',
+        'col_actions' => 'Actions',
+    ],
+
+    'headers' => [
+        'sr' => '#',
+        'thumb' => 'Pic',
+        'name' => 'Product',
+        'buy' => 'Buy',
+        'retail' => 'Retail',
+        'retail_qty' => 'R Qty',
+        'wholesale' => 'WS',
+        'wholesale_qty' => 'WS Qty',
+        'super_wholesale' => 'Bulk',
+        'super_wholesale_qty' => 'B Qty',
+        'distributor' => 'Dist',
+        'distributor_qty' => 'D Qty',
+        'qty' => 'Qty',
+    ],
+
+    'actions' => [
+        'add' => 'Update prices',
+        'add_product' => 'Add',
+        'update' => 'Update',
+        'edit' => 'Update: :name',
+        'remove' => 'Remove',
+        'apply_markups' => 'Markups',
+        'load_category' => 'Load all',
+        'save' => 'Save prices',
+        'saving' => 'Saving…',
+        'clear' => 'Clear sheet',
+    ],
+
+    'history' => [
+        'title' => 'Recent price updates',
+        'view_all' => 'Activity log',
+        'line' => ':user updated :product',
+        'unknown_user' => 'Unknown user',
+    ],
+
+    'messages' => [
+        'product_added' => 'Product added to the sheet.',
+        'already_on_sheet' => 'That product is already on the sheet.',
+        'product_not_found' => 'No matching product found.',
+        'category_not_found' => 'No matching category found.',
+        'category_empty' => 'No products found under “:category” (including subcategories).',
+        'category_loaded' => 'Loaded :added from “:category” (:skipped already on sheet).',
+        'category_truncated' => 'Stopped at :limit products — load a deeper subcategory for the rest.',
+        'cleared' => 'Sheet cleared.',
+        'empty_sheet' => 'Add products, enter buy prices, then save.',
+        'saved' => 'Saved prices for :count product(s). Stock was not changed.',
+        'save_failed' => 'Could not save price updates.',
+        'buy_price_required' => 'Enter a buy price greater than zero.',
+        'invalid_price' => 'Invalid value for :field.',
+        'invalid_quantity' => 'Tier quantities must be whole numbers of at least 1.',
+        'permission_denied' => 'You do not have permission to update prices.',
+    ],
+
+    'hints' => [
+        'quantity_editable' => 'Per-product quantity break. Change and save — does not affect other products.',
+        'price_editable' => 'Edit freely for this product. Saved as-is — not locked to channel markups.',
+        'buy_fills_empty' => 'Changing buy fills empty price cells from markups. Existing prices stay until you edit them or click Markups.',
+        'apply_markups' => 'Refill every price on this row from buy price × Price Channel markups.',
+    ],
+];

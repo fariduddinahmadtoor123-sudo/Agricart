@@ -118,6 +118,7 @@ abstract class ClusterPageToolbar
             'purchase-payment-summary' => 'purchase-payment-summary',
             'purchase-quotations' => 'purchase-quotations',
             'purchases' => 'purchases',
+            'price-update' => 'price-update',
             'pos-sales' => 'sales',
             'sales-quotations' => 'sale-quotations',
             'sales-returns' => 'sale-returns',

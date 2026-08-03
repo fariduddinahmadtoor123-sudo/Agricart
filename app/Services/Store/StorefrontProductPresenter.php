@@ -55,7 +55,7 @@ class StorefrontProductPresenter
         }
 
         $resolved = $this->quantityPricing->resolveForQuantity($product, $quantity, forPos: false);
-        $price = $resolved['price'] ?? $product->retail_price;
+        $price = $resolved['price'] ?? $product->wholesale_price ?? $product->retail_price;
 
         if ($price === null || $price === '') {
             return null;
@@ -63,7 +63,7 @@ class StorefrontProductPresenter
 
         $numeric = $this->saleService->numeric((string) $price);
         $tier = $resolved['tier'] ?? null;
-        $tierKey = $tier instanceof QuantityChannelTier ? $tier->tier_key : 'retail';
+        $tierKey = $tier instanceof QuantityChannelTier ? $tier->tier_key : 'wholesale';
 
         return [
             'amount' => number_format($numeric, 2, '.', ''),
@@ -75,6 +75,8 @@ class StorefrontProductPresenter
     }
 
     /**
+     * Online store price breaks: Wholesale, Bulk, Distributor (retail is POS/admin only).
+     *
      * @return list<array{min_qty: int, tier_label: string, price: string, formatted: string}>
      */
     public function quantityPriceTable(Product $product): array
@@ -82,7 +84,7 @@ class StorefrontProductPresenter
         $overrides = is_array($product->price_tier_quantities) ? $product->price_tier_quantities : [];
         $rows = [];
 
-        foreach ($this->quantityPricing->activeTiers() as $tier) {
+        foreach ($this->quantityPricing->storefrontTiers() as $tier) {
             $minQty = (int) ($overrides[$tier->price_field] ?? $tier->min_quantity);
             $price = $this->quantityPricing->productPrice($product, $tier->price_field);
 
@@ -99,11 +101,20 @@ class StorefrontProductPresenter
             ];
         }
 
-        if ($rows === [] && filled($product->retail_price)) {
+        if ($rows === [] && filled($product->wholesale_price)) {
+            $numeric = $this->saleService->numeric((string) $product->wholesale_price);
+            $rows[] = [
+                'min_qty' => 1,
+                'tier_label' => $this->tierLabel('wholesale'),
+                'price' => $this->saleService->formatMoney($numeric),
+                'formatted' => $this->priceEngine->formatPrice($numeric),
+            ];
+        } elseif ($rows === [] && filled($product->retail_price)) {
+            // Rare: wholesale empty — still show something on PDP rather than a blank pricing tab.
             $numeric = $this->saleService->numeric((string) $product->retail_price);
             $rows[] = [
                 'min_qty' => 1,
-                'tier_label' => $this->tierLabel('retail'),
+                'tier_label' => $this->tierLabel('wholesale'),
                 'price' => $this->saleService->formatMoney($numeric),
                 'formatted' => $this->priceEngine->formatPrice($numeric),
             ];

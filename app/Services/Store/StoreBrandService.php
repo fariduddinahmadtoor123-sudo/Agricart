@@ -36,7 +36,9 @@ class StoreBrandService
         $query = $this->publicBrandQuery();
 
         if ($this->isSearchableTerm((string) $search)) {
-            $this->applyBrandSearch($query, trim((string) $search));
+            $term = trim((string) $search);
+            $this->applyBrandSearch($query, $term);
+            $this->orderByBrandSearchRelevance($query, $term);
         }
 
         return $query
@@ -177,51 +179,75 @@ class StoreBrandService
     }
 
     /**
-     * Match brand names/descriptions and storefront products sold under the brand.
+     * Prefer brand identity matches; expand to descriptions / product titles for category-like terms.
+     * Multi-word queries keep a full-phrase path so typing the complete brand name still works.
      *
      * @param  Builder<Brand>  $query
      */
     private function applyBrandSearch(Builder $query, string $term): void
     {
-        $tokens = $this->searchTokens($term);
-        $matchedAnyToken = false;
+        $tokens = $this->significantSearchTokens($term);
+        $escapedTerm = $this->escapeLike($term);
+        $phraseNeedle = '%'.$escapedTerm.'%';
 
-        foreach ($tokens as $token) {
-            if (mb_strlen($token) < 2) {
-                continue;
+        $query->where(function (Builder $outer) use ($term, $tokens, $phraseNeedle): void {
+            // 1) Full typed phrase against brand identity / short description.
+            $outer->where(function (Builder $phrase) use ($phraseNeedle): void {
+                $this->applyBrandIdentityMatch($phrase, $phraseNeedle)
+                    ->orWhereRaw("description_en LIKE ? ESCAPE '!'", [$phraseNeedle])
+                    ->orWhereRaw("description_ur LIKE ? ESCAPE '!'", [$phraseNeedle]);
+            });
+
+            if ($tokens === []) {
+                return;
             }
 
-            $matchedAnyToken = true;
-            $needle = '%'.$this->escapeLike($token).'%';
-
-            $query->where(function (Builder $inner) use ($needle): void {
-                $this->applyBrandToken($inner, $needle);
+            // 2) Every significant token must match brand identity (name/code/slug).
+            $outer->orWhere(function (Builder $identity) use ($tokens): void {
+                foreach ($tokens as $token) {
+                    $needle = '%'.$this->escapeLike($token).'%';
+                    $identity->where(function (Builder $inner) use ($needle): void {
+                        $this->applyBrandIdentityMatch($inner, $needle);
+                    });
+                }
             });
-        }
 
-        if (! $matchedAnyToken) {
-            $needle = '%'.$this->escapeLike($term).'%';
-
-            $query->where(function (Builder $inner) use ($needle): void {
-                $this->applyBrandToken($inner, $needle);
+            // 3) Category-style expansion: tokens may also hit brand description or product titles.
+            $outer->orWhere(function (Builder $expanded) use ($tokens): void {
+                foreach ($tokens as $token) {
+                    $needle = '%'.$this->escapeLike($token).'%';
+                    $expanded->where(function (Builder $inner) use ($needle): void {
+                        $this->applyBrandExpandedToken($inner, $needle);
+                    });
+                }
             });
-        }
+        });
     }
 
     /**
      * @param  Builder<Brand>  $query
      */
-    private function applyBrandToken(Builder $query, string $needle): void
+    private function applyBrandIdentityMatch(Builder $query, string $needle): Builder
     {
-        $query->where(function (Builder $brand) use ($needle): void {
+        return $query->where(function (Builder $brand) use ($needle): void {
             $brand->whereRaw("name_en LIKE ? ESCAPE '!'", [$needle])
                 ->orWhereRaw("name_ur LIKE ? ESCAPE '!'", [$needle])
                 ->orWhereRaw("code LIKE ? ESCAPE '!'", [$needle])
-                ->orWhereRaw("slug LIKE ? ESCAPE '!'", [$needle])
+                ->orWhereRaw("slug LIKE ? ESCAPE '!'", [$needle]);
+        });
+    }
+
+    /**
+     * Broader match for terms like "bearing" — brand copy + product titles only (not SEO dumps).
+     *
+     * @param  Builder<Brand>  $query
+     */
+    private function applyBrandExpandedToken(Builder $query, string $needle): void
+    {
+        $query->where(function (Builder $brand) use ($needle): void {
+            $this->applyBrandIdentityMatch($brand, $needle)
                 ->orWhereRaw("description_en LIKE ? ESCAPE '!'", [$needle])
                 ->orWhereRaw("description_ur LIKE ? ESCAPE '!'", [$needle])
-                ->orWhereRaw("agricart_rating_reason_en LIKE ? ESCAPE '!'", [$needle])
-                ->orWhereRaw("agricart_rating_reason_ur LIKE ? ESCAPE '!'", [$needle])
                 ->orWhereHas('products', function (Builder $products) use ($needle): void {
                     $products->whereIn('status', ['active', 'inactive'])
                         ->where(function (Builder $product) use ($needle): void {
@@ -230,16 +256,70 @@ class StoreBrandService
                                 ->orWhereRaw("slug LIKE ? ESCAPE '!'", [$needle])
                                 ->orWhereRaw("code LIKE ? ESCAPE '!'", [$needle])
                                 ->orWhereRaw("sku LIKE ? ESCAPE '!'", [$needle])
-                                ->orWhereRaw("short_description_en LIKE ? ESCAPE '!'", [$needle])
-                                ->orWhereRaw("short_description_ur LIKE ? ESCAPE '!'", [$needle])
-                                ->orWhereRaw("full_description_en LIKE ? ESCAPE '!'", [$needle])
-                                ->orWhereRaw("full_description_ur LIKE ? ESCAPE '!'", [$needle])
-                                ->orWhereRaw("search_terms LIKE ? ESCAPE '!'", [$needle])
-                                ->orWhereRaw("seo_keywords_en LIKE ? ESCAPE '!'", [$needle])
-                                ->orWhereRaw("seo_keywords_ur LIKE ? ESCAPE '!'", [$needle]);
+                                ->orWhereRaw("search_terms LIKE ? ESCAPE '!'", [$needle]);
                         });
                 });
         });
+    }
+
+    /**
+     * @param  Builder<Brand>  $query
+     */
+    private function orderByBrandSearchRelevance(Builder $query, string $term): void
+    {
+        $normalized = mb_strtolower(trim($term));
+        $escaped = $this->escapeLike($normalized);
+        $prefix = $escaped.'%';
+        $contains = '%'.$escaped.'%';
+
+        $query->orderByRaw(
+            'CASE
+                WHEN LOWER(COALESCE(name_en, \'\')) = ? OR LOWER(COALESCE(name_ur, \'\')) = ? THEN 0
+                WHEN LOWER(COALESCE(code, \'\')) = ? OR LOWER(COALESCE(slug, \'\')) = ? THEN 1
+                WHEN LOWER(COALESCE(name_en, \'\')) LIKE ? ESCAPE \'!\' OR LOWER(COALESCE(name_ur, \'\')) LIKE ? ESCAPE \'!\' THEN 2
+                WHEN LOWER(COALESCE(name_en, \'\')) LIKE ? ESCAPE \'!\' OR LOWER(COALESCE(name_ur, \'\')) LIKE ? ESCAPE \'!\' THEN 3
+                WHEN LOWER(COALESCE(code, \'\')) LIKE ? ESCAPE \'!\' OR LOWER(COALESCE(slug, \'\')) LIKE ? ESCAPE \'!\' THEN 4
+                ELSE 5 END',
+            [
+                $normalized, $normalized,
+                $normalized, $normalized,
+                $prefix, $prefix,
+                $contains, $contains,
+                $contains, $contains,
+            ],
+        );
+    }
+
+    /**
+     * Drop filler words so "SKF Brand" / "NBC Company Pakistan" still find the brand.
+     *
+     * @return list<string>
+     */
+    private function significantSearchTokens(string $term): array
+    {
+        $stopwords = [
+            'a', 'an', 'and', 'the', 'of', 'for', 'to', 'in', 'on', 'at', 'by', 'with',
+            'brand', 'brands', 'company', 'co', 'ltd', 'limited', 'pvt', 'private',
+            'pakistan', 'pk', 'store', 'super', 'shop',
+        ];
+
+        $tokens = [];
+
+        foreach ($this->searchTokens($term) as $token) {
+            $normalized = mb_strtolower($token);
+
+            if (mb_strlen($normalized) < 2) {
+                continue;
+            }
+
+            if (in_array($normalized, $stopwords, true)) {
+                continue;
+            }
+
+            $tokens[] = $token;
+        }
+
+        return array_values(array_unique($tokens));
     }
 
     /**
@@ -247,7 +327,7 @@ class StoreBrandService
      */
     private function searchTokens(string $term): array
     {
-        $parts = preg_split('/\s+/u', trim($term), -1, PREG_SPLIT_NO_EMPTY);
+        $parts = preg_split('/[\s,\/|;+]+/u', trim($term), -1, PREG_SPLIT_NO_EMPTY);
 
         return is_array($parts) ? array_slice(array_values($parts), 0, 8) : [];
     }

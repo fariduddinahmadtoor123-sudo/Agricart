@@ -250,6 +250,28 @@ class QuantityPricingEngine
     public const POS_EXCLUDED_TIER_KEYS = ['wholesale'];
 
     /**
+     * Quantity tiers hidden on the online storefront (PDP table + cart).
+     * Retail stays for POS / admin; store shows Wholesale, Bulk, Distributor.
+     *
+     * @var list<string>
+     */
+    public const STORE_EXCLUDED_TIER_KEYS = ['retail'];
+
+    /**
+     * Active tiers visible on the online store (excludes STORE_EXCLUDED_TIER_KEYS).
+     *
+     * @return Collection<int, QuantityChannelTier>
+     */
+    public function storefrontTiers(): Collection
+    {
+        return $this->activeTiers()
+            ->filter(
+                fn (QuantityChannelTier $tier): bool => ! in_array($tier->tier_key, self::STORE_EXCLUDED_TIER_KEYS, true),
+            )
+            ->values();
+    }
+
+    /**
      * @return array{field: string, price: string|null, tier: QuantityChannelTier}|null
      */
     public function resolveForQuantity(Product $product, float $quantity, bool $forPos = false): ?array
@@ -260,13 +282,11 @@ class QuantityPricingEngine
 
         $overrides = is_array($product->price_tier_quantities) ? $product->price_tier_quantities : [];
 
-        $tiers = $this->activeTiers();
-
-        if ($forPos) {
-            $tiers = $tiers->filter(
+        $tiers = $forPos
+            ? $this->activeTiers()->filter(
                 fn (QuantityChannelTier $tier): bool => ! in_array($tier->tier_key, self::POS_EXCLUDED_TIER_KEYS, true),
-            );
-        }
+            )
+            : $this->storefrontTiers();
 
         $rules = $tiers
             ->map(fn (QuantityChannelTier $tier): array => [
@@ -282,6 +302,13 @@ class QuantityPricingEngine
             ->filter(fn (array $rule): bool => $quantity >= $rule['min_quantity'])
             ->sortByDesc(fn (array $rule): int => ($rule['tier_rank'] * 1_000_000) + $rule['min_quantity'])
             ->first();
+
+        // Below the lowest store break (e.g. qty 1 when wholesale starts at 5): use entry store tier.
+        if ($match === null && ! $forPos) {
+            $match = $rules
+                ->sortBy(fn (array $rule): int => ($rule['tier_rank'] * 1_000_000) + $rule['min_quantity'])
+                ->first(fn (array $rule): bool => filled($this->productPrice($product, $rule['price_field'])));
+        }
 
         if ($match === null) {
             return null;

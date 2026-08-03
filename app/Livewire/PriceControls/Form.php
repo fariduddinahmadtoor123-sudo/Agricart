@@ -29,6 +29,8 @@ class Form extends Component
 
     public bool $saving = false;
 
+    public bool $isRetailTier = false;
+
     public ?string $statusMessage = null;
 
     public string $statusType = 'success';
@@ -100,6 +102,7 @@ class Form extends Component
             'exampleBaseFormatted' => $engine->formatPrice($exampleBase),
             'previewPrice' => $previewPrice,
             'usesCustomField' => str_starts_with($this->product_field, 'channel:'),
+            'isRetailTier' => $this->isRetailTier,
         ]);
     }
 
@@ -112,6 +115,7 @@ class Form extends Component
         $this->markup_percent = (string) $tier->markup_percent;
         $this->product_field = $tier->product_field;
         $this->status = $tier->status;
+        $this->isRetailTier = $tier->isManual();
     }
 
     private function persist(): bool
@@ -125,7 +129,8 @@ class Form extends Component
         $this->dispatchBusyState();
 
         try {
-            $profile = app(PriceControlService::class)->ensureDefaultProfile();
+            $service = app(PriceControlService::class);
+            $profile = $service->ensureDefaultProfile();
             $productField = $this->resolveProductField();
 
             $payload = [
@@ -136,12 +141,18 @@ class Form extends Component
                 'status' => $this->status,
             ];
 
-            $service = app(PriceControlService::class);
-
             if ($this->tierId) {
                 $tier = PriceChannelTier::query()->findOrFail($this->tierId);
+
+                if ($tier->isManual()) {
+                    $payload = [
+                        'markup_percent' => $this->markup_percent,
+                        'status' => $this->status,
+                    ];
+                }
+
                 $service->updateTier($tier, $payload);
-                $this->product_field = $productField;
+                $this->product_field = $tier->fresh()->product_field;
                 $this->setStatus(__('price_controls.messages.updated'), 'success');
             } else {
                 $service->createTier($profile, $payload);
@@ -192,6 +203,7 @@ class Form extends Component
         $this->markup_percent = '0';
         $this->product_field = '';
         $this->status = 'active';
+        $this->isRetailTier = false;
         $this->statusMessage = null;
         $this->statusType = 'success';
     }
