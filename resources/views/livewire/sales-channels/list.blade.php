@@ -40,6 +40,10 @@
                                         <a href="{{ $storefrontUrl }}" target="_blank" rel="noopener noreferrer" class="agricart-sales-channels__store-link">
                                             {{ __('sales_channels.actions.open_store') }}
                                         </a>
+                                    @elseif ($channel->slug === \App\Models\SalesChannel::SLUG_FACEBOOK && filled($channel->setting('page_url')))
+                                        <a href="{{ $channel->setting('page_url') }}" target="_blank" rel="noopener noreferrer" class="agricart-sales-channels__store-link">
+                                            {{ __('sales_channels.facebook.open_page') }}
+                                        </a>
                                     @endif
                                 </td>
                             @endif
@@ -65,7 +69,9 @@
                             @endif
                             <td>
                                 <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $channel->id }})">
-                                    {{ __('sales_channels.actions.edit_messages_short') }}
+                                    {{ $channel->slug === \App\Models\SalesChannel::SLUG_FACEBOOK
+                                        ? __('sales_channels.facebook.setup_short')
+                                        : __('sales_channels.actions.edit_messages_short') }}
                                 </button>
                             </td>
                         </tr>

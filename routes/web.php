@@ -47,6 +47,7 @@ use App\Http\Controllers\Store\ProductController;
 use App\Http\Controllers\Store\RegisterController;
 use App\Http\Controllers\Store\RobotsController;
 use App\Http\Controllers\Store\SearchController;
+use App\Http\Controllers\Store\FacebookCatalogFeedController;
 use App\Http\Controllers\Store\GoogleMerchantFeedController;
 use App\Http\Controllers\Store\SitemapController;
 use App\Http\Controllers\Store\StaffRegisterController;
@@ -65,6 +66,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/robots.txt', RobotsController::class)->name('store.robots');
 Route::get('/feeds/google-merchant.xml', GoogleMerchantFeedController::class)->name('store.google_merchant_feed');
+Route::get('/feeds/facebook-catalog.xml', FacebookCatalogFeedController::class)->name('store.facebook_catalog_feed');
 Route::get('/internal/schedule-run', SchedulerRunController::class)->name('internal.schedule-run');
 
 Route::middleware([

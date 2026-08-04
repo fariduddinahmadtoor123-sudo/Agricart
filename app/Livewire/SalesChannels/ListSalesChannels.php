@@ -4,6 +4,7 @@ namespace App\Livewire\SalesChannels;
 
 use App\Models\SalesChannel;
 use App\Models\User;
+use App\Services\SalesChannels\FacebookCatalogFeedService;
 use App\Services\SalesChannels\SalesChannelCatalog;
 use App\Services\SalesChannels\SalesChannelService;
 use Illuminate\Contracts\View\View;
@@ -159,7 +160,9 @@ class ListSalesChannels extends Component
 
         $this->dispatch(
             'open-form-panel',
-            title: __('sales_channels.actions.edit_messages'),
+            title: $channel->slug === SalesChannel::SLUG_FACEBOOK
+                ? __('sales_channels.facebook.edit_title')
+                : __('sales_channels.actions.edit_messages'),
             resource: __('agricart.pages.marketplace.sales-channels'),
             formKey: 'sales-channel',
             salesChannelId: $channelId,
@@ -224,10 +227,17 @@ class ListSalesChannels extends Component
         $channel->save();
 
         app(SalesChannelService::class)->clearCache();
+        app(FacebookCatalogFeedService::class)->clearCache();
 
-        $this->statusMessage = $enabled
-            ? __('sales_channels.messages.store_enabled')
-            : __('sales_channels.messages.store_disabled');
+        if ($channel->slug === SalesChannel::SLUG_FACEBOOK) {
+            $this->statusMessage = $enabled
+                ? __('sales_channels.messages.facebook_enabled')
+                : __('sales_channels.messages.facebook_disabled');
+        } else {
+            $this->statusMessage = $enabled
+                ? __('sales_channels.messages.store_enabled')
+                : __('sales_channels.messages.store_disabled');
+        }
         $this->statusType = 'success';
     }
 }

@@ -5893,6 +5893,28 @@ span.agricart-sales-channels__switch.is-readonly {
     color: #6b7280;
 }
 
+.agricart-sales-channels__na {
+    opacity: 0.45;
+}
+
+.agricart-sales-channel-form__token-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: stretch;
+}
+
+.agricart-sales-channel-form__token-input {
+    flex: 1 1 12rem;
+}
+
+.agricart-sales-channel-form__steps {
+    margin: 0.5rem 0 0;
+    padding-inline-start: 1.25rem;
+    display: grid;
+    gap: 0.35rem;
+}
+
 .agricart-sales-channels__store-link {
     display: inline-block;
     margin-top: 0.15rem;

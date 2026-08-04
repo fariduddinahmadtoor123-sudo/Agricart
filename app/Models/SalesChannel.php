@@ -8,6 +8,8 @@ class SalesChannel extends Model
 {
     public const SLUG_ONLINE_STORE = 'online_store';
 
+    public const SLUG_FACEBOOK = 'facebook';
+
     /**
      * @var list<string>
      */
@@ -24,6 +26,7 @@ class SalesChannel extends Model
         'maintenance_message_en',
         'maintenance_message_ur',
         'sort_order',
+        'settings',
     ];
 
     /**
@@ -35,7 +38,24 @@ class SalesChannel extends Model
             'is_enabled' => 'boolean',
             'maintenance_mode' => 'boolean',
             'sort_order' => 'integer',
+            'settings' => 'array',
         ];
+    }
+
+    public function setting(string $key, mixed $default = null): mixed
+    {
+        $settings = is_array($this->settings) ? $this->settings : [];
+
+        return $settings[$key] ?? $default;
+    }
+
+    /**
+     * @param  array<string, mixed>  $values
+     */
+    public function mergeSettings(array $values): void
+    {
+        $settings = is_array($this->settings) ? $this->settings : [];
+        $this->settings = array_merge($settings, $values);
     }
 
     public static function onlineStore(): self
@@ -53,6 +73,24 @@ class SalesChannel extends Model
                 'banner_message_ur' => 'آن لائن آرڈرنگ عارضی بند ہے۔ آپ مصنوعات دیکھ سکتے ہیں۔',
                 'sort_order' => 1,
             ],
+        );
+    }
+
+    public static function facebook(): self
+    {
+        return static::query()->firstOrCreate(
+            ['slug' => self::SLUG_FACEBOOK],
+            array_merge(
+                \App\Services\SalesChannels\SalesChannelCatalog::defaultsForSlug(self::SLUG_FACEBOOK),
+                [
+                    'is_enabled' => false,
+                    'settings' => [
+                        'page_url' => '',
+                        'feed_token' => bin2hex(random_bytes(24)),
+                        'price_field' => 'wholesale_price',
+                    ],
+                ],
+            ),
         );
     }
 

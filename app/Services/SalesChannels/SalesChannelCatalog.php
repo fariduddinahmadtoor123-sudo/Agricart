@@ -20,6 +20,12 @@ class SalesChannelCatalog
                 'implemented' => true,
                 'sort_order' => 1,
             ],
+            SalesChannel::SLUG_FACEBOOK => [
+                'name_en' => 'Facebook / Meta Catalog',
+                'name_ur' => 'فیس بک / میٹا کیٹلاگ',
+                'implemented' => true,
+                'sort_order' => 2,
+            ],
         ];
     }
 
@@ -71,7 +77,7 @@ class SalesChannelCatalog
             return [];
         }
 
-        return [
+        $defaults = [
             'slug' => $slug,
             'name_en' => $definition['name_en'],
             'name_ur' => $definition['name_ur'],
@@ -82,5 +88,20 @@ class SalesChannelCatalog
             'banner_message_en' => __('sales_channels.defaults.banner_off_en'),
             'banner_message_ur' => __('sales_channels.defaults.banner_off_ur'),
         ];
+
+        if ($slug === SalesChannel::SLUG_FACEBOOK) {
+            $defaults['is_enabled'] = false;
+            $defaults['offline_message_en'] = null;
+            $defaults['offline_message_ur'] = null;
+            $defaults['banner_message_en'] = null;
+            $defaults['banner_message_ur'] = null;
+            $defaults['settings'] = [
+                'page_url' => '',
+                'feed_token' => bin2hex(random_bytes(24)),
+                'price_field' => 'wholesale_price',
+            ];
+        }
+
+        return $defaults;
     }
 }
