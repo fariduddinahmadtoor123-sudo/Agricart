@@ -15,9 +15,13 @@
         <div @class(['ag-store-product-grid', 'ag-store-product-grid--cols-' . $columns])>
             @foreach ($products as $product)
                 @php
-                    $imageData = $productService->allImageData($product);
-                    $imageUrls = array_column($imageData, 'url');
-                    $mainImage = $imageData[0] ?? null;
+                    // Grid cards only need the main image URL — gallery thumbs were loading every
+                    // full-size WebP (up to 1600px) for 64px buttons and crushed mobile bandwidth.
+                    $mainImage = $productService->imageData($product);
+                    $photoCount = count(array_values(array_unique(array_filter(
+                        [$product->image_path, ...($product->gallery_images ?? [])],
+                        static fn (mixed $path): bool => is_string($path) && filled($path),
+                    ))));
                     $productUrl = route('store.product', $product->slug);
                     $priority = $loop->index < 4;
                     $comingSoon = $productService->isComingSoon($product);
@@ -27,7 +31,7 @@
                         <a href="{{ $productUrl }}" class="ag-store-product-card__image-link">
                             <div class="ag-store-product-card__image-wrap">
                                 <span class="ag-store-product-card__placeholder" aria-hidden="true">{{ mb_strtoupper(mb_substr($productService->localizedName($product), 0, 1)) }}</span>
-                                @if ($imageUrls !== [])
+                                @if ($mainImage !== null)
                                     <img
                                         src="{{ $mainImage['url'] }}"
                                         alt="{{ $productService->localizedName($product) }}"
@@ -43,31 +47,13 @@
 
                                 @if ($comingSoon)
                                     <span class="ag-store-product-card__badge">{{ __('agricart.storefront.products.coming_soon') }}</span>
-                                @elseif (count($imageUrls) > 1)
+                                @elseif ($photoCount > 1)
                                     <span class="ag-store-product-card__photo-count">
-                                        {{ __('agricart.storefront.products.photo_count', ['count' => count($imageUrls)]) }}
+                                        {{ __('agricart.storefront.products.photo_count', ['count' => $photoCount]) }}
                                     </span>
                                 @endif
                             </div>
                         </a>
-
-                        @if (count($imageUrls) > 1)
-                            <div class="ag-store-product-card__thumbs" role="list" aria-label="{{ __('agricart.storefront.product.gallery') }}">
-                                @foreach ($imageUrls as $index => $url)
-                                    <button
-                                        type="button"
-                                        class="ag-store-product-card__thumb @if ($index === 0) is-active @endif"
-                                        role="listitem"
-                                        data-store-product-card-thumb
-                                        data-image-url="{{ $url }}"
-                                        aria-label="{{ __('agricart.storefront.product.image_number', ['number' => $index + 1]) }}"
-                                        aria-pressed="{{ $index === 0 ? 'true' : 'false' }}"
-                                    >
-                                        <img src="{{ $url }}" alt="{{ __('agricart.storefront.product.image_number', ['number' => $index + 1]) }}" loading="lazy" decoding="async" width="64" height="64" />
-                                    </button>
-                                @endforeach
-                            </div>
-                        @endif
                     </div>
 
                     <a href="{{ $productUrl }}" class="ag-store-product-card__body">

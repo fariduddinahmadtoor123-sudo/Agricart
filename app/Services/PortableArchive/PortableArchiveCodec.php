@@ -2,6 +2,7 @@
 
 namespace App\Services\PortableArchive;
 
+use App\Services\Media\PublicMediaMirror;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -298,6 +299,10 @@ class PortableArchiveCodec
         if (is_resource($in)) {
             fclose($in);
         }
+
+        // Keep Apache-facing public/storage (Hostinger mirror) in sync — otherwise
+        // catalog imports serve every image through PHP with no-cache headers.
+        app(PublicMediaMirror::class)->publish($dest, 'public');
 
         return $dest;
     }

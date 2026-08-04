@@ -74,6 +74,56 @@ class HostingerVerifyCommand extends Command
         );
         $this->components->twoColumnDetail('Vite manifest', $manifest);
 
+        $this->reportPublicStorageMirrorHealth($publicHtml, $directCheckout);
+
         return self::SUCCESS;
+    }
+
+    private function reportPublicStorageMirrorHealth(string $publicHtml, bool $directCheckout): void
+    {
+        $source = storage_path('app'.DIRECTORY_SEPARATOR.'public');
+        $target = $directCheckout
+            ? public_path('storage')
+            : rtrim($publicHtml, DIRECTORY_SEPARATOR).DIRECTORY_SEPARATOR.'storage';
+
+        if (! File::isDirectory($source) || ! File::isDirectory($target)) {
+            return;
+        }
+
+        if (is_link($target) || (realpath($target) && realpath($source) && strcasecmp((string) realpath($target), (string) realpath($source)) === 0)) {
+            $this->components->twoColumnDetail('Public storage mirror', 'symlink/junction to storage/app/public');
+
+            return;
+        }
+
+        $countFiles = static function (string $root): int {
+            $count = 0;
+            foreach (File::allFiles($root) as $file) {
+                if ($file->getFilename() === '.htaccess') {
+                    continue;
+                }
+                $count++;
+            }
+
+            return $count;
+        };
+
+        try {
+            $sourceCount = $countFiles($source);
+            $targetCount = $countFiles($target);
+        } catch (Throwable) {
+            return;
+        }
+
+        $this->components->twoColumnDetail(
+            'Public storage mirror',
+            "{$targetCount} of {$sourceCount} media file(s) in Apache path",
+        );
+
+        if ($sourceCount > 0 && $targetCount < (int) floor($sourceCount * 0.95)) {
+            $this->components->warn(
+                'Apache media mirror is behind storage/app/public — category/brand images fall back to PHP (slow, no-cache). Run: php artisan hostinger:sync-storage'
+            );
+        }
     }
 }

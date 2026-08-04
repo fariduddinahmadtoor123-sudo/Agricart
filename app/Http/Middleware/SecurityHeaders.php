@@ -33,6 +33,16 @@ class SecurityHeaders
             $response->headers->set('Strict-Transport-Security', $hsts);
         }
 
+        // Laravel's public-disk ServeFile defaults to private no-store. On Hostinger
+        // that path is the fallback when the Apache mirror misses — allow long CDN/browser cache.
+        if (
+            $response->getStatusCode() === 200
+            && $request->is('storage/*')
+            && str_starts_with((string) $response->headers->get('Content-Type'), 'image/')
+        ) {
+            $response->headers->set('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+
         return $response;
     }
 }
