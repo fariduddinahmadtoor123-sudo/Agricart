@@ -150,6 +150,9 @@ class Form extends Component
             'isFacebook' => $this->channel_slug === SalesChannel::SLUG_FACEBOOK,
             'isOnlineStore' => $this->channel_slug === SalesChannel::SLUG_ONLINE_STORE,
             'facebookFeedUrl' => $feedUrl,
+            'facebookFeedStats' => $this->channel_slug === SalesChannel::SLUG_FACEBOOK
+                ? app(FacebookCatalogFeedService::class)->eligibilityStats()
+                : null,
         ]);
     }
 

@@ -21,8 +21,8 @@ class SalesChannelCatalog
                 'sort_order' => 1,
             ],
             SalesChannel::SLUG_FACEBOOK => [
-                'name_en' => 'Facebook / Meta Catalog',
-                'name_ur' => 'فیس بک / میٹا کیٹلاگ',
+                'name_en' => 'Facebook & Instagram (Meta Catalog)',
+                'name_ur' => 'فیس بک اور انسٹاگرام (میٹا کیٹلاگ)',
                 'implemented' => true,
                 'sort_order' => 2,
             ],

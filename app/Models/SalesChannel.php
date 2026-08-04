@@ -96,6 +96,18 @@ class SalesChannel extends Model
 
     public function localizedName(): string
     {
+        $definition = \App\Services\SalesChannels\SalesChannelCatalog::definitions()[$this->slug] ?? null;
+
+        if (is_array($definition)) {
+            if (app()->getLocale() === 'ur' && filled($definition['name_ur'] ?? null)) {
+                return (string) $definition['name_ur'];
+            }
+
+            if (filled($definition['name_en'] ?? null)) {
+                return (string) $definition['name_en'];
+            }
+        }
+
         if (app()->getLocale() === 'ur' && filled($this->name_ur)) {
             return $this->name_ur;
         }

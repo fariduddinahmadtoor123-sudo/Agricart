@@ -198,6 +198,26 @@
 
     @if ($isFacebook)
         <section class="agricart-form-panel__section agricart-user-form__section">
+            <h3 class="agricart-form-panel__section-title">{{ __('sales_channels.facebook.feed_status_title') }}</h3>
+            @if (is_array($facebookFeedStats ?? null))
+                <p @class([
+                    'agricart-form-panel__hint',
+                    'agricart-sales-channel-form__feed-alert' => ($facebookFeedStats['eligible'] ?? 0) < 5,
+                ])>
+                    {{ __('sales_channels.facebook.feed_status', [
+                        'eligible' => $facebookFeedStats['eligible'],
+                        'active' => $facebookFeedStats['active'],
+                        'missing_price' => $facebookFeedStats['missing_price'],
+                        'enabled' => ($facebookFeedStats['channel_enabled'] ?? false)
+                            ? __('sales_channels.status.on')
+                            : __('sales_channels.status.off'),
+                    ]) }}
+                </p>
+            @endif
+            <p class="agricart-form-panel__hint">{{ __('sales_channels.facebook.eligibility_hint') }}</p>
+        </section>
+
+        <section class="agricart-form-panel__section agricart-user-form__section">
             <h3 class="agricart-form-panel__section-title">{{ __('sales_channels.facebook.setup_title') }}</h3>
             <ol class="agricart-form-panel__hint agricart-sales-channel-form__steps">
                 <li>{{ __('sales_channels.facebook.step_1') }}</li>
@@ -206,7 +226,16 @@
                 <li>{{ __('sales_channels.facebook.step_4') }}</li>
                 <li>{{ __('sales_channels.facebook.step_5') }}</li>
             </ol>
-            <p class="agricart-form-panel__hint">{{ __('sales_channels.facebook.eligibility_hint') }}</p>
+        </section>
+
+        <section class="agricart-form-panel__section agricart-user-form__section">
+            <h3 class="agricart-form-panel__section-title">{{ __('sales_channels.facebook.instagram_title') }}</h3>
+            <p class="agricart-form-panel__hint">{{ __('sales_channels.facebook.instagram_lead') }}</p>
+            <ol class="agricart-form-panel__hint agricart-sales-channel-form__steps">
+                <li>{{ __('sales_channels.facebook.instagram_step_1') }}</li>
+                <li>{{ __('sales_channels.facebook.instagram_step_2') }}</li>
+                <li>{{ __('sales_channels.facebook.instagram_step_3') }}</li>
+            </ol>
         </section>
     @endif
 

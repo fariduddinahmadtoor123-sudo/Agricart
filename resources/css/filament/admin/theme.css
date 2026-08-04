@@ -5915,6 +5915,11 @@ span.agricart-sales-channels__switch.is-readonly {
     gap: 0.35rem;
 }
 
+.agricart-sales-channel-form__feed-alert {
+    color: #b45309;
+    font-weight: 600;
+}
+
 .agricart-sales-channels__store-link {
     display: inline-block;
     margin-top: 0.15rem;

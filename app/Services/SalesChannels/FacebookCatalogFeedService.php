@@ -71,6 +71,53 @@ class FacebookCatalogFeedService
             : 'wholesale_price';
     }
 
+    /**
+     * @return array{
+     *     active: int,
+     *     with_image: int,
+     *     with_price: int,
+     *     eligible: int,
+     *     missing_price: int,
+     *     missing_image: int,
+     *     channel_enabled: bool
+     * }
+     */
+    public function eligibilityStats(): array
+    {
+        $active = Product::query()->where('status', 'active');
+        $activeCount = (clone $active)->count();
+        $withImage = (clone $active)->whereNotNull('image_path')->where('image_path', '!=', '')->count();
+        $withPrice = (clone $active)
+            ->where(function ($query): void {
+                $query->where(function ($inner): void {
+                    $inner->whereNotNull('wholesale_price')->where('wholesale_price', '!=', '')->where('wholesale_price', '>', 0);
+                })->orWhere(function ($inner): void {
+                    $inner->whereNotNull('retail_price')->where('retail_price', '!=', '')->where('retail_price', '>', 0);
+                });
+            })
+            ->count();
+        $eligible = (clone $active)
+            ->whereNotNull('image_path')->where('image_path', '!=', '')
+            ->where(function ($query): void {
+                $query->where(function ($inner): void {
+                    $inner->whereNotNull('wholesale_price')->where('wholesale_price', '!=', '')->where('wholesale_price', '>', 0);
+                })->orWhere(function ($inner): void {
+                    $inner->whereNotNull('retail_price')->where('retail_price', '!=', '')->where('retail_price', '>', 0);
+                });
+            })
+            ->count();
+
+        return [
+            'active' => $activeCount,
+            'with_image' => $withImage,
+            'with_price' => $withPrice,
+            'eligible' => $eligible,
+            'missing_price' => max(0, $withImage - $eligible),
+            'missing_image' => max(0, $activeCount - $withImage),
+            'channel_enabled' => $this->isFeedEnabled(),
+        ];
+    }
+
     public function buildXml(): string
     {
         return Cache::remember(self::CACHE_KEY, now()->addMinutes(30), function (): string {
