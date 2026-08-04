@@ -61,6 +61,9 @@ class Form extends Component
         } elseif (filled($channelSlug)) {
             $this->channel_slug = $channelSlug;
             $this->prepareDefaultsForSlug($channelSlug);
+        } else {
+            $this->channel_slug = $this->firstAvailableCreateSlug() ?? SalesChannel::SLUG_ONLINE_STORE;
+            $this->prepareDefaultsForSlug($this->channel_slug);
         }
     }
 
@@ -127,6 +130,13 @@ class Form extends Component
                 fn (string $label, string $slug): bool => ! in_array($slug, $existingSlugs, true),
                 ARRAY_FILTER_USE_BOTH,
             );
+
+            // Browser may show the only remaining option (e.g. Facebook) while Livewire
+            // still holds online_store — keep slug aligned with available choices.
+            if ($dropdownOptions !== [] && ! array_key_exists($this->channel_slug, $dropdownOptions)) {
+                $this->channel_slug = (string) array_key_first($dropdownOptions);
+                $this->prepareDefaultsForSlug($this->channel_slug);
+            }
         }
 
         $feedUrl = null;
@@ -141,6 +151,19 @@ class Form extends Component
             'isOnlineStore' => $this->channel_slug === SalesChannel::SLUG_ONLINE_STORE,
             'facebookFeedUrl' => $feedUrl,
         ]);
+    }
+
+    private function firstAvailableCreateSlug(): ?string
+    {
+        $existing = SalesChannel::query()->pluck('slug')->all();
+
+        foreach (SalesChannelCatalog::implementedSlugs() as $slug) {
+            if (! in_array($slug, $existing, true)) {
+                return $slug;
+            }
+        }
+
+        return null;
     }
 
     private function prepareDefaultsForSlug(string $slug): void
@@ -257,7 +280,7 @@ class Form extends Component
     {
         $this->salesChannelId = null;
         $this->mode = 'create';
-        $this->channel_slug = SalesChannel::SLUG_ONLINE_STORE;
+        $this->channel_slug = $this->firstAvailableCreateSlug() ?? SalesChannel::SLUG_ONLINE_STORE;
         $this->offline_message_en = '';
         $this->offline_message_ur = '';
         $this->banner_message_en = '';
@@ -269,6 +292,7 @@ class Form extends Component
         $this->facebook_feed_token = '';
         $this->statusMessage = null;
         $this->statusType = 'success';
+        $this->prepareDefaultsForSlug($this->channel_slug);
     }
 
     private function setStatus(string $message, string $type): void

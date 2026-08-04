@@ -123,4 +123,15 @@ class FacebookCatalogChannelTest extends TestCase
         $this->assertSame('https://www.facebook.com/AgricartPK', $channel->setting('page_url'));
         $this->assertNotEmpty($channel->setting('feed_token'));
     }
+
+    public function test_create_form_defaults_to_facebook_when_online_store_already_exists(): void
+    {
+        SalesChannel::onlineStore();
+
+        Livewire::test(\App\Livewire\SalesChannels\Form::class)
+            ->call('openForm', null, 'create')
+            ->assertSet('channel_slug', SalesChannel::SLUG_FACEBOOK)
+            ->assertSee(__('sales_channels.facebook.feed_url'))
+            ->assertDontSee(__('sales_channels.fields.messages_off_section'));
+    }
 }
