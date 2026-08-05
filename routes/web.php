@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\LabelPrintController;
 use App\Http\Controllers\Admin\OnlineSaleOrderPackingSlipPrintController;
 use App\Http\Controllers\Admin\OnlineSaleOrderPrintController;
 use App\Http\Controllers\Admin\PriceTagPrintController;
+use App\Http\Controllers\Admin\PriceUpdateBuySheetPrintController;
 use App\Http\Controllers\Admin\PurchasePaymentSummaryPrintController;
 use App\Http\Controllers\Admin\PurchasePlanningPrintController;
 use App\Http\Controllers\Admin\PurchasePrintController;
@@ -246,6 +247,8 @@ Route::middleware(['web', 'auth', AuthenticateSession::class, EnsureActiveAdminU
         ->name('admin.reorder.print');
     Route::get('/price-tags/print', [PriceTagPrintController::class, 'show'])
         ->name('admin.price-tags.print');
+    Route::get('/price-updates/buy-sheet/print', [PriceUpdateBuySheetPrintController::class, 'show'])
+        ->name('admin.price-updates.buy-sheet.print');
     Route::get('/purchases/{purchase}/print', [PurchasePrintController::class, 'show'])
         ->name('admin.purchases.print');
     Route::get('/sales/{sale}/print', [SalePrintController::class, 'show'])

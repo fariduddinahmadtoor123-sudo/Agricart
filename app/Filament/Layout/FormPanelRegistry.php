@@ -32,6 +32,7 @@ final class FormPanelRegistry
             'company-profile' => ['component' => 'company-profile.form', 'permission' => 'settings.view'],
             'suppliers' => ['component' => 'suppliers.form', 'permission' => 'contacts.view'],
             'customers' => ['component' => 'customers.form', 'permission' => 'contacts.view'],
+            'contact-message-templates' => ['component' => 'contacts.message-template-form', 'permission' => 'contacts.view'],
             'staff-salary' => ['component' => 'staff.salary-assignment-form', 'permission' => 'staff.view'],
             'staff-attendance' => ['component' => 'staff.daily-attendance-form', 'permission' => 'staff.view'],
             'staff-advance' => ['component' => 'staff.advance-transaction-form', 'permission' => 'staff.view'],
@@ -80,6 +81,11 @@ final class FormPanelRegistry
                 'edit' => 'edit',
                 default => 'create',
             };
+        }
+
+        // Message templates are managed by contacts.edit (no separate create permission).
+        if ($formKey === 'contact-message-templates' && $mode === 'create') {
+            $permission = 'contacts.edit';
         }
 
         if (! $user->isSuperAdmin() && filled($permission) && ! $user->hasPermission($permission)) {

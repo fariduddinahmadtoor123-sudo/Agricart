@@ -114,6 +114,7 @@ abstract class ClusterPageToolbar
             'advances' => 'staff-advance',
             'roles' => 'roles',
             'suppliers' => 'suppliers',
+            'message-templates' => 'contact-message-templates',
             'purchase-planning' => 'purchase-planning',
             'purchase-payment-summary' => 'purchase-payment-summary',
             'purchase-quotations' => 'purchase-quotations',

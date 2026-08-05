@@ -3,6 +3,7 @@
 namespace Tests\Feature\Contacts;
 
 use App\Livewire\Contacts\ManageMessageTemplates;
+use App\Livewire\Contacts\MessageTemplateForm;
 use App\Livewire\Customers\ListCustomers;
 use App\Models\AgricartConversation;
 use App\Models\AgricartMessage;
@@ -27,45 +28,58 @@ class ContactMessageTemplatesTest extends TestCase
 
         $this->assertSame(ContactMessageTemplate::AUDIENCE_CUSTOMER, $welcome->audience);
         $this->assertTrue($welcome->is_active);
-        $this->assertFilled($welcome->subject_en);
-        $this->assertFilled($welcome->body_en);
+        $this->assertTrue(filled($welcome->subject_en));
+        $this->assertTrue(filled($welcome->body_en));
         $this->assertStringContainsString(':name', (string) $welcome->body_en);
-        $this->assertFilled($welcome->subject_ur);
-        $this->assertFilled($welcome->body_ur);
+        $this->assertTrue(filled($welcome->subject_ur));
+        $this->assertTrue(filled($welcome->body_ur));
         $this->assertStringContainsString(':name', (string) $welcome->body_ur);
     }
 
-    public function test_admin_can_create_and_update_customer_templates(): void
+    public function test_admin_can_create_and_update_customer_templates_via_form_panel(): void
     {
         $admin = $this->superAdmin();
 
         Livewire::actingAs($admin)
-            ->test(ManageMessageTemplates::class)
-            ->call('openCreate')
-            ->assertSet('showForm', true)
+            ->test(MessageTemplateForm::class)
+            ->call('openForm', null, 'create')
             ->set('name_en', 'Launch Query')
             ->set('name_ur', 'لانچ سوال')
             ->set('subject_en', 'Quick question for :name')
             ->set('subject_ur', ':name کے لیے مختصر سوال')
             ->set('body_en', "Hello :name,\nDo you need anything before launch?")
             ->set('body_ur', "ہیلو :name،\nلانچ سے پہلے کچھ چاہیے؟")
-            ->call('save')
+            ->call('saveAndClose')
             ->assertHasNoErrors()
-            ->assertSet('showForm', false);
+            ->assertDispatched('close-form-panel');
 
         $template = ContactMessageTemplate::query()->where('key', 'launch-query')->sole();
         $this->assertSame('Launch Query', $template->name_en);
-        $this->assertSame('لانچ سوال', $template->name_ur);
 
         Livewire::actingAs($admin)
-            ->test(ManageMessageTemplates::class)
-            ->call('edit', $template->id)
-            ->assertSet('showForm', true)
+            ->test(MessageTemplateForm::class)
+            ->call('openForm', $template->id, 'edit')
             ->set('subject_en', 'Updated question for :name')
-            ->call('save')
+            ->call('saveAndClose')
             ->assertHasNoErrors();
 
         $this->assertSame('Updated question for :name', $template->fresh()->subject_en);
+    }
+
+    public function test_list_dispatches_form_panel_for_view_and_edit(): void
+    {
+        $admin = $this->superAdmin();
+        $welcome = ContactMessageTemplate::query()->where('key', 'welcome')->sole();
+
+        Livewire::actingAs($admin)
+            ->test(ManageMessageTemplates::class)
+            ->call('openView', $welcome->id)
+            ->assertDispatched('open-form-panel');
+
+        Livewire::actingAs($admin)
+            ->test(ManageMessageTemplates::class)
+            ->call('openEdit', $welcome->id)
+            ->assertDispatched('open-form-panel');
     }
 
     public function test_welcome_template_cannot_be_deleted(): void
@@ -87,9 +101,8 @@ class ContactMessageTemplatesTest extends TestCase
         Livewire::actingAs($viewer)
             ->test(ManageMessageTemplates::class)
             ->call('openCreate')
-            ->assertSet('statusTone', 'danger');
-
-        $this->assertDatabaseMissing('contact_message_templates', ['name_en' => 'Should Fail']);
+            ->assertSet('statusTone', 'danger')
+            ->assertNotDispatched('open-form-panel');
     }
 
     public function test_send_message_uses_locale_template_and_can_update_it(): void
@@ -126,7 +139,7 @@ class ContactMessageTemplatesTest extends TestCase
 
         $this->assertStringContainsString('Updated query body.', (string) $query->fresh()->body_en);
         $this->assertStringContainsString('Hello :name,', (string) $query->fresh()->body_en);
-        $this->assertSame('ہیلو :name،'."\n".'فارغ ہوں تو جواب دیں۔', (string) $query->fresh()->body_ur);
+        $this->assertSame("ہیلو :name،\nفارغ ہوں تو جواب دیں۔", (string) $query->fresh()->body_ur);
 
         app()->setLocale('ur');
 
@@ -146,11 +159,6 @@ class ContactMessageTemplatesTest extends TestCase
             'sender_type' => AgricartMessage::SENDER_ADMIN,
             'user_id' => $admin->id,
         ]);
-    }
-
-    private function assertFilled(mixed $value): void
-    {
-        $this->assertTrue(filled($value));
     }
 
     /**

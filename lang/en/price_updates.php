@@ -57,6 +57,33 @@ return [
         'save' => 'Save prices',
         'saving' => 'Saving…',
         'clear' => 'Clear sheet',
+        'print' => 'Print blank sheet',
+    ],
+
+    'locales' => [
+        'en' => 'English',
+        'ur' => 'Urdu',
+        'both' => 'English + Urdu',
+    ],
+
+    'print' => [
+        'title' => 'Buy price worksheet',
+        'heading' => 'Buy price worksheet',
+        'hint' => 'Write warehouse buy rates in the blank Buy column, then update prices in the system.',
+        'toolbar_hint' => 'Print a blank A4 sheet (#, Pic, Product, Buy) for warehouse rate collection.',
+        'name_language' => 'Name language',
+        'print_button' => 'Print',
+        'close_button' => 'Close',
+        'count' => ':count product(s)',
+        'empty' => 'No products on this sheet.',
+        'empty_sheet' => 'Add products to the sheet before printing.',
+        'opened' => 'Print sheet opened.',
+        'headers' => [
+            'sr' => '#',
+            'pic' => 'Pic',
+            'name' => 'Product',
+            'buy' => 'Buy',
+        ],
     ],
 
     'history' => [

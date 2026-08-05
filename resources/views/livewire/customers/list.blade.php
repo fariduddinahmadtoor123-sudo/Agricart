@@ -5,13 +5,25 @@
         </div>
     @endif
 
-    @if (filled($portableStatus))
+    @if (filled($portableStatus) || filled($messageSendReport))
         <div @class([
             'agricart-portable-import__alert',
             'is-success' => ($portableStatusTone ?? 'success') === 'success',
             'is-danger' => ($portableStatusTone ?? 'success') === 'danger',
         ]) role="status">
-            <p>{{ $portableStatus }}</p>
+            @if (is_array($messageSendReport) && ($portableStatusTone ?? 'success') === 'success')
+                <p><strong>{{ __('customers.message.sent_report_heading') }}</strong></p>
+                <p>{{ __('customers.message.sent_report_to', ['name' => $messageSendReport['customer']]) }}</p>
+                <p>{{ __('customers.message.sent_report_subject', ['subject' => $messageSendReport['subject']]) }}</p>
+                <p>{{ __('customers.message.sent_report_where') }}</p>
+                <p>
+                    <a href="{{ $messageSendReport['inbox_url'] }}" class="agricart-categories__action is-primary" style="display:inline-block;margin-top:0.35rem;">
+                        {{ __('customers.message.open_admin_inbox') }}
+                    </a>
+                </p>
+            @elseif (filled($portableStatus))
+                <p>{{ $portableStatus }}</p>
+            @endif
         </div>
     @endif
 
@@ -43,7 +55,9 @@
                     >
                         <option value="">{{ __('customers.message.template_custom') }}</option>
                         @foreach ($messageTemplates as $template)
-                            <option value="{{ $template->id }}">{{ $template->localizedName() }}</option>
+                            <option value="{{ $template->id }}">
+                                {{ $template->localizedName() }} — {{ \Illuminate\Support\Str::limit($template->localizedSubject(), 50) }}
+                            </option>
                         @endforeach
                     </select>
                 </div>

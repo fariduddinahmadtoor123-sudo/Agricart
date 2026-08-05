@@ -12,8 +12,10 @@ use App\Services\PricingControls\ProductPriceUpdateService;
 use App\Services\PricingControls\QuantityControlService;
 use App\Services\Purchasing\PurchaseService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -28,6 +30,8 @@ class Sheet extends Component
     public string $productQuery = '';
 
     public string $categoryQuery = '';
+
+    public string $printLocale = 'en';
 
     public ?string $statusMessage = null;
 
@@ -62,6 +66,7 @@ class Sheet extends Component
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'clear' => $this->clearRows(),
+            'print' => $this->printBlankBuySheet(),
             default => null,
         };
     }
@@ -72,8 +77,48 @@ class Sheet extends Component
         match ($action) {
             'save' => $this->saveAll(),
             'clear' => $this->clearRows(),
+            'print' => $this->printBlankBuySheet(),
             default => null,
         };
+    }
+
+    public function printBlankBuySheet(): void
+    {
+        if (! $this->userCan('view') && ! $this->userCan('edit')) {
+            return;
+        }
+
+        if ($this->rows === []) {
+            $this->setStatus(__('price_updates.print.empty_sheet'), 'warning');
+
+            return;
+        }
+
+        $locale = in_array($this->printLocale, ['en', 'ur', 'both'], true)
+            ? $this->printLocale
+            : 'en';
+
+        $token = Str::random(40);
+        Cache::put('price_update_buy_print:'.$token, [
+            'locale' => $locale,
+            'rows' => collect($this->rows)
+                ->values()
+                ->map(static fn (array $row): array => [
+                    'name' => (string) ($row['name'] ?? ''),
+                    'name_ur' => (string) ($row['name_ur'] ?? ''),
+                    'code' => (string) ($row['code'] ?? ''),
+                    'thumb_url' => $row['thumb_url'] ?? null,
+                ])
+                ->all(),
+        ], now()->addMinutes(30));
+
+        $url = route('admin.price-updates.buy-sheet.print', [
+            'token' => $token,
+            'autoprint' => 1,
+        ]);
+
+        $this->dispatch('price-update-open-print', url: $url);
+        $this->setStatus(__('price_updates.print.opened'), 'success');
     }
 
     public function saveAndClose(): void
@@ -355,6 +400,7 @@ class Sheet extends Component
 
         return view('livewire.price-updates.sheet', [
             'canEdit' => $this->userCan('edit'),
+            'canView' => $this->userCan('view'),
             'productResults' => $this->productResults(),
             'categoryResults' => $this->categoryResults(),
             'tierColumns' => $engine->activeTiers()->map(function ($tier) use ($engine) {

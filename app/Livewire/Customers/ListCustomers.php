@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Customers;
 
+use App\Filament\Clusters\Store\MessagesPage;
 use App\Livewire\Concerns\ImportsPortableArchive;
 use App\Models\Customer;
 use App\Models\StoreSetting;
@@ -10,6 +11,7 @@ use App\Services\Contacts\ContactMessageTemplateService;
 use App\Services\Contacts\CustomerPortableArchiveService;
 use App\Services\Contacts\CustomerService;
 use App\Services\Store\AgricartInboxService;
+use Filament\Notifications\Notification;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
@@ -55,6 +57,9 @@ class ListCustomers extends Component
     public ?string $portableStatus = null;
 
     public string $portableStatusTone = 'success';
+
+    /** @var array{customer: string, subject: string, conversation_id: int, inbox_url: string}|null */
+    public ?array $messageSendReport = null;
 
     #[On('customers-saved')]
     public function refreshList(): void
@@ -174,6 +179,7 @@ class ListCustomers extends Component
         $this->showImportPanel = false;
         $this->messageCustomerId = $customer->id;
         $this->messageCustomerLabel = $customer->displayLabel();
+        $this->messageSendReport = null;
 
         $templates = app(ContactMessageTemplateService::class);
         $default = $templates->defaultForCustomer();
@@ -364,19 +370,39 @@ class ListCustomers extends Component
         ]);
 
         try {
-            app(AgricartInboxService::class)->startAdminMessage(
+            $conversation = app(AgricartInboxService::class)->startAdminMessage(
                 $customer,
                 $user,
                 $this->messageSubject,
                 $this->messageBody,
             );
 
-            $this->portableStatus = __('customers.message.sent', [
+            $inboxUrl = MessagesPage::getUrl().'?conversation='.$conversation->id;
+
+            $this->messageSendReport = [
+                'customer' => $customer->displayName(),
+                'subject' => $conversation->subject,
+                'conversation_id' => $conversation->id,
+                'inbox_url' => $inboxUrl,
+            ];
+
+            $this->portableStatus = __('customers.message.sent_report', [
                 'name' => $customer->displayName(),
+                'subject' => $conversation->subject,
             ]);
             $this->portableStatusTone = 'success';
             $this->closeMessagePanel();
+
+            Notification::make()
+                ->title(__('customers.message.sent_toast_title'))
+                ->body(__('customers.message.sent_toast_body', [
+                    'name' => $customer->displayName(),
+                    'subject' => $conversation->subject,
+                ]))
+                ->success()
+                ->send();
         } catch (ValidationException $exception) {
+            $this->messageSendReport = null;
             $this->portableStatus = collect($exception->errors())->flatten()->first();
             $this->portableStatusTone = 'danger';
         }

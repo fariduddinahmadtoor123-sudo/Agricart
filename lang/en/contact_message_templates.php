@@ -1,14 +1,15 @@
 <?php
 
 return [
-    'hint' => 'Reusable customer Inbox messages. English is the default send language; Urdu is used when the admin UI is in Urdu (falls back to English if Urdu is empty).',
+    'hint' => 'Reusable customer Inbox messages. Open View / Edit in the form panel. Send from Customers → Send message using the template dropdown.',
     'create' => 'New message template',
     'edit' => 'Edit message template',
+    'edit_named' => 'Edit: :name',
+    'view' => 'View: :name',
     'empty' => 'No message templates yet.',
     'created' => 'Template created.',
     'updated' => 'Template updated.',
     'deleted' => 'Template deleted.',
-    'toggled' => 'Template status updated.',
     'forbidden' => 'You do not have permission to manage message templates.',
     'confirm_delete' => 'Delete this template?',
     'placeholder_hint' => 'Write English and Urdu separately. Use :name where the customer name should appear.',
@@ -25,7 +26,6 @@ return [
         'body_ur' => 'Details (Urdu)',
         'active' => 'Active (shown in Send message)',
         'status' => 'Status',
-        'order' => 'Order',
     ],
 
     'status' => [
@@ -37,11 +37,9 @@ return [
         'create' => 'Save template',
         'update' => 'Update template',
         'cancel' => 'Cancel',
+        'view' => 'View',
         'edit' => 'Edit',
-        'toggle' => 'Toggle',
         'delete' => 'Delete',
-        'up' => 'Up',
-        'down' => 'Down',
     ],
 
     'errors' => [

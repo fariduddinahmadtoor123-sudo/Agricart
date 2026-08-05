@@ -323,6 +323,57 @@ class PriceUpdateSheetTest extends TestCase
         $this->assertNotNull($elsewhere->id);
     }
 
+    public function test_print_blank_buy_sheet_opens_with_four_columns_and_blank_buy(): void
+    {
+        $product = $this->makeProduct([
+            'name_en' => 'Spray Pump Body',
+            'name_ur' => 'سپری پمپ باڈی',
+            'last_buy_price' => 250,
+        ]);
+
+        $component = Livewire::test(Sheet::class)
+            ->call('openForm')
+            ->call('addProduct', $product->id)
+            ->set('printLocale', 'both')
+            ->call('printBlankBuySheet')
+            ->assertSet('statusType', 'success')
+            ->assertDispatched('price-update-open-print');
+
+        $url = null;
+        foreach ($component->effects['dispatches'] ?? [] as $event) {
+            if (($event['name'] ?? '') !== 'price-update-open-print') {
+                continue;
+            }
+
+            $url = $event['params']['url']
+                ?? (is_array($event['params'][0] ?? null) ? ($event['params'][0]['url'] ?? null) : null)
+                ?? null;
+        }
+
+        $this->assertNotEmpty($url);
+        $this->assertStringContainsString('/price-updates/buy-sheet/print', (string) $url);
+
+        $response = $this->get($url.(str_contains((string) $url, '?') ? '&' : '?').'autoprint=0');
+        $response->assertOk();
+        $response->assertSee('Spray Pump Body', false);
+        $response->assertSee('سپری پمپ باڈی', false);
+        $response->assertSee(__('price_updates.print.headers.sr'), false);
+        $response->assertSee(__('price_updates.print.headers.pic'), false);
+        $response->assertSee(__('price_updates.print.headers.name'), false);
+        $response->assertSee(__('price_updates.print.headers.buy'), false);
+        $response->assertDontSee('>250<', false);
+        $response->assertDontSee(__('price_updates.headers.retail'), false);
+    }
+
+    public function test_print_blank_buy_sheet_requires_rows(): void
+    {
+        Livewire::test(Sheet::class)
+            ->call('openForm')
+            ->call('printBlankBuySheet')
+            ->assertSet('statusType', 'warning')
+            ->assertNotDispatched('price-update-open-print');
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      */

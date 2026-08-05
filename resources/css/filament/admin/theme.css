@@ -16459,6 +16459,43 @@ body.agricart-form-panel-open .agricart-staff-messenger {
 }
 
 /* Price Update (list + form panel sheet) — reuse purchase-form search/grid; tighten value cells */
+.agricart-price-update-form__print-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem 1rem;
+    margin: 0 0 0.85rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--agricart-border, #d1d5db) 85%, transparent);
+    background: color-mix(in srgb, var(--agricart-surface, #fff) 92%, #83B735 8%);
+}
+
+.agricart-price-update-form__print-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 10rem;
+}
+
+.agricart-price-update-form__print-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--agricart-muted, #4b5563);
+}
+
+.agricart-price-update-form__print-select {
+    min-width: 11rem;
+    max-width: 14rem;
+}
+
+.agricart-price-update-form__print-hint {
+    margin: 0;
+    flex: 1 1 14rem;
+    font-size: 0.75rem;
+    line-height: 1.35;
+    color: var(--agricart-muted, #6b7280);
+}
+
 .agricart-price-updates__meta {
     margin-top: 0.15rem;
     font-size: 0.7rem;

@@ -25,6 +25,20 @@
 
     <p class="agricart-form-panel__hint">{{ __('price_updates.intro') }}</p>
 
+    @if ($canEdit || $canView)
+        <div class="agricart-price-update-form__print-bar">
+            <label class="agricart-price-update-form__print-field">
+                <span class="agricart-price-update-form__print-label">{{ __('price_updates.print.name_language') }}</span>
+                <select wire:model.live="printLocale" class="agricart-purchase-form__input agricart-price-update-form__print-select">
+                    <option value="en">{{ __('price_updates.locales.en') }}</option>
+                    <option value="ur">{{ __('price_updates.locales.ur') }}</option>
+                    <option value="both">{{ __('price_updates.locales.both') }}</option>
+                </select>
+            </label>
+            <p class="agricart-price-update-form__print-hint">{{ __('price_updates.print.toolbar_hint') }}</p>
+        </div>
+    @endif
+
     @if ($canEdit)
         <div class="agricart-purchase-form__search">
             <div class="agricart-purchase-form__search-row">
@@ -196,3 +210,12 @@
         </div>
     @endif
 </div>
+
+@script
+<script>
+    Livewire.on('price-update-open-print', (payload) => {
+        const url = payload?.url ?? payload?.[0]?.url;
+        if (url) window.open(url, '_blank');
+    });
+</script>
+@endscript

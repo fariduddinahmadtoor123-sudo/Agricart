@@ -29,6 +29,11 @@ class ListAgricartInbox extends Component
     public function mount(): void
     {
         abort_unless($this->userCan('view'), 403);
+
+        $conversationId = request()->integer('conversation');
+        if ($conversationId > 0) {
+            $this->openView($conversationId, app(AgricartInboxService::class));
+        }
     }
 
     #[On('store-messages-search')]

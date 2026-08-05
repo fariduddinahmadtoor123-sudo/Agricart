@@ -187,7 +187,10 @@ class AgricartInboxTest extends TestCase
             ->set('messageSubject', 'Welcome to Agricart')
             ->set('messageBody', 'Assalamu alaikum — welcome and good wishes from Agricart.')
             ->call('sendMessageToCustomer')
-            ->assertSet('showMessagePanel', false);
+            ->assertSet('showMessagePanel', false)
+            ->assertSet('portableStatusTone', 'success')
+            ->assertSet('messageSendReport.customer', $customer->displayName())
+            ->assertSet('messageSendReport.subject', 'Welcome to Agricart');
 
         $conversation = AgricartConversation::query()->where('customer_id', $customer->id)->sole();
         $this->assertSame('Welcome to Agricart', $conversation->subject);
