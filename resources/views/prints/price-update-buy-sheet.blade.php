@@ -1,4 +1,5 @@
 @php
+    $isBoth = $locale === 'both';
     $htmlLang = $locale === 'ur' ? 'ur' : 'en';
     $htmlDir = $locale === 'ur' ? 'rtl' : 'ltr';
 @endphp
@@ -12,7 +13,7 @@
         * { box-sizing: border-box; }
         body {
             margin: 0;
-            font-family: Arial, Helvetica, sans-serif;
+            font-family: Arial, Helvetica, "Segoe UI", sans-serif;
             background: #f3f4f6;
             color: #111827;
         }
@@ -48,87 +49,118 @@
             max-width: 210mm;
             background: #fff;
             border: 1px solid #d1d5db;
-            padding: 6mm 6mm 5mm;
+            padding: 5mm 5mm 4mm;
         }
         .sheet__header {
             border-bottom: 1.5px solid #111827;
-            padding-bottom: 0.35rem;
-            margin-bottom: 0.4rem;
+            padding-bottom: 0.3rem;
+            margin-bottom: 0.35rem;
         }
         .sheet__title {
             margin: 0;
-            font-size: 0.95rem;
+            font-size: 1rem;
             font-weight: 800;
         }
         .sheet__hint {
-            margin: 0.2rem 0 0;
-            font-size: 0.68rem;
+            margin: 0.18rem 0 0;
+            font-size: 0.7rem;
             color: #4b5563;
         }
         .sheet__meta {
-            margin: 0.15rem 0 0;
-            font-size: 0.62rem;
+            margin: 0.12rem 0 0;
+            font-size: 0.65rem;
             color: #6b7280;
         }
         .buy-table {
             width: 100%;
             border-collapse: collapse;
             table-layout: fixed;
-            font-size: 0.62rem;
+            font-size: 0.78rem;
+            border: 2px solid #111827;
         }
         .buy-table th,
         .buy-table td {
-            border: 1px solid #9ca3af;
-            padding: 0.12rem 0.18rem;
+            border: 1.5px solid #111827;
+            padding: 0.22rem 0.3rem;
             vertical-align: middle;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
         .buy-table th {
             background: #f3f4f6;
             font-weight: 700;
             text-align: center;
+            font-size: 0.72rem;
         }
-        .buy-table .col-sr { width: 6%; text-align: center; font-weight: 700; }
-        .buy-table .col-pic { width: 9%; text-align: center; }
-        .buy-table .col-name { width: 55%; text-align: start; font-weight: 600; }
-        .buy-table .col-buy { width: 30%; }
+        .buy-table .col-sr { width: 5%; text-align: center; font-weight: 800; font-size: 0.82rem; }
+        .buy-table .col-pic { width: 12%; text-align: center; padding: 0.2rem; }
+        .buy-table .col-name { text-align: start; font-weight: 700; font-size: 0.82rem; line-height: 1.25; }
+        .buy-table .col-buy { width: 16%; }
+        .buy-table--single .col-name { width: 67%; }
+        .buy-table--both .col-name-en { width: 30%; text-align: start; font-weight: 700; font-size: 0.8rem; line-height: 1.25; }
+        .buy-table--both .col-name-ur {
+            width: 37%;
+            text-align: center;
+            font-weight: 700;
+            font-size: 0.92rem;
+            line-height: 1.35;
+            direction: rtl;
+            font-family: "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", "Al Qalam Taj Nastaleeq", "Segoe UI", Tahoma, Arial, sans-serif;
+        }
+        .buy-table--both .col-buy { width: 16%; }
         .buy-table .thumb {
-            width: 18px;
-            height: 18px;
-            object-fit: cover;
-            display: inline-block;
-            vertical-align: middle;
-            border: 1px solid #e5e7eb;
+            width: 44px;
+            height: 44px;
+            object-fit: contain;
+            object-position: center;
+            display: block;
+            margin: 0 auto;
+            background: #fff;
+            border: 1px solid #6b7280;
         }
         .buy-table .thumb-empty {
-            display: inline-block;
-            width: 18px;
-            height: 18px;
-            border: 1px dashed #d1d5db;
-            vertical-align: middle;
-        }
-        .buy-table .name-en { display: block; line-height: 1.2; }
-        .buy-table .name-ur {
             display: block;
-            line-height: 1.25;
+            width: 44px;
+            height: 44px;
+            margin: 0 auto;
+            border: 1.5px dashed #6b7280;
+            background: #fafafa;
+        }
+        .buy-table .name-ur-only {
+            display: block;
             direction: rtl;
-            font-size: 0.6rem;
-            color: #374151;
-            margin-top: 0.05rem;
+            text-align: start;
+            font-size: 0.95rem;
+            line-height: 1.4;
+            font-family: "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", "Al Qalam Taj Nastaleeq", "Segoe UI", Tahoma, Arial, sans-serif;
+        }
+        .buy-table .name-en-only {
+            display: block;
+            font-size: 0.84rem;
+            line-height: 1.25;
         }
         .buy-table .code {
             display: block;
-            font-size: 0.52rem;
-            font-weight: 500;
-            color: #6b7280;
-            margin-top: 0.05rem;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #111827;
+            margin-top: 0.12rem;
+            letter-spacing: 0.03em;
+            font-family: "Courier New", Courier, Consolas, monospace;
         }
         .buy-table .blank {
-            min-height: 1.05rem;
+            min-height: 1.25rem;
             background: #fafafa;
         }
         .buy-table tr {
             page-break-inside: avoid;
             break-inside: avoid;
+        }
+        .buy-table thead th.side-en {
+            background: #eef2ff;
+        }
+        .buy-table thead th.side-ur {
+            background: #ecfdf5;
         }
         @media print {
             body { background: #fff; }
@@ -139,6 +171,24 @@
                 max-width: none;
                 width: 100%;
                 padding: 0;
+            }
+            .buy-table {
+                border: 2px solid #000;
+            }
+            .buy-table th,
+            .buy-table td {
+                border: 1.75px solid #000 !important;
+            }
+            .buy-table .thumb {
+                width: 48px;
+                height: 48px;
+                border-color: #000;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .buy-table .code {
+                font-size: 0.82rem;
+                color: #000;
             }
             @page { size: A4 portrait; margin: 7mm; }
         }
@@ -154,20 +204,28 @@
         <div class="sheet">
             <header class="sheet__header">
                 <h1 class="sheet__title">{{ __('price_updates.print.heading') }}</h1>
-                <p class="sheet__hint">{{ __('price_updates.print.hint') }}</p>
+                <p class="sheet__hint">
+                    {{ $isBoth ? __('price_updates.print.hint_both') : __('price_updates.print.hint') }}
+                </p>
                 <p class="sheet__meta">
                     {{ __('price_updates.print.count', ['count' => count($rows)]) }}
                     · {{ $printedAt->timezone(config('app.timezone'))->format('Y-m-d H:i') }}
                 </p>
             </header>
 
-            <table class="buy-table">
+            <table @class(['buy-table', 'buy-table--both' => $isBoth, 'buy-table--single' => ! $isBoth])>
                 <thead>
                     <tr>
-                        <th class="col-sr">{{ __('price_updates.print.headers.sr') }}</th>
-                        <th class="col-pic">{{ __('price_updates.print.headers.pic') }}</th>
-                        <th class="col-name">{{ __('price_updates.print.headers.name') }}</th>
-                        <th class="col-buy">{{ __('price_updates.print.headers.buy') }}</th>
+                        <th class="col-sr {{ $isBoth ? 'side-en' : '' }}">{{ __('price_updates.print.headers.sr') }}</th>
+                        <th class="col-pic {{ $isBoth ? 'side-en' : '' }}">{{ __('price_updates.print.headers.pic') }}</th>
+                        @if ($isBoth)
+                            <th class="col-name-en side-en">{{ __('price_updates.print.headers.name_en') }}</th>
+                            <th class="col-name-ur side-ur">{{ __('price_updates.print.headers.name_ur') }}</th>
+                            <th class="col-buy side-ur">{{ __('price_updates.print.headers.buy') }}</th>
+                        @else
+                            <th class="col-name">{{ __('price_updates.print.headers.name') }}</th>
+                            <th class="col-buy">{{ __('price_updates.print.headers.buy') }}</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -187,31 +245,34 @@
                                     <span class="thumb-empty" aria-hidden="true"></span>
                                 @endif
                             </td>
-                            <td class="col-name">
-                                @if ($locale === 'ur')
-                                    <span class="name-ur">{{ $nameUr !== '' ? $nameUr : $nameEn }}</span>
-                                @elseif ($locale === 'both')
-                                    @if ($nameEn !== '')
-                                        <span class="name-en">{{ $nameEn }}</span>
+                            @if ($isBoth)
+                                <td class="col-name-en">
+                                    <span class="name-en-only">{{ $nameEn !== '' ? $nameEn : '—' }}</span>
+                                    @if ($code !== '')
+                                        <span class="code">{{ $code }}</span>
                                     @endif
-                                    @if ($nameUr !== '')
-                                        <span class="name-ur">{{ $nameUr }}</span>
+                                </td>
+                                <td class="col-name-ur">
+                                    {{ $nameUr !== '' ? $nameUr : ($nameEn !== '' ? $nameEn : '—') }}
+                                </td>
+                                <td class="col-buy"><div class="blank"></div></td>
+                            @else
+                                <td class="col-name">
+                                    @if ($locale === 'ur')
+                                        <span class="name-ur-only">{{ $nameUr !== '' ? $nameUr : $nameEn }}</span>
+                                    @else
+                                        <span class="name-en-only">{{ $nameEn !== '' ? $nameEn : ($nameUr !== '' ? $nameUr : '—') }}</span>
                                     @endif
-                                    @if ($nameEn === '' && $nameUr === '')
-                                        <span class="name-en">—</span>
+                                    @if ($code !== '')
+                                        <span class="code">{{ $code }}</span>
                                     @endif
-                                @else
-                                    <span class="name-en">{{ $nameEn !== '' ? $nameEn : ($nameUr !== '' ? $nameUr : '—') }}</span>
-                                @endif
-                                @if ($code !== '')
-                                    <span class="code">{{ $code }}</span>
-                                @endif
-                            </td>
-                            <td class="col-buy"><div class="blank"></div></td>
+                                </td>
+                                <td class="col-buy"><div class="blank"></div></td>
+                            @endif
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" style="text-align:center;padding:0.75rem;">{{ __('price_updates.print.empty') }}</td>
+                            <td colspan="{{ $isBoth ? 5 : 4 }}" style="text-align:center;padding:0.75rem;">{{ __('price_updates.print.empty') }}</td>
                         </tr>
                     @endforelse
                 </tbody>

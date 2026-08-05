@@ -359,8 +359,10 @@ class PriceUpdateSheetTest extends TestCase
         $response->assertSee('سپری پمپ باڈی', false);
         $response->assertSee(__('price_updates.print.headers.sr'), false);
         $response->assertSee(__('price_updates.print.headers.pic'), false);
-        $response->assertSee(__('price_updates.print.headers.name'), false);
+        $response->assertSee(__('price_updates.print.headers.name_en'), false);
+        $response->assertSee(__('price_updates.print.headers.name_ur'), false);
         $response->assertSee(__('price_updates.print.headers.buy'), false);
+        $response->assertSee('buy-table--both', false);
         $response->assertDontSee('>250<', false);
         $response->assertDontSee(__('price_updates.headers.retail'), false);
     }
