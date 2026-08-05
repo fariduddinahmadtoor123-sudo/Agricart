@@ -334,7 +334,7 @@ return [
     'pages' => [
         'dashboard' => ['overview' => 'Overview', 'summary' => 'Summary'],
         'approvals' => ['overview' => 'Overview', 'staff' => 'Staff', 'suppliers' => 'Suppliers'],
-        'contacts' => ['overview' => 'Overview', 'customers' => 'Customers', 'suppliers' => 'Suppliers'],
+        'contacts' => ['overview' => 'Overview', 'customers' => 'Customers', 'suppliers' => 'Suppliers', 'message-templates' => 'Message Templates'],
         'catalog' => [
             'overview' => 'Overview', 'products' => 'Products', 'product-reviews' => 'Product Reviews',
             'categories' => 'Categories', 'brands' => 'Brands', 'units' => 'Units', 'packing_units' => 'Packing Units',

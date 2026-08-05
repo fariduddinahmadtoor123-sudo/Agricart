@@ -137,6 +137,47 @@ class AgricartInboxService
         });
     }
 
+    /**
+     * Admin-initiated message (e.g. welcome) — appears in the customer's store Inbox.
+     */
+    public function startAdminMessage(Customer $customer, User $admin, string $subject, string $body): AgricartConversation
+    {
+        $subject = trim($subject);
+        $body = trim($body);
+
+        if ($subject === '' || mb_strlen($subject) < 3 || mb_strlen($subject) > 200) {
+            throw ValidationException::withMessages([
+                'subject' => [__('agricart.inbox.errors.subject')],
+            ]);
+        }
+
+        if ($body === '' || mb_strlen($body) < 2 || mb_strlen($body) > 5000) {
+            throw ValidationException::withMessages([
+                'body' => [__('agricart.inbox.errors.body')],
+            ]);
+        }
+
+        return DB::transaction(function () use ($customer, $admin, $subject, $body): AgricartConversation {
+            $conversation = AgricartConversation::query()->create([
+                'customer_id' => $customer->id,
+                'subject' => $subject,
+                'topic' => AgricartConversation::TOPIC_GENERAL,
+                'status' => AgricartConversation::STATUS_OPEN,
+                'admin_last_read_at' => now(),
+                'customer_last_read_at' => null,
+            ]);
+
+            $this->appendMessage(
+                $conversation,
+                AgricartMessage::SENDER_ADMIN,
+                $body,
+                user: $admin,
+            );
+
+            return $conversation->fresh(['messages']) ?? $conversation;
+        });
+    }
+
     public function replyAsCustomer(AgricartConversation $conversation, Customer $customer, string $body): AgricartMessage
     {
         if ((int) $conversation->customer_id !== (int) $customer->id) {

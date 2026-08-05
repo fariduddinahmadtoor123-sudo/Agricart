@@ -77,6 +77,8 @@ class StoreSetting extends Model
         'ga_measurement_id',
         'gtm_container_id',
         'meta_pixel_id',
+        'customer_inbox_message_subject',
+        'customer_inbox_message_body',
         'product_watermark_enabled',
         'product_watermark_logo_path',
         'product_watermark_position',
@@ -170,6 +172,20 @@ class StoreSetting extends Model
         }
 
         return false;
+    }
+
+    public function customerInboxMessageSubject(): string
+    {
+        return filled($this->customer_inbox_message_subject)
+            ? (string) $this->customer_inbox_message_subject
+            : (string) __('customers.message.default_subject');
+    }
+
+    public function customerInboxMessageBody(): string
+    {
+        return filled($this->customer_inbox_message_body)
+            ? (string) $this->customer_inbox_message_body
+            : (string) __('customers.message.default_body', ['name' => ':name']);
     }
 
     /**

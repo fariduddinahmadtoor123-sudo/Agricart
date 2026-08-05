@@ -333,7 +333,7 @@ return [
     'pages' => [
         'dashboard' => ['overview' => 'جائزہ', 'summary' => 'خلاصہ'],
         'approvals' => ['overview' => 'جائزہ', 'staff' => 'عملہ', 'suppliers' => 'سپلائرز'],
-        'contacts' => ['overview' => 'جائزہ', 'customers' => 'گاہک', 'suppliers' => 'سپلائرز'],
+        'contacts' => ['overview' => 'جائزہ', 'customers' => 'گاہک', 'suppliers' => 'سپلائرز', 'message-templates' => 'میسج ٹیمپلیٹس'],
         'catalog' => [
             'overview' => 'جائزہ', 'products' => 'مصنوعات', 'product-reviews' => 'پروڈکٹ ریویوز',
             'categories' => 'زمرے', 'brands' => 'برانڈز', 'units' => 'اکائیاں', 'packing_units' => 'پیکنگ اکائیاں',

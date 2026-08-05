@@ -14,6 +14,27 @@ return [
         'export_online' => 'Export online',
         'export_offline' => 'Export offline',
         'import_archive' => 'Import archive',
+        'send_message' => 'Send message',
+    ],
+
+    'message' => [
+        'title' => 'Send Inbox message',
+        'to' => 'To: :name',
+        'hint' => 'Pick a template or write a custom message. English is default; Urdu loads when the admin language is Urdu. Save updates the current language version of the selected template. Keep :name for the customer name. Goes to store Inbox only — not email/WhatsApp.',
+        'subject' => 'Message title',
+        'body' => 'Message details',
+        'template' => 'Template',
+        'template_custom' => 'Custom (new)',
+        'template_name' => 'New template name',
+        'template_name_placeholder' => 'e.g. Query, Follow-up',
+        'send' => 'Send to Inbox',
+        'save_template' => 'Save template',
+        'template_saved' => 'Template saved. Next Send message can reuse it (you can still edit before sending).',
+        'sent' => 'Message sent to :name. They will see it in their store Inbox.',
+        'forbidden' => 'You do not have permission to message customers.',
+        'online_only' => 'Inbox messages can only be sent to online (registered) customers.',
+        'default_subject' => 'Welcome to Agricart.pk · Agricart.pk میں خوش آمدید',
+        'default_body' => "Hello :name,\nWelcome to Agricart.pk! 🎉\nThank you for registering with us. We are delighted to have you as a member of the Agricart community.\nOur official launch is scheduled for 14 August 2026. We look forward to serving you with quality products, transparent information, and a reliable shopping experience.\nThank you for choosing Agricart.pk. We look forward to serving you.\nBest Regards,\nTeam Agricart.pk\n\nہیلو :name،\nAgricart.pk میں خوش آمدید! 🎉\nہمارے ساتھ رجسٹر ہونے کا شکریہ۔ ہمیں خوشی ہے کہ آپ Agricart کمیونٹی کا حصہ بنے ہیں۔\nہمارا باقاعدہ آغاز 14 اگست 2026 کو متوقع ہے۔ ہم آپ کو معیاری مصنوعات، شفاف معلومات اور خریداری کا ایک قابلِ اعتماد تجربہ فراہم کرنے کے منتظر ہیں۔\nAgricart.pk کا انتخاب کرنے کا شکریہ۔ ہم آپ کی خدمت کے لیے پرعزم ہیں۔\nنیک تمنائیں،\nٹیم Agricart.pk",
     ],
 
     'portable' => [

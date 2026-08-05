@@ -4,9 +4,12 @@ namespace App\Livewire\Customers;
 
 use App\Livewire\Concerns\ImportsPortableArchive;
 use App\Models\Customer;
+use App\Models\StoreSetting;
 use App\Models\User;
+use App\Services\Contacts\ContactMessageTemplateService;
 use App\Services\Contacts\CustomerPortableArchiveService;
 use App\Services\Contacts\CustomerService;
+use App\Services\Store\AgricartInboxService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
@@ -31,6 +34,20 @@ class ListCustomers extends Component
     public string $statusFilter = '';
 
     public bool $showImportPanel = false;
+
+    public bool $showMessagePanel = false;
+
+    public ?int $messageCustomerId = null;
+
+    public string $messageCustomerLabel = '';
+
+    public string $messageSubject = '';
+
+    public string $messageBody = '';
+
+    public ?int $messageTemplateId = null;
+
+    public string $messageTemplateName = '';
 
     /** @var mixed */
     public $importArchive = null;
@@ -129,6 +146,240 @@ class ListCustomers extends Component
     {
         $this->showImportPanel = false;
         $this->importArchive = null;
+    }
+
+    public function openSendMessage(int $customerId): void
+    {
+        if (! $this->userCan('edit')) {
+            $this->portableStatus = __('customers.message.forbidden');
+            $this->portableStatusTone = 'danger';
+
+            return;
+        }
+
+        $customer = Customer::query()->find($customerId);
+
+        if ($customer === null) {
+            return;
+        }
+
+        if (! $customer->isOnline()) {
+            $this->portableStatus = __('customers.message.online_only');
+            $this->portableStatusTone = 'danger';
+
+            return;
+        }
+
+        $this->showMessagePanel = true;
+        $this->showImportPanel = false;
+        $this->messageCustomerId = $customer->id;
+        $this->messageCustomerLabel = $customer->displayLabel();
+
+        $templates = app(ContactMessageTemplateService::class);
+        $default = $templates->defaultForCustomer();
+        $name = $customer->displayName();
+
+        if ($default !== null) {
+            $this->messageTemplateId = $default->id;
+            $this->messageTemplateName = $default->localizedName();
+            $this->messageSubject = $templates->applyName($default->localizedSubject(), $name);
+            $this->messageBody = $templates->applyName($default->localizedBody(), $name);
+        } else {
+            $settings = StoreSetting::current();
+            $this->messageTemplateId = null;
+            $this->messageTemplateName = '';
+            $this->messageSubject = $templates->applyName($settings->customerInboxMessageSubject(), $name);
+            $this->messageBody = $templates->applyName($settings->customerInboxMessageBody(), $name);
+        }
+
+        $this->portableStatus = null;
+        $this->resetErrorBag();
+    }
+
+    public function updatedMessageTemplateId(mixed $value): void
+    {
+        if (! $this->showMessagePanel || $this->messageCustomerId === null) {
+            return;
+        }
+
+        $customer = Customer::query()->find($this->messageCustomerId);
+        if ($customer === null) {
+            return;
+        }
+
+        $templates = app(ContactMessageTemplateService::class);
+        $id = filled($value) ? (int) $value : null;
+
+        if ($id === null || $id === 0) {
+            $this->messageTemplateId = null;
+            $this->messageTemplateName = '';
+            $this->messageSubject = '';
+            $this->messageBody = '';
+
+            return;
+        }
+
+        $template = $templates->findCustomerTemplate($id);
+        if ($template === null || ! $template->is_active) {
+            return;
+        }
+
+        $name = $customer->displayName();
+        $this->messageTemplateId = $template->id;
+        $this->messageTemplateName = $template->localizedName();
+        $this->messageSubject = $templates->applyName($template->localizedSubject(), $name);
+        $this->messageBody = $templates->applyName($template->localizedBody(), $name);
+        $this->resetErrorBag('messageSubject', 'messageBody');
+    }
+
+    public function saveMessageTemplate(): void
+    {
+        if (! $this->userCan('edit')) {
+            $this->portableStatus = __('customers.message.forbidden');
+            $this->portableStatusTone = 'danger';
+
+            return;
+        }
+
+        $rules = [
+            'messageSubject' => ['required', 'string', 'min:3', 'max:200'],
+            'messageBody' => ['required', 'string', 'min:2', 'max:5000'],
+        ];
+        $labels = [
+            'messageSubject' => __('customers.message.subject'),
+            'messageBody' => __('customers.message.body'),
+        ];
+
+        if ($this->messageTemplateId === null) {
+            $rules['messageTemplateName'] = ['required', 'string', 'min:2', 'max:120'];
+            $labels['messageTemplateName'] = __('customers.message.template_name');
+        }
+
+        $this->validate($rules, [], $labels);
+
+        $subjectTemplate = trim($this->messageSubject);
+        $bodyTemplate = $this->messageBody;
+        $service = app(ContactMessageTemplateService::class);
+
+        if ($this->messageCustomerId !== null) {
+            $customer = Customer::query()->find($this->messageCustomerId);
+            if ($customer !== null) {
+                $name = $customer->displayName();
+                $subjectTemplate = $service->restoreNamePlaceholder($subjectTemplate, $name);
+                $bodyTemplate = $service->restoreNamePlaceholder($bodyTemplate, $name);
+            }
+        }
+
+        try {
+            if ($this->messageTemplateId !== null) {
+                $template = $service->findCustomerTemplate($this->messageTemplateId);
+                if ($template === null) {
+                    $this->portableStatus = __('contact_message_templates.errors.not_found');
+                    $this->portableStatusTone = 'danger';
+
+                    return;
+                }
+
+                $service->updateLocalizedContent($template, $subjectTemplate, $bodyTemplate);
+            } else {
+                $locale = app()->getLocale();
+                $name = trim($this->messageTemplateName) !== ''
+                    ? trim($this->messageTemplateName)
+                    : 'Template';
+
+                if ($locale === 'ur') {
+                    $created = $service->createCustomerTemplate([
+                        'name_en' => $name,
+                        'name_ur' => $name,
+                        'subject_en' => $subjectTemplate,
+                        'subject_ur' => $subjectTemplate,
+                        'body_en' => $bodyTemplate,
+                        'body_ur' => $bodyTemplate,
+                        'is_active' => true,
+                    ]);
+                } else {
+                    $created = $service->createCustomerTemplate([
+                        'name_en' => $name,
+                        'subject_en' => $subjectTemplate,
+                        'body_en' => $bodyTemplate,
+                        'is_active' => true,
+                    ]);
+                }
+
+                $this->messageTemplateId = $created->id;
+                $this->messageTemplateName = $created->localizedName();
+            }
+
+            $this->portableStatus = __('customers.message.template_saved');
+            $this->portableStatusTone = 'success';
+        } catch (ValidationException $exception) {
+            $this->portableStatus = collect($exception->errors())->flatten()->first();
+            $this->portableStatusTone = 'danger';
+        }
+    }
+
+    public function closeMessagePanel(): void
+    {
+        $this->showMessagePanel = false;
+        $this->messageCustomerId = null;
+        $this->messageCustomerLabel = '';
+        $this->messageSubject = '';
+        $this->messageBody = '';
+        $this->messageTemplateId = null;
+        $this->messageTemplateName = '';
+        $this->resetErrorBag();
+    }
+
+    public function sendMessageToCustomer(): void
+    {
+        if (! $this->userCan('edit')) {
+            $this->portableStatus = __('customers.message.forbidden');
+            $this->portableStatusTone = 'danger';
+
+            return;
+        }
+
+        $user = auth()->user();
+
+        if (! $user instanceof User || $this->messageCustomerId === null) {
+            return;
+        }
+
+        $customer = Customer::query()->find($this->messageCustomerId);
+
+        if ($customer === null || ! $customer->isOnline()) {
+            $this->portableStatus = __('customers.message.online_only');
+            $this->portableStatusTone = 'danger';
+            $this->closeMessagePanel();
+
+            return;
+        }
+
+        $this->validate([
+            'messageSubject' => ['required', 'string', 'min:3', 'max:200'],
+            'messageBody' => ['required', 'string', 'min:2', 'max:5000'],
+        ], [], [
+            'messageSubject' => __('customers.message.subject'),
+            'messageBody' => __('customers.message.body'),
+        ]);
+
+        try {
+            app(AgricartInboxService::class)->startAdminMessage(
+                $customer,
+                $user,
+                $this->messageSubject,
+                $this->messageBody,
+            );
+
+            $this->portableStatus = __('customers.message.sent', [
+                'name' => $customer->displayName(),
+            ]);
+            $this->portableStatusTone = 'success';
+            $this->closeMessagePanel();
+        } catch (ValidationException $exception) {
+            $this->portableStatus = collect($exception->errors())->flatten()->first();
+            $this->portableStatusTone = 'danger';
+        }
     }
 
     public function exportArchive(string $scope = CustomerPortableArchiveService::SCOPE_ALL): ?BinaryFileResponse
@@ -308,6 +559,9 @@ class ListCustomers extends Component
             'customers' => $customers,
             'canEdit' => $this->userCan('edit'),
             'canDelete' => $this->userCan('delete'),
+            'messageTemplates' => $this->showMessagePanel
+                ? app(ContactMessageTemplateService::class)->listForCustomer(activeOnly: true)
+                : collect(),
         ]);
     }
 

@@ -43,6 +43,16 @@ class ContactsPageToolbar extends ClusterPageToolbar
                 'livewirePrefix' => 'contacts-overview',
                 'interactive' => false,
             ],
+            'message-templates' => [
+                ...$config,
+                'livewirePrefix' => 'contacts-message-templates',
+                'livewireComponent' => 'contacts.manage-message-templates',
+                'interactive' => false,
+                'addLabel' => static::userCan('edit') ? __('contact_message_templates.create') : null,
+                'addEvent' => 'contacts-message-templates-create',
+                'hideFilters' => true,
+                'hideColumns' => true,
+            ],
             'suppliers' => [
                 ...$config,
                 'livewirePrefix' => 'suppliers',

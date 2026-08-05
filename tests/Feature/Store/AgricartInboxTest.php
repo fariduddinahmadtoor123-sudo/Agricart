@@ -174,6 +174,61 @@ class AgricartInboxTest extends TestCase
         ]);
     }
 
+    public function test_admin_can_send_inbox_message_from_customers_list(): void
+    {
+        $admin = $this->superAdmin();
+        $customer = $this->createCustomer('welcome-inbox@test.test');
+
+        $this->actingAs($admin);
+
+        Livewire::test(\App\Livewire\Customers\ListCustomers::class)
+            ->call('openSendMessage', $customer->id)
+            ->assertSet('showMessagePanel', true)
+            ->set('messageSubject', 'Welcome to Agricart')
+            ->set('messageBody', 'Assalamu alaikum — welcome and good wishes from Agricart.')
+            ->call('sendMessageToCustomer')
+            ->assertSet('showMessagePanel', false);
+
+        $conversation = AgricartConversation::query()->where('customer_id', $customer->id)->sole();
+        $this->assertSame('Welcome to Agricart', $conversation->subject);
+        $this->assertNull($conversation->customer_last_read_at);
+        $this->assertSame(1, app(AgricartInboxService::class)->unreadCountForCustomer($customer));
+
+        $this->assertDatabaseHas('agricart_messages', [
+            'agricart_conversation_id' => $conversation->id,
+            'sender_type' => AgricartMessage::SENDER_ADMIN,
+            'user_id' => $admin->id,
+        ]);
+    }
+
+    public function test_admin_can_save_and_reuse_customer_inbox_message_template(): void
+    {
+        $admin = $this->superAdmin();
+        $first = $this->createCustomer('template-first@test.test');
+        $second = $this->createCustomer('template-second@test.test');
+
+        $this->actingAs($admin);
+
+        Livewire::test(\App\Livewire\Customers\ListCustomers::class)
+            ->call('openSendMessage', $first->id)
+            ->set('messageTemplateId', null)
+            ->set('messageTemplateName', 'Launch update')
+            ->set('messageSubject', 'Launch update for '.$first->displayName())
+            ->set('messageBody', "Hello {$first->displayName()},\nSee you on 14 August.")
+            ->call('saveMessageTemplate');
+
+        $template = \App\Models\ContactMessageTemplate::query()->where('name_en', 'Launch update')->sole();
+        $this->assertSame('Launch update for :name', $template->subject_en);
+        $this->assertStringContainsString('Hello :name,', (string) $template->body_en);
+        $this->assertStringNotContainsString($first->displayName(), (string) $template->body_en);
+
+        Livewire::test(\App\Livewire\Customers\ListCustomers::class)
+            ->call('openSendMessage', $second->id)
+            ->set('messageTemplateId', $template->id)
+            ->assertSet('messageSubject', 'Launch update for '.$second->displayName())
+            ->assertSet('messageBody', "Hello {$second->displayName()},\nSee you on 14 August.");
+    }
+
     private function createCustomer(string $email): Customer
     {
         return Customer::query()->create([

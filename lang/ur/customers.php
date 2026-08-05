@@ -14,6 +14,27 @@ return [
         'export_online' => 'آن لائن ایکسپورٹ',
         'export_offline' => 'آف لائن ایکسپورٹ',
         'import_archive' => 'آرکائیو امپورٹ',
+        'send_message' => 'میسج بھیجیں',
+    ],
+
+    'message' => [
+        'title' => 'ان باکس میسج بھیجیں',
+        'to' => 'وصول کنندہ: :name',
+        'hint' => 'ٹیمپلیٹ منتخب کریں یا نیا لکھیں۔ ڈیفالٹ انگریزی؛ ایڈمن زبان اردو ہو تو اردو آئے گی۔ Save موجودہ زبان والا متن محفوظ کرتا ہے۔ کسٹمر نام کے لیے :name رکھیں۔ صرف سٹور Inbox۔',
+        'subject' => 'میسج کا عنوان',
+        'body' => 'میسج کی تفصیل',
+        'template' => 'ٹیمپلیٹ',
+        'template_custom' => 'حسبِ ضرورت (نیا)',
+        'template_name' => 'نئے ٹیمپلیٹ کا نام',
+        'template_name_placeholder' => 'مثلاً Query، Follow-up',
+        'send' => 'ان باکس میں بھیجیں',
+        'save_template' => 'ٹیمپلیٹ محفوظ کریں',
+        'template_saved' => 'ٹیمپلیٹ محفوظ ہو گیا۔ اگلی بار Send message پر استعمال کر سکتے ہیں (پھر بھی ایڈٹ ممکن)۔',
+        'sent' => ':name کو میسج بھیج دیا۔ وہ اپنے سٹور Inbox میں دیکھیں گے۔',
+        'forbidden' => 'کسٹمر کو میسج بھیجنے کی اجازت نہیں۔',
+        'online_only' => 'Inbox میسج صرف آن لائن (رجسٹرڈ) کسٹمرز کو بھیجے جا سکتے ہیں۔',
+        'default_subject' => 'Welcome to Agricart.pk · Agricart.pk میں خوش آمدید',
+        'default_body' => "Hello :name,\nWelcome to Agricart.pk! 🎉\nThank you for registering with us. We are delighted to have you as a member of the Agricart community.\nOur official launch is scheduled for 14 August 2026. We look forward to serving you with quality products, transparent information, and a reliable shopping experience.\nThank you for choosing Agricart.pk. We look forward to serving you.\nBest Regards,\nTeam Agricart.pk\n\nہیلو :name،\nAgricart.pk میں خوش آمدید! 🎉\nہمارے ساتھ رجسٹر ہونے کا شکریہ۔ ہمیں خوشی ہے کہ آپ Agricart کمیونٹی کا حصہ بنے ہیں۔\nہمارا باقاعدہ آغاز 14 اگست 2026 کو متوقع ہے۔ ہم آپ کو معیاری مصنوعات، شفاف معلومات اور خریداری کا ایک قابلِ اعتماد تجربہ فراہم کرنے کے منتظر ہیں۔\nAgricart.pk کا انتخاب کرنے کا شکریہ۔ ہم آپ کی خدمت کے لیے پرعزم ہیں۔\nنیک تمنائیں،\nٹیم Agricart.pk",
     ],
 
     'portable' => [
