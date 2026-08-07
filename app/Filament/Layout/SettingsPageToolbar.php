@@ -124,6 +124,20 @@ class SettingsPageToolbar extends ClusterPageToolbar
                 'columns' => [],
                 'hideColumns' => true,
                 'interactive' => true,
+                'toolbarActions' => static::userCanManageMedia() ? [
+                    [
+                        'label' => __('agricart.media.actions.repair_links'),
+                        'value' => 'repair_links',
+                        'color' => 'gray',
+                        'outlined' => true,
+                    ],
+                    [
+                        'label' => __('agricart.media.actions.prune_orphans'),
+                        'value' => 'prune_orphans',
+                        'color' => 'gray',
+                        'outlined' => true,
+                    ],
+                ] : [],
             ],
             'ai-settings' => [
                 ...$config,

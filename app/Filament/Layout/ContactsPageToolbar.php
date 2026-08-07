@@ -61,6 +61,7 @@ class ContactsPageToolbar extends ClusterPageToolbar
                 'interactive' => true,
                 'formKey' => 'suppliers',
                 'addLabel' => static::userCan('create') ? __('suppliers.actions.add') : null,
+                'searchPlaceholder' => __('suppliers.list.search'),
                 'filters' => static::supplierFilters(),
                 'toolbarActions' => array_values(array_filter([
                     static::userCan('view') ? [

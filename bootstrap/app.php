@@ -50,6 +50,10 @@ return Application::configure(basePath: dirname(__DIR__))
             ->dailyAt('03:20')
             ->timezone(config('app.timezone')));
 
+        $protect($schedule->command('media:backfill-library')
+            ->weeklyOn(0, '03:25')
+            ->timezone(config('app.timezone')));
+
         $protect($schedule->command('system-errors:prune')
             ->dailyAt('03:30')
             ->timezone(config('app.timezone')));

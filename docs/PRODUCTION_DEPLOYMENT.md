@@ -376,7 +376,9 @@ No change to application code required beyond env and compose file.
 
 | Command | Purpose |
 |---------|---------|
-| `php artisan deploy:preflight` | Migration identifier audit + storefront/storage/assets checks |
+| `php artisan agricart:wipe-local --keep-super-admins --force` | **Local/testing only.** Wipe business data; keep Super Admin users. Never run on production. |
+| `php artisan backup:create --type=database` | Create a database backup zip |
+| `php artisan backup:create --type=full` | Create full backup (database + public uploads) |
 | `php artisan hostinger:sync-public` | Copy `public/` to `HOSTINGER_PUBLIC_HTML` (shared hosting) |
 | `php artisan hostinger:verify` | Validate Laravel root from web directory |
 | `php artisan store:preflight` | Store channel, APP_URL, storage mode, Vite manifest |

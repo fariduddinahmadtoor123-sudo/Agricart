@@ -8,35 +8,106 @@
         </div>
     @endif
 
-    <div class="agricart-media-library__summary">
+    <div class="agricart-media-library__summary" role="tablist" aria-label="{{ __('agricart.media.stats.nav_label') }}">
         @foreach ([
-            'active' => ['label' => __('agricart.media.stats.all'), 'count' => $stats['all']],
-            'used' => ['label' => __('agricart.media.stats.used'), 'count' => $stats['used']],
-            'unused' => ['label' => __('agricart.media.stats.unused'), 'count' => $stats['unused']],
-            'trash' => ['label' => __('agricart.media.stats.trash'), 'count' => $stats['trash']],
-        ] as $filter => $stat)
+            'all' => ['label' => __('agricart.media.stats.all'), 'hint' => __('agricart.media.stats.hints.all')],
+            'used' => ['label' => __('agricart.media.stats.used'), 'hint' => __('agricart.media.stats.hints.used')],
+            'unused' => ['label' => __('agricart.media.stats.unused'), 'hint' => __('agricart.media.stats.hints.unused')],
+            'trash' => ['label' => __('agricart.media.stats.trash'), 'hint' => __('agricart.media.stats.hints.trash')],
+        ] as $bucket => $meta)
             <button
                 type="button"
-                @class(['agricart-media-library__summary-card', 'is-active' => $statusFilter === $filter || ($filter === 'active' && $statusFilter === 'active')])
-                wire:click="{{ $filter === 'trash' ? "applyFilter('status:trash')" : ($filter === 'active' ? "applyFilter('status:active')" : "applyFilter('usage:{$filter}')") }}"
+                role="tab"
+                aria-selected="{{ $activeBucket === $bucket ? 'true' : 'false' }}"
+                title="{{ $meta['hint'] }}"
+                @class(['agricart-media-library__summary-card', 'is-active' => $activeBucket === $bucket])
+                wire:click="setSummaryBucket('{{ $bucket }}')"
             >
-                <span>{{ $stat['label'] }}</span>
-                <strong>{{ number_format($stat['count']) }}</strong>
+                <span class="agricart-media-library__summary-copy">
+                    <span class="agricart-media-library__summary-label">{{ $meta['label'] }}</span>
+                    <span class="agricart-media-library__summary-size">{{ $formattedSizes[$bucket] }}</span>
+                </span>
+                <strong>{{ number_format($stats[$bucket]) }}</strong>
             </button>
         @endforeach
     </div>
 
-    @if ($canManage && $usageFilter === 'unused' && $statusFilter !== 'trash' && $stats['unused'] > 0)
+    @if ($canManage && $activeBucket === 'unused' && $stats['unused'] > 0)
         <div class="agricart-media-library__bulk">
-            <p>{{ __('agricart.media.bulk_unused_help') }}</p>
+            <div class="agricart-media-library__bulk-copy">
+                <p>{{ __('agricart.media.bulk_unused_help') }}</p>
+                <p class="agricart-media-library__bulk-meta">
+                    {{ __('agricart.media.bulk_unused_size', ['size' => $formattedSizes['unused'], 'count' => number_format($stats['unused'])]) }}
+                </p>
+            </div>
             <button
                 type="button"
                 class="agricart-media-library__bulk-btn"
                 wire:click="trashAllUnused"
-                wire:confirm="{{ __('agricart.media.confirm_trash_unused') }}"
+                wire:confirm="{{ __('agricart.media.confirm_trash_unused_sized', ['size' => $formattedSizes['unused'], 'count' => number_format($stats['unused'])]) }}"
             >
                 {{ __('agricart.media.actions.trash_all_unused') }}
             </button>
+        </div>
+    @endif
+
+    @if ($canManage && $activeBucket === 'trash')
+        <div class="agricart-media-library__bulk agricart-media-library__bulk--trash">
+            <div class="agricart-media-library__bulk-copy">
+                <p>{{ __('agricart.media.bulk_trash_help', ['days' => $stats['trash_retention_days']]) }}</p>
+                @if ($stats['trash'] > 0)
+                    <p class="agricart-media-library__bulk-meta">
+                        {{ __('agricart.media.bulk_trash_size', ['size' => $formattedSizes['trash'], 'count' => number_format($stats['trash'])]) }}
+                    </p>
+                @endif
+            </div>
+            <div class="agricart-media-library__bulk-actions">
+                <button
+                    type="button"
+                    class="agricart-media-library__bulk-btn agricart-media-library__bulk-btn--secondary"
+                    wire:click="pruneOrphanFiles"
+                    wire:confirm="{{ __('agricart.media.confirm_prune_orphans') }}"
+                >
+                    {{ __('agricart.media.actions.prune_orphans') }}
+                </button>
+                @if ($stats['trash'] > 0)
+                    <button
+                        type="button"
+                        class="agricart-media-library__bulk-btn"
+                        wire:click="emptyTrash"
+                        wire:confirm="{{ __('agricart.media.confirm_empty_trash', ['size' => $formattedSizes['trash'], 'count' => number_format($stats['trash'])]) }}"
+                    >
+                        {{ __('agricart.media.actions.empty_trash') }}
+                    </button>
+                @endif
+            </div>
+        </div>
+    @endif
+
+    @if ($canManage && $activeBucket === 'all')
+        <div class="agricart-media-library__bulk agricart-media-library__bulk--subtle">
+            <div class="agricart-media-library__bulk-copy">
+                <p>{{ __('agricart.media.bulk_repair_help') }}</p>
+                <p>{{ __('agricart.media.bulk_orphans_help') }}</p>
+            </div>
+            <div class="agricart-media-library__bulk-actions">
+                <button
+                    type="button"
+                    class="agricart-media-library__bulk-btn agricart-media-library__bulk-btn--secondary"
+                    wire:click="repairUsageLinks"
+                    wire:confirm="{{ __('agricart.media.confirm_repair_links') }}"
+                >
+                    {{ __('agricart.media.actions.repair_links') }}
+                </button>
+                <button
+                    type="button"
+                    class="agricart-media-library__bulk-btn agricart-media-library__bulk-btn--secondary"
+                    wire:click="pruneOrphanFiles"
+                    wire:confirm="{{ __('agricart.media.confirm_prune_orphans') }}"
+                >
+                    {{ __('agricart.media.actions.prune_orphans') }}
+                </button>
+            </div>
         </div>
     @endif
 

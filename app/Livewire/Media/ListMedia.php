@@ -6,7 +6,8 @@ use App\Models\MediaAsset;
 use App\Models\User;
 use App\Services\Media\MediaLibraryService;
 use Illuminate\Contracts\View\View;
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Number;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -65,6 +66,9 @@ class ListMedia extends Component
 
         if ($field === 'usage' && in_array($value, ['', 'used', 'unused'], true)) {
             $this->usageFilter = $value;
+            if ($value !== '') {
+                $this->statusFilter = 'active';
+            }
         }
 
         if ($field === 'type' && in_array($value, ['', 'webp', 'jpeg', 'png', 'gif'], true)) {
@@ -77,6 +81,31 @@ class ListMedia extends Component
 
         if ($field === 'status' && in_array($value, ['active', 'trash'], true)) {
             $this->statusFilter = $value;
+            if ($value === 'active' || $value === 'trash') {
+                $this->usageFilter = '';
+            }
+        }
+
+        $this->resetPage();
+    }
+
+    /**
+     * Summary cards: all | used | unused | trash
+     */
+    public function setSummaryBucket(string $bucket): void
+    {
+        $this->authorizeView();
+
+        if (! in_array($bucket, ['all', 'used', 'unused', 'trash'], true)) {
+            return;
+        }
+
+        if ($bucket === 'trash') {
+            $this->statusFilter = 'trash';
+            $this->usageFilter = '';
+        } else {
+            $this->statusFilter = 'active';
+            $this->usageFilter = $bucket === 'all' ? '' : $bucket;
         }
 
         $this->resetPage();
@@ -160,24 +189,84 @@ class ListMedia extends Component
     {
         $this->authorizeManage();
 
+        $stats = $library->dashboardStats();
         $result = $library->trashUnused();
-        $this->statusMessage = __('agricart.media.messages.trashed_bulk', [
+        $this->statusMessage = __('agricart.media.messages.trashed_bulk_sized', [
             'count' => $result['trashed'],
             'skipped' => $result['skipped'],
+            'size' => $this->formatBytes((int) $stats['unused_bytes']),
         ]);
         $this->statusType = $result['trashed'] > 0 ? 'success' : 'danger';
         $this->resetPage();
+    }
+
+    public function emptyTrash(MediaLibraryService $library): void
+    {
+        $this->authorizeManage();
+
+        $result = $library->emptyTrash();
+        $this->statusMessage = __('agricart.media.messages.empty_trash_done', [
+            'count' => $result['deleted'],
+            'skipped' => $result['skipped'],
+            'size' => $this->formatBytes((int) $result['bytes']),
+        ]);
+        $this->statusType = $result['deleted'] > 0 ? 'success' : 'danger';
+        $this->setSummaryBucket('trash');
+    }
+
+    public function repairUsageLinks(): void
+    {
+        $this->authorizeManage();
+
+        $exit = Artisan::call('media:backfill-library');
+        $output = trim(Artisan::output());
+        app(MediaLibraryService::class)->forgetStatsCache();
+
+        $this->statusMessage = $exit === 0
+            ? ($output !== '' ? $output : __('agricart.media.messages.links_repaired'))
+            : __('agricart.media.messages.links_repair_failed');
+        $this->statusType = $exit === 0 ? 'success' : 'danger';
+        $this->resetPage();
+    }
+
+    public function pruneOrphanFiles(): void
+    {
+        $this->authorizeManage();
+
+        $exit = Artisan::call('media:prune-orphans');
+        $output = trim(Artisan::output());
+        $this->statusMessage = $exit === 0
+            ? ($output !== '' ? $output : __('agricart.media.messages.orphans_cleaned'))
+            : __('agricart.media.messages.orphans_failed');
+        $this->statusType = $exit === 0 ? 'success' : 'danger';
+        app(MediaLibraryService::class)->forgetStatsCache();
+        $this->resetPage();
+    }
+
+    #[On('media-library-action')]
+    public function handleToolbarAction(string $action): void
+    {
+        match ($action) {
+            'prune_orphans' => $this->pruneOrphanFiles(),
+            'repair_links' => $this->repairUsageLinks(),
+            'empty_trash' => $this->emptyTrash(app(MediaLibraryService::class)),
+            default => null,
+        };
     }
 
     #[On('media-library-updated')]
     public function refreshList(): void
     {
         $this->authorizeView();
+        app(MediaLibraryService::class)->forgetStatsCache();
     }
 
     public function render(): View
     {
         $this->authorizeView();
+        $library = app(MediaLibraryService::class);
+        $stats = $library->dashboardStats();
+
         $assets = MediaAsset::query()
             ->withCount('usages')
             ->when(filled($this->search), function ($query): void {
@@ -191,16 +280,13 @@ class ListMedia extends Component
             ->when($this->sourceFilter === 'profiles', fn ($query) => $query->whereIn('source_module', ['customers', 'suppliers', 'users']))
             ->when($this->sourceFilter === 'store', fn ($query) => $query->whereIn('source_module', ['store', 'company']))
             ->when(filled($this->sourceFilter) && ! in_array($this->sourceFilter, ['profiles', 'store'], true), fn ($query) => $query->where('source_module', $this->sourceFilter))
-            ->when($this->usageFilter === 'used', fn ($query) => $query->has('usages'))
-            ->when($this->usageFilter === 'unused', function ($query): void {
-                $query->doesntHave('usages')
-                    ->where(function ($inner): void {
-                        $inner->where('visibility', '!=', 'private')
-                            ->where('disk', '!=', 'local')
-                            ->where('path', 'not like', 'users/cnic/%')
-                            ->where('path', 'not like', 'online-orders/customer-receipts/%');
-                    });
+            ->when($this->usageFilter === 'used', function ($query) use ($library): void {
+                $library->applyInUseConstraint($query->whereNull('trashed_at'), inUse: true);
             })
+            ->when($this->usageFilter === 'unused', fn ($query) => $query->whereIn(
+                'id',
+                $library->unusedAssetsQuery()->select('id'),
+            ))
             ->when(filled($this->typeFilter), fn ($query) => $query->where('mime_type', $this->typeFilter === 'jpeg' ? 'image/jpeg' : 'image/'.$this->typeFilter))
             ->when($this->dateFilter === 'today', fn ($query) => $query->whereDate('created_at', today()))
             ->when($this->dateFilter === '7days', fn ($query) => $query->where('created_at', '>=', now()->subDays(7)))
@@ -211,34 +297,33 @@ class ListMedia extends Component
             ->latest('id')
             ->paginate(24);
 
+        $activeBucket = match (true) {
+            $this->statusFilter === 'trash' => 'trash',
+            $this->usageFilter === 'used' => 'used',
+            $this->usageFilter === 'unused' => 'unused',
+            default => 'all',
+        };
+
         return view('livewire.media.list-media', [
             'assets' => $assets,
-            'stats' => $this->mediaLibraryStats(),
+            'stats' => $stats,
+            'activeBucket' => $activeBucket,
+            'formattedSizes' => [
+                'all' => $this->formatBytes((int) $stats['all_bytes']),
+                'used' => $this->formatBytes((int) $stats['used_bytes']),
+                'unused' => $this->formatBytes((int) $stats['unused_bytes']),
+                'trash' => $this->formatBytes((int) $stats['trash_bytes']),
+            ],
         ]);
     }
 
-    /**
-     * @return array{all: int, used: int, unused: int, trash: int}
-     */
-    private function mediaLibraryStats(): array
+    private function formatBytes(int $bytes): string
     {
-        return Cache::remember('media_library:stats', 45, function (): array {
-            return [
-                'all' => MediaAsset::query()->whereNull('trashed_at')->count(),
-                'used' => MediaAsset::query()->whereNull('trashed_at')->has('usages')->count(),
-                'unused' => MediaAsset::query()
-                    ->whereNull('trashed_at')
-                    ->doesntHave('usages')
-                    ->where(function ($inner): void {
-                        $inner->where('visibility', '!=', 'private')
-                            ->where('disk', '!=', 'local')
-                            ->where('path', 'not like', 'users/cnic/%')
-                            ->where('path', 'not like', 'online-orders/customer-receipts/%');
-                    })
-                    ->count(),
-                'trash' => MediaAsset::query()->whereNotNull('trashed_at')->count(),
-            ];
-        });
+        if ($bytes <= 0) {
+            return '0 KB';
+        }
+
+        return Number::fileSize($bytes, precision: 1);
     }
 
     private function authorizeView(): User

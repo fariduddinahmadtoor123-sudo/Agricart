@@ -274,7 +274,16 @@ class ListSuppliers extends Component
                         ->orWhere('city_en', 'like', $needle)
                         ->orWhere('city_ur', 'like', $needle)
                         ->orWhere('email', 'like', $needle)
-                        ->orWhere('contacts', 'like', $needle);
+                        ->orWhere('contacts', 'like', $needle)
+                        ->orWhere('custom_categories', 'like', $needle)
+                        ->orWhereHas('categories', function ($categories) use ($needle): void {
+                            $categories->where(function ($categoryQuery) use ($needle): void {
+                                $categoryQuery->where('name_en', 'like', $needle)
+                                    ->orWhere('name_ur', 'like', $needle)
+                                    ->orWhere('code', 'like', $needle)
+                                    ->orWhere('slug', 'like', $needle);
+                            });
+                        });
 
                     if ($digits !== '') {
                         $inner->orWhere('contacts', 'like', '%'.$digits.'%');

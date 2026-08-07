@@ -21,6 +21,7 @@ use App\Models\StoreSetting;
 use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -105,15 +106,29 @@ class MediaLibraryService
         ?string $displayName = null,
         ?string $sourceModule = null,
     ): ?MediaUsage {
-        $asset = is_string($asset)
-            ? $this->registerPath($asset, null, $displayName, $sourceModule)
-            : $asset;
+        if (is_string($asset)) {
+            $path = $this->normalizePath($asset);
+            $existing = $path !== ''
+                ? MediaAsset::query()->where('path', $path)->orderByRaw("case when disk = 'public' then 0 else 1 end")->first()
+                : null;
+            $asset = $existing instanceof MediaAsset
+                ? $existing
+                : $this->registerPath($path, null, $displayName, $sourceModule);
+        }
 
         if (! $asset instanceof MediaAsset) {
             return null;
         }
 
-        return MediaUsage::query()->updateOrCreate(
+        if (filled($displayName) && ! filled($asset->display_name)) {
+            $asset->forceFill(['display_name' => $this->cleanName($displayName)])->save();
+        }
+
+        if (filled($sourceModule) && ! filled($asset->source_module)) {
+            $asset->forceFill(['source_module' => $sourceModule])->save();
+        }
+
+        $usage = MediaUsage::query()->updateOrCreate(
             [
                 'media_asset_id' => $asset->id,
                 'usable_type' => $owner->getMorphClass(),
@@ -123,6 +138,10 @@ class MediaLibraryService
             ],
             ['label' => $this->cleanName($label)],
         );
+
+        $this->forgetStatsCache();
+
+        return $usage;
     }
 
     /**
@@ -294,9 +313,7 @@ class MediaLibraryService
         $trashed = 0;
         $skipped = 0;
 
-        MediaAsset::query()
-            ->whereNull('trashed_at')
-            ->whereDoesntHave('usages')
+        $this->unusedAssetsQuery()
             ->orderBy('id')
             ->chunkById(100, function ($assets) use ($limit, &$trashed, &$skipped): void {
                 foreach ($assets as $asset) {
@@ -314,6 +331,8 @@ class MediaLibraryService
                     $trashed++;
                 }
             });
+
+        $this->forgetStatsCache();
 
         return ['trashed' => $trashed, 'skipped' => $skipped];
     }
@@ -462,6 +481,7 @@ class MediaLibraryService
         }
 
         $asset->forceFill(['trashed_at' => now()])->save();
+        $this->forgetStatsCache();
 
         return $asset;
     }
@@ -469,6 +489,7 @@ class MediaLibraryService
     public function restore(MediaAsset $asset): MediaAsset
     {
         $asset->forceFill(['trashed_at' => null])->save();
+        $this->forgetStatsCache();
 
         return $asset;
     }
@@ -488,6 +509,199 @@ class MediaLibraryService
                 Storage::disk($disk)->delete($path);
                 app(PublicMediaMirror::class)->forget($path, $disk);
             });
+        });
+
+        $this->forgetStatsCache();
+    }
+
+    /**
+     * Permanently delete every safely-trashed asset (Empty Trash).
+     *
+     * @return array{deleted: int, skipped: int, bytes: int}
+     */
+    public function emptyTrash(): array
+    {
+        $deleted = 0;
+        $skipped = 0;
+        $bytes = 0;
+
+        MediaAsset::query()
+            ->whereNotNull('trashed_at')
+            ->orderBy('id')
+            ->chunkById(100, function ($assets) use (&$deleted, &$skipped, &$bytes): void {
+                foreach ($assets as $asset) {
+                    if ($this->isProtectedDocument($asset) || $asset->usages()->exists() || $this->pathIsReferenced($asset->path)) {
+                        $skipped++;
+
+                        continue;
+                    }
+
+                    $bytes += max(0, (int) $asset->byte_size);
+                    $this->permanentlyDelete($asset);
+                    $deleted++;
+                }
+            });
+
+        $this->forgetStatsCache();
+
+        return compact('deleted', 'skipped', 'bytes');
+    }
+
+    /**
+     * @return array{
+     *     all: int,
+     *     used: int,
+     *     unused: int,
+     *     trash: int,
+     *     all_bytes: int,
+     *     used_bytes: int,
+     *     unused_bytes: int,
+     *     trash_bytes: int,
+     *     trash_retention_days: int
+     * }
+     */
+    public function dashboardStats(): array
+    {
+        return Cache::remember('media_library:stats', 45, function (): array {
+            $referenced = $this->referencedPathSet();
+            $active = MediaAsset::query()->whereNull('trashed_at');
+            $used = $this->applyInUseConstraint((clone $active), $referenced, inUse: true);
+            $unused = $this->unusedAssetsQuery($referenced);
+            $trash = MediaAsset::query()->whereNotNull('trashed_at');
+
+            return [
+                'all' => (clone $active)->count(),
+                'used' => (clone $used)->count(),
+                'unused' => (clone $unused)->count(),
+                'trash' => (clone $trash)->count(),
+                'all_bytes' => (int) (clone $active)->sum('byte_size'),
+                'used_bytes' => (int) (clone $used)->sum('byte_size'),
+                'unused_bytes' => (int) (clone $unused)->sum('byte_size'),
+                'trash_bytes' => (int) (clone $trash)->sum('byte_size'),
+                'trash_retention_days' => max(1, (int) config('retention.media_trash_days', 30)),
+            ];
+        });
+    }
+
+    public function forgetStatsCache(): void
+    {
+        Cache::forget('media_library:stats');
+        Cache::forget('media_library:referenced_paths');
+    }
+
+    /**
+     * Paths currently stored on products, categories, profiles, etc.
+     *
+     * @return array<string, true>
+     */
+    public function referencedPathSet(): array
+    {
+        return Cache::remember('media_library:referenced_paths', 45, function (): array {
+            $paths = [];
+
+            foreach ($this->modelSpecifications() as [$modelClass, $column]) {
+                if (! Schema::hasTable((new $modelClass)->getTable()) || ! Schema::hasColumn((new $modelClass)->getTable(), $column)) {
+                    continue;
+                }
+
+                foreach ($modelClass::query()->whereNotNull($column)->pluck($column) as $path) {
+                    if (is_string($path) && $path !== '') {
+                        $paths[$this->normalizePath($path)] = true;
+                    }
+                }
+            }
+
+            if (Schema::hasTable('products')) {
+                Product::query()
+                    ->where(function ($query): void {
+                        $query->whereNotNull('gallery_images')
+                            ->orWhereNotNull('gallery_original_images');
+                    })
+                    ->orderBy('id')
+                    ->chunkById(200, function ($products) use (&$paths): void {
+                        foreach ($products as $product) {
+                            foreach (['gallery_images', 'gallery_original_images'] as $field) {
+                                $gallery = $product->getAttribute($field);
+                                if (! is_array($gallery)) {
+                                    continue;
+                                }
+                                foreach ($gallery as $path) {
+                                    if (is_string($path) && $path !== '') {
+                                        $paths[$this->normalizePath($path)] = true;
+                                    }
+                                }
+                            }
+                        }
+                    });
+            }
+
+            if (Schema::hasTable('users')) {
+                foreach (['cnic_front_path', 'cnic_back_path'] as $column) {
+                    if (! Schema::hasColumn('users', $column)) {
+                        continue;
+                    }
+                    foreach (User::query()->whereNotNull($column)->pluck($column) as $path) {
+                        if (is_string($path) && $path !== '') {
+                            $paths[$this->normalizePath($path)] = true;
+                        }
+                    }
+                }
+            }
+
+            return $paths;
+        });
+    }
+
+    /**
+     * Truly unused public library images (no usage rows and not referenced by any model path).
+     *
+     * @param  array<string, true>|null  $referenced
+     * @return \Illuminate\Database\Eloquent\Builder<\App\Models\MediaAsset>
+     */
+    public function unusedAssetsQuery(?array $referenced = null)
+    {
+        $referenced ??= $this->referencedPathSet();
+        $paths = array_keys($referenced);
+
+        $query = MediaAsset::query()
+            ->whereNull('trashed_at')
+            ->doesntHave('usages')
+            ->where(function ($inner): void {
+                $inner->where('visibility', '!=', 'private')
+                    ->where('disk', '!=', 'local')
+                    ->where('path', 'not like', 'users/cnic/%')
+                    ->where('path', 'not like', 'online-orders/customer-receipts/%');
+            });
+
+        if ($paths !== []) {
+            $query->whereNotIn('path', $paths);
+        }
+
+        return $query;
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<\App\Models\MediaAsset>  $query
+     * @param  array<string, true>  $referenced
+     * @return \Illuminate\Database\Eloquent\Builder<\App\Models\MediaAsset>
+     */
+    public function applyInUseConstraint($query, ?array $referenced = null, bool $inUse = true)
+    {
+        $referenced ??= $this->referencedPathSet();
+        $paths = array_keys($referenced);
+
+        return $query->where(function ($inner) use ($paths, $inUse): void {
+            if ($inUse) {
+                $inner->has('usages');
+                if ($paths !== []) {
+                    $inner->orWhereIn('path', $paths);
+                }
+            } else {
+                $inner->doesntHave('usages');
+                if ($paths !== []) {
+                    $inner->whereNotIn('path', $paths);
+                }
+            }
         });
     }
 

@@ -117,6 +117,7 @@ return [
 
     'list' => [
         'empty' => 'No suppliers yet. Click Add Supplier to register your first supplier.',
+        'search' => 'Search name, city, or supply category…',
         'col_code' => 'Code',
         'col_business' => 'Business',
         'col_contact' => 'Contact',

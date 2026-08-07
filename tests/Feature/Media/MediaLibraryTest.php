@@ -286,6 +286,114 @@ class MediaLibraryTest extends TestCase
         Storage::disk('local')->assertExists('users/cnic/staff-front.jpg');
     }
 
+    public function test_path_referenced_images_count_as_used_not_unused(): void
+    {
+        Storage::disk('public')->put('products/path-only.jpg', UploadedFile::fake()->image('path-only.jpg')->getContent());
+        Storage::disk('public')->put('media-library/truly-unused.jpg', UploadedFile::fake()->image('truly-unused.jpg')->getContent());
+        $library = app(MediaLibraryService::class);
+        $linked = $library->registerPath('products/path-only.jpg', 'path-only.jpg', sourceModule: 'products');
+        $unused = $library->registerPath('media-library/truly-unused.jpg', 'truly-unused.jpg', sourceModule: 'media-library');
+
+        \App\Models\Product::withoutEvents(fn () => \App\Models\Product::query()->create([
+            'code' => 'P-PATH',
+            'slug' => 'path-only-product',
+            'name_en' => 'Path Only',
+            'name_ur' => 'Path Only',
+            'status' => 'active',
+            'image_path' => 'products/path-only.jpg',
+        ]));
+
+        $library->forgetStatsCache();
+        $stats = $library->dashboardStats();
+
+        $this->assertSame(0, $linked?->usages()->count());
+        $this->assertGreaterThanOrEqual(1, $stats['used']);
+        $this->assertTrue($library->unusedAssetsQuery()->whereKey($unused->id)->exists());
+        $this->assertFalse($library->unusedAssetsQuery()->whereKey($linked->id)->exists());
+        $this->assertTrue(
+            $library->applyInUseConstraint(MediaAsset::query()->whereNull('trashed_at'), inUse: true)
+                ->whereKey($linked->id)
+                ->exists()
+        );
+
+        $this->artisan('media:backfill-library')->assertSuccessful();
+        $this->assertGreaterThanOrEqual(1, $linked?->refresh()->usages()->count());
+    }
+
+    public function test_summary_buckets_switch_active_state_and_empty_trash(): void
+    {
+        $this->actingAs($this->userWithPermissions(['settings.view', 'settings.media.view', 'settings.media.manage']));
+
+        $category = Category::withoutEvents(fn () => Category::query()->create([
+            'slug' => 'media-used-cat',
+            'name_en' => 'Media Used',
+            'name_ur' => 'میڈیا',
+            'image_path' => null,
+        ]));
+
+        $used = MediaAsset::query()->create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'disk' => 'public',
+            'path' => 'media-library/used.webp',
+            'original_name' => 'used.webp',
+            'display_name' => 'Used Image',
+            'mime_type' => 'image/webp',
+            'byte_size' => 2048,
+            'source_module' => 'media-library',
+            'visibility' => 'public',
+        ]);
+        Storage::disk('public')->put($used->path, 'used');
+
+        $unused = MediaAsset::query()->create([
+            'uuid' => (string) \Illuminate\Support\Str::uuid(),
+            'disk' => 'public',
+            'path' => 'media-library/unused.webp',
+            'original_name' => 'unused.webp',
+            'display_name' => 'Unused Image',
+            'mime_type' => 'image/webp',
+            'byte_size' => 4096,
+            'source_module' => 'media-library',
+            'visibility' => 'public',
+        ]);
+        Storage::disk('public')->put($unused->path, 'unused');
+
+        MediaUsage::query()->create([
+            'media_asset_id' => $used->id,
+            'usable_type' => $category->getMorphClass(),
+            'usable_id' => $category->id,
+            'collection' => 'main',
+            'position' => 0,
+        ]);
+
+        Livewire::test(ListMedia::class)
+            ->call('setSummaryBucket', 'used')
+            ->assertSet('usageFilter', 'used')
+            ->assertSet('statusFilter', 'active')
+            ->assertSee('Used Image')
+            ->assertDontSee('Unused Image')
+            ->call('setSummaryBucket', 'unused')
+            ->assertSet('usageFilter', 'unused')
+            ->assertSee('Unused Image')
+            ->assertDontSee('Used Image')
+            ->call('setSummaryBucket', 'all')
+            ->assertSet('usageFilter', '')
+            ->assertSee('Used Image')
+            ->assertSee('Unused Image');
+
+        $library = app(MediaLibraryService::class);
+        $library->trash($unused->fresh());
+
+        Livewire::test(ListMedia::class)
+            ->call('setSummaryBucket', 'trash')
+            ->assertSet('statusFilter', 'trash')
+            ->assertSee('Unused Image')
+            ->call('emptyTrash')
+            ->assertSet('statusType', 'success');
+
+        $this->assertDatabaseMissing('media_assets', ['id' => $unused->id]);
+        Storage::disk('public')->assertMissing($unused->path);
+    }
+
     /**
      * @param  list<string>  $permissions
      */
