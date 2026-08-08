@@ -564,10 +564,14 @@ class MediaLibraryService
     {
         return Cache::remember('media_library:stats', 45, function (): array {
             $referenced = $this->referencedPathSet();
-            $active = MediaAsset::query()->whereNull('trashed_at');
+            $active = $this->applyLibraryBrowseConstraint(
+                MediaAsset::query()->whereNull('trashed_at'),
+            );
             $used = $this->applyInUseConstraint((clone $active), $referenced, inUse: true);
             $unused = $this->unusedAssetsQuery($referenced);
-            $trash = MediaAsset::query()->whereNotNull('trashed_at');
+            $trash = $this->applyLibraryBrowseConstraint(
+                MediaAsset::query()->whereNotNull('trashed_at'),
+            );
 
             return [
                 'all' => (clone $active)->count(),
@@ -663,21 +667,151 @@ class MediaLibraryService
         $referenced ??= $this->referencedPathSet();
         $paths = array_keys($referenced);
 
-        $query = MediaAsset::query()
-            ->whereNull('trashed_at')
-            ->doesntHave('usages')
-            ->where(function ($inner): void {
-                $inner->where('visibility', '!=', 'private')
-                    ->where('disk', '!=', 'local')
-                    ->where('path', 'not like', 'users/cnic/%')
-                    ->where('path', 'not like', 'online-orders/customer-receipts/%');
-            });
+        $query = $this->applyLibraryBrowseConstraint(
+            MediaAsset::query()->whereNull('trashed_at')->doesntHave('usages'),
+        );
 
         if ($paths !== []) {
             $query->whereNotIn('path', $paths);
         }
 
         return $query;
+    }
+
+    /**
+     * Library grid / stats: public display assets only (hide private masters & documents).
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder<\App\Models\MediaAsset>  $query
+     * @return \Illuminate\Database\Eloquent\Builder<\App\Models\MediaAsset>
+     */
+    public function applyLibraryBrowseConstraint($query)
+    {
+        return $query
+            ->where('disk', 'public')
+            ->where(function ($inner): void {
+                $inner->whereNull('visibility')
+                    ->orWhere('visibility', '!=', 'private');
+            })
+            ->where('path', 'not like', 'products/originals/%')
+            ->where('path', 'not like', 'products/gallery/originals/%')
+            ->where('path', 'not like', 'brands/originals/%')
+            ->where('path', 'not like', 'users/cnic/%')
+            ->where('path', 'not like', 'online-orders/customer-receipts/%')
+            ->where(function ($inner): void {
+                $inner->whereNull('metadata->role')
+                    ->orWhere('metadata->role', '!=', 'original');
+            });
+    }
+
+    public function isMasterOriginalPath(string $path): bool
+    {
+        $path = $this->normalizePath($path);
+
+        return str_starts_with($path, 'products/originals/')
+            || str_starts_with($path, 'products/gallery/originals/')
+            || str_starts_with($path, 'brands/originals/');
+    }
+
+    public function isMasterOriginalAsset(MediaAsset $asset): bool
+    {
+        if ($this->isMasterOriginalPath($asset->path)) {
+            return true;
+        }
+
+        return ($asset->metadata['role'] ?? null) === 'original';
+    }
+
+    /**
+     * Private clean original paired with a public watermarked library asset.
+     */
+    public function findPairedOriginalAsset(MediaAsset $asset): ?MediaAsset
+    {
+        if ($this->isMasterOriginalAsset($asset)) {
+            return null;
+        }
+
+        $path = $this->normalizePath($asset->path);
+        $originalPath = null;
+
+        if (Schema::hasTable('products') && Schema::hasColumn('products', 'image_original_path')) {
+            $product = Product::query()
+                ->where('image_path', $path)
+                ->first(['id', 'image_original_path', 'gallery_images', 'gallery_original_images']);
+
+            if ($product instanceof Product && filled($product->image_original_path)) {
+                $originalPath = (string) $product->image_original_path;
+            } elseif ($product instanceof Product) {
+                $gallery = is_array($product->gallery_images) ? $product->gallery_images : [];
+                $galleryOriginals = is_array($product->gallery_original_images) ? $product->gallery_original_images : [];
+                $index = array_search($path, $gallery, true);
+                if ($index !== false && isset($galleryOriginals[$index]) && is_string($galleryOriginals[$index])) {
+                    $originalPath = $galleryOriginals[$index];
+                }
+            }
+
+            if ($originalPath === null) {
+                Product::query()
+                    ->whereNotNull('gallery_images')
+                    ->orderBy('id')
+                    ->chunkById(100, function ($products) use ($path, &$originalPath): void {
+                        if ($originalPath !== null) {
+                            return;
+                        }
+
+                        foreach ($products as $product) {
+                            $gallery = is_array($product->gallery_images) ? $product->gallery_images : [];
+                            $galleryOriginals = is_array($product->gallery_original_images) ? $product->gallery_original_images : [];
+                            $index = array_search($path, $gallery, true);
+                            if ($index === false || ! isset($galleryOriginals[$index]) || ! is_string($galleryOriginals[$index])) {
+                                continue;
+                            }
+                            $originalPath = $galleryOriginals[$index];
+
+                            return;
+                        }
+                    });
+            }
+        }
+
+        if ($originalPath === null && Schema::hasTable('brands') && Schema::hasColumn('brands', 'image_original_path')) {
+            $brandOriginal = Brand::query()->where('image_path', $path)->value('image_original_path');
+            if (is_string($brandOriginal) && $brandOriginal !== '') {
+                $originalPath = $brandOriginal;
+            }
+        }
+
+        if ($originalPath === null && Schema::hasTable('brands') && Schema::hasColumn('brands', 'image_original_path')) {
+            $brandOriginal = Brand::query()->where('image_path', $path)->value('image_original_path');
+            if (is_string($brandOriginal) && $brandOriginal !== '') {
+                $originalPath = $brandOriginal;
+            }
+        }
+
+        if (! is_string($originalPath) || $originalPath === '') {
+            return null;
+        }
+
+        return MediaAsset::query()
+            ->where('path', $this->normalizePath($originalPath))
+            ->orderByRaw("case when disk = 'local' then 0 else 1 end")
+            ->first();
+    }
+
+    /**
+     * @return array{asset: MediaAsset, file_exists: bool}|null
+     */
+    public function pairedOriginalSummary(MediaAsset $asset): ?array
+    {
+        $original = $this->findPairedOriginalAsset($asset);
+
+        if (! $original instanceof MediaAsset) {
+            return null;
+        }
+
+        return [
+            'asset' => $original,
+            'file_exists' => Storage::disk($original->disk)->exists($original->path),
+        ];
     }
 
     /**

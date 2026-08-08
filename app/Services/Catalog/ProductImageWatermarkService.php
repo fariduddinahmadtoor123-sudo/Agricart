@@ -126,6 +126,8 @@ class ProductImageWatermarkService
             && (int) ($product->images_watermark_version ?? 0) === $version
             && filled($product->image_path)
             && filled($product->image_original_path)
+            && Storage::disk($this->publicDisk())->exists((string) $product->image_path)
+            && Storage::disk($this->privateDisk())->exists((string) $product->image_original_path)
         ) {
             return false;
         }
@@ -278,17 +280,29 @@ class ProductImageWatermarkService
         $privateDir = $kind === 'gallery' ? 'products/gallery/originals' : 'products/originals';
         $publicDir = $kind === 'gallery' ? 'products/gallery' : 'products';
 
-        if (! filled($originalPath) && filled($publicPath) && Storage::disk($publicDisk)->exists($publicPath)) {
-            $extension = strtolower(pathinfo($publicPath, PATHINFO_EXTENSION) ?: 'webp');
+        $publicExists = filled($publicPath) && Storage::disk($publicDisk)->exists((string) $publicPath);
+        $originalExists = filled($originalPath) && Storage::disk($privateDisk)->exists((string) $originalPath);
+
+        // After backup/restore, DB may still point at originals that are not on disk.
+        // Seed a private master from the current public image, then (re)build the watermarked copy.
+        if (! $originalExists) {
+            if (! $publicExists) {
+                return null;
+            }
+
+            $extension = strtolower(pathinfo((string) $publicPath, PATHINFO_EXTENSION) ?: 'webp');
             $originalPath = $privateDir.'/'.Str::random(40).'.'.$extension;
             Storage::disk($privateDisk)->makeDirectory($privateDir);
-            Storage::disk($privateDisk)->put(
-                $originalPath,
-                Storage::disk($publicDisk)->get($publicPath) ?: '',
-            );
+            $bytes = Storage::disk($publicDisk)->get((string) $publicPath) ?: '';
+
+            if ($bytes === '') {
+                return null;
+            }
+
+            Storage::disk($privateDisk)->put($originalPath, $bytes);
             $this->library->registerPath(
                 $originalPath,
-                basename($publicPath),
+                basename((string) $publicPath),
                 null,
                 'products',
                 $privateDisk,
@@ -296,25 +310,14 @@ class ProductImageWatermarkService
             );
         }
 
-        if (! filled($originalPath) || ! Storage::disk($privateDisk)->exists($originalPath)) {
-            if (! filled($publicPath) || ! Storage::disk($publicDisk)->exists($publicPath)) {
-                return null;
-            }
-
-            return [
-                'public' => $publicPath,
-                'original' => $originalPath ?? '',
-            ];
-        }
-
-        $absoluteOriginal = Storage::disk($privateDisk)->path($originalPath);
+        $absoluteOriginal = Storage::disk($privateDisk)->path((string) $originalPath);
         $publicBinary = $this->buildPublicBinary($absoluteOriginal);
         $newPublicPath = $publicDir.'/'.Str::random(40).'.webp';
         Storage::disk($publicDisk)->makeDirectory($publicDir);
         Storage::disk($publicDisk)->put($newPublicPath, $publicBinary);
         $this->library->registerPath(
             $newPublicPath,
-            basename($originalPath),
+            basename((string) $originalPath),
             null,
             'products',
             $publicDisk,
@@ -323,12 +326,12 @@ class ProductImageWatermarkService
         $this->publicMirror->publish($newPublicPath, $publicDisk);
 
         if (filled($publicPath) && $publicPath !== $newPublicPath) {
-            $this->library->deleteFileIfUnused($publicPath, $publicDisk);
+            $this->library->deleteFileIfUnused((string) $publicPath, $publicDisk);
         }
 
         return [
             'public' => $newPublicPath,
-            'original' => $originalPath,
+            'original' => (string) $originalPath,
         ];
     }
 

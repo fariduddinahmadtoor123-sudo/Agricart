@@ -72,11 +72,6 @@ class BrandImageWatermarkService
     public function applyToAll(bool $force = false): array
     {
         $stats = ['processed' => 0, 'skipped' => 0, 'failed' => 0];
-        $settings = StoreSetting::current();
-
-        if ($settings->brand_watermark_enabled && ! $this->hasWatermarkSource($settings)) {
-            throw new RuntimeException(__('agricart.brand_watermark.errors.source_required'));
-        }
 
         Brand::query()
             ->orderBy('id')
@@ -112,6 +107,8 @@ class BrandImageWatermarkService
             && (int) ($brand->image_watermark_version ?? 0) === $version
             && filled($brand->image_path)
             && filled($brand->image_original_path)
+            && Storage::disk($this->publicDisk())->exists((string) $brand->image_path)
+            && Storage::disk($this->privateDisk())->exists((string) $brand->image_original_path)
         ) {
             return false;
         }
@@ -172,17 +169,28 @@ class BrandImageWatermarkService
         $privateDir = 'brands/originals';
         $publicDir = 'brands';
 
-        if (! filled($originalPath) && filled($publicPath) && Storage::disk($publicDisk)->exists($publicPath)) {
-            $extension = strtolower(pathinfo($publicPath, PATHINFO_EXTENSION) ?: 'webp');
+        $publicExists = filled($publicPath) && Storage::disk($publicDisk)->exists((string) $publicPath);
+        $originalExists = filled($originalPath) && Storage::disk($privateDisk)->exists((string) $originalPath);
+
+        // After backup/restore, DB may still point at originals that are not on disk.
+        if (! $originalExists) {
+            if (! $publicExists) {
+                return null;
+            }
+
+            $extension = strtolower(pathinfo((string) $publicPath, PATHINFO_EXTENSION) ?: 'webp');
             $originalPath = $privateDir.'/'.Str::random(40).'.'.$extension;
             Storage::disk($privateDisk)->makeDirectory($privateDir);
-            Storage::disk($privateDisk)->put(
-                $originalPath,
-                Storage::disk($publicDisk)->get($publicPath) ?: '',
-            );
+            $bytes = Storage::disk($publicDisk)->get((string) $publicPath) ?: '';
+
+            if ($bytes === '') {
+                return null;
+            }
+
+            Storage::disk($privateDisk)->put($originalPath, $bytes);
             $this->library->registerPath(
                 $originalPath,
-                basename($publicPath),
+                basename((string) $publicPath),
                 null,
                 'brands',
                 $privateDisk,
@@ -190,21 +198,14 @@ class BrandImageWatermarkService
             );
         }
 
-        if (! filled($originalPath) || ! Storage::disk($privateDisk)->exists($originalPath)) {
-            return filled($publicPath) ? [
-                'public' => $publicPath,
-                'original' => (string) ($originalPath ?? ''),
-            ] : null;
-        }
-
-        $absoluteOriginal = Storage::disk($privateDisk)->path($originalPath);
+        $absoluteOriginal = Storage::disk($privateDisk)->path((string) $originalPath);
         $publicBinary = $this->buildPublicBinary($absoluteOriginal);
         $newPublicPath = $publicDir.'/'.Str::random(40).'.webp';
         Storage::disk($publicDisk)->makeDirectory($publicDir);
         Storage::disk($publicDisk)->put($newPublicPath, $publicBinary);
         $this->library->registerPath(
             $newPublicPath,
-            basename($originalPath),
+            basename((string) $originalPath),
             null,
             'brands',
             $publicDisk,
@@ -213,12 +214,12 @@ class BrandImageWatermarkService
         $this->publicMirror->publish($newPublicPath, $publicDisk);
 
         if (filled($publicPath) && $publicPath !== $newPublicPath) {
-            $this->library->deleteFileIfUnused($publicPath, $publicDisk);
+            $this->library->deleteFileIfUnused((string) $publicPath, $publicDisk);
         }
 
         return [
             'public' => $newPublicPath,
-            'original' => $originalPath,
+            'original' => (string) $originalPath,
         ];
     }
 
@@ -251,7 +252,7 @@ class BrandImageWatermarkService
         $settings ??= StoreSetting::current();
 
         return $this->resolveWatermarkLogoAbsolutePath($settings) !== null
-            || filled(trim((string) ($settings->brand_watermark_text ?: $this->defaultText())));
+            || filled(trim((string) ($settings->brand_watermark_text ?? '')));
     }
 
     private function resolveWatermarkLogoAbsolutePath(?StoreSetting $settings = null): ?string
@@ -302,7 +303,7 @@ class BrandImageWatermarkService
         $sizePercent = (int) ($settings->brand_watermark_size_percent ?: config('media.brand_watermark.default_size_percent'));
         $opacity = (int) ($settings->brand_watermark_opacity ?: config('media.brand_watermark.default_opacity'));
         $logoPath = $this->resolveWatermarkLogoAbsolutePath($settings);
-        $text = trim((string) ($settings->brand_watermark_text ?: $this->defaultText()));
+        $text = trim((string) ($settings->brand_watermark_text ?? ''));
 
         if ($logoPath !== null && $text !== '') {
             $this->overlayStackedBadge($base, $logoPath, $text, $position, $sizePercent, $opacity);

@@ -129,6 +129,58 @@ class ProductImageWatermarkTest extends TestCase
         $this->assertSame(1, (int) $product->images_watermark_version);
     }
 
+    public function test_apply_recreates_missing_private_original_and_regenerates_public_image(): void
+    {
+        Storage::fake('public');
+        Storage::fake('local');
+        $this->seedWatermarkLogo();
+
+        $category = Category::query()->create([
+            'code' => 'CAT-WM3',
+            'slug' => 'wm-cat-3',
+            'status' => 'active',
+            'name_en' => 'Missing Original Category',
+            'name_ur' => 'غائب اصل',
+        ]);
+        $brand = Brand::query()->create([
+            'code' => 'BR-WM3',
+            'slug' => 'wm-brand-3',
+            'status' => 'active',
+            'name_en' => 'Missing Original Brand',
+            'name_ur' => 'غائب اصل برانڈ',
+            'image_path' => 'brands/missing-orig.webp',
+        ]);
+
+        $publicPath = 'products/restored-public.png';
+        $missingOriginal = 'products/originals/missing-master.png';
+        Storage::disk('public')->put($publicPath, $this->pngBinary(180, 140));
+
+        $product = Product::query()->create([
+            'code' => 'PRD-MISS-ORIG',
+            'slug' => 'missing-original-product',
+            'status' => 'active',
+            'name_en' => 'Missing Original Product',
+            'name_ur' => 'غائب اصل پروڈکٹ',
+            'category_id' => $category->id,
+            'brand_id' => $brand->id,
+            'image_path' => $publicPath,
+            'image_original_path' => $missingOriginal,
+            'images_watermark_version' => 1,
+            'unit_qty' => 1,
+        ]);
+
+        Storage::disk('local')->assertMissing($missingOriginal);
+
+        $this->artisan('products:apply-watermarks')->assertSuccessful();
+
+        $product->refresh();
+        $this->assertNotSame($publicPath, $product->image_path);
+        $this->assertNotSame($missingOriginal, $product->image_original_path);
+        Storage::disk('local')->assertExists($product->image_original_path);
+        Storage::disk('public')->assertExists($product->image_path);
+        Storage::disk('local')->assertMissing($missingOriginal);
+    }
+
     public function test_resolve_for_platform_respects_marketplace_preferences(): void
     {
         Storage::fake('public');

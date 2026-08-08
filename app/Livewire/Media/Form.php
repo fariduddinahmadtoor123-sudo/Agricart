@@ -165,6 +165,9 @@ class Form extends Component
 
         return view('livewire.media.form', [
             'asset' => $asset,
+            'pairedOriginal' => $asset instanceof MediaAsset
+                ? app(MediaLibraryService::class)->pairedOriginalSummary($asset)
+                : null,
         ]);
     }
 

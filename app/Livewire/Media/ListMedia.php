@@ -269,6 +269,7 @@ class ListMedia extends Component
 
         $assets = MediaAsset::query()
             ->withCount('usages')
+            ->tap(fn ($query) => $library->applyLibraryBrowseConstraint($query))
             ->when(filled($this->search), function ($query): void {
                 $needle = '%'.$this->search.'%';
                 $query->where(function ($inner) use ($needle): void {

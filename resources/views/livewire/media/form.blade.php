@@ -53,7 +53,37 @@
                     <div><dt>{{ __('agricart.media.fields.source') }}</dt><dd>{{ ucfirst($asset->source_module) }}</dd></div>
                     <div><dt>{{ __('agricart.media.fields.uploaded') }}</dt><dd>{{ $asset->created_at?->format('d M Y, h:i A') }}</dd></div>
                     <div><dt>{{ __('agricart.media.fields.path') }}</dt><dd dir="ltr">{{ $asset->path }}</dd></div>
+                    <div>
+                        <dt>{{ __('agricart.media.fields.variant') }}</dt>
+                        <dd>{{ __('agricart.media.variants.storefront') }}</dd>
+                    </div>
                 </dl>
+
+                @if (is_array($pairedOriginal) && isset($pairedOriginal['asset']))
+                    @php($master = $pairedOriginal['asset'])
+                    <div class="agricart-media-form__master" role="note">
+                        <strong>{{ __('agricart.media.master_original.title') }}</strong>
+                        <p>{{ __('agricart.media.master_original.help') }}</p>
+                        <dl>
+                            <div>
+                                <dt>{{ __('agricart.media.master_original.status') }}</dt>
+                                <dd>
+                                    {{ $pairedOriginal['file_exists']
+                                        ? __('agricart.media.master_original.on_disk')
+                                        : __('agricart.media.master_original.missing') }}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt>{{ __('agricart.media.fields.size') }}</dt>
+                                <dd>{{ number_format($master->byte_size / 1024, 1) }} KB</dd>
+                            </div>
+                            <div>
+                                <dt>{{ __('agricart.media.fields.path') }}</dt>
+                                <dd dir="ltr">{{ $master->path }}</dd>
+                            </div>
+                        </dl>
+                    </div>
+                @endif
 
                 <div class="agricart-media-form__actions">
                     @if ($canManage)

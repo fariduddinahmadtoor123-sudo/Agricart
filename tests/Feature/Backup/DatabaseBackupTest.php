@@ -44,6 +44,16 @@ class DatabaseBackupTest extends TestCase
         }
     }
 
+    public function test_backup_manager_blade_exposes_immediate_livewire_loading_feedback(): void
+    {
+        $blade = (string) file_get_contents(resource_path('views/livewire/settings/manage-backups.blade.php'));
+
+        $this->assertStringContainsString('wire:loading.flex', $blade);
+        $this->assertStringContainsString('wire:target="createFull,createDatabase,importIncoming,confirmRestore"', $blade);
+        $this->assertStringContainsString('wire:click="createFull"', $blade);
+        $this->assertStringContainsString('agricart.backups.status.creating_full', $blade);
+    }
+
     public function test_mysql_dump_falls_back_to_php_when_cli_is_unavailable(): void
     {
         if (config('database.connections.'.config('database.default').'.driver') !== 'mysql') {

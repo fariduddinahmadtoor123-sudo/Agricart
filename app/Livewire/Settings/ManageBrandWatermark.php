@@ -107,9 +107,7 @@ class ManageBrandWatermark extends Component
             $settings = StoreSetting::current();
             $settings->update([
                 'brand_watermark_enabled' => $this->enabled,
-                'brand_watermark_text' => trim($this->text) !== ''
-                    ? trim($this->text)
-                    : $watermarks->defaultText(),
+                'brand_watermark_text' => trim($this->text),
                 'brand_watermark_position' => $this->position,
                 'brand_watermark_size_percent' => $this->sizePercent,
                 'brand_watermark_opacity' => $this->opacity,
@@ -128,6 +126,21 @@ class ManageBrandWatermark extends Component
         } finally {
             $this->saving = false;
         }
+    }
+
+    public function clearText(BrandImageWatermarkService $watermarks): void
+    {
+        if (! $this->canManage()) {
+            return;
+        }
+
+        $this->text = '';
+        $settings = StoreSetting::current();
+        $settings->update(['brand_watermark_text' => '']);
+        $watermarks->bumpWatermarkVersion($settings->fresh());
+        $this->hydrateFromSettings($watermarks);
+        $this->statusMessage = __('agricart.brand_watermark.messages.text_cleared');
+        $this->statusType = 'success';
     }
 
     public function applyToAllBrands(BrandImageWatermarkService $watermarks): void
@@ -176,9 +189,10 @@ class ManageBrandWatermark extends Component
 
     private function hydrateFromSettings(BrandImageWatermarkService $watermarks): void
     {
+        unset($watermarks);
         $settings = StoreSetting::current();
         $this->enabled = (bool) ($settings->brand_watermark_enabled ?? true);
-        $this->text = (string) ($settings->brand_watermark_text ?: $watermarks->defaultText());
+        $this->text = (string) ($settings->brand_watermark_text ?? '');
         $this->position = (string) ($settings->brand_watermark_position ?: 'bottom-right');
         $this->sizePercent = (int) ($settings->brand_watermark_size_percent ?: 18);
         $this->opacity = (int) ($settings->brand_watermark_opacity ?: 70);

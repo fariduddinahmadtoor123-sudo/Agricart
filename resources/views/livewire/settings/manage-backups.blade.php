@@ -1,17 +1,39 @@
 <div class="agricart-backups" @if($busy) wire:poll.2s @endif>
     @if ($flashMessage)
-        <div @class([
-            'agricart-backups__alert',
-            'is-success' => $flashType === 'success',
-            'is-danger' => $flashType === 'danger',
-            'is-warning' => $flashType === 'warning',
-        ])>
+        <div
+            wire:loading.remove
+            wire:target="createFull,createDatabase,importIncoming,confirmRestore"
+            @class([
+                'agricart-backups__alert',
+                'is-success' => $flashType === 'success',
+                'is-danger' => $flashType === 'danger',
+                'is-warning' => $flashType === 'warning',
+            ])
+        >
             {{ $flashMessage }}
         </div>
     @endif
 
+    {{-- Client-side loading: shows as soon as the Livewire request starts (busy alone never appears during create). --}}
+    <div
+        wire:loading.flex
+        wire:target="createFull,createDatabase,importIncoming,confirmRestore"
+        class="agricart-backups__progress"
+        role="status"
+        aria-live="assertive"
+        aria-busy="true"
+    >
+        <span class="agricart-backups__spinner" aria-hidden="true"></span>
+        <div class="agricart-backups__progress-copy">
+            <p wire:loading wire:target="createFull">{{ __('agricart.backups.status.creating_full') }}</p>
+            <p wire:loading wire:target="createDatabase">{{ __('agricart.backups.status.creating_database') }}</p>
+            <p wire:loading wire:target="importIncoming">{{ __('agricart.backups.status.importing') }}</p>
+            <p wire:loading wire:target="confirmRestore">{{ __('agricart.backups.status.restoring') }}</p>
+        </div>
+    </div>
+
     @if ($busy)
-        <div class="agricart-backups__progress">
+        <div class="agricart-backups__progress" role="status" aria-live="polite">
             <span class="agricart-backups__spinner" aria-hidden="true"></span>
             <p>{{ __('agricart.backups.status.working') }}</p>
         </div>
@@ -30,11 +52,33 @@
         </header>
 
         <div class="agricart-backups__actions agricart-backups__actions--flush">
-            <button type="button" class="agricart-backups__btn is-primary" wire:click="createFull" @disabled($busy || ! $canManage)>
-                {{ __('agricart.backups.actions.create_full') }}
+            <button
+                type="button"
+                class="agricart-backups__btn is-primary"
+                wire:click="createFull"
+                wire:loading.attr="disabled"
+                wire:target="createFull,createDatabase,importIncoming,confirmRestore"
+                @disabled($busy || ! $canManage)
+            >
+                <span wire:loading.remove wire:target="createFull">{{ __('agricart.backups.actions.create_full') }}</span>
+                <span wire:loading.inline-flex wire:target="createFull" class="agricart-backups__btn-state">
+                    <span class="agricart-backups__spinner" aria-hidden="true"></span>
+                    {{ __('agricart.backups.actions.creating_full') }}
+                </span>
             </button>
-            <button type="button" class="agricart-backups__btn" wire:click="createDatabase" @disabled($busy || ! $canManage)>
-                {{ __('agricart.backups.actions.create_database') }}
+            <button
+                type="button"
+                class="agricart-backups__btn"
+                wire:click="createDatabase"
+                wire:loading.attr="disabled"
+                wire:target="createFull,createDatabase,importIncoming,confirmRestore"
+                @disabled($busy || ! $canManage)
+            >
+                <span wire:loading.remove wire:target="createDatabase">{{ __('agricart.backups.actions.create_database') }}</span>
+                <span wire:loading.inline-flex wire:target="createDatabase" class="agricart-backups__btn-state">
+                    <span class="agricart-backups__spinner" aria-hidden="true"></span>
+                    {{ __('agricart.backups.actions.creating_database') }}
+                </span>
             </button>
         </div>
     </section>

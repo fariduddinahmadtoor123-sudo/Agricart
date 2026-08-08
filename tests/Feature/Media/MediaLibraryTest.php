@@ -286,6 +286,70 @@ class MediaLibraryTest extends TestCase
         Storage::disk('local')->assertExists('users/cnic/staff-front.jpg');
     }
 
+    public function test_library_hides_private_master_originals_and_links_them_on_detail(): void
+    {
+        Storage::fake('local');
+        Storage::disk('public')->put('products/public-pulley.webp', UploadedFile::fake()->image('public-pulley.webp', 200, 200)->getContent());
+        Storage::disk('local')->put('products/originals/master-pulley.webp', UploadedFile::fake()->image('master-pulley.webp', 200, 200)->getContent());
+
+        $library = app(MediaLibraryService::class);
+        $public = $library->registerPath(
+            'products/public-pulley.webp',
+            '26 inch C belt 3B pulley.webp',
+            '26 inch C belt 3B pulley',
+            'products',
+            'public',
+            ['role' => 'watermarked', 'kind' => 'main'],
+        );
+        $original = $library->registerPath(
+            'products/originals/master-pulley.webp',
+            '26 inch C belt 3B pulley.webp',
+            '26 inch C belt 3B pulley',
+            'products',
+            'local',
+            ['role' => 'original', 'kind' => 'main'],
+        );
+
+        $this->assertInstanceOf(MediaAsset::class, $public);
+        $this->assertInstanceOf(MediaAsset::class, $original);
+        $this->assertTrue($library->isMasterOriginalAsset($original));
+        $this->assertFalse(
+            $library->applyLibraryBrowseConstraint(MediaAsset::query())->whereKey($original->id)->exists()
+        );
+        $this->assertTrue(
+            $library->applyLibraryBrowseConstraint(MediaAsset::query())->whereKey($public->id)->exists()
+        );
+
+        \App\Models\Product::withoutEvents(fn () => \App\Models\Product::query()->create([
+            'code' => 'P-PAIR',
+            'slug' => 'paired-pulley',
+            'name_en' => 'Paired Pulley',
+            'name_ur' => 'Paired Pulley',
+            'status' => 'active',
+            'image_path' => 'products/public-pulley.webp',
+            'image_original_path' => 'products/originals/master-pulley.webp',
+        ]));
+
+        $summary = $library->pairedOriginalSummary($public);
+        $this->assertNotNull($summary);
+        $this->assertSame($original->id, $summary['asset']->id);
+        $this->assertTrue($summary['file_exists']);
+
+        $library->forgetStatsCache();
+        $stats = $library->dashboardStats();
+        $this->assertSame(1, $stats['all']);
+
+        $this->actingAs($this->userWithPermissions(['settings.view', 'settings.media.view', 'settings.media.manage']));
+        Livewire::test(ListMedia::class)
+            ->assertSee('26 inch C belt 3B pulley')
+            ->assertDontSee('products/originals/master-pulley.webp');
+
+        Livewire::test(Form::class)
+            ->dispatch('media-form-open', assetId: $public->id)
+            ->assertSee(__('agricart.media.master_original.title'))
+            ->assertSee('products/originals/master-pulley.webp');
+    }
+
     public function test_path_referenced_images_count_as_used_not_unused(): void
     {
         Storage::disk('public')->put('products/path-only.jpg', UploadedFile::fake()->image('path-only.jpg')->getContent());

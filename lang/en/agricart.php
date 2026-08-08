@@ -2579,7 +2579,7 @@ return [
     'backups' => [
         'sections' => [
             'create' => 'Create backup',
-            'create_hint' => 'Full backup saves the database and uploads — best for one-click restore. Database-only is smaller and faster.',
+            'create_hint' => 'Full backup saves the database and uploads — best for one-click restore. Database-only is smaller and faster. A progress banner appears as soon as you click; wait until it finishes (often 20–60 seconds on local).',
             'schedule' => 'Automatic schedule',
             'schedule_hint' => 'Choose when Agricart should create backups. Prefer Full so one restore brings everything back.',
             'export' => 'CSV export',
@@ -2634,6 +2634,8 @@ return [
         'actions' => [
             'create_full' => 'Create full backup',
             'create_database' => 'Create database backup',
+            'creating_full' => 'Creating full backup…',
+            'creating_database' => 'Creating database backup…',
             'save_schedule' => 'Save automatic schedule',
             'download' => 'Download',
             'restore' => 'Restore',
@@ -2676,6 +2678,10 @@ return [
         ],
         'status' => [
             'working' => 'Please wait — backup or restore is in progress…',
+            'creating_full' => 'Full backup started — packing database and uploaded files. Please keep this page open…',
+            'creating_database' => 'Database backup started — please keep this page open…',
+            'importing' => 'Importing backup from the incoming folder…',
+            'restoring' => 'Restore in progress — the site may briefly go offline…',
         ],
         'list' => [
             'empty' => 'No backups yet.',
@@ -3675,9 +3681,10 @@ return [
         'fields' => [
             'enabled' => 'Watermark brand logos on the storefront',
             'text' => 'Watermark text',
-            'text_hint' => 'Default: Available at Agricart.pk. Shown as a badge on every public brand logo.',
+            'text_hint' => 'Optional. Leave empty (or Clear text) for no text badge. Example: Available at Agricart.pk',
+            'text_placeholder' => 'Optional — e.g. Available at Agricart.pk',
             'logo' => 'Optional badge image',
-            'logo_hint' => 'Optional PNG badge only if you upload one here. Store/footer logos are never auto-added (avoids overlapping the text).',
+            'logo_hint' => 'Optional. Upload to show a badge, or Remove badge image for no logo watermark. You can use text only, logo only, both, or neither (plain brand logo).',
             'position' => 'Position',
             'size_percent' => 'Badge width (% of logo)',
             'opacity' => 'Opacity (%)',
@@ -3698,12 +3705,18 @@ return [
             'apply_force' => 'Force re-apply',
             'applying' => 'Applying…',
             'remove_logo' => 'Remove badge image',
+            'clear_text' => 'Clear text',
             'uploading' => 'Uploading…',
+        ],
+        'status' => [
+            'applying_hint' => 'Keep this page open — rebuilding brand logos can take a minute.',
+            'apply_help' => 'Use text only, badge only, both, or clear both then Force re-apply for plain logos. After any change: Save (if needed) → Force re-apply.',
         ],
         'messages' => [
             'saved' => 'Brand watermark settings saved.',
             'logo_saved' => 'Brand watermark badge uploaded.',
             'logo_removed' => 'Brand watermark badge removed.',
+            'text_cleared' => 'Watermark text cleared. Force re-apply to update brand logos.',
             'validation_failed' => 'Please check the brand watermark settings.',
             'applied' => 'Apply finished: :processed updated, :skipped skipped, :failed failed.',
         ],
@@ -3752,6 +3765,10 @@ return [
             'applying' => 'Applying…',
             'remove_logo' => 'Remove watermark logo',
             'uploading' => 'Uploading…',
+        ],
+        'status' => [
+            'applying_hint' => 'Keep this page open — rebuilding storefront images can take a minute.',
+            'apply_help' => 'After uploading a logo or changing size/position, click Apply (or Force re-apply). If private originals are missing after a restore, Force re-apply recreates them from public images first.',
         ],
         'messages' => [
             'saved' => 'Watermark settings saved.',
@@ -3817,6 +3834,18 @@ return [
             'source' => 'Source',
             'uploaded' => 'Uploaded',
             'path' => 'Storage Path',
+            'variant' => 'Library role',
+        ],
+        'variants' => [
+            'storefront' => 'Storefront image (watermarked when enabled)',
+            'original' => 'Private master original (no watermark)',
+        ],
+        'master_original' => [
+            'title' => 'Private master original',
+            'help' => 'Kept separately for re-watermarking and marketplace exports. Not shown as a second card in the library grid.',
+            'status' => 'Master file',
+            'on_disk' => 'Present on private storage',
+            'missing' => 'Missing from private storage (restore from backup if needed)',
         ],
         'stats' => [
             'nav_label' => 'Media views',
@@ -3825,7 +3854,7 @@ return [
             'unused' => 'Unused',
             'trash' => 'Trash',
             'hints' => [
-                'all' => 'Every active image in the library (not in Trash).',
+                'all' => 'Public storefront images in the library (private masters and ID documents stay hidden).',
                 'used' => 'Images linked via usage rows or still referenced on products, categories, brands, store, or profiles.',
                 'unused' => 'Public images with no usage rows and no path on any product/store record — safe Trash candidates.',
                 'trash' => 'Soft-deleted images waiting for restore or permanent removal.',

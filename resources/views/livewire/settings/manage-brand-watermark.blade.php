@@ -1,14 +1,29 @@
 <div class="agricart-product-watermark">
     @if ($statusMessage)
-        <div @class([
-            'agricart-product-watermark__alert',
-            'is-success' => $statusType === 'success',
-            'is-danger' => $statusType === 'danger',
-            'is-warning' => $statusType === 'warning',
-        ])>
+        <div
+            wire:loading.remove
+            wire:target="save,applyToAllBrands,forceApplyToAllBrands,removeLogo"
+            @class([
+                'agricart-product-watermark__alert',
+                'is-success' => $statusType === 'success',
+                'is-danger' => $statusType === 'danger',
+                'is-warning' => $statusType === 'warning',
+            ])
+        >
             {{ $statusMessage }}
         </div>
     @endif
+
+    <div
+        wire:loading.flex
+        wire:target="applyToAllBrands,forceApplyToAllBrands"
+        class="agricart-product-watermark__alert is-success"
+        role="status"
+        aria-live="assertive"
+    >
+        {{ __('agricart.brand_watermark.actions.applying') }}
+        {{ __('agricart.brand_watermark.status.applying_hint') }}
+    </div>
 
     <section class="agricart-product-watermark__panel">
         <header class="agricart-product-watermark__head">
@@ -25,16 +40,21 @@
 
             <label class="agricart-product-watermark__field">
                 <span>{{ __('agricart.brand_watermark.fields.text') }}</span>
-                <input type="text" wire:model="text" maxlength="120" @disabled(! $canManage || $saving || $applying)>
+                <input type="text" wire:model="text" maxlength="120" placeholder="{{ __('agricart.brand_watermark.fields.text_placeholder') }}" @disabled(! $canManage || $saving || $applying)>
                 <p class="agricart-product-watermark__help">{{ __('agricart.brand_watermark.fields.text_hint') }}</p>
+                @if (filled($text))
+                    <button type="button" class="agricart-product-watermark__btn" wire:click="clearText" wire:loading.attr="disabled" wire:target="clearText,save,applyToAllBrands,forceApplyToAllBrands" @disabled(! $canManage || $saving || $applying)>
+                        {{ __('agricart.brand_watermark.actions.clear_text') }}
+                    </button>
+                @endif
             </label>
 
             <div class="agricart-product-watermark__logo">
                 <span>{{ __('agricart.brand_watermark.fields.logo') }}</span>
                 <p class="agricart-product-watermark__help">{{ __('agricart.brand_watermark.fields.logo_hint') }}</p>
                 @if ($logoPreviewUrl)
-                    <img src="{{ $logoPreviewUrl }}" alt="" width="120" height="120" class="agricart-product-watermark__logo-preview">
-                    <button type="button" class="agricart-product-watermark__btn" wire:click="removeLogo" @disabled(! $canManage || $saving || $applying)>
+                    <img src="{{ $logoPreviewUrl }}?v={{ $version }}" alt="" width="120" height="120" class="agricart-product-watermark__logo-preview">
+                    <button type="button" class="agricart-product-watermark__btn" wire:click="removeLogo" wire:loading.attr="disabled" wire:target="removeLogo,save,applyToAllBrands,forceApplyToAllBrands" @disabled(! $canManage || $saving || $applying)>
                         {{ __('agricart.brand_watermark.actions.remove_logo') }}
                     </button>
                 @endif
@@ -67,17 +87,38 @@
             </div>
 
             <div class="agricart-product-watermark__actions">
-                <button type="submit" class="agricart-product-watermark__btn is-primary" @disabled(! $canManage || $saving || $applying)>
-                    {{ $saving ? __('agricart.brand_watermark.actions.saving') : __('agricart.brand_watermark.actions.save') }}
-                </button>
-                <button type="button" class="agricart-product-watermark__btn" wire:click="applyToAllBrands" @disabled(! $canManage || $saving || $applying)>
-                    {{ $applying ? __('agricart.brand_watermark.actions.applying') : __('agricart.brand_watermark.actions.apply') }}
-                </button>
-                <button type="button" class="agricart-product-watermark__btn" wire:click="forceApplyToAllBrands" @disabled(! $canManage || $saving || $applying)>
-                    {{ __('agricart.brand_watermark.actions.apply_force') }}
+                <button type="submit" class="agricart-product-watermark__btn is-primary" wire:loading.attr="disabled" wire:target="save,applyToAllBrands,forceApplyToAllBrands" @disabled(! $canManage || $saving || $applying)>
+                    <span wire:loading.remove wire:target="save">{{ __('agricart.brand_watermark.actions.save') }}</span>
+                    <span wire:loading wire:target="save">{{ __('agricart.brand_watermark.actions.saving') }}</span>
                 </button>
             </div>
         </form>
+
+        <div class="agricart-product-watermark__actions" style="margin-top: 0.75rem;">
+            <button
+                type="button"
+                class="agricart-product-watermark__btn"
+                wire:click="applyToAllBrands"
+                wire:loading.attr="disabled"
+                wire:target="applyToAllBrands,forceApplyToAllBrands,save"
+                @disabled(! $canManage || $saving || $applying)
+            >
+                <span wire:loading.remove wire:target="applyToAllBrands">{{ __('agricart.brand_watermark.actions.apply') }}</span>
+                <span wire:loading wire:target="applyToAllBrands">{{ __('agricart.brand_watermark.actions.applying') }}</span>
+            </button>
+            <button
+                type="button"
+                class="agricart-product-watermark__btn"
+                wire:click="forceApplyToAllBrands"
+                wire:loading.attr="disabled"
+                wire:target="applyToAllBrands,forceApplyToAllBrands,save"
+                @disabled(! $canManage || $saving || $applying)
+            >
+                <span wire:loading.remove wire:target="forceApplyToAllBrands">{{ __('agricart.brand_watermark.actions.apply_force') }}</span>
+                <span wire:loading wire:target="forceApplyToAllBrands">{{ __('agricart.brand_watermark.actions.applying') }}</span>
+            </button>
+        </div>
+        <p class="agricart-product-watermark__help" style="margin-top: 0.5rem;">{{ __('agricart.brand_watermark.status.apply_help') }}</p>
     </section>
 </div>
 
