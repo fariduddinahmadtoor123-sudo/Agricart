@@ -38,6 +38,8 @@ class HeaderSettings extends BaseStoreSettings
 
     public string $social_twitter = '';
 
+    public string $social_tiktok = '';
+
     public bool $show_auth_links = true;
 
     public string $login_url = '/login';
@@ -76,6 +78,7 @@ class HeaderSettings extends BaseStoreSettings
         $this->social_whatsapp = $settings->social_whatsapp ?? '';
         $this->social_youtube = $settings->social_youtube ?? '';
         $this->social_twitter = $settings->social_twitter ?? '';
+        $this->social_tiktok = $settings->social_tiktok ?? '';
         $this->show_auth_links = $settings->show_auth_links;
         $this->login_url = $settings->login_url ?? '/login';
         $this->register_url = $settings->register_url ?? '';
@@ -131,6 +134,7 @@ class HeaderSettings extends BaseStoreSettings
             'social_instagram' => ['nullable', 'string', 'max:500', new SafeUrl(false, ['http', 'https'])],
             'social_youtube' => ['nullable', 'string', 'max:500', new SafeUrl(false, ['http', 'https'])],
             'social_twitter' => ['nullable', 'string', 'max:500', new SafeUrl(false, ['http', 'https'])],
+            'social_tiktok' => ['nullable', 'string', 'max:500', new SafeUrl(false, ['http', 'https'])],
             'login_url' => ['nullable', 'string', 'max:500', new SafeUrl],
             'register_url' => ['nullable', 'string', 'max:500', new SafeUrl],
         ]);
@@ -148,6 +152,7 @@ class HeaderSettings extends BaseStoreSettings
             'social_whatsapp' => null,
             'social_youtube' => filled($this->social_youtube) ? $this->social_youtube : null,
             'social_twitter' => filled($this->social_twitter) ? $this->social_twitter : null,
+            'social_tiktok' => filled($this->social_tiktok) ? $this->social_tiktok : null,
             'show_auth_links' => $this->show_auth_links,
             'login_url' => filled($this->login_url) ? $this->login_url : '/login',
             'register_url' => filled($this->register_url) ? $this->register_url : null,

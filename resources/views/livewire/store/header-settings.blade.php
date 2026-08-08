@@ -47,9 +47,10 @@
             <span>{{ __('agricart.store.admin.header.show_social') }}</span>
         </label>
         <div class="agricart-store-admin__grid-2">
-            @foreach (['facebook', 'instagram', 'youtube', 'twitter'] as $network)
+            @php $socialLabels = ['tiktok' => 'TikTok', 'youtube' => 'YouTube']; @endphp
+            @foreach (['facebook', 'instagram', 'youtube', 'twitter', 'tiktok'] as $network)
                 <div class="agricart-store-admin__field">
-                    <label>{{ ucfirst($network) }}</label>
+                    <label>{{ $socialLabels[$network] ?? ucfirst($network) }}</label>
                     <input type="url" wire:model="social_{{ $network }}" class="agricart-store-admin__input" placeholder="https://" />
                 </div>
             @endforeach

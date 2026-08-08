@@ -34,6 +34,7 @@ class StoreSetting extends Model
         'social_whatsapp',
         'social_youtube',
         'social_twitter',
+        'social_tiktok',
         'show_auth_links',
         'login_url',
         'register_url',
@@ -160,6 +161,7 @@ class StoreSetting extends Model
             'instagram' => $this->social_instagram,
             'youtube' => $this->social_youtube,
             'twitter' => $this->social_twitter,
+            'tiktok' => $this->social_tiktok,
         ];
     }
 
