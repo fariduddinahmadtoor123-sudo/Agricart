@@ -135,6 +135,9 @@
                             </td>
                             <td class="agricart-purchase-form__name">
                                 <strong>{{ $row['name'] }}</strong>
+                                @if (filled($row['name_ur'] ?? null))
+                                    <div class="agricart-price-updates__name-ur" dir="rtl">{{ $row['name_ur'] }}</div>
+                                @endif
                                 @if (filled($row['code'] ?? null))
                                     <div class="agricart-price-updates__meta"><code>{{ $row['code'] }}</code></div>
                                 @endif

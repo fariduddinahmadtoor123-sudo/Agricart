@@ -282,8 +282,8 @@ class Sheet extends Component
             return;
         }
 
-        // Fill empty tier prices from markups; never overwrite manual edits.
-        $this->recalculateRow((int) $index, force: false);
+        // Buy price drives all sell prices: recalculate every tier/channel from markups.
+        $this->recalculateRow((int) $index, force: true);
     }
 
     /**
@@ -350,7 +350,11 @@ class Sheet extends Component
 
         $this->saving = true;
         $this->dispatchBusyState();
+
         $saved = 0;
+        $skipped = 0;
+        $failed = 0;
+        $failedNames = [];
 
         try {
             $service = app(ProductPriceUpdateService::class);
@@ -363,35 +367,107 @@ class Sheet extends Component
                     continue;
                 }
 
-                $service->updateProductPricing($product, [
-                    'last_buy_price' => $row['last_buy_price'] ?? null,
-                    'retail_price' => $row['retail_price'] ?? null,
-                    'wholesale_price' => $row['wholesale_price'] ?? null,
-                    'super_wholesale_price' => $row['super_wholesale_price'] ?? null,
-                    'distributor_price' => $row['distributor_price'] ?? null,
-                    'channel_prices' => is_array($row['channel_prices'] ?? null) ? $row['channel_prices'] : [],
-                    'price_tier_quantities' => is_array($row['price_tier_quantities'] ?? null) ? $row['price_tier_quantities'] : [],
-                ]);
+                // Skip products the user left completely blank — saving the whole
+                // category should only touch rows that actually have price input.
+                if (! $this->rowHasPriceInput($row)) {
+                    $skipped++;
 
-                $this->rows[$index] = $this->makeRow($product->fresh());
-                $saved++;
+                    continue;
+                }
+
+                try {
+                    $service->updateProductPricing($product, [
+                        'last_buy_price' => $row['last_buy_price'] ?? null,
+                        'retail_price' => $row['retail_price'] ?? null,
+                        'wholesale_price' => $row['wholesale_price'] ?? null,
+                        'super_wholesale_price' => $row['super_wholesale_price'] ?? null,
+                        'distributor_price' => $row['distributor_price'] ?? null,
+                        'channel_prices' => is_array($row['channel_prices'] ?? null) ? $row['channel_prices'] : [],
+                        'price_tier_quantities' => is_array($row['price_tier_quantities'] ?? null) ? $row['price_tier_quantities'] : [],
+                    ]);
+
+                    $this->rows[$index] = $this->makeRow($product->fresh());
+                    $saved++;
+                } catch (ValidationException $exception) {
+                    // One bad row must never abort the whole batch — record it and continue.
+                    $failed++;
+                    $failedNames[] = $product->name_en;
+                }
+            }
+
+            if ($saved === 0 && $failed === 0) {
+                $this->setStatus(__('price_updates.messages.nothing_entered'), 'warning');
+
+                return false;
+            }
+
+            if ($failed > 0) {
+                $this->setStatus(__('price_updates.messages.saved_partial', [
+                    'saved' => $saved,
+                    'failed' => $failed,
+                    'names' => $this->summariseNames($failedNames),
+                ]), $saved > 0 ? 'warning' : 'error');
+
+                $this->dispatch('price-updates-saved');
+
+                return false;
             }
 
             $this->setStatus(__('price_updates.messages.saved', ['count' => $saved]), 'success');
             $this->dispatch('price-updates-saved');
 
             return true;
-        } catch (ValidationException $exception) {
-            $this->setStatus(
-                (string) (collect($exception->errors())->flatten()->first() ?: __('price_updates.messages.save_failed')),
-                'error',
-            );
-
-            return false;
         } finally {
             $this->saving = false;
             $this->dispatchBusyState();
         }
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    private function rowHasPriceInput(array $row): bool
+    {
+        if (! $this->isBlankPrice($row['last_buy_price'] ?? null)) {
+            return true;
+        }
+
+        foreach (['retail_price', 'wholesale_price', 'super_wholesale_price', 'distributor_price'] as $field) {
+            if (! $this->isBlankPrice($row[$field] ?? null)) {
+                return true;
+            }
+        }
+
+        $channel = is_array($row['channel_prices'] ?? null) ? $row['channel_prices'] : [];
+
+        foreach ($channel as $value) {
+            if (! $this->isBlankPrice($value)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  list<string>  $names
+     */
+    private function summariseNames(array $names): string
+    {
+        $names = array_values(array_filter($names, static fn (string $name): bool => trim($name) !== ''));
+
+        if ($names === []) {
+            return '';
+        }
+
+        $shown = array_slice($names, 0, 5);
+        $summary = implode(', ', $shown);
+
+        if (count($names) > count($shown)) {
+            $summary .= ' …';
+        }
+
+        return $summary;
     }
 
     public function render(): View

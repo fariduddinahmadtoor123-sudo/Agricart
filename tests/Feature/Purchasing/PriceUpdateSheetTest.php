@@ -84,7 +84,7 @@ class PriceUpdateSheetTest extends TestCase
         $this->assertSame($purchasesBefore, Purchase::query()->count());
     }
 
-    public function test_manual_prices_survive_buy_change_until_markups_applied(): void
+    public function test_changing_buy_price_recalculates_all_sell_prices(): void
     {
         $product = $this->makeProduct([
             'retail_price' => '150',
@@ -96,25 +96,27 @@ class PriceUpdateSheetTest extends TestCase
         Livewire::test(Sheet::class)
             ->call('openForm')
             ->call('addProduct', $product->id)
+            // First buy price recalculates every tier from markups (overwrites loaded prices).
             ->set('rows.0.last_buy_price', '100')
-            ->call('recalculateRow', 0, false)
-            ->assertSet('rows.0.retail_price', '150')
-            ->assertSet('rows.0.wholesale_price', '140')
-            ->set('rows.0.wholesale_price', '199')
+            ->assertSet('rows.0.retail_price', '120')
+            ->assertSet('rows.0.wholesale_price', '110')
+            ->assertSet('rows.0.super_wholesale_price', '105')
+            ->assertSet('rows.0.distributor_price', '102')
+            // Changing the buy price again re-applies markups to all sell prices automatically.
             ->set('rows.0.last_buy_price', '200')
-            ->call('recalculateRow', 0, false)
-            ->assertSet('rows.0.wholesale_price', '199')
-            ->assertSet('rows.0.retail_price', '150')
-            ->call('applyMarkups', 0)
             ->assertSet('rows.0.retail_price', '240')
             ->assertSet('rows.0.wholesale_price', '220')
+            ->assertSet('rows.0.super_wholesale_price', '210')
+            ->assertSet('rows.0.distributor_price', '204')
             ->call('saveAll')
-            ->assertSet('statusType', 'success')
-            ->assertSet('rows.0.wholesale_price', '220');
+            ->assertSet('statusType', 'success');
 
         $product->refresh();
-        $this->assertEquals(220.0, (float) $product->wholesale_price);
+        $this->assertEquals(200.0, (float) $product->last_buy_price);
         $this->assertEquals(240.0, (float) $product->retail_price);
+        $this->assertEquals(220.0, (float) $product->wholesale_price);
+        $this->assertEquals(210.0, (float) $product->super_wholesale_price);
+        $this->assertEquals(204.0, (float) $product->distributor_price);
     }
 
     public function test_prices_fill_when_tier_keys_match_product_fields(): void
@@ -184,16 +186,72 @@ class PriceUpdateSheetTest extends TestCase
             ->assertSee('80');
     }
 
-    public function test_service_rejects_empty_buy_price(): void
+    public function test_service_updates_selling_prices_without_buy_price(): void
+    {
+        $product = $this->makeProduct();
+
+        app(ProductPriceUpdateService::class)->updateProductPricing($product, [
+            'last_buy_price' => '',
+            'retail_price' => '10',
+            'wholesale_price' => '9',
+        ]);
+
+        $product->refresh();
+
+        // Blank buy leaves the purchase cost untouched but still saves selling prices.
+        $this->assertNull($product->last_buy_price);
+        $this->assertEquals(10.0, (float) $product->retail_price);
+        $this->assertEquals(9.0, (float) $product->wholesale_price);
+    }
+
+    public function test_service_rejects_non_numeric_buy_price(): void
     {
         $product = $this->makeProduct();
 
         $this->expectException(\Illuminate\Validation\ValidationException::class);
 
         app(ProductPriceUpdateService::class)->updateProductPricing($product, [
-            'last_buy_price' => '',
+            'last_buy_price' => 'abc',
             'retail_price' => '10',
         ]);
+    }
+
+    public function test_save_all_updates_every_priced_row_and_skips_blank_rows(): void
+    {
+        $pricedA = $this->makeProduct(['name_en' => 'Priced A']);
+        $pricedB = $this->makeProduct(['name_en' => 'Priced B']);
+        $pricedC = $this->makeProduct(['name_en' => 'Priced C']);
+        $blank = $this->makeProduct(['name_en' => 'Blank One']);
+
+        Livewire::test(Sheet::class)
+            ->call('openForm')
+            ->call('addProduct', $pricedA->id)
+            ->call('addProduct', $pricedB->id)
+            ->call('addProduct', $pricedC->id)
+            ->call('addProduct', $blank->id)
+            // Only selling prices — no buy price entered for any row.
+            ->set('rows.0.retail_price', '100')
+            ->set('rows.1.wholesale_price', '90')
+            ->set('rows.2.retail_price', '75')
+            ->call('saveAll')
+            ->assertSet('statusType', 'success');
+
+        $this->assertEquals(100.0, (float) $pricedA->refresh()->retail_price);
+        $this->assertEquals(90.0, (float) $pricedB->refresh()->wholesale_price);
+        $this->assertEquals(75.0, (float) $pricedC->refresh()->retail_price);
+        // Untouched row stays untouched — no accidental blanking or stamping.
+        $this->assertNull($blank->refresh()->retail_price);
+    }
+
+    public function test_save_all_warns_when_no_prices_entered(): void
+    {
+        $product = $this->makeProduct(['name_en' => 'Empty Row']);
+
+        Livewire::test(Sheet::class)
+            ->call('openForm')
+            ->call('addProduct', $product->id)
+            ->call('saveAll')
+            ->assertSet('statusType', 'warning');
     }
 
     public function test_user_without_edit_permission_cannot_save(): void

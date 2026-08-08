@@ -27,17 +27,27 @@ class ProductPriceUpdateService
      */
     public function updateProductPricing(Product $product, array $data): Product
     {
-        $buy = $this->numeric($data['last_buy_price'] ?? null);
+        $updates = [];
 
-        if ($buy === null || $buy <= 0) {
-            throw ValidationException::withMessages([
-                'last_buy_price' => __('price_updates.messages.buy_price_required'),
-            ]);
+        // Buy price is optional: update it only when a valid, positive value is provided.
+        // A blank buy leaves the existing purchase price untouched so sellers can update
+        // selling prices in bulk without re-entering the buy cost for every product.
+        if (array_key_exists('last_buy_price', $data)
+            && $data['last_buy_price'] !== null
+            && trim((string) $data['last_buy_price']) !== ''
+        ) {
+            $buy = $this->numeric($data['last_buy_price']);
+
+            if ($buy === null || $buy < 0) {
+                throw ValidationException::withMessages([
+                    'last_buy_price' => __('price_updates.messages.invalid_buy_price'),
+                ]);
+            }
+
+            if ($buy > 0) {
+                $updates['last_buy_price'] = $this->priceEngine->formatPrice($buy);
+            }
         }
-
-        $updates = [
-            'last_buy_price' => $this->priceEngine->formatPrice($buy),
-        ];
 
         foreach (['retail_price', 'wholesale_price', 'super_wholesale_price', 'distributor_price'] as $field) {
             if (! array_key_exists($field, $data)) {

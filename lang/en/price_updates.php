@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'intro' => 'Update buy price without creating a purchase. Empty channel prices fill from Price Channel markups (including retail); you can edit any price or quantity per product. Use “Markups” to refill all prices from the buy price.',
+    'intro' => 'Update buy price without creating a purchase. Changing the buy price recalculates every sell price from Price Channel markups (including retail); you can still edit any price or quantity per product afterwards. Use “Markups” to refill all prices from the buy price.',
 
     'toolbar' => [
         'search' => 'Search updated products…',
@@ -105,10 +105,13 @@ return [
         'category_loaded' => 'Loaded :added from “:category” (:skipped already on sheet).',
         'category_truncated' => 'Stopped at :limit products — load a deeper subcategory for the rest.',
         'cleared' => 'Sheet cleared.',
-        'empty_sheet' => 'Add products, enter buy prices, then save.',
+        'empty_sheet' => 'Add products, enter prices, then save.',
         'saved' => 'Saved prices for :count product(s). Stock was not changed.',
+        'saved_partial' => 'Saved :saved product(s). :failed could not be saved (invalid values): :names',
+        'nothing_entered' => 'Enter at least one price for a product before saving.',
         'save_failed' => 'Could not save price updates.',
         'buy_price_required' => 'Enter a buy price greater than zero.',
+        'invalid_buy_price' => 'Enter a valid buy price (a number of zero or more).',
         'invalid_price' => 'Invalid value for :field.',
         'invalid_quantity' => 'Tier quantities must be whole numbers of at least 1.',
         'permission_denied' => 'You do not have permission to update prices.',
@@ -117,7 +120,7 @@ return [
     'hints' => [
         'quantity_editable' => 'Per-product quantity break. Change and save — does not affect other products.',
         'price_editable' => 'Edit freely for this product. Saved as-is — not locked to channel markups.',
-        'buy_fills_empty' => 'Changing buy fills empty price cells from markups. Existing prices stay until you edit them or click Markups.',
+        'buy_fills_empty' => 'Changing the buy price recalculates every sell price from markups. Edit any price afterwards to override it.',
         'apply_markups' => 'Refill every price on this row from buy price × Price Channel markups.',
     ],
 ];

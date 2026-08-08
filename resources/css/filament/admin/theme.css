@@ -16599,6 +16599,14 @@ body.agricart-form-panel-open .agricart-staff-messenger {
     font-weight: 400;
 }
 
+.agricart-price-updates__name-ur {
+    margin-top: 0.1rem;
+    font-size: 0.8rem;
+    line-height: 1.35;
+    font-weight: 500;
+    color: color-mix(in srgb, var(--agricart-muted, var(--gray-500)) 88%, currentColor);
+}
+
 .agricart-price-update-form__grid th {
     font-size: 0.65rem;
     line-height: 1.15;
