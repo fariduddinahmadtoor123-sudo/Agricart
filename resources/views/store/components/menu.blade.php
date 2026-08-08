@@ -38,6 +38,12 @@
                 </li>
             @endif
 
+            <li>
+                <a href="{{ route('store.products') }}" @class(['ag-store-menu__link', 'is-active' => $currentPath === 'products']) @if ($currentPath === 'products') aria-current="page" @endif>
+                    {{ __('agricart.storefront.products.nav') }}
+                </a>
+            </li>
+
             @foreach ($navEntries as $entry)
                 @if ($entry['type'] === 'page')
                     @php

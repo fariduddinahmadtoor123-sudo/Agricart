@@ -278,6 +278,36 @@ class StoreCategoryService
     }
 
     /**
+     * Active direct subcategory (child) counts for each given category.
+     *
+     * @param  Collection<int, Category>  $categories
+     * @return array<int, int>
+     */
+    public function storefrontSubcategoryCounts(Collection $categories): array
+    {
+        if ($categories->isEmpty()) {
+            return [];
+        }
+
+        $parentIds = $categories->pluck('id')->map(fn ($id) => (int) $id)->all();
+
+        $childCounts = Category::query()
+            ->where('status', 'active')
+            ->whereIn('parent_id', $parentIds)
+            ->selectRaw('parent_id, COUNT(*) as aggregate')
+            ->groupBy('parent_id')
+            ->pluck('aggregate', 'parent_id')
+            ->all();
+
+        $counts = [];
+        foreach ($parentIds as $parentId) {
+            $counts[$parentId] = (int) ($childCounts[$parentId] ?? 0);
+        }
+
+        return $counts;
+    }
+
+    /**
      * @param  array<int, list<int>>  $childrenByParent
      * @return list<int>
      */

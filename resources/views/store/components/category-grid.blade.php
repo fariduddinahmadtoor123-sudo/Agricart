@@ -4,6 +4,8 @@
     $sectionTitle = $sectionTitle ?? null;
     $productCounts = $productCounts
         ?? ($categories->isNotEmpty() ? $categoryService->storefrontProductCounts($categories) : []);
+    $subcategoryCounts = $subcategoryCounts
+        ?? ($categories->isNotEmpty() ? $categoryService->storefrontSubcategoryCounts($categories) : []);
 @endphp
 
 <section class="ag-store-category-section">
@@ -24,6 +26,7 @@
                     $priority = $loop->index < 6;
                     $comingSoon = $categoryService->isComingSoon($item);
                     $productCount = $comingSoon ? 0 : (int) ($productCounts[$item->id] ?? 0);
+                    $subcategoryCount = (int) ($subcategoryCounts[$item->id] ?? 0);
                 @endphp
                 <a
                     href="{{ route('store.category', $item->slug) }}"
@@ -53,7 +56,11 @@
                             @if ($comingSoon)
                                 {{ __('agricart.storefront.categories.coming_soon') }}
                             @else
-                                {{ trans_choice('agricart.storefront.categories.product_count', $productCount, ['count' => number_format($productCount)]) }}
+                                <span class="ag-store-category-card__meta-item">{{ trans_choice('agricart.storefront.categories.product_count', $productCount, ['count' => number_format($productCount)]) }}</span>
+                                @if ($subcategoryCount > 0)
+                                    <span class="ag-store-category-card__meta-sep" aria-hidden="true">&middot;</span>
+                                    <span class="ag-store-category-card__meta-item">{{ trans_choice('agricart.storefront.categories.subcategory_count', $subcategoryCount, ['count' => number_format($subcategoryCount)]) }}</span>
+                                @endif
                             @endif
                         </span>
                     </div>

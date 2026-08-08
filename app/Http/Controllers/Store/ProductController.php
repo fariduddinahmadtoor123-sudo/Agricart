@@ -16,6 +16,25 @@ use Illuminate\Contracts\View\View;
 
 class ProductController extends Controller
 {
+    public function index(
+        StoreLayoutService $layout,
+        StoreProductService $products,
+        StoreCategoryService $categories,
+        AnalyticsContext $analytics,
+    ): View {
+        $analytics->setPage('products');
+
+        $productList = $products->paginatedAllProducts();
+
+        return view('store.products.index', [
+            ...$layout->layoutData(),
+            'products' => $productList,
+            'productService' => $products,
+            'categoryService' => $categories,
+            'totalProducts' => $productList->total(),
+        ]);
+    }
+
     public function show(
         string $slug,
         StoreLayoutService $layout,

@@ -44,6 +44,28 @@ class StoreProductService
     }
 
     /**
+     * All storefront products, ordered alphabetically by name, paginated.
+     *
+     * @return LengthAwarePaginator<int, Product>
+     */
+    public function paginatedAllProducts(int $perPage = 36): LengthAwarePaginator
+    {
+        $perPage = max(12, min(96, $perPage));
+
+        $products = Product::query()
+            ->whereIn('status', ['active', 'inactive'])
+            ->with(['brand'])
+            ->orderBy('name_en')
+            ->orderBy('id')
+            ->paginate($perPage)
+            ->withQueryString();
+
+        $this->primeImageMetadata($products->items());
+
+        return $products;
+    }
+
+    /**
      * @return LengthAwarePaginator<int, Product>
      */
     public function paginatedSearch(string $term, int $perPage = 36): LengthAwarePaginator

@@ -156,6 +156,7 @@ Route::middleware([
     Route::get('/brands', [BrandController::class, 'index'])->name('store.brands');
     Route::get('/brand/{slug}', [BrandController::class, 'show'])->name('store.brand');
     Route::get('/page/{slug}', [PageController::class, 'show'])->name('store.page');
+    Route::get('/products', [ProductController::class, 'index'])->name('store.products');
     Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('store.category');
     Route::get('/product/{slug}', [ProductController::class, 'show'])->name('store.product');
     Route::get('/cart', [CartController::class, 'index'])->name('store.cart');
