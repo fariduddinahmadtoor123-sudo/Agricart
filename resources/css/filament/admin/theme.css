@@ -16654,6 +16654,34 @@ body.agricart-form-panel-open .agricart-staff-messenger {
     margin-top: 0.75rem;
 }
 
+.agricart-price-update-form__load-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.agricart-price-update-form__load-field {
+    flex: 1 1 220px;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.agricart-price-update-form__load-input-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: nowrap;
+}
+
+@media (max-width: 640px) {
+    .agricart-price-update-form__load-field {
+        flex: 1 1 100%;
+    }
+}
+
 .agricart-price-update-form__category-hint {
     margin-inline-start: auto;
     opacity: 0.65;

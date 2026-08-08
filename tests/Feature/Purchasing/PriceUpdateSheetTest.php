@@ -4,6 +4,7 @@ namespace Tests\Feature\Purchasing;
 
 use App\Livewire\PriceUpdates\ListPriceUpdates;
 use App\Livewire\PriceUpdates\Sheet;
+use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Permission;
 use App\Models\Product;
@@ -378,6 +379,49 @@ class PriceUpdateSheetTest extends TestCase
             ->assertSet('statusType', 'success');
 
         $this->assertNotNull($inRoot->id);
+        $this->assertNotNull($elsewhere->id);
+    }
+
+    public function test_load_brand_adds_all_products_of_that_brand(): void
+    {
+        $acme = Brand::query()->create([
+            'slug' => 'acme',
+            'code' => 'BR-ACME',
+            'status' => 'active',
+            'name_en' => 'Acme',
+            'name_ur' => 'ایکمی',
+            'image_path' => 'brands/acme.webp',
+        ]);
+
+        $other = Brand::query()->create([
+            'slug' => 'other-brand',
+            'code' => 'BR-OTHER',
+            'status' => 'active',
+            'name_en' => 'Other Brand',
+            'name_ur' => 'دیگر برانڈ',
+            'image_path' => 'brands/other.webp',
+        ]);
+
+        $acmeOne = $this->makeProduct(['brand_id' => $acme->id, 'name_en' => 'Acme Spade']);
+        $acmeTwo = $this->makeProduct(['brand_id' => $acme->id, 'name_en' => 'Acme Hoe']);
+        $elsewhere = $this->makeProduct(['brand_id' => $other->id, 'name_en' => 'Other Rake']);
+
+        Livewire::test(Sheet::class)
+            ->call('openForm')
+            ->call('addProductsFromBrand', $acme->id)
+            ->assertCount('rows', 2)
+            ->assertSee('Acme Spade')
+            ->assertSee('Acme Hoe')
+            ->assertDontSee('Other Rake')
+            ->assertSet('statusType', 'success');
+
+        Livewire::test(Sheet::class)
+            ->call('openForm')
+            ->call('addProduct', $acmeOne->id)
+            ->call('addProductsFromBrand', $acme->id)
+            ->assertCount('rows', 2);
+
+        $this->assertNotNull($acmeTwo->id);
         $this->assertNotNull($elsewhere->id);
     }
 

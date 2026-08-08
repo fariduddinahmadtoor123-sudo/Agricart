@@ -12,6 +12,8 @@ return [
         'add_product_placeholder' => 'نام، کوڈ، SKU، یا اسکین…',
         'load_category' => 'کیٹگری لوڈ کریں',
         'load_category_placeholder' => 'کسی بھی لیول کی کیٹگری تلاش کریں (اندرونی سب شامل)…',
+        'load_brand' => 'برانڈ لوڈ کریں',
+        'load_brand_placeholder' => 'برانڈ تلاش کریں تاکہ اس کی ساری پروڈکٹس آ جائیں…',
     ],
 
     'list' => [
@@ -54,6 +56,7 @@ return [
         'remove' => 'ہٹائیں',
         'apply_markups' => 'مارک اپ',
         'load_category' => 'سب لوڈ',
+        'load_brand' => 'سب لوڈ',
         'save' => 'پرائسز محفوظ کریں',
         'saving' => 'محفوظ ہو رہا ہے…',
         'clear' => 'شیٹ صاف کریں',
@@ -104,6 +107,9 @@ return [
         'category_empty' => '“:category” کے اندر (سب کیٹگریز سمیت) کوئی پروڈکٹ نہیں ملی۔',
         'category_loaded' => '“:category” سے :added شامل (:skipped پہلے سے شیٹ پر تھیں)۔',
         'category_truncated' => 'حد :limit پروڈکٹس — باقی کے لیے گہری سب کیٹگری لوڈ کریں۔',
+        'brand_not_found' => 'کوئی مماثل برانڈ نہیں ملا۔',
+        'brand_empty' => '“:brand” برانڈ کے تحت کوئی پروڈکٹ نہیں ملی۔',
+        'brand_loaded' => '“:brand” سے :added شامل (:skipped پہلے سے شیٹ پر تھیں)۔',
         'cleared' => 'شیٹ صاف کر دی گئی۔',
         'empty_sheet' => 'پروڈکٹس شامل کریں، پرائسز لکھیں، پھر محفوظ کریں۔',
         'saved' => ':count پروڈکٹ(س) کی پرائسز محفوظ ہو گئیں۔ سٹاک نہیں بدلا۔',

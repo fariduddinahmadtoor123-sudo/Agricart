@@ -40,38 +40,40 @@
     @endif
 
     @if ($canEdit)
-        <div class="agricart-purchase-form__search">
-            <div class="agricart-purchase-form__search-row">
+        <div class="agricart-purchase-form__search agricart-price-update-form__load-bar">
+            <div class="agricart-price-update-form__load-field">
                 <label class="agricart-purchase-form__search-label" for="agricart-price-update-product">{{ __('price_updates.fields.add_product') }}</label>
-                <input
-                    id="agricart-price-update-product"
-                    type="search"
-                    class="agricart-purchase-form__input agricart-purchase-form__search-input"
-                    wire:model.live.debounce.200ms="productQuery"
-                    wire:keydown.enter.prevent="scanOrAddProduct"
-                    placeholder="{{ __('price_updates.fields.add_product_placeholder') }}"
-                    autocomplete="off"
-                />
-                <button type="button" class="agricart-purchase-form__search-btn" wire:click="scanOrAddProduct">
-                    {{ __('price_updates.actions.add_product') }}
-                </button>
+                <div class="agricart-price-update-form__load-input-row">
+                    <input
+                        id="agricart-price-update-product"
+                        type="search"
+                        class="agricart-purchase-form__input agricart-purchase-form__search-input"
+                        wire:model.live.debounce.200ms="productQuery"
+                        wire:keydown.enter.prevent="scanOrAddProduct"
+                        placeholder="{{ __('price_updates.fields.add_product_placeholder') }}"
+                        autocomplete="off"
+                    />
+                    <button type="button" class="agricart-purchase-form__search-btn" wire:click="scanOrAddProduct">
+                        {{ __('price_updates.actions.add_product') }}
+                    </button>
+                </div>
+                @if ($productResults !== [])
+                    <ul class="agricart-purchase-form__results">
+                        @foreach ($productResults as $result)
+                            <li wire:key="price-update-result-{{ $result['id'] }}">
+                                <button type="button" class="agricart-purchase-form__result" wire:click="addProduct({{ $result['id'] }})">
+                                    @if (! empty($result['image_url']))
+                                        <img src="{{ $result['image_url'] }}" alt="" class="agricart-purchase-form__result-thumb" />
+                                    @endif
+                                    <span>{{ $result['label'] }}</span>
+                                </button>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
             </div>
-            @if ($productResults !== [])
-                <ul class="agricart-purchase-form__results">
-                    @foreach ($productResults as $result)
-                        <li wire:key="price-update-result-{{ $result['id'] }}">
-                            <button type="button" class="agricart-purchase-form__result" wire:click="addProduct({{ $result['id'] }})">
-                                @if (! empty($result['image_url']))
-                                    <img src="{{ $result['image_url'] }}" alt="" class="agricart-purchase-form__result-thumb" />
-                                @endif
-                                <span>{{ $result['label'] }}</span>
-                            </button>
-                        </li>
-                    @endforeach
-                </ul>
-            @endif
 
-            <div class="agricart-purchase-form__search-row agricart-price-update-form__category-row">
+            <div class="agricart-price-update-form__load-field">
                 <label class="agricart-purchase-form__search-label" for="agricart-price-update-category">{{ __('price_updates.fields.load_category') }}</label>
                 <input
                     id="agricart-price-update-category"
@@ -81,19 +83,43 @@
                     placeholder="{{ __('price_updates.fields.load_category_placeholder') }}"
                     autocomplete="off"
                 />
+                @if ($categoryResults !== [])
+                    <ul class="agricart-purchase-form__results">
+                        @foreach ($categoryResults as $result)
+                            <li wire:key="price-update-category-{{ $result['id'] }}">
+                                <button type="button" class="agricart-purchase-form__result" wire:click="addProductsFromCategory({{ $result['id'] }})">
+                                    <span>{{ $result['label'] }}</span>
+                                    <span class="agricart-price-update-form__category-hint">{{ __('price_updates.actions.load_category') }}</span>
+                                </button>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
             </div>
-            @if ($categoryResults !== [])
-                <ul class="agricart-purchase-form__results">
-                    @foreach ($categoryResults as $result)
-                        <li wire:key="price-update-category-{{ $result['id'] }}">
-                            <button type="button" class="agricart-purchase-form__result" wire:click="addProductsFromCategory({{ $result['id'] }})">
-                                <span>{{ $result['label'] }}</span>
-                                <span class="agricart-price-update-form__category-hint">{{ __('price_updates.actions.load_category') }}</span>
-                            </button>
-                        </li>
-                    @endforeach
-                </ul>
-            @endif
+
+            <div class="agricart-price-update-form__load-field">
+                <label class="agricart-purchase-form__search-label" for="agricart-price-update-brand">{{ __('price_updates.fields.load_brand') }}</label>
+                <input
+                    id="agricart-price-update-brand"
+                    type="search"
+                    class="agricart-purchase-form__input agricart-purchase-form__search-input"
+                    wire:model.live.debounce.200ms="brandQuery"
+                    placeholder="{{ __('price_updates.fields.load_brand_placeholder') }}"
+                    autocomplete="off"
+                />
+                @if ($brandResults !== [])
+                    <ul class="agricart-purchase-form__results">
+                        @foreach ($brandResults as $result)
+                            <li wire:key="price-update-brand-{{ $result['id'] }}">
+                                <button type="button" class="agricart-purchase-form__result" wire:click="addProductsFromBrand({{ $result['id'] }})">
+                                    <span>{{ $result['label'] }}</span>
+                                    <span class="agricart-price-update-form__category-hint">{{ __('price_updates.actions.load_brand') }}</span>
+                                </button>
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
+            </div>
         </div>
     @endif
 

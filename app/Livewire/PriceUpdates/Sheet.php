@@ -3,6 +3,7 @@
 namespace App\Livewire\PriceUpdates;
 
 use App\Filament\Forms\CategoryForm;
+use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\User;
@@ -31,6 +32,8 @@ class Sheet extends Component
 
     public string $categoryQuery = '';
 
+    public string $brandQuery = '';
+
     public string $printLocale = 'en';
 
     public ?string $statusMessage = null;
@@ -50,6 +53,7 @@ class Sheet extends Component
         $this->rows = [];
         $this->productQuery = '';
         $this->categoryQuery = '';
+        $this->brandQuery = '';
         $this->statusMessage = null;
         $this->statusType = 'success';
 
@@ -209,6 +213,74 @@ class Sheet extends Component
 
         $message = __('price_updates.messages.category_loaded', [
             'category' => $category->name_en,
+            'added' => $added,
+            'skipped' => $skipped,
+        ]);
+
+        if ($truncated) {
+            $message .= ' '.__('price_updates.messages.category_truncated', [
+                'limit' => self::CATEGORY_LOAD_LIMIT,
+            ]);
+        }
+
+        $this->setStatus($message, $added > 0 ? 'success' : 'warning');
+    }
+
+    public function addProductsFromBrand(int $brandId): void
+    {
+        if (! $this->userCan('edit')) {
+            return;
+        }
+
+        $brand = Brand::query()->find($brandId);
+
+        if ($brand === null) {
+            $this->setStatus(__('price_updates.messages.brand_not_found'), 'warning');
+
+            return;
+        }
+
+        $existingIds = collect($this->rows)
+            ->map(fn (array $row): int => (int) ($row['product_id'] ?? 0))
+            ->filter(fn (int $id): bool => $id > 0)
+            ->all();
+
+        $products = Product::query()
+            ->where('brand_id', $brandId)
+            ->orderBy('name_en')
+            ->limit(self::CATEGORY_LOAD_LIMIT + 1)
+            ->get();
+
+        $truncated = $products->count() > self::CATEGORY_LOAD_LIMIT;
+        $products = $products->take(self::CATEGORY_LOAD_LIMIT);
+
+        $added = 0;
+        $skipped = 0;
+
+        foreach ($products as $product) {
+            if (in_array($product->id, $existingIds, true)) {
+                $skipped++;
+
+                continue;
+            }
+
+            $this->rows[] = $this->makeRow($product);
+            $existingIds[] = $product->id;
+            $added++;
+        }
+
+        $this->brandQuery = '';
+
+        if ($added === 0 && $skipped === 0) {
+            $this->setStatus(__('price_updates.messages.brand_empty', [
+                'brand' => $brand->name_en,
+            ]), 'warning');
+
+            return;
+        }
+
+        $message = __('price_updates.messages.brand_loaded', [
+            'brand' => $brand->name_en,
             'added' => $added,
             'skipped' => $skipped,
         ]);
@@ -483,6 +555,7 @@ class Sheet extends Component
             'canView' => $this->userCan('view'),
             'productResults' => $this->productResults(),
             'categoryResults' => $this->categoryResults(),
+            'brandResults' => $this->brandResults(),
             'tierColumns' => $engine->activeTiers()->map(function ($tier) use ($engine) {
                 $headerKey = $this->headerKeyForTier($tier);
                 $priceKey = 'price_updates.headers.'.$headerKey;
@@ -525,6 +598,35 @@ class Sheet extends Component
             ->map(fn (string $label, int|string $id): array => [
                 'id' => (int) $id,
                 'label' => $label,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * @return list<array{id: int, label: string}>
+     */
+    private function brandResults(): array
+    {
+        $needle = trim($this->brandQuery);
+
+        if (mb_strlen($needle) < 1) {
+            return [];
+        }
+
+        return Brand::query()
+            ->where(function ($query) use ($needle): void {
+                $like = '%'.$needle.'%';
+                $query->where('name_en', 'like', $like)
+                    ->orWhere('name_ur', 'like', $like)
+                    ->orWhere('code', 'like', $like);
+            })
+            ->orderBy('name_en')
+            ->limit(12)
+            ->get()
+            ->map(fn (Brand $brand): array => [
+                'id' => $brand->id,
+                'label' => trim($brand->name_en.(filled($brand->code) ? ' · '.$brand->code : '')),
             ])
             ->values()
             ->all();

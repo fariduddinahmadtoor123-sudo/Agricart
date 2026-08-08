@@ -3455,11 +3455,11 @@ return [
         ],
         'brands' => [
             'nav' => 'Brands',
-            'page_title' => 'Our brands',
+            'page_title' => 'Brands we deal in',
             'heading' => 'Trusted brands',
             'page_lead' => 'Explore the brands we stock — with Agricart editorial scores to help you choose with confidence.',
             'carousel_label' => 'Brand logos and Agricart scores',
-            'carousel_title' => 'Our brands',
+            'carousel_title' => 'Brands we deal in',
             'view_all' => 'See all brands',
             'empty' => 'No brands are listed yet.',
             'search_label' => 'Search brands',

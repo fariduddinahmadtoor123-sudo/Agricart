@@ -12,6 +12,8 @@ return [
         'add_product_placeholder' => 'Search name, code, SKU, or scan…',
         'load_category' => 'Load category',
         'load_category_placeholder' => 'Search any category level (includes nested products)…',
+        'load_brand' => 'Load brand',
+        'load_brand_placeholder' => 'Search a brand to load all its products…',
     ],
 
     'list' => [
@@ -54,6 +56,7 @@ return [
         'remove' => 'Remove',
         'apply_markups' => 'Markups',
         'load_category' => 'Load all',
+        'load_brand' => 'Load all',
         'save' => 'Save prices',
         'saving' => 'Saving…',
         'clear' => 'Clear sheet',
@@ -104,6 +107,9 @@ return [
         'category_empty' => 'No products found under “:category” (including subcategories).',
         'category_loaded' => 'Loaded :added from “:category” (:skipped already on sheet).',
         'category_truncated' => 'Stopped at :limit products — load a deeper subcategory for the rest.',
+        'brand_not_found' => 'No matching brand found.',
+        'brand_empty' => 'No products found under the brand “:brand”.',
+        'brand_loaded' => 'Loaded :added from “:brand” (:skipped already on sheet).',
         'cleared' => 'Sheet cleared.',
         'empty_sheet' => 'Add products, enter prices, then save.',
         'saved' => 'Saved prices for :count product(s). Stock was not changed.',
