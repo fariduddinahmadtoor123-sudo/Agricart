@@ -135,6 +135,36 @@ class Product extends Model
         });
     }
 
+    /**
+     * The price a storefront customer would pay (online entry price is wholesale,
+     * falling back to retail). Returns null when the product has not been priced yet.
+     */
+    public function storeEntryPriceNumeric(): ?float
+    {
+        foreach ([$this->wholesale_price, $this->retail_price] as $value) {
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            $numeric = (float) str_replace(',', '', trim((string) $value));
+
+            if ($numeric > 0) {
+                return $numeric;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Whether the product has a usable selling price. Unpriced products must not be
+     * purchasable — otherwise they would be ordered at 0.
+     */
+    public function isPriced(): bool
+    {
+        return $this->storeEntryPriceNumeric() !== null;
+    }
+
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);

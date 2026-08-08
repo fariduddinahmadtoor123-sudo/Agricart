@@ -64,6 +64,7 @@ class StoreCartService
         }
 
         $proposedQuantity = $this->quantityFromItems($items, $productId);
+        $this->assertPurchasable($product);
         $this->assertStockForProduct($product, $proposedQuantity);
         $this->persist($items);
     }
@@ -95,6 +96,7 @@ class StoreCartService
             ]);
         }
 
+        $this->assertPurchasable($product);
         $this->assertStockForProduct($product, $quantity);
         $this->persist($items);
     }
@@ -438,6 +440,15 @@ class StoreCartService
         }
 
         return 0.0;
+    }
+
+    private function assertPurchasable(Product $product): void
+    {
+        if (! $product->isPriced()) {
+            throw ValidationException::withMessages([
+                'product' => [__('agricart.storefront.cart.price_pending')],
+            ]);
+        }
     }
 
     private function assertStockForProduct(Product $product, float $quantity): void

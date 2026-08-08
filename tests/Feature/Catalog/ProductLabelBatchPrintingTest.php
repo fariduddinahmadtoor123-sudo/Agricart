@@ -183,7 +183,8 @@ class ProductLabelBatchPrintingTest extends TestCase
         $this->post(route('admin.labels.batch-print'), $this->payload($product, $profile))
             ->assertOk();
 
-        $unauthorized = User::factory()->create(['status' => User::STATUS_ACTIVE]);
+        $limitedRole = Role::create(['name' => 'Limited', 'slug' => 'limited-no-catalog']);
+        $unauthorized = User::factory()->create(['status' => User::STATUS_ACTIVE, 'role_id' => $limitedRole->id]);
         $this->actingAs($unauthorized);
         Livewire::test(PrintLabelsForm::class)->call('openForm')->assertForbidden();
         $this->post(route('admin.labels.batch-print'), $this->payload($product, $profile))

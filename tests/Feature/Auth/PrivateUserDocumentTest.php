@@ -47,9 +47,13 @@ class PrivateUserDocumentTest extends TestCase
         $this->get(route('admin.users.documents.show', ['user' => $staff, 'side' => 'back']))
             ->assertRedirect('/admin/login');
 
+        $limitedRole = Role::query()->create([
+            'name' => 'Limited Access',
+            'slug' => 'limited-access',
+        ]);
         $unauthorizedUser = User::factory()->create([
             'status' => User::STATUS_ACTIVE,
-            'role_id' => null,
+            'role_id' => $limitedRole->id,
         ]);
 
         $this->actingAs($unauthorizedUser)

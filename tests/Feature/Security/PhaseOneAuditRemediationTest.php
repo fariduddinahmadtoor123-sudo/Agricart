@@ -27,6 +27,7 @@ use App\Models\AiLog;
 use App\Models\AiConfiguration;
 use App\Models\Customer;
 use App\Models\OnlineSaleOrder;
+use App\Models\Role;
 use App\Models\User;
 use App\Rules\SafeUrl;
 use App\Services\Sales\OnlineSaleOrderService;
@@ -104,7 +105,8 @@ class PhaseOneAuditRemediationTest extends TestCase
 
         $this->flushSession();
 
-        $unauthorizedAdmin = User::factory()->create(['status' => User::STATUS_ACTIVE, 'role_id' => null]);
+        $limitedRole = Role::query()->create(['name' => 'Limited Access', 'slug' => 'limited-access']);
+        $unauthorizedAdmin = User::factory()->create(['status' => User::STATUS_ACTIVE, 'role_id' => $limitedRole->id]);
         $this->actingAs($unauthorizedAdmin)
             ->get(route('admin.online-sale-orders.payment-proof.show', $order))
             ->assertForbidden();

@@ -88,6 +88,8 @@
                             <p class="ag-store-product-card__price">{{ __('agricart.storefront.products.price', ['amount' => $price]) }}</p>
                         @elseif (! ($onlineStoreChannel['show_prices'] ?? true))
                             <p class="ag-store-product-card__offline-msg">{{ $onlineStoreChannel['offline_message'] ?? __('sales_channels.defaults.offline_message') }}</p>
+                        @elseif (! $product->isPriced())
+                            <p class="ag-store-product-card__price-pending">{{ __('agricart.storefront.product.price_pending_short') }}</p>
                         @endif
                     </a>
                 </article>

@@ -354,7 +354,9 @@ class SaleService
 
         $formatted = number_format($value, 2, '.', '');
 
-        return str_ends_with($formatted, '.00') ? (string) (int) $value : rtrim(rtrim($formatted, '0'), '.');
+        // Use the rounded value (not the raw float) for the whole-number case, otherwise
+        // e.g. 99.999 formats to "100.00" but would truncate to "99" — undercharging.
+        return str_ends_with($formatted, '.00') ? (string) (int) round($value) : rtrim(rtrim($formatted, '0'), '.');
     }
 
     public function formatQty(float $value): string

@@ -3297,6 +3297,8 @@ return [
             'share_copy' => 'Copy link',
             'share_copied' => 'Copied',
             'in_stock' => ':qty available',
+            'price_pending' => "This product's price hasn't been set yet, so it can't be purchased right now. Please check back shortly, or message us and we'll update the price for you.",
+            'price_pending_short' => 'Price coming soon',
             'out_of_stock' => 'Out of stock right now. Message us on the site messenger if you need this product.',
             'out_of_stock_whatsapp' => 'Assalamu alaikum. I need the product: :product. Is it available?',
             'ask_on_whatsapp' => 'Ask on WhatsApp',
@@ -3575,6 +3577,7 @@ return [
             'product_unavailable' => 'This product is no longer available.',
             'item_not_found' => 'Item not found in cart.',
             'insufficient_stock' => 'Only :available available in stock.',
+            'price_pending' => "This product isn't priced yet, so it can't be added to the cart. Please message us and we'll update its price.",
             'merge_adjusted' => 'Some cart items were removed or quantities reduced because they are no longer available.',
         ],
         'checkout' => [

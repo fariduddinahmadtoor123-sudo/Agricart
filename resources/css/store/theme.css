@@ -7144,6 +7144,14 @@ html[dir='rtl'] .ag-store-footer__col--map {
     color: var(--agricart-muted);
 }
 
+.ag-store-product-card__price-pending {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--agricart-muted);
+    font-style: italic;
+}
+
 .ag-store-visually-hidden {
     position: absolute !important;
     width: 1px !important;

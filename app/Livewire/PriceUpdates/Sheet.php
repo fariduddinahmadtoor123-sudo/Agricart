@@ -317,7 +317,11 @@ class Sheet extends Component
         $suggestedChannel = is_array($prices['channel_prices'] ?? null) ? $prices['channel_prices'] : [];
 
         if ($force) {
-            $this->rows[$index]['channel_prices'] = $suggestedChannel;
+            // Only overwrite channel prices when the profile actually has channel tiers to
+            // recompute from. Otherwise keep any existing channel prices instead of wiping them.
+            if ($suggestedChannel !== []) {
+                $this->rows[$index]['channel_prices'] = $suggestedChannel;
+            }
         } else {
             foreach ($suggestedChannel as $key => $suggested) {
                 if ($this->isBlankPrice($existingChannel[$key] ?? null)) {

@@ -222,11 +222,14 @@ class CategoryService
                 'max:255',
                 Rule::unique('categories', 'slug')->ignore($exceptId),
             ],
+            // Category `code` is intentionally NOT unique: imported legacy data can share the
+            // same code across different categories (matched by slug), and the storefront uses
+            // `slug` / `visual_map_code` as the real unique keys. Enforcing uniqueness here was
+            // the root cause of spurious "code already taken" errors when editing a category.
             'code' => [
                 'nullable',
                 'string',
                 'max:255',
-                Rule::unique('categories', 'code')->ignore($exceptId),
             ],
             'status' => ['nullable', 'string', 'in:active,inactive,draft'],
             'name_en' => ['required', 'string', 'max:255'],

@@ -36,7 +36,9 @@ class PhaseCBatch2RemediationTest extends TestCase
         Storage::fake('local');
         Storage::fake('public');
 
-        $role = Role::query()->firstOrFail();
+        // Use a plain (non super-admin) role: this test only verifies CNIC file replacement,
+        // and assigning the super-admin role would (correctly) require the system owner.
+        $role = Role::query()->create(['name' => 'Staff Member', 'slug' => 'staff-member']);
         $actor = User::factory()->create(['role_id' => $role->id, 'status' => User::STATUS_ACTIVE]);
 
         $oldPath = 'users/cnic/old-front.jpg';

@@ -110,7 +110,14 @@
                         <p class="ag-store-pdp__excerpt ag-store-pdp__excerpt--side">{!! nl2br(e($short)) !!}</p>
                     @endif
 
-                    @if ($isActive && ($onlineStoreChannel['allow_purchase'] ?? true))
+                    @if ($isActive && ($onlineStoreChannel['allow_purchase'] ?? true) && ! $product->isPriced() && ($onlineStoreChannel['show_prices'] ?? true))
+                        <p class="ag-store-pdp__stock-note ag-store-pdp__stock-note--out">{{ __('agricart.storefront.product.price_pending') }}</p>
+                        <button
+                            type="button"
+                            class="ag-store-btn ag-store-btn--secondary ag-store-btn--block"
+                            data-store-message-open
+                        >{{ __('agricart.storefront.product.ask_via_messenger') }}</button>
+                    @elseif ($isActive && ($onlineStoreChannel['allow_purchase'] ?? true))
                         @php
                             $allowsOverselling = app(\App\Services\Sales\SaleService::class)->allowsOverselling();
                             $stockQty = $product->stock_qty;

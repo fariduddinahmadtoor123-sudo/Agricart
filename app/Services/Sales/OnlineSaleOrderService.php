@@ -774,6 +774,12 @@ class OnlineSaleOrderService
                 ]);
             }
 
+            if (! $product->isPriced()) {
+                throw ValidationException::withMessages([
+                    'rows' => [__('agricart.storefront.cart.price_pending')],
+                ]);
+            }
+
             if (! $this->saleService->allowsOverselling()
                 && $product->stock_qty !== null
                 && $quantity > (float) $product->stock_qty + 0.0001) {

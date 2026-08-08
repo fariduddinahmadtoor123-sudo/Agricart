@@ -32,7 +32,7 @@ class StoreProductService
                             ->where('category_id', $category->id);
                     });
             })
-            ->with(['brand'])
+            ->with(['brand', 'category:id,image_path'])
             ->orderBy('name_en')
             ->orderBy('id')
             ->paginate($perPage)
@@ -54,7 +54,7 @@ class StoreProductService
 
         $products = Product::query()
             ->whereIn('status', ['active', 'inactive'])
-            ->with(['brand'])
+            ->with(['brand', 'category:id,image_path'])
             ->orderBy('name_en')
             ->orderBy('id')
             ->paginate($perPage)
@@ -79,7 +79,7 @@ class StoreProductService
         }
 
         $products = $this->storefrontSearchQuery($term)
-            ->with(['brand'])
+            ->with(['brand', 'category:id,image_path'])
             ->tap(fn (Builder $query) => $this->orderBySearchRelevance($query, $term))
             ->orderBy('id')
             ->paginate($perPage)
