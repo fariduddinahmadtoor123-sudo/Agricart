@@ -18,6 +18,12 @@ class SecurityHeaders
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', (string) config('security.headers.permissions_policy'));
 
+        // Do not leak the PHP/server version to clients.
+        $response->headers->remove('X-Powered-By');
+        if (! headers_sent()) {
+            header_remove('X-Powered-By');
+        }
+
         $cspHeader = config('security.headers.csp_mode', 'report-only') === 'enforce'
             ? 'Content-Security-Policy'
             : 'Content-Security-Policy-Report-Only';

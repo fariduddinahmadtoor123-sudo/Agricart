@@ -73,7 +73,7 @@ TRUSTED_PROXIES=10.0.0.0/8   # prefer provider-specific CIDRs
 ALLOW_WILDCARD_TRUSTED_PROXIES=false
 SCHEDULER_CONFIGURED=true
 QUEUE_WORKER_CONFIGURED=true
-SECURITY_CSP_MODE=report-only # required; use enforce only after inline-script migration
+SECURITY_CSP_MODE=enforce # required (explicit); defaults to enforce in production
 
 LOG_CHANNEL=daily
 LOG_LEVEL=warning
@@ -187,9 +187,14 @@ redirect back to the current page and are not stable, crawlable locale URLs, so
 the storefront intentionally omits `hreflang` alternates until locale-prefixed
 canonical routes are implemented.
 
-`SECURITY_CSP_MODE` is mandatory in production. Keep `report-only` while the
-current inline scripts are present; switching to `enforce` is an explicit
-operator decision after those scripts are migrated to nonces or hashes.
+`SECURITY_CSP_MODE` is mandatory in production (an explicit value is required by
+the deploy preflight) and now defaults to `enforce`. The shipped policy allows
+the app's known third parties (Google Analytics/Tag Manager, Facebook) and the
+Google/OpenStreetMap map-embed hosts used by the storefront footer. It still
+permits `'unsafe-inline'`/`'unsafe-eval'` for the current inline scripts, so
+enforcing does not break them; tighten to nonces/hashes as a later hardening
+step. Temporarily set `report-only` if you introduce a new external resource and
+want to observe violations before allow-listing it.
 
 ## Backup restore safety
 

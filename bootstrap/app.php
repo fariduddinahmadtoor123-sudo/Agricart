@@ -11,6 +11,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 $trustedProxySetting = trim((string) env('TRUSTED_PROXIES', ''));
 $trustedProxies = $trustedProxySetting === ''
@@ -34,6 +35,18 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             return $event;
+        };
+
+        // Skip DB-bound tasks when MySQL is unreachable so a database outage
+        // does not flood the log with connection errors every minute.
+        $databaseReachable = static function (): bool {
+            try {
+                DB::connection()->getPdo();
+
+                return true;
+            } catch (Throwable) {
+                return false;
+            }
         };
 
         $protect($schedule->command('staff:attendance-default-day')
@@ -94,6 +107,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Drain the database queue every minute via schedule:run / web tick.
         $protect($schedule->command('queue:work --stop-when-empty --tries=3 --max-time=55')
             ->everyMinute()
+            ->when($databaseReachable)
             ->timezone(config('app.timezone')));
     })
     ->withMiddleware(function (Middleware $middleware) use ($trustedProxies): void {
