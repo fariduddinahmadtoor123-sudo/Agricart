@@ -16,10 +16,13 @@ return [
 
     'headers' => [
         'csp_mode_explicit' => env('SECURITY_CSP_MODE') !== null,
-        'csp_mode' => env(
-            'SECURITY_CSP_MODE',
-            ((string) env('APP_ENV', 'production')) === 'production' ? 'enforce' : 'report-only',
-        ),
+        // NOTE: Hostinger injects a platform-level `Content-Security-Policy:
+        // upgrade-insecure-requests` header that overrides any app-set
+        // `Content-Security-Policy`. Enforce mode is therefore silently dropped
+        // on that host, so we default to report-only (which uses the distinct
+        // `Content-Security-Policy-Report-Only` header and coexists). Switch to
+        // enforce only on infrastructure that does not override the header.
+        'csp_mode' => env('SECURITY_CSP_MODE', 'report-only'),
         'csp' => env(
             'SECURITY_CSP',
             "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net; connect-src 'self' ws: wss: https:; frame-src 'self' https://www.googletagmanager.com https://www.google.com https://maps.google.com https://maps.google.com.pk https://www.openstreetmap.org https://openstreetmap.org;",

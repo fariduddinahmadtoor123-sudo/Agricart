@@ -73,7 +73,7 @@ TRUSTED_PROXIES=10.0.0.0/8   # prefer provider-specific CIDRs
 ALLOW_WILDCARD_TRUSTED_PROXIES=false
 SCHEDULER_CONFIGURED=true
 QUEUE_WORKER_CONFIGURED=true
-SECURITY_CSP_MODE=enforce # required (explicit); defaults to enforce in production
+SECURITY_CSP_MODE=report-only # required (explicit); keep report-only on Hostinger (see note below)
 
 LOG_CHANNEL=daily
 LOG_LEVEL=warning
@@ -188,13 +188,18 @@ the storefront intentionally omits `hreflang` alternates until locale-prefixed
 canonical routes are implemented.
 
 `SECURITY_CSP_MODE` is mandatory in production (an explicit value is required by
-the deploy preflight) and now defaults to `enforce`. The shipped policy allows
-the app's known third parties (Google Analytics/Tag Manager, Facebook) and the
-Google/OpenStreetMap map-embed hosts used by the storefront footer. It still
-permits `'unsafe-inline'`/`'unsafe-eval'` for the current inline scripts, so
-enforcing does not break them; tighten to nonces/hashes as a later hardening
-step. Temporarily set `report-only` if you introduce a new external resource and
-want to observe violations before allow-listing it.
+the deploy preflight). The shipped policy allows the app's known third parties
+(Google Analytics/Tag Manager, Facebook) and the Google/OpenStreetMap map-embed
+hosts used by the storefront footer.
+
+**Hostinger limitation:** Hostinger injects a platform-level
+`Content-Security-Policy: upgrade-insecure-requests` header that overrides any
+app-set `Content-Security-Policy`. As a result, `enforce` mode is silently
+dropped on Hostinger (the platform header wins) and it also removes the
+app's own policy from the response. Keep `report-only` on Hostinger — it uses
+the distinct `Content-Security-Policy-Report-Only` header, which coexists with
+the platform header. True enforcement requires either disabling Hostinger's CSP
+injection (hPanel/support) or hosting that does not override the header.
 
 ## Backup restore safety
 
