@@ -36,6 +36,51 @@ class DocumentationRegistry
     }
 
     /**
+     * Modules the current user is allowed to read documentation for.
+     * A reader only sees docs for modules they can access ("{module}.view"),
+     * with Super Admin seeing everything. Outside an authenticated web
+     * request (CLI/tests) the full list is returned unchanged.
+     *
+     * @return list<array{key: string, label: string, comingSoon: bool}>
+     */
+    public static function accessibleModules(): array
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof \App\Models\User) {
+            return static::modules();
+        }
+
+        if ($user->isSuperAdmin()) {
+            return static::modules();
+        }
+
+        return array_values(array_filter(
+            static::modules(),
+            static fn (array $module): bool => static::userCanReadModule($module['key']),
+        ));
+    }
+
+    public static function userCanReadModule(string $moduleKey): bool
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof \App\Models\User) {
+            return true;
+        }
+
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        if (! $user->canUseAdmin()) {
+            return false;
+        }
+
+        return $user->hasPermission($moduleKey.'.view');
+    }
+
+    /**
      * @return list<array{
      *     key: string,
      *     label: string,

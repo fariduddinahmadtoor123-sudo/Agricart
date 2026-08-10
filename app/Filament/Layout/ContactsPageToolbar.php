@@ -133,8 +133,53 @@ class ContactsPageToolbar extends ClusterPageToolbar
                     ['label' => __('customers.list.col_created'), 'value' => 'created_at', 'visible' => true],
                 ],
             ],
+            'transport-companies' => [
+                ...$config,
+                'livewirePrefix' => 'transport-companies',
+                'livewireComponent' => 'transport-companies.list-transport-companies',
+                'columnDataAttr' => 'data-transport-column',
+                'interactive' => true,
+                'formKey' => 'transport-companies',
+                'addLabel' => static::userCan('create') ? __('transport_companies.actions.add') : null,
+                'searchPlaceholder' => __('transport_companies.list.search'),
+                'filters' => static::transportCompanyFilters(),
+                'columns' => [
+                    ['label' => __('transport_companies.list.col_code'), 'value' => 'transport_code', 'visible' => true],
+                    ['label' => __('transport_companies.list.col_business'), 'value' => 'business_name', 'visible' => true],
+                    ['label' => __('transport_companies.list.col_contact'), 'value' => 'contact_name', 'visible' => true],
+                    ['label' => __('transport_companies.list.col_type'), 'value' => 'transport_type', 'visible' => true],
+                    ['label' => __('transport_companies.list.col_status'), 'value' => 'status', 'visible' => true],
+                    ['label' => __('transport_companies.list.col_created'), 'value' => 'created_at', 'visible' => true],
+                ],
+            ],
             default => $config,
         };
+    }
+
+    /**
+     * @return list<array{label: string, value: string}>
+     */
+    protected static function transportCompanyFilters(): array
+    {
+        $suffix = app()->getLocale() === 'ur' ? 'ur' : 'en';
+
+        $filters = [
+            ['label' => __('transport_companies.filters.active'), 'value' => 'status:active'],
+            ['label' => __('transport_companies.filters.inactive'), 'value' => 'status:inactive'],
+        ];
+
+        foreach (config('transport_types', []) as $key => $labels) {
+            if (! is_array($labels)) {
+                continue;
+            }
+
+            $filters[] = [
+                'label' => (string) ($labels[$suffix] ?? $labels['en'] ?? $key),
+                'value' => 'type:' . $key,
+            ];
+        }
+
+        return $filters;
     }
 
     /**

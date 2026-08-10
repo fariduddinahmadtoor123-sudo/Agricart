@@ -31,8 +31,14 @@ class DocumentationShell extends Component
 
     public function mount(): void
     {
-        if ($this->moduleKey === '' || ! DocumentationRegistry::moduleExists($this->moduleKey)) {
-            $this->moduleKey = DocumentationRegistry::defaultModuleKey();
+        $accessible = array_column(DocumentationRegistry::accessibleModules(), 'key');
+
+        if (
+            $this->moduleKey === ''
+            || ! DocumentationRegistry::moduleExists($this->moduleKey)
+            || ! in_array($this->moduleKey, $accessible, true)
+        ) {
+            $this->moduleKey = $accessible[0] ?? DocumentationRegistry::defaultModuleKey();
         }
 
         if ($this->pageKey === '' || ! DocumentationRegistry::pageExists($this->moduleKey, $this->pageKey)) {
@@ -52,7 +58,7 @@ class DocumentationShell extends Component
 
     public function selectModule(string $moduleKey): void
     {
-        if (! DocumentationRegistry::moduleExists($moduleKey)) {
+        if (! DocumentationRegistry::moduleExists($moduleKey) || ! DocumentationRegistry::userCanReadModule($moduleKey)) {
             return;
         }
 
@@ -247,7 +253,7 @@ class DocumentationShell extends Component
     public function render(): View
     {
         return view('livewire.docs.documentation-shell', [
-            'modules' => DocumentationRegistry::modules(),
+            'modules' => DocumentationRegistry::accessibleModules(),
             'pages' => DocumentationRegistry::pagesForModule($this->moduleKey),
             'meta' => $this->pageMeta(),
             'article' => $this->article(),

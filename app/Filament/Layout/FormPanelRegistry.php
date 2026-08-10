@@ -32,6 +32,7 @@ final class FormPanelRegistry
             'company-profile' => ['component' => 'company-profile.form', 'permission' => 'settings.view'],
             'suppliers' => ['component' => 'suppliers.form', 'permission' => 'contacts.view'],
             'customers' => ['component' => 'customers.form', 'permission' => 'contacts.view'],
+            'transport-companies' => ['component' => 'transport-companies.form', 'permission' => 'contacts.view'],
             'contact-message-templates' => ['component' => 'contacts.message-template-form', 'permission' => 'contacts.view'],
             'staff-salary' => ['component' => 'staff.salary-assignment-form', 'permission' => 'staff.view'],
             'staff-attendance' => ['component' => 'staff.daily-attendance-form', 'permission' => 'staff.view'],
