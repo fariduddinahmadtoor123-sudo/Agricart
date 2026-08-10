@@ -211,12 +211,12 @@ class DocumentationRegistry
 
             if ($hand !== null) {
                 return $base !== null
-                    ? static::mergeBrief($base, $hand)
+                    ? static::ensureSkeleton(static::mergeBrief($base, $hand), $try)
                     : static::ensureSkeleton($hand, $try);
             }
 
             if ($kind === 'page' && $base !== null) {
-                return $base;
+                return static::ensureSkeleton($base, $try);
             }
         }
 
@@ -254,9 +254,10 @@ class DocumentationRegistry
      */
     protected static function ensureSkeleton(array $hand, string $locale): array
     {
-        $placeholders = array_fill(0, 5, $locale === 'ur' ? '— بعد میں بھریں —' : '— To be filled later —');
-
         $defaults = [
+            'overview' => [],
+            'notes' => [],
+            'prompt' => '',
             'ui_flow' => [],
             'functional_requirements' => [],
             'fields' => [],
@@ -265,8 +266,8 @@ class DocumentationRegistry
             'api' => [],
             'permissions' => [],
             'edge_cases' => [],
-            'business_rules' => $placeholders,
-            'non_functional_requirements' => $placeholders,
+            'business_rules' => [],
+            'non_functional_requirements' => [],
             'dependencies' => [],
             'technical' => [],
             'improvements' => [],
@@ -276,6 +277,10 @@ class DocumentationRegistry
             if (! array_key_exists($key, $hand)) {
                 $hand[$key] = $value;
             }
+        }
+
+        if (! array_key_exists('article', $hand) && ($hand['overview'] ?? []) !== []) {
+            $hand['article'] = $hand['overview'];
         }
 
         return $hand;

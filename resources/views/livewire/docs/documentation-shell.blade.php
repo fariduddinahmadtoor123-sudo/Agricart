@@ -55,13 +55,6 @@
                         >
                             {{ __('documentation.modes.brief', [], $localeTab) }}
                         </button>
-                        <button
-                            type="button"
-                            wire:click="setViewMode('guide')"
-                            @class(['agricart-docs-shell__mode-tab', 'is-active' => $viewMode === 'guide'])
-                        >
-                            {{ __('documentation.modes.guide', [], $localeTab) }}
-                        </button>
                     </div>
 
                     <div class="agricart-docs-shell__locale-tabs">

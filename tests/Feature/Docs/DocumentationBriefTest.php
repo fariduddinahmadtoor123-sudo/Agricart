@@ -15,7 +15,8 @@ class DocumentationBriefTest extends TestCase
 
         $this->assertIsArray($brief);
         $this->assertNotEmpty($brief['prompt'] ?? null);
-        $this->assertNotEmpty($brief['improvements'] ?? []);
+        $this->assertArrayHasKey('notes', $brief);
+        $this->assertSame([], $brief['notes']);
         $this->assertContains('form', DocumentationRegistry::briefKinds('contacts', 'customers', 'ur'));
         $this->assertContains('list', DocumentationRegistry::briefKinds('contacts', 'customers', 'ur'));
     }
@@ -26,41 +27,47 @@ class DocumentationBriefTest extends TestCase
         $this->assertNotNull(DocumentationRegistry::brief('catalog', 'categories', 'form', 'ur'));
     }
 
-    public function test_supplier_form_brief_has_three_sections_in_urdu_and_english(): void
+    public function test_supplier_form_brief_has_three_user_guide_sections(): void
     {
         $ur = DocumentationRegistry::brief('contacts', 'suppliers', 'form', 'ur');
         $en = DocumentationRegistry::brief('contacts', 'suppliers', 'form', 'en');
 
         $this->assertIsArray($ur);
         $this->assertIsArray($en);
-        $this->assertNotEmpty($ur['article'] ?? []);
-        $this->assertGreaterThan(10, count($ur['fields'] ?? []));
-        $this->assertNotEmpty($ur['ui_flow'] ?? []);
-        $this->assertNotEmpty($ur['functional_requirements'] ?? []);
-        $this->assertNotEmpty($ur['validation'] ?? []);
-        $this->assertNotEmpty($ur['database'] ?? []);
-        $this->assertNotEmpty($ur['api'] ?? []);
-        $this->assertNotEmpty($ur['permissions'] ?? []);
-        $this->assertNotEmpty($ur['edge_cases'] ?? []);
-        $this->assertArrayHasKey('business_rules', $ur);
-        $this->assertCount(5, $ur['business_rules']);
-        $this->assertArrayHasKey('non_functional_requirements', $ur);
-        $this->assertCount(5, $ur['non_functional_requirements']);
-        $this->assertGreaterThanOrEqual(15, count($ur['dependencies'] ?? []));
-        $this->assertNotEmpty($ur['improvements'] ?? []);
+
+        $this->assertSame([], $ur['overview'] ?? $ur['article'] ?? null);
+        $this->assertNotEmpty($en['overview'] ?? []);
+        $this->assertSame([], $ur['notes'] ?? null);
+        $this->assertSame([], $en['notes'] ?? null);
+
         $this->assertStringContainsString('supplier_code', (string) ($ur['prompt'] ?? ''));
-        $this->assertStringContainsString('Functional Requirements', (string) ($ur['prompt'] ?? ''));
         $this->assertStringContainsString('SUP-', (string) ($en['prompt'] ?? ''));
-        $this->assertNotEmpty($en['ui_flow'] ?? []);
-        $this->assertStringContainsString('باکس', __('documentation.brief.article_heading', [], 'ur'));
-        $this->assertStringContainsString('Box 1', __('documentation.brief.article_heading', [], 'en'));
+
+        $this->assertStringContainsString('Overview', __('documentation.brief.overview_heading', [], 'en'));
+        $this->assertStringContainsString('AI Prompt', __('documentation.brief.prompt_heading', [], 'en'));
+        $this->assertStringContainsString('Notes', __('documentation.brief.notes_heading', [], 'en'));
+        $this->assertStringContainsString('Overview', __('documentation.brief.overview_heading', [], 'ur'));
+    }
+
+    public function test_transport_companies_brief_exists_in_english_and_urdu(): void
+    {
+        $this->assertTrue(DocumentationRegistry::pageHasAnyBrief('contacts', 'transport-companies'));
+
+        $en = DocumentationRegistry::brief('contacts', 'transport-companies', 'form', 'en');
+        $ur = DocumentationRegistry::brief('contacts', 'transport-companies', 'form', 'ur');
+
+        $this->assertIsArray($en);
+        $this->assertIsArray($ur);
+        $this->assertNotEmpty($en['overview'] ?? []);
+        $this->assertSame([], $ur['overview'] ?? []);
+        $this->assertStringContainsString('Destination', (string) ($en['prompt'] ?? ''));
+        $this->assertStringContainsString('transport-companies', (string) ($ur['prompt'] ?? ''));
     }
 
     public function test_every_registered_page_has_a_downloadable_handoff_brief(): void
     {
         foreach (DocumentationRegistry::modules() as $module) {
             foreach (DocumentationRegistry::pagesForModule($module['key']) as $page) {
-                // Pages without authored guide/brief yet are skipped — stubs are a docs backlog item.
                 if (! DocumentationRegistry::pageHasAnyBrief($module['key'], $page['key'])) {
                     continue;
                 }
@@ -83,8 +90,9 @@ class DocumentationBriefTest extends TestCase
                     $this->assertIsArray($brief);
                     $this->assertNotEmpty(
                         $brief['prompt'] ?? null,
-                        "{$module['key']}/{$page['key']}/{$kind} has no handoff prompt.",
+                        "{$module['key']}/{$page['key']}/{$kind} has no AI prompt.",
                     );
+                    $this->assertArrayHasKey('notes', $brief);
                 }
             }
         }

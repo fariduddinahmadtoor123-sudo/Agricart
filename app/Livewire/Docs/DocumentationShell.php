@@ -91,11 +91,8 @@ class DocumentationShell extends Component
 
     public function setViewMode(string $mode): void
     {
-        if (! in_array($mode, ['guide', 'brief'], true)) {
-            return;
-        }
-
-        $this->viewMode = $mode;
+        // User guide is the only reader mode (detailed handbook hidden from UI).
+        $this->viewMode = 'brief';
         $this->syncBriefKind();
     }
 
