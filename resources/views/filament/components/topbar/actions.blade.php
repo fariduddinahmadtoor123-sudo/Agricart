@@ -33,9 +33,11 @@
         clockIso: '',
         locale: @js($serverLocale),
         searchQuery: '',
-        listening: false,
-        voiceSupported: 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window,
-        recognition: null,
+        searchOpen: false,
+        searchLoading: false,
+        searchError: '',
+        searchGroups: [],
+        searchTimer: null,
         aiConnected: @js($aiState['connected']),
         aiStatus: @js($aiState['status']),
         aiModel: @js($aiState['model'] ?? ''),
@@ -199,58 +201,82 @@
                 },
             }));
         },
-        toggleVoice() {
-            if (! this.voiceSupported) {
-                return;
+        onSearchInput() {
+            if (this.searchTimer) {
+                window.clearTimeout(this.searchTimer);
             }
 
-            if (this.listening && this.recognition) {
-                this.recognition.stop();
-
-                return;
-            }
-
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            this.recognition = new SpeechRecognition();
-            this.recognition.lang = this.locale === 'ur' ? 'ur-PK' : 'en-US';
-            this.recognition.interimResults = false;
-            this.recognition.maxAlternatives = 1;
-
-            this.recognition.onstart = () => {
-                this.listening = true;
-            };
-
-            this.recognition.onend = () => {
-                this.listening = false;
-            };
-
-            this.recognition.onerror = () => {
-                this.listening = false;
-            };
-
-            this.recognition.onresult = (event) => {
-                const transcript = event.results?.[0]?.[0]?.transcript;
-
-                if (transcript) {
-                    this.searchQuery = transcript;
-                }
-            };
-
-            this.recognition.start();
+            this.searchTimer = window.setTimeout(this.runSearch.bind(this), 280);
         },
-        onImageSelected(event) {
-            const file = event.target.files?.[0];
+        async runSearch() {
+            const query = (this.searchQuery || '').trim();
 
-            if (! file) {
+            if (query.length < 2) {
+                this.searchGroups = [];
+                this.searchError = '';
+                this.searchOpen = query.length > 0;
                 return;
             }
 
-            this.searchQuery = file.name;
-            event.target.value = '';
+            this.searchLoading = true;
+            this.searchOpen = true;
+            this.searchError = '';
+
+            try {
+                const url = @js(route('admin.search.suggest')) + '?q=' + encodeURIComponent(query);
+                const response = await fetch(url, {
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    credentials: 'same-origin',
+                });
+
+                if (! response.ok) {
+                    this.searchError = @js(__('agricart.topbar.search_error'));
+                    this.searchGroups = [];
+                    return;
+                }
+
+                const data = await response.json();
+                this.searchGroups = Array.isArray(data.groups) ? data.groups : [];
+            } catch (error) {
+                this.searchError = @js(__('agricart.topbar.search_error'));
+                this.searchGroups = [];
+            } finally {
+                this.searchLoading = false;
+            }
+        },
+        searchHasResults() {
+            return this.searchGroups.some((group) => Array.isArray(group.items) && group.items.length > 0);
+        },
+        openSearchHit(item) {
+            if (! item) {
+                return;
+            }
+
+            this.searchOpen = false;
+
+            if (item.panel && item.panel.formKey) {
+                window.dispatchEvent(new CustomEvent('open-form-panel', { detail: item.panel }));
+                return;
+            }
+
+            if (item.url) {
+                window.location.href = item.url;
+            }
+        },
+        openFirstResult() {
+            const first = this.searchGroups.find((group) => group.items && group.items.length)?.items?.[0];
+            this.openSearchHit(first);
         },
     }"
 >
-    <div class="agricart-topbar-actions__search">
+    <div
+        class="agricart-topbar-actions__search"
+        x-on:keydown.escape.window="searchOpen = false"
+        x-on:click.outside="searchOpen = false"
+    >
         <x-filament::icon
             :icon="Heroicon::OutlinedMagnifyingGlass"
             class="agricart-topbar-actions__search-icon"
@@ -260,36 +286,57 @@
             type="search"
             class="agricart-topbar-actions__search-input"
             placeholder="{{ __('agricart.topbar.search_placeholder') }}"
+            title="{{ __('agricart.topbar.search_hint') }}"
             x-model="searchQuery"
+            x-on:input="onSearchInput()"
+            x-on:focus="if ((searchQuery || '').trim().length >= 2) { searchOpen = true; runSearch(); }"
+            x-on:keydown.enter.prevent="openFirstResult()"
+            autocomplete="off"
+            spellcheck="false"
+            maxlength="80"
             aria-label="{{ __('agricart.topbar.search_aria') }}"
+            aria-autocomplete="list"
+            :aria-expanded="searchOpen"
         />
 
-        <div class="agricart-topbar-actions__search-tools">
-            <button
-                type="button"
-                class="agricart-topbar-actions__search-tool"
-                :class="{ 'is-active': listening }"
-                x-on:click="toggleVoice()"
-                :title="voiceSupported ? (listening ? @js(__('agricart.topbar.voice_stop')) : @js(__('agricart.topbar.voice_search'))) : @js(__('agricart.topbar.voice_unsupported'))"
-                :disabled="! voiceSupported"
-                aria-label="{{ __('agricart.topbar.voice_search') }}"
-            >
-                <x-filament::icon :icon="Heroicon::OutlinedMicrophone" class="agricart-topbar-actions__search-tool-icon" />
-            </button>
-
-            <label
-                class="agricart-topbar-actions__search-tool"
-                title="{{ __('agricart.topbar.image_search') }}"
-                aria-label="{{ __('agricart.topbar.image_upload_aria') }}"
-            >
-                <input
-                    type="file"
-                    accept="image/*"
-                    class="sr-only"
-                    x-on:change="onImageSelected($event)"
-                />
-                <x-filament::icon :icon="Heroicon::OutlinedPhoto" class="agricart-topbar-actions__search-tool-icon" />
-            </label>
+        <div
+            class="agricart-topbar-actions__search-panel"
+            x-show="searchOpen"
+            x-cloak
+            role="listbox"
+        >
+            <p class="agricart-topbar-actions__search-status" x-show="searchLoading" x-text="@js(__('agricart.topbar.search_loading'))"></p>
+            <p class="agricart-topbar-actions__search-status is-error" x-show="searchError && ! searchLoading" x-text="searchError"></p>
+            <p
+                class="agricart-topbar-actions__search-status"
+                x-show="! searchLoading && ! searchError && ! searchHasResults() && (searchQuery || '').trim().length >= 2"
+                x-text="@js(__('agricart.topbar.search_no_results')).replace(':query', searchQuery)"
+            ></p>
+            <template x-for="group in searchGroups" :key="group.key">
+                <div class="agricart-topbar-actions__search-group" x-show="group.items?.length">
+                    <p class="agricart-topbar-actions__search-group-label" x-text="group.label"></p>
+                    <template x-for="(item, index) in group.items" :key="group.key + '-' + index">
+                        <a
+                            :href="item.url"
+                            class="agricart-topbar-actions__search-hit"
+                            role="option"
+                            x-on:click.prevent="openSearchHit(item)"
+                        >
+                            <img
+                                x-show="item.image"
+                                x-cloak
+                                :src="item.image"
+                                alt=""
+                                class="agricart-topbar-actions__search-thumb"
+                            />
+                            <span>
+                                <strong x-text="item.label"></strong>
+                                <small x-show="item.meta" x-text="item.meta"></small>
+                            </span>
+                        </a>
+                    </template>
+                </div>
+            </template>
         </div>
     </div>
 

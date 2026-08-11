@@ -23,7 +23,7 @@
 
                     <label>
                         <span>{{ __('staff_notes.fields.body') }}</span>
-                        <textarea rows="4" class="fi-input" wire:model="body" placeholder="{{ __('staff_notes.fields.body_placeholder') }}"></textarea>
+                        <textarea rows="6" class="fi-input" wire:model="body" placeholder="{{ __('staff_notes.fields.body_placeholder') }}"></textarea>
                     </label>
 
                     <label>

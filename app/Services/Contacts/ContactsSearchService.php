@@ -4,8 +4,11 @@ namespace App\Services\Contacts;
 
 use App\Filament\Clusters\Contacts\CustomersPage;
 use App\Filament\Clusters\Contacts\SuppliersPage;
+use App\Filament\Clusters\Contacts\TransportCompaniesPage;
 use App\Models\Customer;
 use App\Models\Supplier;
+use App\Models\TransportCompany;
+use App\Support\Search\SearchHit;
 use Illuminate\Database\Eloquent\Builder;
 
 class ContactsSearchService
@@ -30,6 +33,9 @@ class ContactsSearchService
             'customers' => CustomersPage::canAccess()
                 ? $this->mapCustomers($needle, $limitPerGroup)
                 : [],
+            'transport_companies' => TransportCompaniesPage::canAccess()
+                ? $this->mapTransportCompanies($needle, $limitPerGroup)
+                : [],
         ], fn (array $items): bool => $items !== []);
     }
 
@@ -52,11 +58,22 @@ class ContactsSearchService
             ->orderBy('business_name_en')
             ->limit($limit)
             ->get()
-            ->map(fn (Supplier $supplier): array => [
-                'label' => $supplier->displayBusinessName() ?: (string) __('agricart.contacts.overview.search_untitled'),
-                'meta' => filled($supplier->supplier_code) ? (string) $supplier->supplier_code : null,
-                'url' => $url,
-            ])
+            ->map(function (Supplier $supplier) use ($url): array {
+                $label = $supplier->displayBusinessName() ?: (string) __('agricart.contacts.overview.search_untitled');
+
+                return SearchHit::make(
+                    $label,
+                    filled($supplier->supplier_code) ? (string) $supplier->supplier_code : null,
+                    $url,
+                    $supplier->profilePhotoUrl(),
+                    [
+                        'formKey' => 'suppliers',
+                        'supplierId' => $supplier->id,
+                        'title' => $label,
+                        'resource' => __('agricart.nav.contacts.suppliers'),
+                    ],
+                );
+            })
             ->all();
     }
 
@@ -85,11 +102,61 @@ class ContactsSearchService
             ->orderBy('name_en')
             ->limit($limit)
             ->get()
-            ->map(fn (Customer $customer): array => [
-                'label' => $customer->displayLabel() ?: (string) __('agricart.contacts.overview.search_untitled'),
-                'meta' => filled($customer->customer_number) ? (string) $customer->customer_number : $customer->phone,
-                'url' => $url,
-            ])
+            ->map(function (Customer $customer) use ($url): array {
+                $label = $customer->displayLabel() ?: (string) __('agricart.contacts.overview.search_untitled');
+
+                return SearchHit::make(
+                    $label,
+                    filled($customer->customer_number) ? (string) $customer->customer_number : $customer->phone,
+                    $url,
+                    $customer->profilePhotoUrl(),
+                    [
+                        'formKey' => 'customers',
+                        'customerId' => $customer->id,
+                        'title' => $label,
+                        'resource' => __('agricart.nav.contacts.customers'),
+                    ],
+                );
+            })
+            ->all();
+    }
+
+    /**
+     * @return list<array{label: string, meta: string|null, url: string}>
+     */
+    private function mapTransportCompanies(string $needle, int $limit): array
+    {
+        $url = TransportCompaniesPage::getUrl();
+
+        return TransportCompany::query()
+            ->where(function (Builder $query) use ($needle): void {
+                $query->where('transport_code', 'like', $needle)
+                    ->orWhere('business_name_en', 'like', $needle)
+                    ->orWhere('business_name_ur', 'like', $needle)
+                    ->orWhere('city_en', 'like', $needle)
+                    ->orWhere('city_ur', 'like', $needle)
+                    ->orWhere('destination_business_name_en', 'like', $needle)
+                    ->orWhere('destination_business_name_ur', 'like', $needle);
+            })
+            ->orderBy('business_name_en')
+            ->limit($limit)
+            ->get()
+            ->map(function (TransportCompany $company) use ($url): array {
+                $label = $company->displayBusinessName() ?: (string) __('agricart.contacts.overview.search_untitled');
+
+                return SearchHit::make(
+                    $label,
+                    filled($company->transport_code) ? (string) $company->transport_code : null,
+                    $url,
+                    SearchHit::image($company->profile_photo_path),
+                    [
+                        'formKey' => 'transport-companies',
+                        'transportCompanyId' => $company->id,
+                        'title' => $label,
+                        'resource' => __('transport_companies.page_title'),
+                    ],
+                );
+            })
             ->all();
     }
 }

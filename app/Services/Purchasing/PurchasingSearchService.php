@@ -10,13 +10,14 @@ use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchasePlanningSheet;
 use App\Models\PurchaseQuotation;
+use App\Support\Search\SearchHit;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 class PurchasingSearchService
 {
     /**
-     * @return array<string, list<array{label: string, meta: string|null, url: string}>>
+     * @return array<string, list<array{label: string, meta: string|null, url: string, image: string|null, panel: array<string, mixed>|null}>>
      */
     public function search(string $term, int $limitPerGroup = 6): array
     {
@@ -78,19 +79,51 @@ class PurchasingSearchService
     /**
      * @param  \Illuminate\Support\Collection<int, Model>  $records
      * @param  callable(Model): ?string  $metaResolver
-     * @return list<array{label: string, meta: string|null, url: string}>
+     * @return list<array{label: string, meta: string|null, url: string, image: string|null, panel: array<string, mixed>|null}>
      */
     private function mapResults($records, string $url, callable $metaResolver): array
     {
         return $records
             ->map(function (Model $record) use ($url, $metaResolver): array {
-                return [
-                    'label' => $this->recordLabel($record),
-                    'meta' => $metaResolver($record),
-                    'url' => $url,
-                ];
+                $label = $this->recordLabel($record);
+
+                return SearchHit::make(
+                    $label,
+                    $metaResolver($record),
+                    $url,
+                    $record instanceof Product ? SearchHit::image($record->image_path) : null,
+                    $this->panelFor($record, $label),
+                );
             })
             ->all();
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function panelFor(Model $record, string $label): ?array
+    {
+        return match (true) {
+            $record instanceof Purchase => [
+                'formKey' => 'purchases',
+                'purchaseId' => $record->id,
+                'title' => $label,
+                'resource' => __('agricart.nav.purchasing.purchases'),
+            ],
+            $record instanceof PurchasePlanningSheet => [
+                'formKey' => 'purchase-planning',
+                'sheetId' => $record->id,
+                'title' => $label,
+                'resource' => __('agricart.nav.purchasing.purchase-planning'),
+            ],
+            $record instanceof PurchaseQuotation => [
+                'formKey' => 'purchase-quotations',
+                'quotationId' => $record->id,
+                'title' => $label,
+                'resource' => __('agricart.nav.purchasing.purchase-quotations'),
+            ],
+            default => null,
+        };
     }
 
     private function recordLabel(Model $record): string

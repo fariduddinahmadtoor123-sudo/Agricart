@@ -11,7 +11,7 @@
 @section('content')
     <section class="ag-store-brands">
         <header class="ag-store-brands__header">
-            <h1 class="ag-store-brands__title">{{ __('agricart.storefront.brands.heading') }}</h1>
+            <h1 class="ag-store-visually-hidden">{{ __('agricart.storefront.brands.heading') }}</h1>
             <p class="ag-store-brands__lead">{{ __('agricart.storefront.brands.page_lead') }}</p>
         </header>
 
@@ -22,22 +22,30 @@
             role="search"
         >
             <label class="ag-store-visually-hidden" for="ag-store-brands-search">{{ __('agricart.storefront.brands.search_label') }}</label>
-            <input
-                id="ag-store-brands-search"
-                type="search"
-                name="q"
-                class="ag-store-brands__search-input"
-                value="{{ $searchQuery ?? '' }}"
-                placeholder="{{ __('agricart.storefront.brands.search_placeholder') }}"
-                autocomplete="off"
-                autocapitalize="off"
-                spellcheck="false"
-                maxlength="80"
-                enterkeyhint="search"
-            />
-            <button type="submit" class="ag-store-brands__search-submit">
-                {{ __('agricart.storefront.brands.search_submit') }}
-            </button>
+            <div class="ag-store-brands__search-shell">
+                <span class="ag-store-brands__search-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter">
+                        <circle cx="11" cy="11" r="7" />
+                        <path d="M20 20l-3.5-3.5" />
+                    </svg>
+                </span>
+                <input
+                    id="ag-store-brands-search"
+                    type="search"
+                    name="q"
+                    class="ag-store-brands__search-input"
+                    value="{{ $searchQuery ?? '' }}"
+                    placeholder="{{ __('agricart.storefront.brands.search_placeholder') }}"
+                    autocomplete="off"
+                    autocapitalize="off"
+                    spellcheck="false"
+                    maxlength="80"
+                    enterkeyhint="search"
+                />
+                <button type="submit" class="ag-store-brands__search-submit">
+                    {{ __('agricart.storefront.brands.search_submit') }}
+                </button>
+            </div>
             @if (filled($searchQuery ?? ''))
                 <a href="{{ route('store.brands') }}" class="ag-store-brands__search-clear">
                     {{ __('agricart.storefront.brands.search_clear') }}

@@ -8238,54 +8238,84 @@ html[dir='rtl'] .ag-store-brands-carousel__track {
 }
 
 .ag-store-brands__header {
-    margin-bottom: 1.25rem;
-}
-
-.ag-store-brands__title {
-    margin: 0 0 0.35rem;
-    font-size: 1.5rem;
-    font-weight: 700;
+    margin-bottom: 0.85rem;
+    text-align: center;
 }
 
 .ag-store-brands__lead {
-    margin: 0;
-    max-width: 36rem;
+    margin: 0 auto;
+    max-width: 46rem;
     font-size: 0.9375rem;
-    line-height: 1.55;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    line-height: 1.5;
     color: var(--agricart-muted);
+    text-wrap: balance;
 }
 
 .ag-store-brands__search {
     display: flex;
     flex-wrap: wrap;
     align-items: stretch;
-    gap: 0.5rem;
-    margin: 0 0 1rem;
-    max-width: 40rem;
+    justify-content: center;
+    gap: 0.55rem;
+    margin: 0 auto 1.35rem;
+    max-width: 34rem;
+    width: 100%;
+}
+
+.ag-store-brands__search-shell {
+    display: flex;
+    flex: 1 1 16rem;
+    min-width: 0;
+    align-items: stretch;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-surface);
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ag-store-brands__search-shell:focus-within {
+    border-color: color-mix(in oklab, var(--agricart-primary) 55%, var(--agricart-border));
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--agricart-primary) 22%, transparent);
+}
+
+.ag-store-brands__search-icon {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    padding-inline-start: 0.75rem;
+    color: var(--agricart-muted);
+    pointer-events: none;
 }
 
 .ag-store-brands__search-input {
-    flex: 1 1 12rem;
+    flex: 1 1 auto;
     min-width: 0;
     margin: 0;
-    padding: 0.65rem 0.75rem;
-    border: 1px solid var(--agricart-border);
+    padding: 0.75rem 0.65rem;
+    border: 0;
     border-radius: 0;
-    background: var(--agricart-surface);
+    background: transparent;
     color: var(--agricart-text);
     font: inherit;
 }
 
 .ag-store-brands__search-input:focus {
-    outline: 2px solid color-mix(in oklab, var(--agricart-primary) 55%, white);
-    outline-offset: 0;
+    outline: none;
+}
+
+.ag-store-brands__search-input::-webkit-search-decoration,
+.ag-store-brands__search-input::-webkit-search-cancel-button {
+    -webkit-appearance: none;
 }
 
 .ag-store-brands__search-submit {
     flex: 0 0 auto;
     margin: 0;
-    padding: 0.65rem 1rem;
-    border: 1px solid var(--agricart-primary);
+    padding: 0 1.15rem;
+    border: 0;
+    border-inline-start: 1px solid var(--agricart-border);
     border-radius: 0;
     background: var(--agricart-primary);
     color: #fff;
@@ -8303,24 +8333,32 @@ html[dir='rtl'] .ag-store-brands-carousel__track {
 .ag-store-brands__search-clear {
     display: inline-flex;
     align-items: center;
-    padding: 0.65rem 0.75rem;
+    padding: 0.75rem 0.85rem;
     border: 1px solid var(--agricart-border);
     background: var(--agricart-surface);
     color: var(--agricart-muted);
     text-decoration: none;
     font-size: 0.875rem;
+    font-weight: 600;
 }
 
 .ag-store-brands__search-clear:hover,
 .ag-store-brands__search-clear:focus-visible {
     color: var(--agricart-text);
+    border-color: color-mix(in oklab, var(--agricart-text) 28%, var(--agricart-border));
     outline: none;
 }
 
 .ag-store-brands__search-meta {
-    margin: 0 0 1rem;
+    margin: 0 auto 1rem;
+    max-width: 34rem;
+    text-align: center;
     font-size: 0.875rem;
     color: var(--agricart-muted);
+}
+
+html[dir='rtl'] .ag-store-brands__search-icon svg {
+    transform: scaleX(-1);
 }
 
 .ag-store-brands__empty {

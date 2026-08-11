@@ -11,6 +11,7 @@ use App\Models\QuantityChannelTier;
 use App\Models\SalesChannel;
 use App\Models\SecretCodingProfile;
 use App\Services\SalesChannels\SalesChannelCatalog;
+use App\Support\Search\SearchHit;
 use Illuminate\Database\Eloquent\Builder;
 
 class MarketplaceSearchService
@@ -62,13 +63,25 @@ class MarketplaceSearchService
                 return str_contains($haystack, $lowerNeedle);
             })
             ->take($limit)
-            ->map(fn (SalesChannel $channel): array => [
-                'label' => $channel->localizedName(),
-                'meta' => $channel->is_enabled
-                    ? __('agricart.marketplace.overview.channel_on')
-                    : __('agricart.marketplace.overview.channel_off'),
-                'url' => $url,
-            ])
+            ->map(function (SalesChannel $channel) use ($url): array {
+                $label = $channel->localizedName();
+
+                return SearchHit::make(
+                    $label,
+                    $channel->is_enabled
+                        ? __('agricart.marketplace.overview.channel_on')
+                        : __('agricart.marketplace.overview.channel_off'),
+                    $url,
+                    null,
+                    [
+                        'formKey' => 'sales-channel',
+                        'salesChannelId' => $channel->id,
+                        'channelSlug' => $channel->slug,
+                        'title' => $label,
+                        'resource' => __('agricart.pages.marketplace.sales-channels'),
+                    ],
+                );
+            })
             ->values()
             ->all();
     }
@@ -89,11 +102,22 @@ class MarketplaceSearchService
                     || str_contains(mb_strtolower($tier->tier_key), $lowerNeedle);
             })
             ->take($limit)
-            ->map(fn (PriceChannelTier $tier): array => [
-                'label' => $tier->name_en ?: $tier->tier_key,
-                'meta' => $tier->tier_key,
-                'url' => $url,
-            ])
+            ->map(function (PriceChannelTier $tier) use ($url): array {
+                $label = $tier->name_en ?: $tier->tier_key;
+
+                return SearchHit::make(
+                    $label,
+                    $tier->tier_key,
+                    $url,
+                    null,
+                    [
+                        'formKey' => 'price-controls',
+                        'tierId' => $tier->id,
+                        'title' => $label,
+                        'resource' => __('agricart.pages.marketplace.price-control'),
+                    ],
+                );
+            })
             ->values()
             ->all();
     }
@@ -114,11 +138,22 @@ class MarketplaceSearchService
                     || str_contains(mb_strtolower($tier->tier_key), $lowerNeedle);
             })
             ->take($limit)
-            ->map(fn (QuantityChannelTier $tier): array => [
-                'label' => $tier->name_en ?: $tier->tier_key,
-                'meta' => $tier->tier_key,
-                'url' => $url,
-            ])
+            ->map(function (QuantityChannelTier $tier) use ($url): array {
+                $label = $tier->name_en ?: $tier->tier_key;
+
+                return SearchHit::make(
+                    $label,
+                    $tier->tier_key,
+                    $url,
+                    null,
+                    [
+                        'formKey' => 'quantity-controls',
+                        'tierId' => $tier->id,
+                        'title' => $label,
+                        'resource' => __('agricart.pages.marketplace.quantity-control'),
+                    ],
+                );
+            })
             ->values()
             ->all();
     }
@@ -139,11 +174,22 @@ class MarketplaceSearchService
             ->orderBy('id')
             ->limit($limit)
             ->get()
-            ->map(fn (SecretCodingProfile $profile): array => [
-                'label' => filled($profile->name_en) ? (string) $profile->name_en : (string) $profile->profile_number,
-                'meta' => filled($profile->profile_number) ? (string) $profile->profile_number : null,
-                'url' => $url,
-            ])
+            ->map(function (SecretCodingProfile $profile) use ($url): array {
+                $label = filled($profile->name_en) ? (string) $profile->name_en : (string) $profile->profile_number;
+
+                return SearchHit::make(
+                    $label,
+                    filled($profile->profile_number) ? (string) $profile->profile_number : null,
+                    $url,
+                    null,
+                    [
+                        'formKey' => 'secret-coding',
+                        'secretCodingId' => $profile->id,
+                        'title' => $label,
+                        'resource' => __('agricart.pages.marketplace.secret-coding'),
+                    ],
+                );
+            })
             ->all();
     }
 }

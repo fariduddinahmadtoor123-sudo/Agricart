@@ -4,6 +4,7 @@ namespace App\Services\Staff;
 
 use App\Filament\Clusters\Staff\StaffPage;
 use App\Models\User;
+use App\Support\Search\SearchHit;
 use Illuminate\Database\Eloquent\Builder;
 
 class StaffSearchService
@@ -53,11 +54,23 @@ class StaffSearchService
         $url = StaffPage::getUrl();
 
         return [
-            'members' => $results->map(fn (User $member): array => [
-                'label' => $member->name ?: (string) __('agricart.staff.overview.search_untitled'),
-                'meta' => filled($member->user_number) ? (string) $member->user_number : null,
-                'url' => $url,
-            ])->all(),
+            'members' => $results->map(function (User $member) use ($url): array {
+                $label = $member->name ?: (string) __('agricart.staff.overview.search_untitled');
+
+                return SearchHit::make(
+                    $label,
+                    filled($member->user_number) ? (string) $member->user_number : null,
+                    $url,
+                    $member->getFilamentAvatarUrl(),
+                    [
+                        'formKey' => 'staff',
+                        'formContext' => 'staff',
+                        'userId' => $member->id,
+                        'title' => $label,
+                        'resource' => __('agricart.pages.staff.staff'),
+                    ],
+                );
+            })->all(),
         ];
     }
 }

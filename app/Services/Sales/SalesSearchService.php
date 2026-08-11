@@ -11,6 +11,7 @@ use App\Models\OnlineSaleOrder;
 use App\Models\Sale;
 use App\Models\SaleQuotation;
 use App\Models\SaleReturn;
+use App\Support\Search\SearchHit;
 use Illuminate\Database\Eloquent\Builder;
 
 class SalesSearchService
@@ -64,11 +65,22 @@ class SalesSearchService
             ->orderByDesc('sale_date')
             ->limit($limit)
             ->get()
-            ->map(fn (Sale $sale): array => [
-                'label' => (string) $sale->sale_number,
-                'meta' => $sale->customer?->displayLabel(),
-                'url' => $url,
-            ])
+            ->map(function (Sale $sale) use ($url): array {
+                $label = (string) $sale->sale_number;
+
+                return SearchHit::make(
+                    $label,
+                    $sale->customer?->displayLabel(),
+                    $url,
+                    $sale->customer?->profilePhotoUrl(),
+                    [
+                        'formKey' => 'sales',
+                        'saleId' => $sale->id,
+                        'title' => $label,
+                        'resource' => PosSalesPage::getNavigationLabel(),
+                    ],
+                );
+            })
             ->all();
     }
 
@@ -91,11 +103,22 @@ class SalesSearchService
             ->orderByDesc('quotation_date')
             ->limit($limit)
             ->get()
-            ->map(fn (SaleQuotation $quotation): array => [
-                'label' => (string) $quotation->quotation_number,
-                'meta' => $quotation->customer?->displayLabel(),
-                'url' => $url,
-            ])
+            ->map(function (SaleQuotation $quotation) use ($url): array {
+                $label = (string) $quotation->quotation_number;
+
+                return SearchHit::make(
+                    $label,
+                    $quotation->customer?->displayLabel(),
+                    $url,
+                    $quotation->customer?->profilePhotoUrl(),
+                    [
+                        'formKey' => 'sale-quotations',
+                        'quotationId' => $quotation->id,
+                        'title' => $label,
+                        'resource' => __('agricart.nav.sales.sales-quotations'),
+                    ],
+                );
+            })
             ->all();
     }
 
@@ -119,11 +142,22 @@ class SalesSearchService
             ->orderByDesc('return_date')
             ->limit($limit)
             ->get()
-            ->map(fn (SaleReturn $return): array => [
-                'label' => (string) $return->return_number,
-                'meta' => $return->sale?->sale_number,
-                'url' => $url,
-            ])
+            ->map(function (SaleReturn $return) use ($url): array {
+                $label = (string) $return->return_number;
+
+                return SearchHit::make(
+                    $label,
+                    $return->sale?->sale_number,
+                    $url,
+                    $return->customer?->profilePhotoUrl(),
+                    [
+                        'formKey' => 'sale-returns',
+                        'returnId' => $return->id,
+                        'title' => $label,
+                        'resource' => __('agricart.nav.sales.sales-returns'),
+                    ],
+                );
+            })
             ->all();
     }
 
@@ -150,13 +184,27 @@ class SalesSearchService
                     && $order->queued_at !== null
                     && OrderDispatchPage::canAccess();
 
-                return [
-                    'label' => (string) $order->order_number,
-                    'meta' => $order->customer?->displayLabel(),
-                    'url' => $inQueue
+                $label = (string) $order->order_number;
+                $converted = $order->order_status === OnlineSaleOrder::STATUS_CONVERTED
+                    && $order->queued_at === null;
+                $context = $inQueue ? 'queue' : ($converted ? 'invoice' : 'quotation');
+
+                return SearchHit::make(
+                    $label,
+                    $order->customer?->displayLabel(),
+                    $inQueue
                         ? OrderDispatchPage::getUrl()
                         : OnlineQuotationsPage::getUrl(),
-                ];
+                    $order->customer?->profilePhotoUrl(),
+                    [
+                        'formKey' => 'online-orders',
+                        'orderId' => $order->id,
+                        'mode' => 'view',
+                        'onlineOrderContext' => $context,
+                        'title' => $label,
+                        'resource' => __('agricart.pages.sales.online-orders'),
+                    ],
+                );
             })
             ->all();
     }

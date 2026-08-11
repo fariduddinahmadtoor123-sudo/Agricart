@@ -24,6 +24,7 @@ use App\Http\Controllers\Admin\CommunicationAttachmentController;
 use App\Http\Controllers\Admin\StaffMessengerController;
 use App\Http\Middleware\ReleaseSessionLockForPolling;
 use App\Http\Controllers\Admin\TopbarNotificationController;
+use App\Http\Controllers\Admin\TopbarSearchController;
 use App\Http\Controllers\Admin\UserDocumentController;
 use App\Http\Controllers\Admin\VisitorAnalyticsExportController;
 use App\Http\Controllers\SchedulerRunController;
@@ -203,6 +204,9 @@ Route::middleware(['web', 'auth', AuthenticateSession::class, EnsureActiveAdminU
     Route::get('/notifications/summary', TopbarNotificationController::class)
         ->middleware(ReleaseSessionLockForPolling::class)
         ->name('admin.notifications.summary');
+    Route::get('/search', [TopbarSearchController::class, 'suggest'])
+        ->middleware([ReleaseSessionLockForPolling::class, 'throttle:60,1'])
+        ->name('admin.search.suggest');
     Route::get('/messenger/staff', [StaffMessengerController::class, 'staff'])
         ->middleware(ReleaseSessionLockForPolling::class)
         ->name('admin.messenger.staff');

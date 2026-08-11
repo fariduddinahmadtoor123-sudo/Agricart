@@ -4,6 +4,7 @@ namespace App\Services\Approvals;
 
 use App\Filament\Clusters\Approvals\StaffPage;
 use App\Models\User;
+use App\Support\Search\SearchHit;
 use Illuminate\Database\Eloquent\Builder;
 
 class ApprovalsSearchService
@@ -32,11 +33,14 @@ class ApprovalsSearchService
             ->orderBy('name')
             ->limit($limit)
             ->get()
-            ->map(fn (User $user): array => [
-                'label' => $user->name ?: (string) __('agricart.approvals.overview.search_untitled'),
-                'meta' => filled($user->user_number) ? (string) $user->user_number : $user->email,
-                'url' => $url,
-            ])
+            ->map(function (User $user) use ($url): array {
+                return SearchHit::make(
+                    $user->name ?: (string) __('agricart.approvals.overview.search_untitled'),
+                    filled($user->user_number) ? (string) $user->user_number : $user->email,
+                    $url,
+                    $user->getFilamentAvatarUrl(),
+                );
+            })
             ->all();
 
         if ($results === []) {
