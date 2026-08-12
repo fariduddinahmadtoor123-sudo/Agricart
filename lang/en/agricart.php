@@ -3462,6 +3462,10 @@ return [
                 'min_qty' => 'Min. qty',
                 'tier' => 'Price type',
                 'unit_price' => 'Unit price',
+                'qty_rates_lead' => 'Quantity rates',
+                'qty_rate' => ':qty+ :price',
+                'bulk_hint' => 'The more you buy, the lower the rate — prices drop as quantity increases.',
+                'bulk_hint_contact' => 'Need an even larger order? Message us in chat for a special rate.',
             ],
         ],
         'reviews' => [

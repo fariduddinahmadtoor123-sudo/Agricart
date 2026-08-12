@@ -250,12 +250,20 @@ class QuantityPricingEngine
     public const POS_EXCLUDED_TIER_KEYS = ['wholesale'];
 
     /**
-     * Quantity tiers hidden on the online storefront (PDP table + cart).
-     * Retail stays for POS / admin; store shows Wholesale, Bulk, Distributor.
+     * Quantity tiers hidden on the online storefront cart resolver.
+     * Retail stays for POS / admin; store pricing starts at wholesale.
      *
      * @var list<string>
      */
     public const STORE_EXCLUDED_TIER_KEYS = ['retail'];
+
+    /**
+     * Tiers omitted from storefront price breakdowns (PDP table + qty chips).
+     * Wholesale is still the default store price; only bulk/distributor breaks show.
+     *
+     * @var list<string>
+     */
+    public const STORE_BREAKDOWN_EXCLUDED_TIER_KEYS = ['wholesale'];
 
     /**
      * Active tiers visible on the online store (excludes STORE_EXCLUDED_TIER_KEYS).
@@ -267,6 +275,20 @@ class QuantityPricingEngine
         return $this->activeTiers()
             ->filter(
                 fn (QuantityChannelTier $tier): bool => ! in_array($tier->tier_key, self::STORE_EXCLUDED_TIER_KEYS, true),
+            )
+            ->values();
+    }
+
+    /**
+     * Bulk / distributor breaks for PDP tables and product-card qty chips.
+     *
+     * @return Collection<int, QuantityChannelTier>
+     */
+    public function storefrontBreakdownTiers(): Collection
+    {
+        return $this->storefrontTiers()
+            ->filter(
+                fn (QuantityChannelTier $tier): bool => ! in_array($tier->tier_key, self::STORE_BREAKDOWN_EXCLUDED_TIER_KEYS, true),
             )
             ->values();
     }

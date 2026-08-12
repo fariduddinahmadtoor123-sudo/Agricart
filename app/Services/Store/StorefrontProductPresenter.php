@@ -75,7 +75,7 @@ class StorefrontProductPresenter
     }
 
     /**
-     * Online store price breaks: Wholesale, Bulk, Distributor (retail is POS/admin only).
+     * Online store price breaks: Bulk and Distributor (wholesale is the main price only).
      *
      * @return list<array{min_qty: int, tier_label: string, price: string, formatted: string}>
      */
@@ -84,7 +84,7 @@ class StorefrontProductPresenter
         $overrides = is_array($product->price_tier_quantities) ? $product->price_tier_quantities : [];
         $rows = [];
 
-        foreach ($this->quantityPricing->storefrontTiers() as $tier) {
+        foreach ($this->quantityPricing->storefrontBreakdownTiers() as $tier) {
             $minQty = (int) ($overrides[$tier->price_field] ?? $tier->min_quantity);
             $price = $this->quantityPricing->productPrice($product, $tier->price_field);
 
@@ -101,23 +101,41 @@ class StorefrontProductPresenter
             ];
         }
 
-        if ($rows === [] && filled($product->wholesale_price)) {
-            $numeric = $this->saleService->numeric((string) $product->wholesale_price);
-            $rows[] = [
-                'min_qty' => 1,
-                'tier_label' => $this->tierLabel('wholesale'),
-                'price' => $this->saleService->formatMoney($numeric),
-                'formatted' => $this->priceEngine->formatPrice($numeric),
-            ];
-        } elseif ($rows === [] && filled($product->retail_price)) {
-            // Rare: wholesale empty — still show something on PDP rather than a blank pricing tab.
-            $numeric = $this->saleService->numeric((string) $product->retail_price);
-            $rows[] = [
-                'min_qty' => 1,
-                'tier_label' => $this->tierLabel('wholesale'),
-                'price' => $this->saleService->formatMoney($numeric),
-                'formatted' => $this->priceEngine->formatPrice($numeric),
-            ];
+        return $rows;
+    }
+
+    /**
+     * Compact qty+rate chips for the storefront price (cards + PDP).
+     * Hidden when the only break is 1+ — that rate is already the main price.
+     *
+     * @return list<array{min_qty: int, tier_label: string, price: string, formatted: string}>
+     */
+    public function compactQuantityRates(Product $product): array
+    {
+        return $this->compactRows($this->quantityPriceTable($product));
+    }
+
+    /**
+     * @param  list<array{min_qty: int, tier_label: string, price: string, formatted: string}>  $rows
+     * @return list<array{min_qty: int, tier_label: string, price: string, formatted: string}>
+     */
+    public function compactRows(array $rows): array
+    {
+        if ($rows === []) {
+            return [];
+        }
+
+        $hasHigherBreak = false;
+
+        foreach ($rows as $row) {
+            if ((int) $row['min_qty'] > 1) {
+                $hasHigherBreak = true;
+                break;
+            }
+        }
+
+        if (count($rows) < 2 && ! $hasHigherBreak) {
+            return [];
         }
 
         return $rows;

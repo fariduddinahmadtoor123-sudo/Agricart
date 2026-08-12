@@ -1677,6 +1677,89 @@
     background: color-mix(in oklab, var(--agricart-primary) 6%, transparent);
 }
 
+.ag-store-qty-rates {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.65rem;
+    margin: 0;
+    width: 100%;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--agricart-text);
+}
+
+.ag-store-qty-rates__item {
+    white-space: nowrap;
+}
+
+.ag-store-qty-rates__item:not(:last-child)::after {
+    content: "·";
+    margin-inline-start: 0.55rem;
+    font-weight: 500;
+    opacity: 0.55;
+}
+
+.ag-store-qty-rates--pdp {
+    flex: 1 1 12rem;
+    width: auto;
+    margin-top: 0;
+    padding-top: 0;
+    border-top: 0;
+    font-size: 0.8125rem;
+    color: var(--agricart-muted);
+    font-weight: 650;
+}
+
+.ag-store-qty-rates--card {
+    margin-top: 0.3rem;
+    color: var(--agricart-muted);
+    font-weight: 650;
+}
+
+.ag-store-qty-pricing-hint {
+    display: grid;
+    gap: 0.35rem;
+    width: 100%;
+    margin: 0 0 0.85rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: 0.35rem;
+    border: 1px solid color-mix(in oklab, var(--agricart-primary) 16%, var(--agricart-border));
+    background: color-mix(in oklab, var(--agricart-primary) 4%, #fff);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: var(--agricart-muted);
+}
+
+.ag-store-pdp__table-wrap + .ag-store-qty-pricing-hint {
+    margin-top: 0.85rem;
+    margin-bottom: 0;
+}
+
+.ag-store-qty-pricing-hint__lead {
+    color: var(--agricart-text);
+    font-weight: 600;
+}
+
+.ag-store-qty-pricing-hint__action {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--agricart-primary);
+    font: inherit;
+    font-weight: 700;
+    text-align: start;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+    cursor: pointer;
+}
+
+.ag-store-qty-pricing-hint__action:hover,
+.ag-store-qty-pricing-hint__action:focus-visible {
+    color: color-mix(in oklab, var(--agricart-primary) 75%, #000);
+}
+
 .ag-store-pdp__price {
     font-size: 1.35rem;
     font-weight: 800;

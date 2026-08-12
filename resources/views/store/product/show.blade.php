@@ -100,8 +100,14 @@
                     @if ($buyPrice)
                         <div class="ag-store-pdp__price-box">
                             <span class="ag-store-pdp__price">{{ __('agricart.storefront.products.price', ['amount' => $buyPrice['formatted']]) }}</span>
-                            <span class="ag-store-pdp__price-tier">{{ $buyPrice['tier_label'] }}</span>
+                            @include('store.components.quantity-rates', [
+                                'rows' => $presenter->compactRows($priceTable),
+                                'variant' => 'pdp',
+                            ])
                         </div>
+                        @if ($priceTable !== [])
+                            @include('store.components.quantity-pricing-hint')
+                        @endif
                     @elseif (! ($onlineStoreChannel['show_prices'] ?? true))
                         <p class="ag-store-pdp__offline-msg">{{ $onlineStoreChannel['offline_message'] ?? __('sales_channels.defaults.offline_message') }}</p>
                     @endif
@@ -402,6 +408,7 @@
                                 </tbody>
                             </table>
                         </div>
+                        @include('store.components.quantity-pricing-hint')
                     </div>
                 @endif
             </div>

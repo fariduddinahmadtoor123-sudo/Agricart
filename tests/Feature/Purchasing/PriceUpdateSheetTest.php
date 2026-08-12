@@ -217,6 +217,20 @@ class PriceUpdateSheetTest extends TestCase
         ]);
     }
 
+    public function test_add_product_prepends_newest_row_to_top(): void
+    {
+        $first = $this->makeProduct(['name_en' => 'First Product']);
+        $second = $this->makeProduct(['name_en' => 'Second Product']);
+
+        Livewire::test(Sheet::class)
+            ->call('openForm')
+            ->call('addProduct', $first->id)
+            ->assertSet('rows.0.product_id', $first->id)
+            ->call('addProduct', $second->id)
+            ->assertSet('rows.0.product_id', $second->id)
+            ->assertSet('rows.1.product_id', $first->id);
+    }
+
     public function test_save_all_updates_every_priced_row_and_skips_blank_rows(): void
     {
         $pricedA = $this->makeProduct(['name_en' => 'Priced A']);
@@ -230,10 +244,10 @@ class PriceUpdateSheetTest extends TestCase
             ->call('addProduct', $pricedB->id)
             ->call('addProduct', $pricedC->id)
             ->call('addProduct', $blank->id)
-            // Only selling prices — no buy price entered for any row.
-            ->set('rows.0.retail_price', '100')
-            ->set('rows.1.wholesale_price', '90')
-            ->set('rows.2.retail_price', '75')
+            // Newest product stays at the top (blank); older rows shift down.
+            ->set('rows.3.retail_price', '100')
+            ->set('rows.2.wholesale_price', '90')
+            ->set('rows.1.retail_price', '75')
             ->call('saveAll')
             ->assertSet('statusType', 'success');
 

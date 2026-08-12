@@ -151,7 +151,7 @@ class Sheet extends Component
             return;
         }
 
-        $this->rows[] = $this->makeRow($product);
+        array_unshift($this->rows, $this->makeRow($product));
         $this->productQuery = '';
         $this->setStatus(__('price_updates.messages.product_added'), 'success');
     }

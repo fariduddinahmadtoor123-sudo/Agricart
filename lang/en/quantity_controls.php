@@ -23,8 +23,8 @@ return [
     ],
 
     'list' => [
-        'intro' => 'Default quantity breakpoints for retail, wholesale, bulk and distributor prices.',
-        'link_note' => 'These quantities appear automatically on Add Product. Prices are managed separately (retail on purchase; others via Price Channel %).',
+        'intro' => 'Default quantity breakpoints for retail, wholesale, bulk and distributor prices. Wholesale, bulk and distributor breaks also appear on the store next to the product price.',
+        'link_note' => 'These quantities appear automatically on Add Product and on the online store (for example 5+ Rs 90 · 20+ Rs 80). Prices are managed separately (retail on purchase; others via Price Channel %).',
         'empty' => 'No quantity tiers yet. Use Add to create the first tier.',
         'col_name' => 'Tier',
         'col_min_quantity' => 'Min. qty',

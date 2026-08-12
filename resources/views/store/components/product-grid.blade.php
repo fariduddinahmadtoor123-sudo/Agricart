@@ -86,6 +86,10 @@
                             <p class="ag-store-product-card__coming-soon">{{ __('agricart.storefront.products.coming_soon') }}</p>
                         @elseif ($price = $productService->formattedRetailPrice($product))
                             <p class="ag-store-product-card__price">{{ __('agricart.storefront.products.price', ['amount' => $price]) }}</p>
+                            @include('store.components.quantity-rates', [
+                                'rows' => $cardPresenter->compactQuantityRates($product),
+                                'variant' => 'card',
+                            ])
                         @elseif (! ($onlineStoreChannel['show_prices'] ?? true))
                             <p class="ag-store-product-card__offline-msg">{{ $onlineStoreChannel['offline_message'] ?? __('sales_channels.defaults.offline_message') }}</p>
                         @elseif (! $product->isPriced())
