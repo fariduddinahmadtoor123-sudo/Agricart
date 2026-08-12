@@ -71,7 +71,7 @@
                                 </td>
                             @endif
                             @if (in_array('received', $visibleColumns, true))
-                                <td>{{ $inquiry->created_at?->format('Y-m-d H:i') }}</td>
+                                <td>{{ agricart_datetime($inquiry->created_at) }}</td>
                             @endif
                             @if (in_array('actions', $visibleColumns, true))
                                 <td class="agricart-categories__actions agricart-store-messages__row-actions">
@@ -120,7 +120,7 @@
                     <span class="agricart-store-messages__status is-{{ $selectedInquiry->status }}">
                         {{ __('agricart.store.admin.messages.statuses.'.$selectedInquiry->status) }}
                     </span>
-                    <span>{{ __('agricart.store.admin.messages.received_at', ['date' => $selectedInquiry->created_at?->format('Y-m-d H:i')]) }}</span>
+                    <span>{{ __('agricart.store.admin.messages.received_at', ['date' => agricart_datetime($selectedInquiry->created_at)]) }}</span>
                 </div>
 
                 <dl class="agricart-store-messages__meta">
@@ -140,11 +140,11 @@
                     </div>
                     <div>
                         <dt>{{ __('agricart.store.admin.messages.read_at') }}</dt>
-                        <dd>{{ $selectedInquiry->read_at?->format('Y-m-d H:i') ?? '—' }}</dd>
+                        <dd>{{ agricart_datetime($selectedInquiry->read_at) }}</dd>
                     </div>
                     <div>
                         <dt>{{ __('agricart.store.admin.messages.closed_at') }}</dt>
-                        <dd>{{ $selectedInquiry->closed_at?->format('Y-m-d H:i') ?? '—' }}</dd>
+                        <dd>{{ agricart_datetime($selectedInquiry->closed_at) }}</dd>
                     </div>
                 </dl>
 

@@ -20,7 +20,7 @@ class RunSchedulerWebTick
         if (
             $this->scheduler->enabled()
             && ! $request->isMethod('OPTIONS')
-            && ! $request->routeIs('internal.schedule-run')
+            && ! $request->routeIs('internal.schedule-run', 'admin.backups.restore-progress')
             && ! $request->is('up')
         ) {
             defer(fn () => $this->scheduler->tick());

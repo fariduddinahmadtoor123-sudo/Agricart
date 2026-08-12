@@ -98,7 +98,7 @@
                     </div>
                     <div class="agricart-staff-approvals__detail-item">
                         <span class="agricart-staff-approvals__detail-label">{{ __('agricart.users.list.col_created') }}</span>
-                        <span class="agricart-staff-approvals__detail-value">{{ $viewUser->created_at?->format('Y-m-d H:i') ?? '—' }}</span>
+                        <span class="agricart-staff-approvals__detail-value">{{ agricart_datetime($viewUser->created_at) }}</span>
                     </div>
                     <div class="agricart-staff-approvals__detail-item agricart-staff-approvals__detail-item--full">
                         <span class="agricart-staff-approvals__detail-label">{{ __('agricart.users.fields.address') }}</span>
@@ -200,7 +200,7 @@
                         <h4 class="agricart-staff-approvals__section-title">{{ __('agricart.approvals.staff.view.rejection_reason') }}</h4>
                         <p>{{ $viewUser->rejection_reason }}</p>
                         @if ($viewUser->rejected_at)
-                            <p class="agricart-staff-approvals__muted">{{ __('agricart.approvals.staff.view.rejected_at', ['date' => $viewUser->rejected_at->format('Y-m-d H:i')]) }}</p>
+                            <p class="agricart-staff-approvals__muted">{{ __('agricart.approvals.staff.view.rejected_at', ['date' => agricart_datetime($viewUser->rejected_at)]) }}</p>
                         @endif
                     </section>
                 @endif

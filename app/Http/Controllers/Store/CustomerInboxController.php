@@ -19,6 +19,7 @@ class CustomerInboxController extends Controller
 
         $conversations = AgricartConversation::query()
             ->where('customer_id', $customer->id)
+            ->with('latestMessage')
             ->latest('last_message_at')
             ->latest('id')
             ->paginate(20);

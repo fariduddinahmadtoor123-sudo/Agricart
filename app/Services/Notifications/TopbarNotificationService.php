@@ -112,7 +112,11 @@ class TopbarNotificationService
                 ->count();
         }
 
-        return app(AgricartInboxService::class)->unreadCountForAdmin();
+        $user = auth()->user();
+
+        return app(AgricartInboxService::class)->unreadCountForAdmin(
+            $user instanceof User ? $user : null,
+        );
     }
 
     private function unreadCriticalSystemErrors(): int

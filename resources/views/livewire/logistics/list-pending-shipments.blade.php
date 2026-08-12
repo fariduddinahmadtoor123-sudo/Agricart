@@ -116,7 +116,7 @@
                                 </td>
                             @endif
                             @if (in_array('queued_at', $visibleColumns, true))
-                                <td>{{ $order->queued_at?->format('Y-m-d H:i') }}</td>
+                                <td>{{ agricart_datetime($order->queued_at) }}</td>
                             @endif
                             <td class="agricart-categories__actions">
                                 <button type="button" class="agricart-categories__action" wire:click="openOrder({{ $order->id }})">

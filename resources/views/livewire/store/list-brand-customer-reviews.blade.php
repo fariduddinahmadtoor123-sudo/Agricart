@@ -69,7 +69,7 @@
                                 </td>
                             @endif
                             @if (in_array('received', $visibleColumns, true))
-                                <td>{{ $item->created_at?->format('Y-m-d H:i') }}</td>
+                                <td>{{ agricart_datetime($item->created_at) }}</td>
                             @endif
                             @if (in_array('actions', $visibleColumns, true))
                                 <td class="agricart-categories__actions">

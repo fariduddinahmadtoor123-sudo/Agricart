@@ -3,6 +3,7 @@
 namespace App\Services\Store;
 
 use App\Models\AgricartConversation;
+use App\Models\AgricartConversationRead;
 use App\Models\AgricartMessage;
 use App\Models\Customer;
 use App\Models\OnlineSaleOrder;
@@ -35,30 +36,79 @@ class AgricartInboxService
             ->count();
     }
 
-    public function unreadCountForAdmin(): int
+    public function unreadCountForAdmin(?User $user = null): int
     {
         if (! Schema::hasTable('agricart_conversations')) {
             return 0;
         }
 
+        $user ??= auth()->user() instanceof User ? auth()->user() : null;
+        $query = AgricartConversation::query()
+            ->where('status', AgricartConversation::STATUS_OPEN)
+            ->whereNotNull('last_message_at');
+
+        $this->constrainWaitingOnCustomer($query);
+
+        $hasAssignment = Schema::hasColumn('agricart_conversations', 'assigned_to_user_id');
+        $hasStaffReads = Schema::hasTable('agricart_conversation_reads');
+
+        if ($user instanceof User && $hasStaffReads) {
+            if ($hasAssignment) {
+                $query->where(function ($inner) use ($user): void {
+                    $inner->whereNull('assigned_to_user_id')
+                        ->orWhere('assigned_to_user_id', $user->id);
+                });
+            }
+
+            $query->where(function ($inner) use ($user): void {
+                $inner->whereDoesntHave('staffReads', function ($reads) use ($user): void {
+                    $reads->where('user_id', $user->id)
+                        ->whereColumn('agricart_conversation_reads.last_read_at', '>=', 'agricart_conversations.last_message_at');
+                })->where(function ($legacy): void {
+                    $legacy->whereNull('admin_last_read_at')
+                        ->orWhereColumn('admin_last_read_at', '<', 'last_message_at');
+                });
+            });
+        } else {
+            $query->where(function ($inner): void {
+                $inner->whereNull('admin_last_read_at')
+                    ->orWhereColumn('admin_last_read_at', '<', 'last_message_at');
+            });
+        }
+
+        return $query->count();
+    }
+
+    public function unassignedOpenCount(): int
+    {
+        if (! Schema::hasTable('agricart_conversations')
+            || ! Schema::hasColumn('agricart_conversations', 'assigned_to_user_id')) {
+            return 0;
+        }
+
         return AgricartConversation::query()
             ->where('status', AgricartConversation::STATUS_OPEN)
-            ->whereNotNull('last_message_at')
-            ->where(function ($query): void {
-                $query->whereNull('admin_last_read_at')
-                    ->orWhereColumn('admin_last_read_at', '<', 'last_message_at');
-            })
-            ->whereExists(function ($query): void {
-                $query->selectRaw('1')
-                    ->from('agricart_messages as latest')
-                    ->whereColumn('latest.agricart_conversation_id', 'agricart_conversations.id')
-                    ->where('latest.sender_type', AgricartMessage::SENDER_CUSTOMER)
-                    ->whereRaw('latest.id = (
-                        select max(m.id) from agricart_messages as m
-                        where m.agricart_conversation_id = agricart_conversations.id
-                    )');
-            })
+            ->whereNull('assigned_to_user_id')
             ->count();
+    }
+
+    public function mineOpenCount(User $user): int
+    {
+        if (! Schema::hasTable('agricart_conversations')
+            || ! Schema::hasColumn('agricart_conversations', 'assigned_to_user_id')) {
+            return 0;
+        }
+
+        return AgricartConversation::query()
+            ->where('status', AgricartConversation::STATUS_OPEN)
+            ->where('assigned_to_user_id', $user->id)
+            ->count();
+    }
+
+    public function assignTo(AgricartConversation $conversation, User $user): void
+    {
+        $conversation->update(['assigned_to_user_id' => $user->id]);
+        $this->markStaffRead($conversation, $user);
     }
 
     /**
@@ -95,6 +145,10 @@ class AgricartInboxService
                 $body,
                 customer: $customer,
             );
+
+            if ($customer !== null) {
+                $conversation->update(['customer_last_read_at' => $this->readAt($conversation)]);
+            }
 
             return $conversation->fresh(['messages']) ?? $conversation;
         });
@@ -133,6 +187,8 @@ class AgricartInboxService
                 customer: $customer,
             );
 
+            $conversation->update(['customer_last_read_at' => $this->readAt($conversation)]);
+
             return $conversation->fresh(['messages']) ?? $conversation;
         });
     }
@@ -163,6 +219,7 @@ class AgricartInboxService
                 'subject' => $subject,
                 'topic' => AgricartConversation::TOPIC_GENERAL,
                 'status' => AgricartConversation::STATUS_OPEN,
+                'assigned_to_user_id' => $admin->id,
                 'admin_last_read_at' => now(),
                 'customer_last_read_at' => null,
             ]);
@@ -173,6 +230,9 @@ class AgricartInboxService
                 $body,
                 user: $admin,
             );
+
+            $conversation->update(['admin_last_read_at' => $this->readAt($conversation)]);
+            $this->markStaffRead($conversation, $admin);
 
             return $conversation->fresh(['messages']) ?? $conversation;
         });
@@ -195,7 +255,7 @@ class AgricartInboxService
             customer: $customer,
         );
 
-        $conversation->update(['customer_last_read_at' => now()]);
+        $conversation->update(['customer_last_read_at' => $this->readAt($conversation)]);
         $this->customerSupportBridge->markReadByCustomer($conversation, $customer);
 
         return $message;
@@ -204,7 +264,11 @@ class AgricartInboxService
     public function replyAsAdmin(AgricartConversation $conversation, User $admin, string $body): AgricartMessage
     {
         if ($conversation->status === AgricartConversation::STATUS_CLOSED) {
-            $conversation->update(['status' => AgricartConversation::STATUS_OPEN]);
+            $conversation->status = AgricartConversation::STATUS_OPEN;
+        }
+
+        if ($conversation->assigned_to_user_id === null) {
+            $conversation->assigned_to_user_id = $admin->id;
         }
 
         $message = $this->appendMessage(
@@ -214,7 +278,11 @@ class AgricartInboxService
             user: $admin,
         );
 
-        $conversation->update(['admin_last_read_at' => now()]);
+        $conversation->forceFill([
+            'assigned_to_user_id' => $conversation->assigned_to_user_id ?: $admin->id,
+            'admin_last_read_at' => $this->readAt($conversation),
+        ])->save();
+        $this->markStaffRead($conversation, $admin);
         $this->customerSupportBridge->markReadByAdmin($conversation, $admin);
 
         return $message;
@@ -226,14 +294,63 @@ class AgricartInboxService
             abort(403);
         }
 
-        $conversation->update(['customer_last_read_at' => now()]);
+        $conversation->update(['customer_last_read_at' => $this->readAt($conversation)]);
         $this->customerSupportBridge->markReadByCustomer($conversation, $customer);
     }
 
     public function markReadByAdmin(AgricartConversation $conversation, ?User $admin = null): void
     {
-        $conversation->update(['admin_last_read_at' => now()]);
+        $conversation->update(['admin_last_read_at' => $this->readAt($conversation)]);
+
+        if ($admin instanceof User) {
+            $this->markStaffRead($conversation, $admin);
+        }
+
         $this->customerSupportBridge->markReadByAdmin($conversation, $admin);
+    }
+
+    private function markStaffRead(AgricartConversation $conversation, User $admin): void
+    {
+        if (! Schema::hasTable('agricart_conversation_reads')) {
+            return;
+        }
+
+        AgricartConversationRead::query()->updateOrCreate(
+            [
+                'agricart_conversation_id' => $conversation->id,
+                'user_id' => $admin->id,
+            ],
+            ['last_read_at' => $this->readAt($conversation)],
+        );
+    }
+
+    private function readAt(AgricartConversation $conversation): \Illuminate\Support\Carbon
+    {
+        $readAt = now();
+        $lastAt = $conversation->last_message_at;
+
+        if ($lastAt !== null && $readAt->lt($lastAt)) {
+            return $lastAt->copy();
+        }
+
+        return $readAt;
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder<\App\Models\AgricartConversation>  $query
+     */
+    private function constrainWaitingOnCustomer($query): void
+    {
+        $query->whereExists(function ($inner): void {
+            $inner->selectRaw('1')
+                ->from('agricart_messages as latest')
+                ->whereColumn('latest.agricart_conversation_id', 'agricart_conversations.id')
+                ->where('latest.sender_type', AgricartMessage::SENDER_CUSTOMER)
+                ->whereRaw('latest.id = (
+                    select max(m.id) from agricart_messages as m
+                    where m.agricart_conversation_id = agricart_conversations.id
+                )');
+        });
     }
 
     public function close(AgricartConversation $conversation): void
@@ -471,6 +588,10 @@ class AgricartInboxService
             && $conversation->customer_last_read_at !== null
             && $lastAt->lte($conversation->customer_last_read_at)) {
             $lastAt = $conversation->customer_last_read_at->copy()->addSecond();
+        }
+
+        if ($message->created_at === null || $lastAt->ne($message->created_at)) {
+            $message->forceFill(['created_at' => $lastAt])->save();
         }
 
         $conversation->forceFill([

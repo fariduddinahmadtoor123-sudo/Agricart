@@ -84,7 +84,7 @@
                                         {{ __('communication.tasks.system') }}
                                     @endif
                                 </strong>
-                                · {{ $message->created_at?->timezone(config('app.timezone'))->format('d M Y H:i') }}
+                                · {{ agricart_datetime($message->created_at, 'd M Y H:i') }}
                             </p>
                             @if (filled($message->body))
                                 <p class="agricart-task-comms__body">{{ $message->body }}</p>

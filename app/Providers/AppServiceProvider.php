@@ -35,6 +35,7 @@ use App\Services\Store\StoreCartService;
 use App\Services\Store\StoreLayoutService;
 use Filament\Facades\Filament;
 use Illuminate\Auth\Events\Failed;
+use Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Auth\Notifications\ResetPassword;
@@ -80,6 +81,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Password::defaults(static fn () => Password::min(8));
+
+        PreventRequestsDuringMaintenance::except([
+            'up',
+            'admin/backups/restore-progress',
+        ]);
 
         RateLimiter::for('customer-login', fn (Request $request) => [
             Limit::perMinute(10)->by(strtolower((string) $request->input('login', $request->input('email'))).'|'.$request->ip()),

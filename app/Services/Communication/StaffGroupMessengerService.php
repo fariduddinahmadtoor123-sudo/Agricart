@@ -272,7 +272,7 @@ class StaffGroupMessengerService
                     'body' => (string) $message->body,
                     'mine' => $mine,
                     'sender' => $mine ? null : (string) ($names[$senderId] ?? __('communication.messenger.staff')),
-                    'time' => $message->created_at?->timezone(config('app.timezone'))->format('H:i'),
+                    'time' => agricart_datetime($message->created_at, 'H:i', false),
                 ];
             })
             ->values()

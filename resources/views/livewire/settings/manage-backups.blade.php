@@ -369,7 +369,7 @@
                     <tbody>
                         @foreach ($backups as $backup)
                             <tr wire:key="backup-{{ $backup->id }}">
-                                <td>{{ \Illuminate\Support\Carbon::parse($backup->createdAt)->format('Y-m-d H:i') }}</td>
+                                <td>{{ agricart_datetime($backup->createdAt) }}</td>
                                 <td>{{ __('agricart.backups.types.' . $backup->type) }}</td>
                                 <td>{{ __('agricart.backups.sources.' . ($backup->meta['source'] ?? 'manual')) }}</td>
                                 <td>{{ $backup->formattedSize() }}</td>
@@ -406,6 +406,10 @@
     @if ($restoreBackupId)
         <div
             class="agricart-staff-approvals__modal"
+            x-data="agricartBackupRestoreProgress(@js([
+                'statusUrl' => route('admin.backups.restore-progress'),
+                'labels' => __('agricart.backups.restore.steps'),
+            ]))"
             @unless ($busy)
                 wire:keydown.escape.window="cancelRestore"
             @endunless
@@ -444,7 +448,7 @@
                         <button type="button" class="agricart-categories__action" wire:click="cancelRestore" @disabled($busy) wire:loading.attr="disabled" wire:target="confirmRestore">
                             {{ __('agricart.backups.actions.cancel') }}
                         </button>
-                        <button type="button" class="agricart-categories__action is-danger" wire:click="confirmRestore" @disabled($busy) wire:loading.attr="disabled" wire:target="confirmRestore">
+                        <button type="button" class="agricart-categories__action is-danger" x-on:click="startRestore($wire)" @disabled($busy) wire:loading.attr="disabled" wire:target="confirmRestore">
                             {{ __('agricart.backups.actions.confirm_restore') }}
                         </button>
                     </div>
@@ -454,10 +458,140 @@
                     <span class="agricart-backups__spinner" aria-hidden="true"></span>
                     <div>
                         <p class="agricart-backups__restore-working-title">{{ __('agricart.backups.restore.working_title') }}</p>
+                        <p class="agricart-backups__restore-elapsed">
+                            {{ __('agricart.backups.restore.elapsed') }}
+                            <span x-text="formatElapsed()"></span>
+                        </p>
+                        <p class="agricart-backups__restore-step" x-text="stepLabel()"></p>
                         <p class="agricart-backups__restore-working-text">{{ __('agricart.backups.restore.working_text') }}</p>
+                        <p class="agricart-backups__restore-hint" x-show="status === 'done'" x-cloak>{{ __('agricart.backups.restore.done_hint') }}</p>
+                        <p class="agricart-backups__restore-hint is-danger" x-show="status === 'failed'" x-cloak>{{ __('agricart.backups.restore.failed_hint') }}</p>
                     </div>
                 </div>
             </div>
         </div>
     @endif
 </div>
+
+@script
+<script>
+    Alpine.data('agricartBackupRestoreProgress', (config) => ({
+        statusUrl: config.statusUrl,
+        labels: config.labels || {},
+        token: '',
+        startedAt: null,
+        now: Date.now(),
+        step: 'starting',
+        status: 'running',
+        timer: null,
+        poller: null,
+
+        init() {
+            this.token = (window.crypto && window.crypto.randomUUID)
+                ? window.crypto.randomUUID()
+                : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+                    const r = Math.random() * 16 | 0;
+                    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+        },
+
+        startRestore(wire) {
+            this.startedAt = Date.now();
+            this.now = this.startedAt;
+            this.step = 'starting';
+            this.status = 'running';
+            this.startTimers();
+            wire.confirmRestore(this.token);
+        },
+
+        startTimers() {
+            this.stopTimers();
+            this.timer = setInterval(() => {
+                this.now = Date.now();
+            }, 1000);
+            this.poller = setInterval(() => {
+                this.poll();
+            }, 2000);
+            this.poll();
+        },
+
+        stopTimers() {
+            if (this.timer) {
+                clearInterval(this.timer);
+                this.timer = null;
+            }
+            if (this.poller) {
+                clearInterval(this.poller);
+                this.poller = null;
+            }
+        },
+
+        destroy() {
+            this.stopTimers();
+        },
+
+        formatElapsed() {
+            if (! this.startedAt) {
+                return '00:00';
+            }
+
+            let seconds = Math.max(0, Math.floor((this.now - this.startedAt) / 1000));
+            const hours = Math.floor(seconds / 3600);
+            seconds = seconds % 3600;
+            const minutes = Math.floor(seconds / 60);
+            const rest = seconds % 60;
+            const pad = (value) => String(value).padStart(2, '0');
+
+            if (hours > 0) {
+                return hours + ':' + pad(minutes) + ':' + pad(rest);
+            }
+
+            return pad(minutes) + ':' + pad(rest);
+        },
+
+        stepLabel() {
+            return this.labels[this.step] || this.labels.starting || '';
+        },
+
+        async poll() {
+            if (this.status === 'done' || this.status === 'failed') {
+                if (this.poller) {
+                    clearInterval(this.poller);
+                    this.poller = null;
+                }
+
+                return;
+            }
+
+            try {
+                const joiner = this.statusUrl.indexOf('?') === -1 ? '?' : '&';
+                const response = await fetch(this.statusUrl + joiner + 'token=' + encodeURIComponent(this.token), {
+                    headers: { Accept: 'application/json' },
+                    credentials: 'same-origin',
+                });
+
+                if (! response.ok) {
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (! data.active) {
+                    return;
+                }
+
+                if (data.step) {
+                    this.step = data.step;
+                }
+
+                if (data.status) {
+                    this.status = data.status;
+                }
+            } catch (error) {
+                // Keep the elapsed timer running if the poll fails (maintenance / network).
+            }
+        },
+    }));
+</script>
+@endscript

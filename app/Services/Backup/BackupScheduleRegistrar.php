@@ -27,7 +27,7 @@ class BackupScheduleRegistrar
         $weekday = $settings['weekday'];
 
         $event = $schedule->command('backup:create --type='.$type.' --source=scheduled')
-            ->timezone(config('app.timezone'))
+            ->timezone(config('app.display_timezone'))
             ->withoutOverlapping($type === BackupScheduleSetting::TYPE_FULL ? 360 : 180)
             ->appendOutputTo(storage_path('logs/backup-schedule.log'));
 
@@ -40,7 +40,7 @@ class BackupScheduleRegistrar
         ) {
             $protect($schedule->command('backup:create --type=database --source=scheduled')
                 ->dailyAt($settings['database_daily_time'])
-                ->timezone(config('app.timezone'))
+                ->timezone(config('app.display_timezone'))
                 ->withoutOverlapping(180)
                 ->appendOutputTo(storage_path('logs/backup-schedule.log')));
         }

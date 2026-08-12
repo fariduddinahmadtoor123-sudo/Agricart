@@ -17,7 +17,7 @@
                     · {{ __('agricart.inbox.topics.'.$conversation->topic) }}
                 </p>
                 <h1 class="ag-store-inbox__title">{{ $conversation->subject }}</h1>
-                <p class="ag-store-inbox__lead">{{ __('agricart.inbox.statuses.'.$conversation->status) }}</p>
+                <p class="ag-store-inbox__lead">{{ __('agricart.inbox.customer_queue.'.$conversation->customerQueueState()) }}</p>
             </div>
         </header>
 
@@ -25,6 +25,26 @@
             <div class="ag-store-alert ag-store-alert--success" role="status">
                 {{ session('customer_auth_status') ?: session('store_message_sent') }}
             </div>
+        @endif
+
+        @php
+            $latestOwn = $conversation->messages
+                ->filter(fn ($message) => $message->isFromCustomer())
+                ->sortByDesc('id')
+                ->first();
+            $agricartReadLatest = $latestOwn instanceof \App\Models\AgricartMessage
+                && $conversation->teamHasReadMessage($latestOwn);
+            $latestAdmin = $conversation->latestAdminMessage();
+        @endphp
+
+        @if ($latestOwn && ! $latestAdmin)
+            <p class="ag-store-inbox__receipt-banner {{ $agricartReadLatest ? 'is-read' : 'is-pending' }}" role="status">
+                {{ $agricartReadLatest ? __('agricart.inbox.receipt.banner_agricart_read') : __('agricart.inbox.receipt.banner_agricart_unread') }}
+            </p>
+        @elseif ($latestAdmin)
+            <p class="ag-store-inbox__receipt-banner is-read" role="status">
+                {{ __('agricart.inbox.receipt.banner_agricart_replied') }}
+            </p>
         @endif
 
         <ol class="ag-store-inbox__thread">
@@ -43,9 +63,19 @@
                         @else
                             {{ __('agricart.inbox.sender.you') }}
                         @endif
-                        · {{ $message->created_at?->format('Y-m-d H:i') }}
+                        · {{ agricart_datetime($message->created_at) }}
                     </p>
                     <p class="ag-store-inbox__bubble-body">{{ $message->body }}</p>
+                    @if ($message->isFromCustomer())
+                        @php $teamRead = $conversation->teamHasReadMessage($message); @endphp
+                        <p
+                            class="ag-store-inbox__ticks {{ $teamRead ? 'is-read' : 'is-pending' }}"
+                            aria-label="{{ $teamRead ? __('agricart.inbox.receipt.read_by_agricart') : __('agricart.inbox.receipt.waiting_agricart') }}"
+                        >
+                            <span class="ag-store-inbox__ticks-marks" aria-hidden="true">{{ $teamRead ? '✓✓' : '✓' }}</span>
+                            <span>{{ $teamRead ? __('agricart.inbox.receipt.read_by_agricart') : __('agricart.inbox.receipt.waiting_agricart') }}</span>
+                        </p>
+                    @endif
                 </li>
             @endforeach
         </ol>

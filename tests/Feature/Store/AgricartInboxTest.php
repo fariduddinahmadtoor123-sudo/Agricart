@@ -111,7 +111,174 @@ class AgricartInboxTest extends TestCase
         ]);
 
         $this->assertSame(1, $inbox->unreadCountForCustomer($customer->fresh()));
+        $this->assertSame($admin->id, $conversation->fresh()->assigned_to_user_id);
+        $this->assertSame(0, $inbox->unreadCountForAdmin($admin));
         $this->assertSame(0, $inbox->unreadCountForAdmin());
+    }
+
+    public function test_legacy_team_read_stays_read_until_customer_writes_again(): void
+    {
+        $customer = $this->createCustomer('inbox-legacy-read@test.test');
+        $admin = $this->superAdmin();
+        $inbox = app(AgricartInboxService::class);
+
+        $conversation = $inbox->startGeneralConversation(
+            $customer,
+            'Legacy read',
+            'Please check stock.',
+        );
+
+        $conversation->update(['admin_last_read_at' => now()->addSecond()]);
+        \App\Models\AgricartConversationRead::query()->delete();
+
+        $this->assertSame(0, $inbox->unreadCountForAdmin($admin));
+        $this->assertFalse($conversation->fresh()->unreadForStaff($admin));
+
+        $inbox->replyAsCustomer($conversation->fresh(), $customer, 'Any update?');
+
+        $this->assertSame(1, $inbox->unreadCountForAdmin($admin));
+        $this->assertTrue($conversation->fresh()->unreadForStaff($admin));
+    }
+
+    public function test_admin_reply_assigns_thread_and_hides_unread_from_other_staff(): void
+    {
+        $customer = $this->createCustomer('inbox-assign@test.test');
+        $agentA = $this->superAdmin(['name' => 'Ayesha Agent']);
+        $agentB = $this->superAdmin(['name' => 'Bilal Agent']);
+        $inbox = app(AgricartInboxService::class);
+
+        $conversation = $inbox->startGeneralConversation(
+            $customer,
+            'Seed stock',
+            'Do you have wheat seed in Lahore?',
+        );
+
+        $this->assertNull($conversation->assigned_to_user_id);
+        $this->assertSame(1, $inbox->unreadCountForAdmin($agentA));
+        $this->assertSame(1, $inbox->unreadCountForAdmin($agentB));
+
+        $inbox->replyAsAdmin($conversation->fresh(), $agentA, 'Yes, we have stock this week.');
+
+        $conversation->refresh();
+        $this->assertSame($agentA->id, $conversation->assigned_to_user_id);
+        $this->assertSame(0, $inbox->unreadCountForAdmin($agentA));
+        $this->assertSame(0, $inbox->unreadCountForAdmin($agentB));
+
+        $inbox->replyAsCustomer($conversation->fresh(), $customer, 'Please reserve 10 bags.');
+
+        $this->assertSame(1, $inbox->unreadCountForAdmin($agentA));
+        $this->assertSame(0, $inbox->unreadCountForAdmin($agentB));
+
+        Livewire::actingAs($agentA)
+            ->test(ListAgricartInbox::class)
+            ->call('applyFilter', 'queue:mine')
+            ->assertSee('Seed stock');
+
+        Livewire::actingAs($agentB)
+            ->test(ListAgricartInbox::class)
+            ->call('applyFilter', 'queue:mine')
+            ->assertDontSee('Seed stock');
+    }
+
+    public function test_staff_can_take_unassigned_conversation(): void
+    {
+        $customer = $this->createCustomer('inbox-take@test.test');
+        $agent = $this->superAdmin(['name' => 'Take Agent']);
+        $inbox = app(AgricartInboxService::class);
+
+        $conversation = $inbox->startGeneralConversation(
+            $customer,
+            'Take chat',
+            'Please help with delivery.',
+        );
+
+        Livewire::actingAs($agent)
+            ->test(ListAgricartInbox::class)
+            ->call('openView', $conversation->id)
+            ->call('takeConversation', $conversation->id)
+            ->assertHasNoErrors()
+            ->assertSee('Take Agent')
+            ->assertSee(__('agricart.inbox.admin.meta_handler'));
+
+        $this->assertSame($agent->id, $conversation->fresh()->assigned_to_user_id);
+        $this->assertSame(0, $inbox->unreadCountForAdmin($agent));
+    }
+
+    public function test_customer_sees_agricart_not_staff_name_and_read_receipts_work_both_ways(): void
+    {
+        $customer = $this->createCustomer('inbox-receipts@test.test');
+        $agent = $this->superAdmin(['name' => 'Zainab Representative']);
+        $inbox = app(AgricartInboxService::class);
+
+        $conversation = $inbox->startGeneralConversation(
+            $customer,
+            'Receipts',
+            'Can you confirm my order?',
+        );
+
+        $customerMessage = $conversation->messages()->where('sender_type', AgricartMessage::SENDER_CUSTOMER)->sole();
+        $this->assertFalse($conversation->teamHasReadMessage($customerMessage));
+
+        $adminMessage = $inbox->replyAsAdmin($conversation->fresh(), $agent, 'Yes, it is confirmed.');
+        $conversation->refresh();
+        $this->assertFalse($conversation->customerHasReadMessage($adminMessage));
+        $this->assertTrue($conversation->teamHasReadMessage($customerMessage->fresh()));
+
+        $this->actingAs($customer, 'customer')
+            ->get(route('store.customer.inbox.show', $conversation->id))
+            ->assertOk()
+            ->assertSee(__('agricart.inbox.sender.agricart'))
+            ->assertDontSee('Zainab Representative')
+            ->assertSee(__('agricart.inbox.receipt.read_by_agricart'))
+            ->assertSee(__('agricart.inbox.receipt.banner_agricart_replied'));
+
+        $conversation->refresh();
+        $this->assertTrue($conversation->customerHasReadMessage($adminMessage->fresh()));
+
+        Livewire::actingAs($agent)
+            ->test(ListAgricartInbox::class)
+            ->call('openView', $conversation->id)
+            ->assertSee('Zainab Representative')
+            ->assertSee(__('agricart.inbox.receipt.banner_read'))
+            ->assertSee(__('agricart.inbox.receipt.read_by_customer'))
+            ->assertSee(__('agricart.inbox.queue.read_waiting'));
+    }
+
+    public function test_admin_list_shows_customer_read_progress_not_generic_open(): void
+    {
+        $customer = $this->createCustomer('inbox-queue@test.test');
+        $admin = $this->superAdmin(['name' => 'Queue Agent']);
+        $inbox = app(AgricartInboxService::class);
+
+        $inbox->startAdminMessage(
+            $customer,
+            $admin,
+            'Welcome to Agricart.pk',
+            'Assalamu alaikum — welcome from Agricart.',
+        );
+
+        Livewire::actingAs($admin)
+            ->test(ListAgricartInbox::class)
+            ->assertSee(__('agricart.inbox.queue.sent_unread'))
+            ->assertDontSee('1 message|1 messages')
+            ->assertSee(trans_choice('agricart.inbox.admin.messages_count', 1))
+            ->assertSee(__('agricart.inbox.admin.view'))
+            ->assertSee('PKT');
+
+        $this->actingAs($customer, 'customer')
+            ->get(route('store.customer.inbox'))
+            ->assertOk()
+            ->assertSee(__('agricart.inbox.customer_queue.new_from_agricart'));
+
+        $conversation = AgricartConversation::query()->where('customer_id', $customer->id)->sole();
+
+        $this->actingAs($customer, 'customer')
+            ->get(route('store.customer.inbox.show', $conversation->id))
+            ->assertOk();
+
+        Livewire::actingAs($admin)
+            ->test(ListAgricartInbox::class)
+            ->assertSee(__('agricart.inbox.queue.read_waiting'));
     }
 
     public function test_order_placed_creates_system_message_in_order_thread(): void
@@ -271,16 +438,19 @@ class AgricartInboxTest extends TestCase
         ]);
     }
 
-    private function superAdmin(): User
+    /**
+     * @param  array<string, mixed>  $overrides
+     */
+    private function superAdmin(array $overrides = []): User
     {
         $role = Role::query()->firstOrCreate(
             ['slug' => 'super-admin'],
             ['name' => 'Super Admin', 'is_system' => true],
         );
 
-        return User::factory()->create([
+        return User::factory()->create(array_merge([
             'role_id' => $role->id,
             'status' => User::STATUS_ACTIVE,
-        ]);
+        ], $overrides));
     }
 }

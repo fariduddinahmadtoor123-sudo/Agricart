@@ -56,7 +56,7 @@
                         >
                             <p class="agricart-staff-inbox__message-meta">
                                 <strong>{{ $message->sender?->name ?: '—' }}</strong>
-                                · {{ $message->created_at?->timezone(config('app.timezone'))->format('d M Y H:i') }}
+                                · {{ agricart_datetime($message->created_at, 'd M Y H:i') }}
                                 @if ($isForward)
                                     · {{ __('staff_inbox.list.forward_tag') }}
                                 @endif
@@ -192,7 +192,7 @@
                                 </span>
                             </td>
                             <td>
-                                {{ $thread->last_message_at?->timezone(config('app.timezone'))->format('d M Y H:i') ?? '—' }}
+                                {{ agricart_datetime($thread->last_message_at, 'd M Y H:i') }}
                             </td>
                             <td>
                                 <button

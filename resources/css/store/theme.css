@@ -7939,6 +7939,42 @@ html[dir='rtl'] .ag-store-footer__col--map {
     color: var(--agricart-muted);
 }
 
+.ag-store-inbox__item-state {
+    display: inline-flex;
+    width: fit-content;
+    margin-top: 0.35rem;
+    padding: 0.2rem 0.5rem;
+    border: 1px solid var(--agricart-border);
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--agricart-muted);
+}
+
+.ag-store-inbox__item-state.is-new_from_agricart {
+    color: #9a3412;
+    background: #fff7ed;
+    border-color: #fdba74;
+}
+
+.ag-store-inbox__item-state.is-waiting_agricart {
+    color: #92400e;
+    background: #fffbeb;
+    border-color: #fde68a;
+}
+
+.ag-store-inbox__item-state.is-agricart_read,
+.ag-store-inbox__item-state.is-agricart_replied {
+    color: #3f6212;
+    background: color-mix(in srgb, var(--agricart-primary) 16%, white);
+    border-color: color-mix(in srgb, var(--agricart-primary) 40%, white);
+}
+
+.ag-store-inbox__item-state.is-closed,
+.ag-store-inbox__item-state.is-notice {
+    color: #475569;
+    background: #f8fafc;
+}
+
 .ag-store-inbox__pagination {
     margin-top: 1rem;
 }
@@ -7987,6 +8023,55 @@ html[dir='rtl'] .ag-store-footer__col--map {
     overflow-wrap: anywhere;
     font-size: 0.9375rem;
     color: var(--agricart-text);
+}
+
+.ag-store-inbox__receipt-banner {
+    margin: 0 0 1rem;
+    padding: 0.8rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 800;
+    border: 1px solid var(--agricart-border);
+}
+
+.ag-store-inbox__receipt-banner.is-read {
+    color: #3f6212;
+    background: color-mix(in srgb, var(--agricart-primary) 16%, white);
+    border-color: color-mix(in srgb, var(--agricart-primary) 40%, white);
+}
+
+.ag-store-inbox__receipt-banner.is-pending {
+    color: #9a3412;
+    background: #fff7ed;
+    border-color: #fdba74;
+}
+
+.ag-store-inbox__ticks {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin: 0.55rem 0 0;
+    padding: 0.28rem 0.55rem;
+    border: 1px solid currentColor;
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #9a3412;
+    background: #fff7ed;
+}
+
+.ag-store-inbox__ticks-marks {
+    letter-spacing: -0.12em;
+    font-size: 0.9rem;
+    line-height: 1;
+}
+
+.ag-store-inbox__ticks.is-read {
+    color: #3f6212;
+    background: color-mix(in srgb, var(--agricart-primary) 16%, white);
+}
+
+.ag-store-inbox__ticks.is-pending {
+    color: #9a3412;
+    background: #fff7ed;
 }
 
 /* ── Star rating picker ──────────────────────────────────────────────────── */

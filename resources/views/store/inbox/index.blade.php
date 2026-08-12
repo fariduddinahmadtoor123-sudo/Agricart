@@ -54,13 +54,16 @@
         @else
             <ul class="ag-store-inbox__list">
                 @foreach ($conversations as $conversation)
+                    @php $customerState = $conversation->customerQueueState(); @endphp
                     <li @class(['ag-store-inbox__item', 'is-unread' => $conversation->unreadForCustomer()])>
                         <a href="{{ route('store.customer.inbox.show', $conversation->id) }}" class="ag-store-inbox__link">
                             <span class="ag-store-inbox__item-topic">{{ __('agricart.inbox.topics.'.$conversation->topic) }}</span>
                             <strong class="ag-store-inbox__item-subject">{{ $conversation->subject }}</strong>
                             <span class="ag-store-inbox__item-meta">
-                                {{ $conversation->last_message_at?->format('Y-m-d H:i') ?: $conversation->created_at?->format('Y-m-d H:i') }}
-                                · {{ __('agricart.inbox.statuses.'.$conversation->status) }}
+                                {{ agricart_datetime($conversation->last_message_at ?: $conversation->created_at) }}
+                            </span>
+                            <span class="ag-store-inbox__item-state is-{{ $customerState }}">
+                                {{ __('agricart.inbox.customer_queue.'.$customerState) }}
                             </span>
                         </a>
                     </li>

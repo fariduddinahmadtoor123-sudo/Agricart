@@ -209,7 +209,7 @@
                 </p>
                 <p class="sheet__meta">
                     {{ __('price_updates.print.count', ['count' => count($rows)]) }}
-                    · {{ $printedAt->timezone(config('app.timezone'))->format('Y-m-d H:i') }}
+                    · {{ agricart_datetime($printedAt) }}
                 </p>
             </header>
 

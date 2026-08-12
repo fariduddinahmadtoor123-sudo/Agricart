@@ -61,7 +61,7 @@ class VisitorAnalyticsReportService
      */
     public function kpis(): array
     {
-        $now = CarbonImmutable::now((string) config('app.timezone'));
+        $now = CarbonImmutable::now((string) config('app.display_timezone', 'Asia/Karachi'));
         $today = $now->startOfDay();
         $yesterday = $today->subDay();
 
@@ -291,7 +291,7 @@ class VisitorAnalyticsReportService
      */
     private function monthlySeries(): array
     {
-        $now = CarbonImmutable::now((string) config('app.timezone'));
+        $now = CarbonImmutable::now((string) config('app.display_timezone', 'Asia/Karachi'));
         $start = $now->subMonths(11)->startOfMonth();
         $rollups = AnalyticsRollup::query()
             ->where('grain', 'month')

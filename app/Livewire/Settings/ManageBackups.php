@@ -154,7 +154,7 @@ class ManageBackups extends Component
         $this->preserveLocalLogins = (bool) config('backup.preserve_local_logins', true);
     }
 
-    public function confirmRestore(): void
+    public function confirmRestore(string $progressToken = ''): void
     {
         if (! $this->canManage() || $this->restoreBackupId === null) {
             return;
@@ -173,6 +173,7 @@ class ManageBackups extends Component
                 $this->restoreBackupId,
                 $this->restoreSafetyBackup,
                 $this->preserveLocalLogins,
+                $progressToken !== '' ? $progressToken : null,
             );
             $this->restoreBackupId = null;
             $this->restoreConfirm = '';

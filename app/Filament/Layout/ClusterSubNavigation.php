@@ -39,6 +39,47 @@ abstract class ClusterSubNavigation
     }
 
     /**
+     * Chrome page labels for a module, without gating on the current user's permissions.
+     * Used by the Access / roles form so new pages appear under their module.
+     *
+     * @return list<string>
+     */
+    public static function chromePageLabels(): array
+    {
+        $clusterClass = static::clusterClass();
+        $comingSoon = is_subclass_of($clusterClass, BaseAgricartCluster::class)
+            && $clusterClass::isComingSoon();
+        $labels = [];
+
+        foreach ($clusterClass::getClusteredComponents() as $component) {
+            if (! is_subclass_of($component, Page::class)) {
+                continue;
+            }
+
+            if (
+                method_exists($component, 'registersInModuleChrome')
+                && ! $component::registersInModuleChrome()
+            ) {
+                continue;
+            }
+
+            if ($comingSoon && ! str_ends_with(class_basename($component), 'OverviewPage')) {
+                continue;
+            }
+
+            $label = trim((string) $component::getNavigationLabel());
+
+            if ($label === '') {
+                continue;
+            }
+
+            $labels[] = $label;
+        }
+
+        return array_values(array_unique($labels));
+    }
+
+    /**
      * @return list<array{label: string, url: string, icon: string|\BackedEnum|\Illuminate\Contracts\Support\Htmlable|null, active: bool}>
      */
     public static function items(): array

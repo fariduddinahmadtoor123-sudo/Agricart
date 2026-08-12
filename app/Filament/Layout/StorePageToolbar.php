@@ -73,11 +73,11 @@ class StorePageToolbar extends ClusterPageToolbar
                 'formKey' => null,
                 'addLabel' => null,
                 'filters' => [
+                    ['label' => __('agricart.inbox.admin.summary_open'), 'value' => 'status:open'],
+                    ['label' => __('agricart.inbox.admin.unassigned'), 'value' => 'queue:unassigned'],
+                    ['label' => __('agricart.inbox.admin.mine'), 'value' => 'queue:mine'],
+                    ['label' => __('agricart.inbox.statuses.closed'), 'value' => 'status:closed'],
                     ['label' => __('agricart.store.admin.messages.filter_all'), 'value' => 'status:all'],
-                    ['label' => __('agricart.store.admin.messages.filter_new'), 'value' => 'status:new'],
-                    ['label' => __('agricart.store.admin.messages.filter_read'), 'value' => 'status:read'],
-                    ['label' => __('agricart.store.admin.messages.filter_pending'), 'value' => 'status:pending'],
-                    ['label' => __('agricart.store.admin.messages.filter_closed'), 'value' => 'status:closed'],
                 ],
                 'columns' => [
                     ['label' => __('agricart.store.admin.messages.col_name'), 'value' => 'name', 'visible' => true],

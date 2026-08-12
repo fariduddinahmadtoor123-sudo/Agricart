@@ -119,7 +119,7 @@
                 @endif
                 <div class="note-sheet__fact">
                     <span>{{ __('staff_notes.print.created') }}</span>
-                    <span>{{ optional($note->created_at)?->timezone(config('app.timezone'))->format('d M Y H:i') }}</span>
+                    <span>{{ agricart_datetime($note->created_at, 'd M Y H:i') }}</span>
                 </div>
                 @if ($note->isDone())
                     <div class="note-sheet__fact">
@@ -127,7 +127,7 @@
                         <span>
                             {{ $note->completedByUser?->name ?? '—' }}
                             @if ($note->completed_at)
-                                · {{ $note->completed_at->timezone(config('app.timezone'))->format('d M Y H:i') }}
+                                · {{ agricart_datetime($note->completed_at, 'd M Y H:i') }}
                             @endif
                         </span>
                     </div>

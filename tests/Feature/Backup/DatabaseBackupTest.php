@@ -52,6 +52,8 @@ class DatabaseBackupTest extends TestCase
         $this->assertStringContainsString('wire:target="createFull,createDatabase,importIncoming,confirmRestore"', $blade);
         $this->assertStringContainsString('wire:click="createFull"', $blade);
         $this->assertStringContainsString('agricart.backups.status.creating_full', $blade);
+        $this->assertStringContainsString('agricart.backups.restore.elapsed', $blade);
+        $this->assertStringContainsString('agricartBackupRestoreProgress', $blade);
     }
 
     public function test_mysql_dump_falls_back_to_php_when_cli_is_unavailable(): void

@@ -104,7 +104,7 @@ class Form extends Component
     public function render(): View
     {
         return view('livewire.roles.form', [
-            'permissionGroups' => PermissionRegistry::groups(),
+            'permissionGroups' => PermissionRegistry::groupsForForm(),
         ]);
     }
 

@@ -28,21 +28,28 @@
     @endif
 
     <section class="agricart-form-panel__section agricart-user-form__section">
-        <div class="agricart-user-form__identity-grid agricart-role-form__meta">
-            <div class="agricart-form-panel__field agricart-form-panel__field--full">
+        <div class="agricart-role-form__meta">
+            <div class="agricart-form-panel__field">
                 <label class="agricart-form-panel__label" for="agricart-role-name">
                     {{ __('agricart.roles.fields.name') }}
                     <span class="agricart-form-panel__required">*</span>
                 </label>
-                <x-filament::input.wrapper>
+                <x-filament::input.wrapper class="agricart-role-form__input-wrap">
                     <input id="agricart-role-name" type="text" wire:model="name" class="fi-input" @disabled($this->isReadonly()) />
                 </x-filament::input.wrapper>
             </div>
 
-            <div class="agricart-form-panel__field agricart-form-panel__field--full">
+            <div class="agricart-form-panel__field agricart-role-form__description-field">
                 <label class="agricart-form-panel__label" for="agricart-role-description">{{ __('agricart.roles.fields.description') }}</label>
-                <x-filament::input.wrapper>
-                    <textarea id="agricart-role-description" rows="2" wire:model="description" class="fi-input agricart-form-panel__textarea" @disabled($this->isReadonly())></textarea>
+                <x-filament::input.wrapper class="agricart-role-form__input-wrap">
+                    <textarea
+                        id="agricart-role-description"
+                        rows="4"
+                        dir="auto"
+                        wire:model="description"
+                        class="fi-input agricart-form-panel__textarea agricart-role-form__description"
+                        @disabled($this->isReadonly())
+                    ></textarea>
                 </x-filament::input.wrapper>
             </div>
         </div>
@@ -85,6 +92,15 @@
 
                     @if (filled($groupHint))
                         <p class="agricart-role-form__group-hint">{{ $groupHint }}</p>
+                    @endif
+
+                    @if (! empty($group['pages']))
+                        <p class="agricart-role-form__pages-heading">{{ __('agricart.roles.hints.pages') }}</p>
+                        <ul class="agricart-role-form__pages">
+                            @foreach ($group['pages'] as $pageLabel)
+                                <li class="agricart-role-form__page">{{ $pageLabel }}</li>
+                            @endforeach
+                        </ul>
                     @endif
 
                     <ul class="agricart-role-form__permission-list">

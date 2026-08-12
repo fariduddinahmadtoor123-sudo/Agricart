@@ -82,7 +82,7 @@
                                 <td>{{ $product->distributor_price ?? '—' }}</td>
                             @endif
                             @if (in_array('updated_at', $visibleColumns, true))
-                                <td>{{ optional($product->updated_at)?->timezone(config('app.timezone'))->format('d M Y H:i') ?? '—' }}</td>
+                                <td>{{ agricart_datetime($product->updated_at, 'd M Y H:i') }}</td>
                             @endif
                             <td>
                                 <div class="agricart-categories__actions">

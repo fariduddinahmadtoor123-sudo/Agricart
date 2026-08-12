@@ -96,7 +96,7 @@
                                 </td>
                             @endif
                             @if (in_array('received', $visibleColumns, true))
-                                <td>{{ $review->created_at?->format('Y-m-d H:i') }}</td>
+                                <td>{{ agricart_datetime($review->created_at) }}</td>
                             @endif
                             @if (in_array('actions', $visibleColumns, true))
                                 <td class="agricart-categories__actions agricart-store-messages__row-actions">
@@ -172,7 +172,7 @@
                         {{ __('agricart.store.admin.reviews.statuses.'.$selectedReview->status) }}
                     </span>
                     <span>{{ $selectedReview->rating }} / 5</span>
-                    <span>{{ __('agricart.store.admin.reviews.received_at', ['date' => $selectedReview->created_at?->format('Y-m-d H:i')]) }}</span>
+                    <span>{{ __('agricart.store.admin.reviews.received_at', ['date' => agricart_datetime($selectedReview->created_at)]) }}</span>
                 </div>
 
                 <dl class="agricart-store-messages__meta">

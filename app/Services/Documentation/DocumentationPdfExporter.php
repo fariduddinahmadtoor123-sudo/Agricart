@@ -215,7 +215,7 @@ class DocumentationPdfExporter
         array $chapters,
         string $filename,
     ): array {
-        $generatedAt = now()->timezone(config('app.timezone'))->format('Y-m-d H:i');
+        $generatedAt = agricart_datetime(now());
 
         $html = view('documentation.pdf.brief-book', [
             'scope' => $scope,
@@ -322,7 +322,7 @@ class DocumentationPdfExporter
         string $filename,
         ?string $moduleLabel = null,
     ): array {
-        $generatedAt = now()->timezone(config('app.timezone'))->format('Y-m-d H:i');
+        $generatedAt = agricart_datetime(now());
 
         $html = view('documentation.pdf.book', [
             'scope' => $scope,

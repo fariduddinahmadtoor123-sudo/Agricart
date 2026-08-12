@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\BackupRestoreProgressController;
 use App\Services\Backup\BackupScheduleRegistrar;
 use App\Services\SystemErrors\SystemErrorCaptureService;
 use App\Http\Middleware\RunSchedulerWebTick;
@@ -25,6 +26,12 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
+        then: function (): void {
+            // Session-free so restore progress can poll while the restore request holds the session lock.
+            Illuminate\Support\Facades\Route::get('/admin/backups/restore-progress', BackupRestoreProgressController::class)
+                ->middleware('throttle:60,1')
+                ->name('admin.backups.restore-progress');
+        },
     )
     ->withSchedule(function (Schedule $schedule): void {
         $protect = static function (Event $event): Event {
@@ -51,64 +58,64 @@ return Application::configure(basePath: dirname(__DIR__))
 
         $protect($schedule->command('staff:attendance-default-day')
             ->dailyAt('00:05')
-            ->timezone(config('app.timezone')));
+            ->timezone(config('app.display_timezone')));
 
         app(BackupScheduleRegistrar::class)->register($schedule, $protect);
 
         $protect($schedule->command('media:purge-temp --hours=24')
             ->dailyAt('03:15')
-            ->timezone(config('app.timezone')));
+            ->timezone(config('app.display_timezone')));
 
         $protect($schedule->command('media:prune-trash')
             ->dailyAt('03:20')
-            ->timezone(config('app.timezone')));
+            ->timezone(config('app.display_timezone')));
 
         $protect($schedule->command('media:backfill-library')
             ->weeklyOn(0, '03:25')
-            ->timezone(config('app.timezone')));
+            ->timezone(config('app.display_timezone')));
 
         $protect($schedule->command('system-errors:prune')
             ->dailyAt('03:30')
-            ->timezone(config('app.timezone')));
+            ->timezone(config('app.display_timezone')));
 
         $protect($schedule->command('ai-logs:prune')
             ->dailyAt('03:35')
-            ->timezone(config('app.timezone')));
+            ->timezone(config('app.display_timezone')));
 
         $protect($schedule->command('activity-logs:prune')
             ->dailyAt('03:40')
-            ->timezone(config('app.timezone')));
+            ->timezone(config('app.display_timezone')));
 
         $protect($schedule->command('system-errors:reconcile')
             ->everyFifteenMinutes()
-            ->timezone(config('app.timezone')));
+            ->timezone(config('app.display_timezone')));
 
         $protect($schedule->command('analytics:rollup')
             ->dailyAt('02:15')
-            ->timezone(config('app.timezone')));
+            ->timezone(config('app.display_timezone')));
 
         $protect($schedule->command('analytics:rollup --monthly')
             ->monthlyOn(1, '02:45')
-            ->timezone(config('app.timezone')));
+            ->timezone(config('app.display_timezone')));
 
         $protect($schedule->command('analytics:prune')
             ->dailyAt('03:45')
-            ->timezone(config('app.timezone')));
+            ->timezone(config('app.display_timezone')));
 
         $protect($schedule->command('store-inquiries:prune')
             ->dailyAt('03:50')
-            ->timezone(config('app.timezone')));
+            ->timezone(config('app.display_timezone')));
 
         $protect($schedule->command('analytics:geoip-update')
             ->monthlyOn(2, '04:15')
-            ->timezone(config('app.timezone')));
+            ->timezone(config('app.display_timezone')));
 
         // Shared hosting often has no long-running worker or shell crontab.
         // Drain the database queue every minute via schedule:run / web tick.
         $protect($schedule->command('queue:work --stop-when-empty --tries=3 --max-time=55')
             ->everyMinute()
             ->when($databaseReachable)
-            ->timezone(config('app.timezone')));
+            ->timezone(config('app.display_timezone')));
     })
     ->withMiddleware(function (Middleware $middleware) use ($trustedProxies): void {
         $middleware->trustProxies(at: $trustedProxies);

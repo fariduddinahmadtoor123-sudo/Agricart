@@ -18,39 +18,55 @@ class RestoreService
         private readonly DatabaseImporter $databaseImporter,
         private readonly LocalLoginPreserver $localLogins,
         private readonly BackupArchive $archive,
+        private readonly RestoreProgress $progress,
     ) {}
 
-    public function restore(string $backupId, bool $createSafetyBackup = true, bool $preserveLocalLogins = true): void
-    {
+    public function restore(
+        string $backupId,
+        bool $createSafetyBackup = true,
+        bool $preserveLocalLogins = true,
+        ?string $progressToken = null,
+    ): void {
         set_time_limit(0);
 
-        $entry = $this->backups->find($backupId);
+        $token = is_string($progressToken) && RestoreProgress::isValidToken($progressToken)
+            ? $progressToken
+            : bin2hex(random_bytes(16));
 
-        if ($entry === null) {
-            throw ValidationException::withMessages([
-                'restore' => __('agricart.backups.messages.backup_not_found'),
-            ]);
-        }
+        $this->progress->start($backupId, $token);
 
-        $zipPath = $this->backups->absolutePath($entry->filename);
-        $workDir = storage_path('app/private/restore-work-'.bin2hex(random_bytes(16)));
-        $inspection = $this->archive->inspect($zipPath, 'restore');
-
-        File::ensureDirectoryExists($workDir, 0700);
-
-        $shouldPreserve = $preserveLocalLogins && (bool) config('backup.preserve_local_logins', true);
+        $workDir = null;
 
         try {
+            $entry = $this->backups->find($backupId);
+
+            if ($entry === null) {
+                throw ValidationException::withMessages([
+                    'restore' => __('agricart.backups.messages.backup_not_found'),
+                ]);
+            }
+
+            $zipPath = $this->backups->absolutePath($entry->filename);
+            $workDir = storage_path('app/private/restore-work-'.bin2hex(random_bytes(16)));
+            $inspection = $this->archive->inspect($zipPath, 'restore');
+
+            File::ensureDirectoryExists($workDir, 0700);
+
+            $shouldPreserve = $preserveLocalLogins && (bool) config('backup.preserve_local_logins', true);
+
             if ($shouldPreserve) {
+                $this->progress->step('capturing_logins');
                 $this->localLogins->capture();
             }
 
             if ($createSafetyBackup) {
+                $this->progress->step('safety_backup');
                 app(BackupService::class)->create(BackupService::TYPE_DATABASE, ['source' => 'safety']);
             }
 
             Artisan::call('down', ['--retry' => 60]);
 
+            $this->progress->step('extracting');
             $this->archive->extractApproved($zipPath, $workDir, $inspection['entries']);
 
             $databaseFile = $this->resolveDatabaseFile($workDir);
@@ -61,9 +77,11 @@ class RestoreService
                 ]);
             }
 
+            $this->progress->step('importing_database');
             $this->databaseImporter->importFrom($databaseFile);
 
             if ($entry->type === BackupService::TYPE_FULL) {
+                $this->progress->step('restoring_files');
                 $this->restorePublicFiles($workDir . DIRECTORY_SEPARATOR . 'files');
                 $this->remirrorPublicMediaForHosting();
             }
@@ -72,6 +90,7 @@ class RestoreService
             $replaced = 0;
 
             if ($shouldPreserve) {
+                $this->progress->step('restoring_logins');
                 $authoritative = app()->environment('production')
                     && config('backup.production_login_mode', 'authoritative') === 'authoritative';
 
@@ -86,6 +105,7 @@ class RestoreService
                 $this->writeLoginAudit($backupId, $merged, $replaced, $authoritative);
             }
 
+            $this->progress->step('finishing');
             $this->localLogins->ensureBootstrapAdmin();
             $this->invalidateAuthSessions();
 
@@ -95,6 +115,7 @@ class RestoreService
             Artisan::call('cache:clear');
             CatalogCache::forgetOverviewStats();
             app(StoreLayoutService::class)->clearCache();
+            $this->progress->step('done', RestoreProgress::STATUS_DONE);
 
             // Stash merge count for UI flash (optional).
             if ($merged > 0) {
@@ -108,11 +129,14 @@ class RestoreService
                 session()->flash('backup_restore_cleared_ai_keys', $clearedAiKeys);
             }
         } catch (\Throwable $exception) {
+            $this->progress->step('failed', RestoreProgress::STATUS_FAILED);
             Artisan::call('up');
 
             throw $exception;
         } finally {
-            File::deleteDirectory($workDir);
+            if (is_string($workDir) && $workDir !== '') {
+                File::deleteDirectory($workDir);
+            }
         }
     }
 

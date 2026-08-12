@@ -2,6 +2,10 @@
 
 namespace App\Services\Access;
 
+use App\Filament\Layout\ClusterSubNavigation;
+use App\Filament\Layout\ModuleChrome;
+use Filament\Facades\Filament;
+
 class PermissionRegistry
 {
     /**
@@ -35,13 +39,65 @@ class PermissionRegistry
         ];
 
         $moduleHints = [
+            'dashboard' => [
+                'en' => 'Overview, summary, and staff notes.',
+                'ur' => 'جائزہ، خلاصہ، اور عملے کے نوٹس۔',
+            ],
+            'approvals' => [
+                'en' => 'Staff and supplier applications waiting for review.',
+                'ur' => 'عملہ اور سپلائر کی درخواستیں جو جائزے کے منتظر ہیں۔',
+            ],
+            'contacts' => [
+                'en' => 'Customers, suppliers, transport / goods companies, and message templates.',
+                'ur' => 'گاہک، سپلائرز، ٹرانسپورٹ / گڈز کمپنیاں، اور میسج ٹیمپلیٹس۔',
+            ],
             'catalog' => [
-                'en' => 'One Catalog role covers products, brands, categories, units, attributes, controls, labels, and Agricart product reviews. View alone cannot Add — also enable Create (and Edit to change records).',
-                'ur' => 'ایک کیٹلاگ رول میں پروڈکٹس، برانڈز، زمرے، یونٹس، خصوصیات، کنٹرولز، لیبلز اور ایگری کارٹ پروڈکٹ ریویوز شامل ہیں۔ صرف دیکھیں سے Add نہیں ہوتا — بنائیں (اور ترمیم) بھی آن کریں۔',
+                'en' => 'One Catalog role covers products, brands, categories, units, packing units, attributes, controls, labels, and Agricart product reviews. View alone cannot Add — also enable Create (and Edit to change records).',
+                'ur' => 'ایک کیٹلاگ رول میں پروڈکٹس، برانڈز، زمرے، یونٹس، پیکنگ یونٹس، خصوصیات، کنٹرولز، لیبلز اور ایگری کارٹ پروڈکٹ ریویوز شامل ہیں۔ صرف دیکھیں سے Add نہیں ہوتا — بنائیں (اور ترمیم) بھی آن کریں۔',
+            ],
+            'purchasing' => [
+                'en' => 'Purchases, planning, quotations, payment summary, re-orders, price tags, and price update. Channel Price Control is under Channels Hub.',
+                'ur' => 'خریداری، منصوبہ بندی، کوٹیشنز، ادائیگی سمری، ری آرڈرز، قیمت ٹیگز، اور پرائس اپڈیٹ۔ چینل پرائس کنٹرول چینلز حب میں ہے۔',
+            ],
+            'sales' => [
+                'en' => 'Sales & POS, quotations, ready-for-queue orders, dispatch, forwarded orders, returns, and tasks.',
+                'ur' => 'سیلز اینڈ پی او ایس، کوٹیشنز، کیو کے آرڈرز، ڈسپیچ، فارورڈڈ، ریٹرنز، اور ٹاسکس۔',
             ],
             'store' => [
                 'en' => 'Online Store covers layout settings, customer messages, customer product reviews moderation, and store items. Visitor analytics has its own checkbox below.',
                 'ur' => 'آن لائن اسٹور میں لے آؤٹ، کسٹمر میسجز، کسٹمر پروڈکٹ ریویوز کی منظوری، اور اسٹور آئٹمز شامل ہیں۔ وزیٹر اینالیٹکس الگ چیک باکس ہے۔',
+            ],
+            'logistics' => [
+                'en' => 'Delivery methods, pending shipments, and shipped orders.',
+                'ur' => 'ڈیلیوری طریقے، زیر التوا شپمنٹس، اور بھیجے گئے آرڈرز۔',
+            ],
+            'service' => [
+                'en' => 'After-sales service requests.',
+                'ur' => 'بعد از فروخت سروس کی درخواستیں۔',
+            ],
+            'reports' => [
+                'en' => 'Stock, ledgers, sales, profit & loss, expenses, cash, and seasonal reports.',
+                'ur' => 'اسٹاک، لیجرز، سیلز، منافع و نقصان، اخراجات، کیش، اور موسمی رپورٹس۔',
+            ],
+            'staff' => [
+                'en' => 'Staff roster, pay, attendance, advances, payroll, and leave. Extra checkboxes below control self-service vs all-staff records.',
+                'ur' => 'عملے کی فہرست، پے، حاضری، ایڈوانس، پے رول، اور رخصت۔ نیچے اضافی چیک باکس ذاتی سروس بمقابلہ تمام عملہ کنٹرول کرتے ہیں۔',
+            ],
+            'finance' => [
+                'en' => 'Banks, fund transfers, expense categories, expenses, payments, cash book, and financial reports.',
+                'ur' => 'بینک، فنڈ ٹرانسفر، اخراجات کے زمرے، اخراجات، ادائیگیاں، کیش بک، اور مالی رپورٹس۔',
+            ],
+            'marketplace' => [
+                'en' => 'Sales channels, price control, quantity control, and secret coding.',
+                'ur' => 'سیلز چینلز، پرائس کنٹرول، کوانٹٹی کنٹرول، اور خفیہ کوڈنگ۔',
+            ],
+            'settings' => [
+                'en' => 'Profile, tax, media, watermarks, AI, printing, access, users, backups, errors, and activity. Extra checkboxes below are required for those settings pages.',
+                'ur' => 'پروفائل، ٹیکس، میڈیا، واٹرمارک، AI، پرنٹ، رسائی، صارفین، بیک اپ، ایررز، اور ایکٹیویٹی۔ ان سیٹنگز صفحات کے لیے نیچے اضافی چیک باکس لازمی ہیں۔',
+            ],
+            'docs' => [
+                'en' => 'In-app user guide. Inner sections still follow each module’s View permission.',
+                'ur' => 'ایپ کے اندر یوزر گائیڈ۔ اندرونی حصے پھر بھی ہر ماڈیول کی دیکھیں اجازت کے مطابق فلٹر ہوتے ہیں۔',
             ],
         ];
 
@@ -51,6 +107,24 @@ class PermissionRegistry
                 'create' => ['Create Catalog items (Add Product, Brand, Category…)', 'کیٹلاگ بنائیں (پروڈکٹ، برانڈ، زمرہ شامل کریں…)'],
                 'edit' => ['Edit Catalog items & Agricart product reviews', 'کیٹلاگ ترمیم اور ایگری کارٹ پروڈکٹ ریویوز'],
                 'delete' => ['Delete Catalog items', 'کیٹلاگ آئٹمز حذف'],
+            ],
+            'purchasing' => [
+                'view' => ['View Purchasing (purchases, planning, quotations, price tags, price update…)', 'خریداری دیکھیں (خرید، منصوبہ بندی، کوٹیشنز، قیمت ٹیگز، پرائس اپڈیٹ…)'],
+                'create' => ['Create Purchasing records', 'خریداری ریکارڈ بنائیں'],
+                'edit' => ['Edit Purchasing records & price update', 'خریداری ریکارڈ اور پرائس اپڈیٹ ترمیم'],
+                'delete' => ['Delete Purchasing records', 'خریداری ریکارڈ حذف'],
+            ],
+            'marketplace' => [
+                'view' => ['View Channels Hub (sales channels, price control, quantity, secret coding)', 'چینلز حب دیکھیں (سیلز چینلز، پرائس کنٹرول، مقدار، خفیہ کوڈنگ)'],
+                'create' => ['Create Channels Hub records', 'چینلز حب ریکارڈ بنائیں'],
+                'edit' => ['Edit Channels Hub (including price control)', 'چینلز حب ترمیم (بشمول پرائس کنٹرول)'],
+                'delete' => ['Delete Channels Hub records', 'چینلز حب ریکارڈ حذف'],
+            ],
+            'contacts' => [
+                'view' => ['View Contacts (customers, suppliers, transport / goods…)', 'رابطے دیکھیں (گاہک، سپلائرز، ٹرانسپورٹ / گڈز…)'],
+                'create' => ['Create Contacts', 'رابطے بنائیں'],
+                'edit' => ['Edit Contacts', 'رابطے ترمیم'],
+                'delete' => ['Delete Contacts', 'رابطے حذف'],
             ],
             'store' => [
                 'view' => ['View Online Store (layout, messages, reviews, items)', 'آن لائن اسٹور دیکھیں (لے آؤٹ، میسجز، ریویوز، آئٹمز)'],
@@ -85,6 +159,11 @@ class PermissionRegistry
                     'label_ur' => $labelUr,
                     'permissions' => $permissions,
                 ];
+
+                if (isset($moduleHints[$key])) {
+                    $groups[$key]['hint_en'] = $moduleHints[$key]['en'];
+                    $groups[$key]['hint_ur'] = $moduleHints[$key]['ur'];
+                }
 
                 continue;
             }
@@ -202,6 +281,56 @@ class PermissionRegistry
         ];
 
         return $groups;
+    }
+
+    /**
+     * Groups plus the live chrome page list for the Access form.
+     *
+     * @return array<string, array{label_en: string, label_ur: string, hint_en?: string, hint_ur?: string, pages?: list<string>, permissions: list<array{key: string, label_en: string, label_ur: string}>}>
+     */
+    public static function groupsForForm(): array
+    {
+        $groups = self::groups();
+
+        foreach ($groups as $key => &$group) {
+            $pages = self::pagesForModule($key);
+
+            if ($pages !== []) {
+                $group['pages'] = $pages;
+            }
+        }
+
+        unset($group);
+
+        return $groups;
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function pagesForModule(string $moduleKey): array
+    {
+        $module = collect(ModuleChrome::modules())->firstWhere('key', $moduleKey);
+
+        if (! is_array($module)) {
+            return [];
+        }
+
+        $subNav = $module['subNavigation'] ?? null;
+
+        if (! is_string($subNav) || ! class_exists($subNav) || ! is_subclass_of($subNav, ClusterSubNavigation::class)) {
+            return [];
+        }
+
+        try {
+            if (Filament::getCurrentPanel() === null) {
+                Filament::setCurrentPanel(Filament::getPanel('admin'));
+            }
+
+            return $subNav::chromePageLabels();
+        } catch (\Throwable) {
+            return [];
+        }
     }
 
     /**

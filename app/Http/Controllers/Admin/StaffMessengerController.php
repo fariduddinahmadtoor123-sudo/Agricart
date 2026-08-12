@@ -64,7 +64,7 @@ class StaffMessengerController extends Controller
                         && $message->participant->actor_type === 'user'
                         && (int) $message->participant->actor_id === (int) $user->id,
                     'sender' => null,
-                    'time' => $message->created_at?->timezone(config('app.timezone'))->format('H:i'),
+                    'time' => agricart_datetime($message->created_at, 'H:i', false),
                 ])
                 ->values()
                 ->all();
@@ -131,7 +131,7 @@ class StaffMessengerController extends Controller
                 'body' => (string) $message->body,
                 'mine' => true,
                 'sender' => null,
-                'time' => $message->created_at?->timezone(config('app.timezone'))->format('H:i'),
+                'time' => agricart_datetime($message->created_at, 'H:i', false),
             ],
         ]);
     }
@@ -231,7 +231,7 @@ class StaffMessengerController extends Controller
                 'body' => (string) $message->body,
                 'mine' => true,
                 'sender' => null,
-                'time' => $message->created_at?->timezone(config('app.timezone'))->format('H:i'),
+                'time' => agricart_datetime($message->created_at, 'H:i', false),
             ],
         ]);
     }

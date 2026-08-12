@@ -2,15 +2,31 @@
     <div class="agricart-store-messages__summary" aria-label="{{ __('agricart.inbox.admin.summary') }}">
         <button
             type="button"
-            class="agricart-store-messages__summary-card is-pending {{ $statusFilter === 'open' ? 'is-active' : '' }}"
+            class="agricart-store-messages__summary-card is-pending {{ $statusFilter === 'open' && $queueFilter === 'all' ? 'is-active' : '' }}"
             wire:click="applyFilter('status:open')"
         >
-            <span>{{ __('agricart.inbox.statuses.open') }}</span>
+            <span>{{ __('agricart.inbox.admin.summary_open') }}</span>
             <strong>{{ $openCount }}</strong>
         </button>
         <button
             type="button"
-            class="agricart-store-messages__summary-card is-new {{ $statusFilter === 'all' ? 'is-active' : '' }}"
+            class="agricart-store-messages__summary-card is-new {{ $queueFilter === 'unassigned' ? 'is-active' : '' }}"
+            wire:click="applyFilter('queue:unassigned')"
+        >
+            <span>{{ __('agricart.inbox.admin.unassigned') }}</span>
+            <strong>{{ $unassignedCount }}</strong>
+        </button>
+        <button
+            type="button"
+            class="agricart-store-messages__summary-card {{ $queueFilter === 'mine' ? 'is-active' : '' }}"
+            wire:click="applyFilter('queue:mine')"
+        >
+            <span>{{ __('agricart.inbox.admin.mine') }}</span>
+            <strong>{{ $mineCount }}</strong>
+        </button>
+        <button
+            type="button"
+            class="agricart-store-messages__summary-card is-new {{ $statusFilter === 'all' && $queueFilter === 'all' ? 'is-active' : '' }}"
             wire:click="applyFilter('status:all')"
         >
             <span>{{ __('agricart.inbox.admin.unread') }}</span>
@@ -46,19 +62,26 @@
                 </thead>
                 <tbody>
                     @foreach ($conversations as $conversation)
-                        <tr wire:key="agricart-inbox-{{ $conversation->id }}" @class(['is-unread' => $conversation->unreadForAdmin()])>
+                        <tr wire:key="agricart-inbox-{{ $conversation->id }}" @class(['is-unread' => $conversation->unreadForStaff($viewer)])>
                             <td>{{ $conversation->displayName() }}</td>
                             <td>
                                 <strong>{{ $conversation->subject }}</strong>
-                                <p class="agricart-store-messages__preview">{{ __('agricart.inbox.admin.messages_count', ['count' => $conversation->messages_count]) }}</p>
+                                <p class="agricart-store-messages__preview">{{ trans_choice('agricart.inbox.admin.messages_count', $conversation->messages_count, ['count' => $conversation->messages_count]) }}</p>
                             </td>
                             <td>{{ __('agricart.inbox.topics.'.$conversation->topic) }}</td>
                             <td>
-                                <span class="agricart-store-messages__status is-{{ $conversation->status === 'open' ? 'pending' : 'closed' }}">
-                                    {{ __('agricart.inbox.statuses.'.$conversation->status) }}
+                                <span class="agricart-store-messages__status is-{{ $conversation->queueStateTone($viewer) }}">
+                                    {{ __('agricart.inbox.queue.'.$conversation->queueState($viewer)) }}
                                 </span>
+                                <p class="agricart-store-messages__preview">
+                                    @if ($conversation->assignedTo)
+                                        {{ __('agricart.inbox.admin.assigned_to', ['name' => $conversation->assignedTo->name]) }}
+                                    @else
+                                        {{ __('agricart.inbox.admin.unassigned') }}
+                                    @endif
+                                </p>
                             </td>
-                            <td>{{ $conversation->last_message_at?->format('Y-m-d H:i') ?: '—' }}</td>
+                            <td>{{ agricart_datetime($conversation->last_message_at) }}</td>
                             <td class="agricart-categories__actions">
                                 <button type="button" class="agricart-categories__action is-primary" wire:click="openView({{ $conversation->id }})">
                                     {{ __('agricart.inbox.admin.view') }}
@@ -83,14 +106,42 @@
                     <button type="button" class="agricart-store-messages__panel-close" wire:click="closeView" aria-label="{{ __('agricart.inbox.admin.close') }}">×</button>
                 </header>
 
-                <div class="agricart-store-messages__panel-status">
-                    <span>{{ __('agricart.inbox.topics.'.$selectedConversation->topic) }}</span>
-                    <span>{{ __('agricart.inbox.statuses.'.$selectedConversation->status) }}</span>
-                    <span>{{ $selectedConversation->displayName() }}</span>
-                    @if (! empty($bridgedConversationId))
-                        <span>{{ __('agricart.inbox.admin.bridged_to_platform', ['id' => $bridgedConversationId]) }}</span>
-                    @endif
-                </div>
+                @php
+                    $latestAdminReply = $selectedConversation->latestAdminMessage();
+                    $customerReadLatest = $latestAdminReply instanceof \App\Models\AgricartMessage
+                        && $selectedConversation->customerHasReadMessage($latestAdminReply);
+                @endphp
+
+                <dl class="agricart-store-messages__meta agricart-store-inbox__facts">
+                    <div>
+                        <dt>{{ __('agricart.inbox.admin.meta_customer') }}</dt>
+                        <dd>{{ $selectedConversation->displayName() }}</dd>
+                    </div>
+                    <div>
+                        <dt>{{ __('agricart.inbox.admin.meta_status') }}</dt>
+                        <dd>{{ __('agricart.inbox.queue.'.$selectedConversation->queueState($viewer)) }}</dd>
+                    </div>
+                    <div>
+                        <dt>{{ __('agricart.inbox.admin.meta_topic') }}</dt>
+                        <dd>{{ __('agricart.inbox.topics.'.$selectedConversation->topic) }}</dd>
+                    </div>
+                    <div>
+                        <dt>{{ __('agricart.inbox.admin.meta_handler') }}</dt>
+                        <dd>
+                            @if ($selectedConversation->assignedTo)
+                                {{ $selectedConversation->assignedTo->name }}
+                            @else
+                                {{ __('agricart.inbox.admin.unassigned') }}
+                            @endif
+                        </dd>
+                    </div>
+                </dl>
+
+                @if ($latestAdminReply)
+                    <p class="agricart-store-inbox__receipt-banner {{ $customerReadLatest ? 'is-read' : 'is-pending' }}" role="status">
+                        {{ $customerReadLatest ? __('agricart.inbox.receipt.banner_read') : __('agricart.inbox.receipt.banner_unread') }}
+                    </p>
+                @endif
 
                 <ol class="agricart-store-inbox__thread">
                     @foreach ($selectedConversation->messages as $message)
@@ -104,13 +155,33 @@
                                 @if ($message->isSystem())
                                     {{ __('agricart.inbox.sender.system') }}
                                 @elseif ($message->isFromAdmin())
-                                    {{ __('agricart.inbox.sender.agricart') }}
+                                    {{ __('agricart.inbox.admin.sender_staff', ['name' => $message->staffDisplayName()]) }}
+                                    <span class="agricart-store-inbox__meta-hint">{{ __('agricart.inbox.admin.customer_sees_agricart') }}</span>
                                 @else
                                     {{ $selectedConversation->displayName() }}
                                 @endif
-                                · {{ $message->created_at?->format('Y-m-d H:i') }}
+                                · {{ agricart_datetime($message->created_at) }}
                             </p>
-                            <p>{{ $message->body }}</p>
+                            <p class="agricart-store-inbox__bubble-body">{{ $message->body }}</p>
+                            @if ($message->isFromAdmin())
+                                @php $customerRead = $selectedConversation->customerHasReadMessage($message); @endphp
+                                <p
+                                    class="agricart-store-inbox__ticks {{ $customerRead ? 'is-read' : 'is-pending' }}"
+                                    aria-label="{{ $customerRead ? __('agricart.inbox.receipt.read_by_customer') : __('agricart.inbox.receipt.not_read_by_customer') }}"
+                                >
+                                    <span class="agricart-store-inbox__ticks-marks" aria-hidden="true">{{ $customerRead ? '✓✓' : '✓' }}</span>
+                                    <span>{{ $customerRead ? __('agricart.inbox.receipt.read_by_customer') : __('agricart.inbox.receipt.not_read_by_customer') }}</span>
+                                </p>
+                            @elseif ($message->isFromCustomer())
+                                @php $teamRead = $selectedConversation->teamHasReadMessage($message); @endphp
+                                <p
+                                    class="agricart-store-inbox__ticks {{ $teamRead ? 'is-read' : 'is-pending' }}"
+                                    aria-label="{{ $teamRead ? __('agricart.inbox.receipt.read_by_team') : __('agricart.inbox.receipt.delivered') }}"
+                                >
+                                    <span class="agricart-store-inbox__ticks-marks" aria-hidden="true">{{ $teamRead ? '✓✓' : '✓' }}</span>
+                                    <span>{{ $teamRead ? __('agricart.inbox.receipt.read_by_team') : __('agricart.inbox.receipt.delivered') }}</span>
+                                </p>
+                            @endif
                         </li>
                     @endforeach
                 </ol>
@@ -122,6 +193,11 @@
                             <button type="button" class="agricart-categories__action is-primary" wire:click="sendReply">
                                 {{ __('agricart.inbox.admin.send_reply') }}
                             </button>
+                            @if ((int) $selectedConversation->assigned_to_user_id !== (int) ($viewer?->id))
+                                <button type="button" class="agricart-categories__action" wire:click="takeConversation({{ $selectedConversation->id }})">
+                                    {{ __('agricart.inbox.admin.take') }}
+                                </button>
+                            @endif
                             @if ($selectedConversation->status === \App\Models\AgricartConversation::STATUS_OPEN)
                                 <button type="button" class="agricart-categories__action" wire:click="closeConversation({{ $selectedConversation->id }})">
                                     {{ __('agricart.inbox.admin.close_thread') }}
@@ -133,6 +209,10 @@
                             @endif
                         </div>
                     </div>
+                @endif
+
+                @if (! empty($bridgedConversationId))
+                    <p class="agricart-store-inbox__internal-note">{{ __('agricart.inbox.admin.bridged_to_platform', ['id' => $bridgedConversationId]) }}</p>
                 @endif
             </section>
         </div>

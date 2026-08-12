@@ -155,7 +155,7 @@
                         <h4 class="agricart-staff-approvals__section-title">{{ __('agricart.approvals.suppliers.view.rejection_reason') }}</h4>
                         <p>{{ $viewSupplier->rejection_reason }}</p>
                         @if ($viewSupplier->rejected_at)
-                            <p class="agricart-staff-approvals__muted">{{ __('agricart.approvals.suppliers.view.rejected_at', ['date' => $viewSupplier->rejected_at->format('Y-m-d H:i')]) }}</p>
+                            <p class="agricart-staff-approvals__muted">{{ __('agricart.approvals.suppliers.view.rejected_at', ['date' => agricart_datetime($viewSupplier->rejected_at)]) }}</p>
                         @endif
                     </section>
                 @endif

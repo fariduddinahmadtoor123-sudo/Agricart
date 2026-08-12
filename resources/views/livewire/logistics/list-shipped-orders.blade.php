@@ -74,7 +74,7 @@
                                 </td>
                             @endif
                             @if (in_array('shipped_at', $visibleColumns, true))
-                                <td>{{ $shippedAt?->timezone(config('app.timezone'))->format('Y-m-d H:i') ?? '—' }}</td>
+                                <td>{{ agricart_datetime($shippedAt) }}</td>
                             @endif
                             <td>
                                 <button type="button" class="agricart-categories__link" wire:click="openOrder({{ $order->id }})">

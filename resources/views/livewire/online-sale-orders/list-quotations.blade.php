@@ -126,7 +126,7 @@
                                 <td>{{ $order->order_date?->format('Y-m-d') }}</td>
                             @endif
                             @if (in_array('created_at', $visibleColumns, true))
-                                <td>{{ $order->created_at?->format('Y-m-d H:i') }}</td>
+                                <td>{{ agricart_datetime($order->created_at) }}</td>
                             @endif
                             <td class="agricart-categories__actions">
                                 <button type="button" class="agricart-categories__action" wire:click="openView({{ $order->id }})">

@@ -24,7 +24,7 @@
                             {{ __('communication.internal_notes.system') }}
                         @endif
                     </strong>
-                    · {{ $message->created_at?->timezone(config('app.timezone'))->format('d M Y H:i') }}
+                    · {{ agricart_datetime($message->created_at, 'd M Y H:i') }}
                 </p>
                 @if (filled($message->body))
                     <p class="agricart-internal-notes__body">{{ $message->body }}</p>

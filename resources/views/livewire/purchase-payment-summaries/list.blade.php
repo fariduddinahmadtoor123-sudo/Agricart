@@ -48,7 +48,7 @@
                                 <td>{{ $summary->localeLabel() }}</td>
                             @endif
                             @if (in_array('created_at', $visibleColumns, true))
-                                <td>{{ $summary->created_at?->format('d M Y H:i') }}</td>
+                                <td>{{ agricart_datetime($summary->created_at, 'd M Y H:i') }}</td>
                             @endif
                             <td class="agricart-categories__actions">
                                 <button type="button" class="agricart-categories__action" wire:click="openView({{ $summary->id }})">{{ __('purchase_payment_summary.actions.view_short') }}</button>

@@ -74,4 +74,11 @@ class AgricartMessage extends Model
     {
         return $this->is_system || $this->sender_type === self::SENDER_SYSTEM;
     }
+
+    public function staffDisplayName(): string
+    {
+        $name = trim((string) ($this->user?->name ?? ''));
+
+        return $name !== '' ? $name : __('agricart.inbox.sender.agricart');
+    }
 }

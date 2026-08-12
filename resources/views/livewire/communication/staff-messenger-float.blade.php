@@ -58,7 +58,7 @@
                                     @class(['agricart-staff-messenger__bubble', 'is-mine' => $isMine])
                                 >
                                     <p>{{ $message->body }}</p>
-                                    <time>{{ $message->created_at?->timezone(config('app.timezone'))->format('H:i') }}</time>
+                                    <time>{{ agricart_datetime($message->created_at, 'H:i', false) }}</time>
                                 </li>
                             @empty
                                 <li class="agricart-staff-messenger__empty">{{ __('communication.messenger.empty_thread') }}</li>
