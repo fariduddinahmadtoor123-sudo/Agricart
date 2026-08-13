@@ -246,32 +246,6 @@
                     </p>
                 </section>
 
-                <section
-                    class="ag-store-checkout__card"
-                    x-show="selectedMethod?.full_advance_required"
-                    x-cloak
-                    aria-labelledby="checkout-full-advance-payment"
-                >
-                    <h2 id="checkout-full-advance-payment" class="ag-store-checkout__card-title">{{ __('agricart.storefront.checkout.full_advance_payment_heading') }}</h2>
-                    <p class="ag-store-checkout__label ag-store-checkout__label--muted">{{ __('agricart.storefront.checkout.full_advance_payment_lead') }}</p>
-                    <label class="ag-store-checkout__field">
-                        <span class="ag-store-checkout__label">{{ __('agricart.storefront.checkout.payment_reference') }}</span>
-                        <input
-                            type="text"
-                            name="customer_payment_reference"
-                            class="ag-store-checkout__input"
-                            value="{{ old('customer_payment_reference') }}"
-                            maxlength="128"
-                        />
-                        @error('customer_payment_reference') <span class="ag-store-checkout__error">{{ $message }}</span> @enderror
-                    </label>
-                    <label class="ag-store-checkout__field">
-                        <span class="ag-store-checkout__label">{{ __('agricart.customer.orders.bank_receipt_file') }}</span>
-                        <input type="file" name="bank_receipt" class="ag-store-checkout__input" accept="image/jpeg,image/png,image/webp,application/pdf" />
-                        <span class="ag-store-orders__file-hint">{{ __('agricart.customer.orders.bank_receipt_hint') }}</span>
-                    </label>
-                </section>
-
                 <div class="ag-store-checkout__aside-actions">
                     <div class="ag-store-checkout__notice" role="note">
                         <p>{{ __('agricart.storefront.checkout.notice') }}</p>

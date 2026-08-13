@@ -108,7 +108,7 @@ class StoreCheckoutPhaseBBatch3Test extends TestCase
             ->assertSessionHasErrors('customer_payment_method');
     }
 
-    public function test_full_advance_requires_bank_transfer_and_payment_proof(): void
+    public function test_full_advance_requires_bank_transfer_but_places_without_proof(): void
     {
         Queue::fake();
         [$customer, $product] = $this->customerAndProduct();
@@ -139,18 +139,16 @@ class StoreCheckoutPhaseBBatch3Test extends TestCase
 
         $this->actingAs($customer, 'customer')
             ->post(route('store.checkout.place'), $payload)
-            ->assertSessionHasErrors('customer_payment_reference');
-
-        $payload['customer_payment_reference'] = 'TXN-FULL-ADV-001';
-
-        $this->actingAs($customer, 'customer')
-            ->post(route('store.checkout.place'), $payload)
             ->assertRedirect();
 
-        $this->assertSame('bank_transfer', OnlineSaleOrder::query()->value('customer_payment_method'));
+        $order = OnlineSaleOrder::query()->first();
+        $this->assertNotNull($order);
+        $this->assertSame('bank_transfer', $order->customer_payment_method);
+        $this->assertSame(OnlineSaleOrder::PROOF_AWAITING, $order->customer_payment_proof_status);
+        $this->assertTrue($order->needsBankReceiptUpload());
     }
 
-    public function test_full_advance_accepts_bank_receipt_upload_instead_of_reference(): void
+    public function test_full_advance_still_accepts_optional_bank_receipt_at_checkout(): void
     {
         Queue::fake();
         [$customer, $product] = $this->customerAndProduct();

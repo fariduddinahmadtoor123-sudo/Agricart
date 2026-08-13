@@ -297,13 +297,16 @@ class DeliveryMethodService
     }
 
     /**
+     * Full-advance delivery methods must use bank transfer at checkout.
+     * Payment proof is collected after the order is placed (success / order page).
+     *
      * @throws ValidationException
      */
     public function assertFullAdvanceCheckoutRequirements(
         DeliveryMethod $method,
         ?string $paymentMethod,
-        ?string $paymentReference,
-        bool $hasReceiptUpload,
+        ?string $paymentReference = null,
+        bool $hasReceiptUpload = false,
     ): void {
         if (! (bool) ($method->rule?->full_advance_required ?? false)) {
             return;
@@ -312,12 +315,6 @@ class DeliveryMethodService
         if ($paymentMethod !== 'bank_transfer') {
             throw ValidationException::withMessages([
                 'customer_payment_method' => [__('agricart.storefront.checkout.full_advance_requires_bank_transfer')],
-            ]);
-        }
-
-        if (! filled($paymentReference) && ! $hasReceiptUpload) {
-            throw ValidationException::withMessages([
-                'customer_payment_reference' => [__('agricart.storefront.checkout.full_advance_proof_required')],
             ]);
         }
     }
