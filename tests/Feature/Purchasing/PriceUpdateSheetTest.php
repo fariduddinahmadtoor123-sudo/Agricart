@@ -62,15 +62,19 @@ class PriceUpdateSheetTest extends TestCase
         $product = $this->makeProduct(['stock_qty' => 42]);
         $purchasesBefore = Purchase::query()->count();
 
-        Livewire::test(Sheet::class)
+        $component = Livewire::test(Sheet::class)
             ->call('openForm')
-            ->call('addProduct', $product->id)
-            ->set('rows.0.last_buy_price', '100')
-            ->call('recalculateRow', 0, true)
-            ->assertSet('rows.0.retail_price', '120')
-            ->assertSet('rows.0.wholesale_price', '110')
-            ->assertSet('rows.0.super_wholesale_price', '105')
-            ->assertSet('rows.0.distributor_price', '102')
+            ->call('addProduct', $product->id);
+
+        $key = $this->rowKey($component, $product->id);
+
+        $component
+            ->set("rows.{$key}.last_buy_price", '100')
+            ->call('recalculateRow', $key, true)
+            ->assertSet("rows.{$key}.retail_price", '120')
+            ->assertSet("rows.{$key}.wholesale_price", '110')
+            ->assertSet("rows.{$key}.super_wholesale_price", '105')
+            ->assertSet("rows.{$key}.distributor_price", '102')
             ->call('saveAll')
             ->assertSet('statusType', 'success');
 
@@ -94,21 +98,25 @@ class PriceUpdateSheetTest extends TestCase
             'distributor_price' => '120',
         ]);
 
-        Livewire::test(Sheet::class)
+        $component = Livewire::test(Sheet::class)
             ->call('openForm')
-            ->call('addProduct', $product->id)
+            ->call('addProduct', $product->id);
+
+        $key = $this->rowKey($component, $product->id);
+
+        $component
             // First buy price recalculates every tier from markups (overwrites loaded prices).
-            ->set('rows.0.last_buy_price', '100')
-            ->assertSet('rows.0.retail_price', '120')
-            ->assertSet('rows.0.wholesale_price', '110')
-            ->assertSet('rows.0.super_wholesale_price', '105')
-            ->assertSet('rows.0.distributor_price', '102')
+            ->set("rows.{$key}.last_buy_price", '100')
+            ->assertSet("rows.{$key}.retail_price", '120')
+            ->assertSet("rows.{$key}.wholesale_price", '110')
+            ->assertSet("rows.{$key}.super_wholesale_price", '105')
+            ->assertSet("rows.{$key}.distributor_price", '102')
             // Changing the buy price again re-applies markups to all sell prices automatically.
-            ->set('rows.0.last_buy_price', '200')
-            ->assertSet('rows.0.retail_price', '240')
-            ->assertSet('rows.0.wholesale_price', '220')
-            ->assertSet('rows.0.super_wholesale_price', '210')
-            ->assertSet('rows.0.distributor_price', '204')
+            ->set("rows.{$key}.last_buy_price", '200')
+            ->assertSet("rows.{$key}.retail_price", '240')
+            ->assertSet("rows.{$key}.wholesale_price", '220')
+            ->assertSet("rows.{$key}.super_wholesale_price", '210')
+            ->assertSet("rows.{$key}.distributor_price", '204')
             ->call('saveAll')
             ->assertSet('statusType', 'success');
 
@@ -160,16 +168,20 @@ class PriceUpdateSheetTest extends TestCase
             ],
         ]);
 
-        Livewire::test(Sheet::class)
+        $component = Livewire::test(Sheet::class)
             ->call('openForm')
-            ->call('addProduct', $product->id)
-            ->assertSet('rows.0.price_tier_quantities.super_wholesale_price', 100)
-            ->set('rows.0.last_buy_price', '50')
-            ->set('rows.0.price_tier_quantities.wholesale_price', 100)
-            ->set('rows.0.price_tier_quantities.super_wholesale_price', 1000)
+            ->call('addProduct', $product->id);
+
+        $key = $this->rowKey($component, $product->id);
+
+        $component
+            ->assertSet("rows.{$key}.price_tier_quantities.super_wholesale_price", 100)
+            ->set("rows.{$key}.last_buy_price", '50')
+            ->set("rows.{$key}.price_tier_quantities.wholesale_price", 100)
+            ->set("rows.{$key}.price_tier_quantities.super_wholesale_price", 1000)
             ->call('saveAll')
             ->assertSet('statusType', 'success')
-            ->assertSet('rows.0.price_tier_quantities.super_wholesale_price', 1000);
+            ->assertSet("rows.{$key}.price_tier_quantities.super_wholesale_price", 1000);
 
         $product->refresh();
 
@@ -222,13 +234,51 @@ class PriceUpdateSheetTest extends TestCase
         $first = $this->makeProduct(['name_en' => 'First Product']);
         $second = $this->makeProduct(['name_en' => 'Second Product']);
 
-        Livewire::test(Sheet::class)
+        $component = Livewire::test(Sheet::class)
             ->call('openForm')
-            ->call('addProduct', $first->id)
-            ->assertSet('rows.0.product_id', $first->id)
-            ->call('addProduct', $second->id)
-            ->assertSet('rows.0.product_id', $second->id)
-            ->assertSet('rows.1.product_id', $first->id);
+            ->call('addProduct', $first->id);
+
+        $this->assertSame([$first->id], $this->orderedProductIds($component));
+
+        $component->call('addProduct', $second->id);
+
+        $this->assertSame([$second->id, $first->id], $this->orderedProductIds($component));
+    }
+
+    public function test_editing_buy_price_on_one_row_does_not_copy_to_other_rows(): void
+    {
+        $older = $this->makeProduct([
+            'name_en' => 'Older Product',
+            'retail_price' => '50',
+            'wholesale_price' => '45',
+            'super_wholesale_price' => '40',
+            'distributor_price' => '35',
+        ]);
+        $newer = $this->makeProduct([
+            'name_en' => 'Newer Product',
+            'retail_price' => '10',
+            'wholesale_price' => '9',
+            'super_wholesale_price' => '8',
+            'distributor_price' => '7',
+        ]);
+
+        $component = Livewire::test(Sheet::class)
+            ->call('openForm')
+            ->call('addProduct', $older->id)
+            ->call('addProduct', $newer->id);
+
+        $newerKey = $this->rowKey($component, $newer->id);
+        $olderKey = $this->rowKey($component, $older->id);
+
+        $this->assertSame([$newer->id, $older->id], $this->orderedProductIds($component));
+
+        $component
+            ->set("rows.{$newerKey}.last_buy_price", '100')
+            ->assertSet("rows.{$newerKey}.retail_price", '120')
+            ->assertSet("rows.{$newerKey}.wholesale_price", '110')
+            ->assertSet("rows.{$olderKey}.retail_price", '50')
+            ->assertSet("rows.{$olderKey}.wholesale_price", '45')
+            ->assertSet("rows.{$olderKey}.last_buy_price", '');
     }
 
     public function test_save_all_updates_every_priced_row_and_skips_blank_rows(): void
@@ -238,16 +288,18 @@ class PriceUpdateSheetTest extends TestCase
         $pricedC = $this->makeProduct(['name_en' => 'Priced C']);
         $blank = $this->makeProduct(['name_en' => 'Blank One']);
 
-        Livewire::test(Sheet::class)
+        $component = Livewire::test(Sheet::class)
             ->call('openForm')
             ->call('addProduct', $pricedA->id)
             ->call('addProduct', $pricedB->id)
             ->call('addProduct', $pricedC->id)
-            ->call('addProduct', $blank->id)
-            // Newest product stays at the top (blank); older rows shift down.
-            ->set('rows.3.retail_price', '100')
-            ->set('rows.2.wholesale_price', '90')
-            ->set('rows.1.retail_price', '75')
+            ->call('addProduct', $blank->id);
+
+        // Newest product stays at the top (blank); older rows shift down.
+        $component
+            ->set('rows.'.$this->rowKey($component, $pricedA->id).'.retail_price', '100')
+            ->set('rows.'.$this->rowKey($component, $pricedB->id).'.wholesale_price', '90')
+            ->set('rows.'.$this->rowKey($component, $pricedC->id).'.retail_price', '75')
             ->call('saveAll')
             ->assertSet('statusType', 'success');
 
@@ -379,11 +431,12 @@ class PriceUpdateSheetTest extends TestCase
             ->assertSee('Mesh Product')
             ->assertDontSee('Other Product');
 
-        Livewire::test(Sheet::class)
+        $meshesOnly = Livewire::test(Sheet::class)
             ->call('openForm')
             ->call('addProductsFromCategory', $meshes->id)
-            ->assertCount('rows', 1)
-            ->assertSet('rows.0.product_id', $inMeshes->id);
+            ->assertCount('rows', 1);
+
+        $this->assertSame([$inMeshes->id], $this->orderedProductIds($meshesOnly));
 
         Livewire::test(Sheet::class)
             ->call('openForm')
@@ -505,5 +558,31 @@ class PriceUpdateSheetTest extends TestCase
             'name_ur' => 'پرائس اپڈیٹ',
             'stock_qty' => 0,
         ], $overrides));
+    }
+
+    /**
+     * @param  \Livewire\Features\SupportTesting\Testable  $component
+     */
+    private function rowKey(mixed $component, int $productId): string
+    {
+        foreach ($component->get('rows') as $key => $row) {
+            if ((int) ($row['product_id'] ?? 0) === $productId) {
+                return (string) $key;
+            }
+        }
+
+        $this->fail("Missing sheet row for product #{$productId}");
+    }
+
+    /**
+     * @param  \Livewire\Features\SupportTesting\Testable  $component
+     * @return list<int>
+     */
+    private function orderedProductIds(mixed $component): array
+    {
+        return collect($component->get('rows'))
+            ->map(static fn (array $row): int => (int) ($row['product_id'] ?? 0))
+            ->values()
+            ->all();
     }
 }

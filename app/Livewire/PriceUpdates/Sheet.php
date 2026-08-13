@@ -25,7 +25,13 @@ class Sheet extends Component
 {
     private const CATEGORY_LOAD_LIMIT = 500;
 
-    /** @var list<array<string, mixed>> */
+    /**
+     * Sheet lines keyed by stable row_id (never numeric indexes).
+     * Prepending with array_unshift + wire:model.rows.{index} was leaking
+     * typed prices across rows after Livewire morphs the table.
+     *
+     * @var array<string, array<string, mixed>>
+     */
     public array $rows = [];
 
     public string $productQuery = '';
@@ -145,13 +151,15 @@ class Sheet extends Component
             return;
         }
 
-        if ($this->rowIndexForProduct($product->id) !== null) {
+        if ($this->rowKeyForProduct($product->id) !== null) {
             $this->setStatus(__('price_updates.messages.already_on_sheet'), 'warning');
 
             return;
         }
 
-        array_unshift($this->rows, $this->makeRow($product));
+        $row = $this->makeRow($product);
+        // Newest single add stays on top without shifting numeric wire:model indexes.
+        $this->rows = [$row['row_id'] => $row] + $this->rows;
         $this->productQuery = '';
         $this->setStatus(__('price_updates.messages.product_added'), 'success');
     }
@@ -196,7 +204,8 @@ class Sheet extends Component
                 continue;
             }
 
-            $this->rows[] = $this->makeRow($product);
+            $row = $this->makeRow($product);
+            $this->rows[$row['row_id']] = $row;
             $existingIds[] = $product->id;
             $added++;
         }
@@ -264,7 +273,8 @@ class Sheet extends Component
                 continue;
             }
 
-            $this->rows[] = $this->makeRow($product);
+            $row = $this->makeRow($product);
+            $this->rows[$row['row_id']] = $row;
             $existingIds[] = $product->id;
             $added++;
         }
@@ -326,10 +336,7 @@ class Sheet extends Component
 
     public function removeRow(string $rowId): void
     {
-        $this->rows = array_values(array_filter(
-            $this->rows,
-            fn (array $row): bool => (string) ($row['row_id'] ?? '') !== $rowId,
-        ));
+        unset($this->rows[$rowId]);
     }
 
     public function clearRows(): void
@@ -344,9 +351,9 @@ class Sheet extends Component
             return;
         }
 
-        [$index, $field] = explode('.', $key, 2);
+        [$rowId, $field] = explode('.', $key, 2);
 
-        if (! is_numeric($index) || ! isset($this->rows[(int) $index])) {
+        if ($rowId === '' || ! isset($this->rows[$rowId])) {
             return;
         }
 
@@ -355,19 +362,19 @@ class Sheet extends Component
         }
 
         // Buy price drives all sell prices: recalculate every tier/channel from markups.
-        $this->recalculateRow((int) $index, force: true);
+        $this->recalculateRow($rowId, force: true);
     }
 
     /**
      * Apply Price Channel markups to empty price cells (or all cells when $force).
      */
-    public function recalculateRow(int $index, bool $force = false): void
+    public function recalculateRow(string $rowId, bool $force = false): void
     {
-        if (! isset($this->rows[$index])) {
+        if (! isset($this->rows[$rowId])) {
             return;
         }
 
-        $buy = $this->numeric($this->rows[$index]['last_buy_price'] ?? null);
+        $buy = $this->numeric($this->rows[$rowId]['last_buy_price'] ?? null);
 
         if ($buy === null || $buy <= 0) {
             return;
@@ -378,13 +385,13 @@ class Sheet extends Component
         foreach (['retail_price', 'wholesale_price', 'super_wholesale_price', 'distributor_price'] as $field) {
             $suggested = $prices[$field] ?? '';
 
-            if ($force || $this->isBlankPrice($this->rows[$index][$field] ?? null)) {
-                $this->rows[$index][$field] = $suggested;
+            if ($force || $this->isBlankPrice($this->rows[$rowId][$field] ?? null)) {
+                $this->rows[$rowId][$field] = $suggested;
             }
         }
 
-        $existingChannel = is_array($this->rows[$index]['channel_prices'] ?? null)
-            ? $this->rows[$index]['channel_prices']
+        $existingChannel = is_array($this->rows[$rowId]['channel_prices'] ?? null)
+            ? $this->rows[$rowId]['channel_prices']
             : [];
         $suggestedChannel = is_array($prices['channel_prices'] ?? null) ? $prices['channel_prices'] : [];
 
@@ -392,7 +399,7 @@ class Sheet extends Component
             // Only overwrite channel prices when the profile actually has channel tiers to
             // recompute from. Otherwise keep any existing channel prices instead of wiping them.
             if ($suggestedChannel !== []) {
-                $this->rows[$index]['channel_prices'] = $suggestedChannel;
+                $this->rows[$rowId]['channel_prices'] = $suggestedChannel;
             }
         } else {
             foreach ($suggestedChannel as $key => $suggested) {
@@ -400,13 +407,13 @@ class Sheet extends Component
                     $existingChannel[$key] = $suggested;
                 }
             }
-            $this->rows[$index]['channel_prices'] = $existingChannel;
+            $this->rows[$rowId]['channel_prices'] = $existingChannel;
         }
     }
 
-    public function applyMarkups(int $index): void
+    public function applyMarkups(string $rowId): void
     {
-        $this->recalculateRow($index, force: true);
+        $this->recalculateRow($rowId, force: true);
     }
 
     public function saveAll(): bool
@@ -435,7 +442,7 @@ class Sheet extends Component
         try {
             $service = app(ProductPriceUpdateService::class);
 
-            foreach ($this->rows as $index => $row) {
+            foreach ($this->rows as $rowId => $row) {
                 $productId = (int) ($row['product_id'] ?? 0);
                 $product = Product::query()->find($productId);
 
@@ -462,7 +469,10 @@ class Sheet extends Component
                         'price_tier_quantities' => is_array($row['price_tier_quantities'] ?? null) ? $row['price_tier_quantities'] : [],
                     ]);
 
-                    $this->rows[$index] = $this->makeRow($product->fresh());
+                    $fresh = $this->makeRow($product->fresh());
+                    // Keep the same wire:model key so Livewire does not remount sibling rows.
+                    $fresh['row_id'] = (string) $rowId;
+                    $this->rows[$rowId] = $fresh;
                     $saved++;
                 } catch (ValidationException $exception) {
                     // One bad row must never abort the whole batch — record it and continue.
@@ -657,11 +667,11 @@ class Sheet extends Component
         return array_values(array_unique($ids));
     }
 
-    private function rowIndexForProduct(int $productId): ?int
+    private function rowKeyForProduct(int $productId): ?string
     {
-        foreach ($this->rows as $index => $row) {
+        foreach ($this->rows as $rowId => $row) {
             if ((int) ($row['product_id'] ?? 0) === $productId) {
-                return (int) $index;
+                return (string) $rowId;
             }
         }
 

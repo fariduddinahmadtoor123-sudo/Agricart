@@ -149,9 +149,9 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($rows as $index => $row)
-                        <tr wire:key="{{ $row['row_id'] }}">
-                            <td>{{ $index + 1 }}</td>
+                    @foreach ($rows as $rowId => $row)
+                        <tr wire:key="price-update-row-{{ $rowId }}">
+                            <td>{{ $loop->iteration }}</td>
                             <td>
                                 @if (! empty($row['thumb_url']))
                                     <img src="{{ $row['thumb_url'] }}" alt="" class="agricart-purchase-form__thumb" />
@@ -173,7 +173,8 @@
                                     type="text"
                                     inputmode="decimal"
                                     class="agricart-purchase-form__cell-input agricart-price-update-form__cell--price"
-                                    wire:model.live.debounce.400ms="rows.{{ $index }}.last_buy_price"
+                                    wire:key="price-update-buy-{{ $rowId }}"
+                                    wire:model.blur="rows.{{ $rowId }}.last_buy_price"
                                     @disabled(! $canEdit)
                                     title="{{ __('price_updates.hints.buy_fills_empty') }}"
                                 />
@@ -190,7 +191,8 @@
                                             type="text"
                                             inputmode="decimal"
                                             class="agricart-purchase-form__cell-input agricart-price-update-form__cell--price"
-                                            wire:model.live="rows.{{ $index }}.channel_prices.{{ $channelKey }}"
+                                            wire:key="price-update-ch-{{ $rowId }}-{{ $channelKey }}"
+                                            wire:model.blur="rows.{{ $rowId }}.channel_prices.{{ $channelKey }}"
                                             @disabled(! $canEdit)
                                             title="{{ __('price_updates.hints.price_editable') }}"
                                         />
@@ -199,7 +201,8 @@
                                             type="text"
                                             inputmode="decimal"
                                             class="agricart-purchase-form__cell-input agricart-price-update-form__cell--price"
-                                            wire:model.live="rows.{{ $index }}.{{ $priceField }}"
+                                            wire:key="price-update-price-{{ $rowId }}-{{ $priceField }}"
+                                            wire:model.blur="rows.{{ $rowId }}.{{ $priceField }}"
                                             @disabled(! $canEdit)
                                             title="{{ __('price_updates.hints.price_editable') }}"
                                         />
@@ -211,7 +214,8 @@
                                         inputmode="numeric"
                                         pattern="[0-9]*"
                                         class="agricart-purchase-form__cell-input agricart-price-update-form__cell--qty"
-                                        wire:model.live="rows.{{ $index }}.price_tier_quantities.{{ $priceField }}"
+                                        wire:key="price-update-qty-{{ $rowId }}-{{ $priceField }}"
+                                        wire:model.blur="rows.{{ $rowId }}.price_tier_quantities.{{ $priceField }}"
                                         @disabled(! $canEdit)
                                         title="{{ __('price_updates.hints.quantity_editable') }}"
                                     />
@@ -222,12 +226,12 @@
                                     <button
                                         type="button"
                                         class="agricart-purchase-form__remove agricart-price-update-form__markups"
-                                        wire:click="applyMarkups({{ $index }})"
+                                        wire:click="applyMarkups('{{ $rowId }}')"
                                         title="{{ __('price_updates.hints.apply_markups') }}"
                                     >
                                         {{ __('price_updates.actions.apply_markups') }}
                                     </button>
-                                    <button type="button" class="agricart-purchase-form__remove" wire:click="removeRow('{{ $row['row_id'] }}')">
+                                    <button type="button" class="agricart-purchase-form__remove" wire:click="removeRow('{{ $rowId }}')">
                                         {{ __('price_updates.actions.remove') }}
                                     </button>
                                 @endif
