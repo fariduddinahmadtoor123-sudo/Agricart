@@ -41,14 +41,31 @@ class ForwardedOrdersPipelineTest extends TestCase
             ->test(ListOrderDispatch::class)
             ->assertDontSee($order->order_number, false);
 
+        $assignmentId = (int) OnlineSaleOrderStaffAssignment::query()
+            ->where('online_sale_order_id', $order->id)
+            ->value('id');
+
         Livewire::actingAs($admin)
             ->test(ListForwardedOrders::class)
             ->assertSee($order->order_number, false)
             ->assertSee('INV-FWD-1', false)
             ->assertSee($admin->name, false)
             ->assertSee('Queue Staff', false)
-            ->assertSee(__('forwarded_orders.actions.mark_released'), false)
-            ->call('markReleased', OnlineSaleOrderStaffAssignment::query()->where('online_sale_order_id', $order->id)->value('id'))
+            ->assertDontSeeHtml('wire:click="markReleased('.$assignmentId.')"')
+            ->call('markReleased', $assignmentId)
+            ->assertSee(__('forwarded_orders.messages.release_denied'), false);
+
+        $this->assertNull(
+            OnlineSaleOrderStaffAssignment::query()
+                ->where('online_sale_order_id', $order->id)
+                ->whereNotNull('released_at')
+                ->first()
+        );
+
+        Livewire::actingAs($staff)
+            ->test(ListForwardedOrders::class)
+            ->assertSeeHtml('wire:click="markReleased('.$assignmentId.')"')
+            ->call('markReleased', $assignmentId)
             ->assertSee(__('forwarded_orders.messages.released'), false);
 
         $this->assertNotNull(

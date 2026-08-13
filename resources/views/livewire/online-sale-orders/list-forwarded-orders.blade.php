@@ -56,6 +56,7 @@
                                 ? route('admin.online-sale-orders.packing-slip', ['order' => $row->order, 'autoprint' => 0])
                                 : null;
                             $isReleased = $row->released_at !== null;
+                            $canReleaseThis = ! $isReleased && (int) $row->user_id === (int) $authUserId;
                         @endphp
                         <tr wire:key="forwarded-row-{{ $row->id }}">
                             <td>
@@ -86,7 +87,7 @@
                                         rel="noopener noreferrer"
                                     >{{ __('forwarded_orders.actions.open_packing') }}</a>
                                 @endif
-                                @if ($canRelease && ! $isReleased)
+                                @if ($canReleaseThis)
                                     <button
                                         type="button"
                                         class="agricart-categories__action is-primary"

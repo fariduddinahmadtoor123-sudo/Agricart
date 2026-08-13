@@ -8,6 +8,7 @@ use App\Models\OnlineSaleOrder;
 use App\Models\PrintProfile;
 use App\Models\User;
 use App\Services\Printing\PrintProfileService;
+use App\Services\Sales\OnlineSaleOrderDocumentAccess;
 use App\Services\Sales\OnlineSaleOrderService;
 use App\Support\Documentation\DocumentationPdfText;
 use Illuminate\Contracts\View\View;
@@ -18,7 +19,7 @@ class OnlineSaleOrderPackingSlipPrintController extends Controller
 {
     public function show(OnlineSaleOrder $order): View|Response
     {
-        $this->authorizeSalesAccess();
+        $this->authorizePackingAccess($order);
 
         $context = $this->buildContext($order);
 
@@ -116,13 +117,12 @@ class OnlineSaleOrderPackingSlipPrintController extends Controller
         ))));
     }
 
-    private function authorizeSalesAccess(): void
+    private function authorizePackingAccess(OnlineSaleOrder $order): void
     {
         $user = auth()->user();
 
         abort_unless(
-            $user instanceof User
-                && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'sales', 'order-dispatch', 'print')),
+            $user instanceof User && OnlineSaleOrderDocumentAccess::canPrintPacking($user, $order),
             403,
         );
     }

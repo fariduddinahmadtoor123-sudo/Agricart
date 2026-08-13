@@ -7,7 +7,7 @@ return [
         'no_results' => 'تلاش یا فلٹر کے مطابق کوئی فارورڈ نہیں۔',
         'search' => 'آرڈر، انوائس، یا اسٹاف تلاش…',
         'clear_filters' => 'فلٹر صاف کریں',
-        'release_hint' => 'پیکنگ کے بعد Mark released دبائیں — آرڈر Logistics Pending میں چلا جائے گا۔',
+        'release_hint' => 'صرف «فارورڈ کیا گیا» والے سٹاف ممبر ہی ریلیز کر سکتے ہیں۔ ریلیز کے بعد آرڈر Logistics Pending میں چلا جاتا ہے۔',
         'col_order' => 'آرڈر نمبر',
         'col_invoice' => 'انوائس نمبر',
         'col_from' => 'فارورڈ کیا',

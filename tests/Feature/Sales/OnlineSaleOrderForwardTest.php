@@ -9,6 +9,7 @@ use App\Models\Customer;
 use App\Models\OnlineSaleOrder;
 use App\Models\OnlineSaleOrderItem;
 use App\Models\OnlineSaleOrderStaffAssignment;
+use App\Models\Permission;
 use App\Models\Product;
 use App\Models\Role;
 use App\Models\Sale;
@@ -225,6 +226,43 @@ class OnlineSaleOrderForwardTest extends TestCase
         $this->assertStringStartsWith('%PDF', $response->getContent());
     }
 
+    public function test_inbox_staff_can_open_packing_slip_and_pdf_without_dispatch_print(): void
+    {
+        [$admin, $order] = $this->seedForwardScenario();
+        $staff = $this->makeInboxOnlyStaff('Pack Clerk', 'pack-clerk@test.test');
+        $stranger = $this->makeInboxOnlyStaff('Other Clerk', 'other-clerk@test.test');
+
+        app(StaffMessagingService::class)
+            ->forwardOrderToStaff($order, $staff, $admin, 'packing');
+
+        $html = $this->actingAs($staff)
+            ->get(route('admin.online-sale-orders.packing-slip', [
+                'order' => $order,
+                'autoprint' => 0,
+            ]));
+        $html->assertOk();
+        $html->assertSee(__('order_dispatch.packing_slip.download_pdf'), false);
+
+        $pdf = $this->actingAs($staff)
+            ->get(route('admin.online-sale-orders.packing-slip', [
+                'order' => $order,
+                'download' => 'pdf',
+                'locale' => 'en',
+                'autoprint' => 0,
+            ]));
+        $pdf->assertOk();
+        $this->assertSame('application/pdf', $pdf->headers->get('content-type'));
+        $this->assertStringStartsWith('%PDF', $pdf->getContent());
+
+        $this->actingAs($stranger)
+            ->get(route('admin.online-sale-orders.packing-slip', [
+                'order' => $order,
+                'download' => 'pdf',
+                'autoprint' => 0,
+            ]))
+            ->assertForbidden();
+    }
+
     public function test_inbox_print_actions_include_invoice_and_packing(): void
     {
         [$admin, $order] = $this->seedForwardScenario();
@@ -400,6 +438,38 @@ class OnlineSaleOrderForwardTest extends TestCase
     {
         return User::factory()->create([
             'role_id' => $admin->role_id,
+            'status' => User::STATUS_ACTIVE,
+            'name' => $name,
+            'email' => $email,
+            'phone_numbers' => [[
+                'contact_person' => $name,
+                'contact_person_ur' => $name,
+                'phone_number' => '03009998877',
+            ]],
+        ]);
+    }
+
+    private function makeInboxOnlyStaff(string $name, string $email): User
+    {
+        $permission = Permission::query()->firstOrCreate(
+            ['key' => 'sales.inbox.view'],
+            [
+                'group_key' => 'sales',
+                'label_en' => 'View Sales Inbox',
+                'label_ur' => 'سیل ان باکس دیکھیں',
+                'sort_order' => 1,
+            ],
+        );
+
+        $role = Role::query()->create([
+            'name' => 'Inbox Only '.$email,
+            'slug' => 'inbox-only-'.uniqid(),
+            'is_system' => false,
+        ]);
+        $role->permissions()->sync([$permission->id]);
+
+        return User::factory()->create([
+            'role_id' => $role->id,
             'status' => User::STATUS_ACTIVE,
             'name' => $name,
             'email' => $email,

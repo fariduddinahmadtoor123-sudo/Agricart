@@ -7,7 +7,7 @@ return [
         'no_results' => 'No forwards match your search or filters.',
         'search' => 'Search order, invoice, or staff…',
         'clear_filters' => 'Clear filters',
-        'release_hint' => 'After packing is done, click Mark released — the order moves to Logistics Pending.',
+        'release_hint' => 'Only the person listed under Forwarded to can release that row. After release, the order moves to Logistics Pending.',
         'col_order' => 'Order #',
         'col_invoice' => 'Invoice #',
         'col_from' => 'Forwarded by',

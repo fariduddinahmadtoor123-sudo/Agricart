@@ -117,7 +117,9 @@ class ListForwardedOrders extends Component
 
     public function markReleased(int $assignmentId): void
     {
-        if (! $this->userCan('edit')) {
+        $user = auth()->user();
+
+        if (! $user instanceof User || ! $this->userCanViewForwarded()) {
             session()->flash('forwarded_orders_status', __('forwarded_orders.messages.release_denied'));
 
             return;
@@ -130,6 +132,12 @@ class ListForwardedOrders extends Component
 
         if ($assignment === null) {
             session()->flash('forwarded_orders_status', __('forwarded_orders.messages.release_failed'));
+
+            return;
+        }
+
+        if (! $this->userCanReleaseAssignment($user, $assignment)) {
+            session()->flash('forwarded_orders_status', __('forwarded_orders.messages.release_denied'));
 
             return;
         }
@@ -153,6 +161,9 @@ class ListForwardedOrders extends Component
 
     public function render(): View
     {
+        $user = auth()->user();
+        $authUserId = $user instanceof User ? (int) $user->id : 0;
+
         $rows = $this->historyQuery()
             ->orderByDesc('sent_at')
             ->orderByDesc('id')
@@ -162,11 +173,11 @@ class ListForwardedOrders extends Component
             'rows' => $rows,
             'activeFilters' => $this->activeFilters(),
             'hasListConstraints' => $this->hasListConstraints(),
-            'canRelease' => $this->userCan('edit'),
+            'authUserId' => $authUserId,
         ]);
     }
 
-    private function userCan(string $action): bool
+    private function userCanViewForwarded(): bool
     {
         $user = auth()->user();
 
@@ -178,7 +189,16 @@ class ListForwardedOrders extends Component
             return true;
         }
 
-        return \App\Services\Access\ModulePageAccess::can($user, 'sales', 'forwarded-orders', $action);
+        return \App\Services\Access\ModulePageAccess::can($user, 'sales', 'forwarded-orders', 'view')
+            || \App\Services\Access\ModulePageAccess::can($user, 'sales', 'forwarded-orders', 'edit');
+    }
+
+    /**
+     * Only the staff member who received the forward may mark it released.
+     */
+    private function userCanReleaseAssignment(User $user, OnlineSaleOrderStaffAssignment $assignment): bool
+    {
+        return (int) $assignment->user_id === (int) $user->id;
     }
 
     /**

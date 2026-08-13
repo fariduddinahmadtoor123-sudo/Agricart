@@ -8,6 +8,7 @@ use App\Models\OnlineSaleOrder;
 use App\Models\PrintProfile;
 use App\Models\User;
 use App\Services\Printing\PrintProfileService;
+use App\Services\Sales\OnlineSaleOrderDocumentAccess;
 use App\Services\Sales\OnlineSaleOrderService;
 use Illuminate\Contracts\View\View;
 
@@ -15,7 +16,7 @@ class OnlineSaleOrderPrintController extends Controller
 {
     public function show(OnlineSaleOrder $order): View
     {
-        $this->authorizeSalesAccess();
+        $this->authorizeInvoiceAccess($order);
 
         $order->load([
             'items' => fn ($query) => $query->orderBy('sort_order'),
@@ -61,13 +62,12 @@ class OnlineSaleOrderPrintController extends Controller
         ]);
     }
 
-    private function authorizeSalesAccess(): void
+    private function authorizeInvoiceAccess(OnlineSaleOrder $order): void
     {
         $user = auth()->user();
 
         abort_unless(
-            $user instanceof User
-                && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'sales', 'online-orders', 'print')),
+            $user instanceof User && OnlineSaleOrderDocumentAccess::canPrintOnlineInvoice($user, $order),
             403,
         );
     }
