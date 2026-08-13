@@ -3508,6 +3508,7 @@
 }
 
 .ag-store-checkout__delivery-option {
+    position: relative;
     display: block;
     cursor: pointer;
 }
@@ -3578,6 +3579,15 @@
     color: var(--agricart-muted);
 }
 
+.ag-store-checkout__submit-block {
+    margin-bottom: 0.65rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid color-mix(in oklab, #b45309 35%, var(--agricart-border));
+    background: color-mix(in oklab, #b45309 10%, var(--agricart-bg, #fff));
+    color: #92400e;
+    font-weight: 600;
+}
+
 .ag-store-checkout__delivery-notice {
     display: -webkit-box;
     -webkit-line-clamp: 3;
@@ -3596,16 +3606,22 @@
 }
 
 .ag-store-checkout__pay-option {
+    position: relative;
     display: block;
     cursor: pointer;
 }
 
 .ag-store-checkout__pay-input {
     position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
     opacity: 0;
-    width: 0;
-    height: 0;
-    pointer-events: none;
 }
 
 .ag-store-checkout__pay-card {
@@ -3782,7 +3798,7 @@
 }
 
 .ag-store-checkout-success__lead {
-    margin: 0 0 1rem;
+    margin: 0 0 0.65rem;
     font-size: 0.95rem;
     line-height: 1.5;
     color: var(--agricart-muted);
@@ -3790,16 +3806,25 @@
 
 .ag-store-checkout-success__order-box {
     display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.55rem 1.25rem;
     margin: 0 0 0.9rem;
-    padding: 0.75rem 0.85rem;
+    padding: 0.55rem 0.75rem;
     border: 1px solid color-mix(in oklab, var(--agricart-primary) 28%, var(--agricart-border));
     background: color-mix(in oklab, var(--agricart-primary) 7%, var(--agricart-surface, #fff));
 }
 
+.ag-store-checkout-success__order-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
 .ag-store-checkout-success__order-label {
-    font-size: 0.72rem;
+    font-size: 0.65rem;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -3807,7 +3832,7 @@
 }
 
 .ag-store-checkout-success__order-code {
-    font-size: 1.2rem;
+    font-size: 0.95rem;
     font-weight: 700;
     letter-spacing: 0.02em;
     color: var(--agricart-text);
@@ -3818,13 +3843,13 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.5rem 0.65rem;
+    gap: 0.35rem 0.5rem;
 }
 
 .ag-store-checkout-success__amount-label {
     display: block;
-    margin-top: 0.65rem;
-    font-size: 0.72rem;
+    margin-top: 0;
+    font-size: 0.65rem;
     font-weight: 700;
     letter-spacing: 0.04em;
     text-transform: uppercase;
@@ -3832,11 +3857,10 @@
 }
 
 .ag-store-checkout-success__amount {
-    display: block;
-    margin-top: 0.15rem;
-    font-size: 1.15rem;
+    font-size: 0.95rem;
     font-weight: 700;
     color: var(--agricart-text);
+    font-variant-numeric: tabular-nums;
 }
 
 .ag-store-checkout-success__grid {
@@ -3883,8 +3907,8 @@
 
 .ag-store-checkout-success__section-lead {
     margin: 0;
-    font-size: 0.8125rem;
-    line-height: 1.55;
+    font-size: 0.72rem;
+    line-height: 1.4;
     color: var(--agricart-muted);
 }
 
@@ -3914,31 +3938,66 @@
 
 .ag-store-bank-accounts__lead {
     margin: 0;
-    font-size: 0.78rem;
-    line-height: 1.45;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    color: var(--agricart-muted);
+}
+
+.ag-store-bank-accounts__legend {
+    margin: 0;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    line-height: 1.35;
     color: var(--agricart-muted);
 }
 
 .ag-store-bank-accounts__list {
     display: grid;
-    gap: 0.55rem;
+    gap: 0.45rem;
 }
 
 .ag-store-bank-accounts__card {
     display: grid;
-    gap: 0.2rem;
-    padding: 0.7rem 0.75rem;
+    gap: 0.35rem;
+    padding: 0.55rem 0.7rem;
     border: 1px solid var(--agricart-border);
     background: var(--agricart-surface, #fff);
 }
 
+.ag-store-bank-accounts__line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.4rem 0.65rem;
+}
+
+.ag-store-bank-accounts__line-text {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.3rem 0.4rem;
+    margin: 0;
+    min-width: 0;
+    flex: 1 1 12rem;
+    font-size: 0.8125rem;
+    line-height: 1.4;
+    color: var(--agricart-text);
+}
+
 .ag-store-bank-accounts__bank {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
     color: var(--agricart-text);
 }
 
 .ag-store-bank-accounts__title {
-    font-size: 0.78rem;
+    font-size: 0.8125rem;
+    color: var(--agricart-muted);
+}
+
+.ag-store-bank-accounts__sep {
     color: var(--agricart-muted);
 }
 
@@ -3955,6 +4014,7 @@
     font-weight: 700;
     letter-spacing: 0.02em;
     color: var(--agricart-text);
+    word-break: break-all;
 }
 
 .ag-store-bank-accounts__copy {
@@ -3966,6 +4026,7 @@
     font-weight: 700;
     cursor: pointer;
     border-radius: 0;
+    flex: 0 0 auto;
 }
 
 .ag-store-bank-accounts__copy:hover,
@@ -3976,14 +4037,10 @@
 
 .ag-store-bank-accounts__copy--all {
     justify-self: start;
-    margin-top: 0.35rem;
+    margin-top: 0;
     padding: 0.3rem 0.55rem;
     border-color: color-mix(in oklab, var(--agricart-primary) 40%, var(--agricart-border));
     background: color-mix(in oklab, var(--agricart-primary) 8%, var(--agricart-surface, #fff));
-}
-
-.ag-store-bank-accounts__card {
-    gap: 0.35rem;
 }
 
 .ag-store-checkout__pay-mode {
@@ -4057,10 +4114,11 @@
 }
 
 .ag-store-checkout-success__hint {
-    margin: 0 0 0.75rem;
-    color: var(--agricart-muted);
-    font-size: 0.875rem;
-    line-height: 1.55;
+    margin: 0 0 0.55rem;
+    color: #b91c1c;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.5;
 }
 
 .ag-store-checkout-success__meta {
@@ -4068,7 +4126,7 @@
     flex-wrap: wrap;
     align-items: baseline;
     gap: 0.35rem 0.55rem;
-    margin: 0 0 1rem;
+    margin: 0 0 0.85rem;
     font-size: 0.875rem;
     color: var(--agricart-muted);
 }

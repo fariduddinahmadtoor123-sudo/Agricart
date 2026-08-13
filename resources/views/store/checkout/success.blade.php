@@ -27,35 +27,39 @@
 
                 <h1 class="ag-store-checkout-success__title">{{ __('agricart.storefront.checkout.success_title') }}</h1>
                 <p class="ag-store-checkout-success__lead">{{ __('agricart.storefront.checkout.success_lead') }}</p>
+
+                <p class="ag-store-checkout-success__hint">{{ __('agricart.storefront.checkout.success_hint') }}</p>
+
+                @isset($order)
+                    @if (filled($order->localizedDeliveryMethodName()))
+                        <p class="ag-store-checkout-success__meta">
+                            <span>{{ __('agricart.storefront.checkout.delivery_method') }}</span>
+                            <strong>{{ $order->localizedDeliveryMethodName() }}</strong>
+                        </p>
+                    @endif
+                @endisset
             </div>
 
             <div class="ag-store-checkout-success__order-box">
-                <span class="ag-store-checkout-success__order-label">{{ __('agricart.storefront.checkout.order_number') }}</span>
-                <div class="ag-store-checkout-success__order-row">
-                    <strong class="ag-store-checkout-success__order-code">{{ $orderNumber }}</strong>
-                    <button
-                        type="button"
-                        class="ag-store-bank-accounts__copy"
-                        data-copy-value="{{ $orderNumber }}"
-                        data-copy-success="{{ __('agricart.storefront.accessibility.copied') }}"
-                    >{{ __('agricart.storefront.accessibility.copy') }}</button>
+                <div class="ag-store-checkout-success__order-item">
+                    <span class="ag-store-checkout-success__order-label">{{ __('agricart.storefront.checkout.order_number') }}</span>
+                    <div class="ag-store-checkout-success__order-row">
+                        <strong class="ag-store-checkout-success__order-code">{{ $orderNumber }}</strong>
+                        <button
+                            type="button"
+                            class="ag-store-bank-accounts__copy"
+                            data-copy-value="{{ $orderNumber }}"
+                            data-copy-success="{{ __('agricart.storefront.accessibility.copied') }}"
+                        >{{ __('agricart.storefront.accessibility.copy') }}</button>
+                    </div>
                 </div>
                 @if ($orderTotal)
-                    <span class="ag-store-checkout-success__amount-label">{{ __('agricart.storefront.checkout.success_amount_due') }}</span>
-                    <strong class="ag-store-checkout-success__amount">{{ $orderTotal }}</strong>
+                    <div class="ag-store-checkout-success__order-item">
+                        <span class="ag-store-checkout-success__amount-label">{{ __('agricart.storefront.checkout.success_amount_due') }}</span>
+                        <strong class="ag-store-checkout-success__amount">{{ $orderTotal }}</strong>
+                    </div>
                 @endif
             </div>
-
-            <p class="ag-store-checkout-success__hint">{{ __('agricart.storefront.checkout.success_hint') }}</p>
-
-            @isset($order)
-                @if (filled($order->localizedDeliveryMethodName()))
-                    <p class="ag-store-checkout-success__meta">
-                        <span>{{ __('agricart.storefront.checkout.delivery_method') }}</span>
-                        <strong>{{ $order->localizedDeliveryMethodName() }}</strong>
-                    </p>
-                @endif
-            @endisset
 
             @if ($needsProof)
                 <div class="ag-store-checkout-success__grid">

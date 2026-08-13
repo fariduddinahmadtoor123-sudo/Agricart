@@ -15,12 +15,19 @@
         @if (filled($lead))
             <p class="ag-store-bank-accounts__lead">{{ $lead }}</p>
         @endif
+        <p class="ag-store-bank-accounts__legend">{{ __('agricart.storefront.checkout.bank_line_legend') }}</p>
         <div class="ag-store-bank-accounts__list">
             @foreach ($accounts as $account)
                 @php
                     $bankName = $account->displayBankName() ?: $account->displayName();
                     $accountTitle = (string) ($account->account_title ?? '');
                     $identifier = $account->displayAccountIdentifier();
+                    $lineParts = array_values(array_filter([
+                        filled($bankName) ? $bankName : null,
+                        filled($accountTitle) ? $accountTitle : null,
+                        $identifier !== '' ? $identifier : null,
+                    ], static fn (?string $part): bool => filled($part)));
+                    $lineText = implode(' · ', $lineParts);
                     $allParts = array_values(array_filter([
                         filled($bankName) ? __('agricart.storefront.checkout.bank_copy_bank', ['value' => $bankName]) : null,
                         filled($accountTitle) ? __('agricart.storefront.checkout.bank_copy_title', ['value' => $accountTitle]) : null,
@@ -29,44 +36,30 @@
                     $allText = implode("\n", $allParts);
                 @endphp
                 <article class="ag-store-bank-accounts__card">
-                    @if (filled($bankName))
-                        <span class="ag-store-bank-accounts__copy-row">
-                            <strong class="ag-store-bank-accounts__bank">{{ $bankName }}</strong>
+                    <div class="ag-store-bank-accounts__line">
+                        <p class="ag-store-bank-accounts__line-text">
+                            @if (filled($bankName))
+                                <strong class="ag-store-bank-accounts__bank">{{ $bankName }}</strong>
+                            @endif
+                            @if (filled($accountTitle))
+                                <span class="ag-store-bank-accounts__sep" aria-hidden="true">·</span>
+                                <span class="ag-store-bank-accounts__title">{{ $accountTitle }}</span>
+                            @endif
+                            @if ($identifier !== '')
+                                <span class="ag-store-bank-accounts__sep" aria-hidden="true">·</span>
+                                <code class="ag-store-bank-accounts__code">{{ $identifier }}</code>
+                            @endif
+                        </p>
+                        @if ($lineText !== '')
                             <button
                                 type="button"
                                 class="ag-store-bank-accounts__copy"
-                                data-copy-value="{{ $bankName }}"
+                                data-copy-value="{{ $lineText }}"
                                 data-copy-success="{{ $copiedLabel }}"
                                 data-copy-label="{{ $copyLabel }}"
                             >{{ $copyLabel }}</button>
-                        </span>
-                    @endif
-
-                    @if (filled($accountTitle))
-                        <span class="ag-store-bank-accounts__copy-row">
-                            <span class="ag-store-bank-accounts__title">{{ $accountTitle }}</span>
-                            <button
-                                type="button"
-                                class="ag-store-bank-accounts__copy"
-                                data-copy-value="{{ $accountTitle }}"
-                                data-copy-success="{{ $copiedLabel }}"
-                                data-copy-label="{{ $copyLabel }}"
-                            >{{ $copyLabel }}</button>
-                        </span>
-                    @endif
-
-                    @if ($identifier !== '')
-                        <span class="ag-store-bank-accounts__copy-row">
-                            <code class="ag-store-bank-accounts__code">{{ $identifier }}</code>
-                            <button
-                                type="button"
-                                class="ag-store-bank-accounts__copy"
-                                data-copy-value="{{ $identifier }}"
-                                data-copy-success="{{ $copiedLabel }}"
-                                data-copy-label="{{ $copyLabel }}"
-                            >{{ $copyLabel }}</button>
-                        </span>
-                    @endif
+                        @endif
+                    </div>
 
                     @if ($allText !== '')
                         <button

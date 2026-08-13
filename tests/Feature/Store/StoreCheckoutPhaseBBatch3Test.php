@@ -176,6 +176,67 @@ class StoreCheckoutPhaseBBatch3Test extends TestCase
         $this->assertNotNull(OnlineSaleOrder::query()->value('customer_bank_receipt_path'));
     }
 
+    public function test_checkout_form_shows_required_address_fields_in_visible_panel(): void
+    {
+        [$customer, $product, $method] = $this->checkoutFixtures();
+        $this->activeBankAccount();
+        app(StoreCartService::class)->add($product->id, 1);
+
+        $html = (string) $this->actingAs($customer, 'customer')
+            ->get(route('store.checkout'))
+            ->assertOk()
+            ->getContent();
+
+        $this->assertTrue(
+            (bool) preg_match('/<div\b[^>]*\bid="checkout-panel-address"[^>]*>/s', $html, $panelTag),
+        );
+        $this->assertStringContainsString('is-active', $panelTag[0]);
+        $this->assertMatchesRegularExpression('/name="address_line1"[^>]*\brequired\b/', $html);
+        $this->assertMatchesRegularExpression('/name="city"[^>]*\brequired\b/', $html);
+        $this->assertMatchesRegularExpression('/name="state"[^>]*\brequired\b/', $html);
+        $this->assertMatchesRegularExpression('/name="ship_contact_name"[^>]*\brequired\b/', $html);
+        $this->assertMatchesRegularExpression('/name="ship_phone"[^>]*\brequired\b/', $html);
+        $this->assertDoesNotMatchRegularExpression('/name="address_line2"[^>]*\brequired\b/', $html);
+        $this->assertDoesNotMatchRegularExpression('/name="postal_code"[^>]*\brequired\b/', $html);
+        $this->assertDoesNotMatchRegularExpression('/name="country"[^>]*\brequired\b/', $html);
+        $this->assertMatchesRegularExpression(
+            '/name="delivery_method_id"[^>]*value="'.$method->id.'"[^>]*\bchecked\b/',
+            $html,
+        );
+        $this->assertStringNotContainsString('x-for="method in methods"', $html);
+    }
+
+    public function test_place_order_requires_street_city_and_province(): void
+    {
+        [$customer, $product, $method] = $this->checkoutFixtures();
+        $this->activeBankAccount();
+        app(StoreCartService::class)->add($product->id, 1);
+
+        $payload = $this->placePayload($method->id);
+        unset($payload['address_line1'], $payload['city'], $payload['state']);
+
+        $this->actingAs($customer, 'customer')
+            ->post(route('store.checkout.place'), $payload)
+            ->assertSessionHasErrors(['address_line1', 'city', 'state']);
+    }
+
+    public function test_place_order_allows_missing_postal_apartment_and_country(): void
+    {
+        Queue::fake();
+        [$customer, $product, $method] = $this->checkoutFixtures();
+        $this->activeBankAccount();
+        app(StoreCartService::class)->add($product->id, 1);
+
+        $payload = $this->placePayload($method->id);
+        unset($payload['country']);
+
+        $this->actingAs($customer, 'customer')
+            ->post(route('store.checkout.place'), $payload)
+            ->assertRedirect();
+
+        $this->assertNotNull(OnlineSaleOrder::query()->first());
+    }
+
     /**
      * @return array{0: Customer, 1: Product, 2: \App\Models\DeliveryMethod}
      */

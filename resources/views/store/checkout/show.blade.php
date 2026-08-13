@@ -51,28 +51,30 @@
                         <h2 id="checkout-step-delivery-method" class="ag-store-checkout__step-title">{{ __('agricart.storefront.checkout.delivery_method') }}</h2>
                     </div>
                     <div class="ag-store-checkout__step-body">
-                        <template x-if="methods.length === 0">
+                        @if ($deliveryOptions === [])
                             <p class="ag-store-checkout__delivery-empty">{{ $deliveryOptionsEmptyReason ?? __('agricart.storefront.checkout.no_delivery_methods') }}</p>
-                        </template>
-
-                        <div class="ag-store-checkout__delivery-grid" role="radiogroup" aria-label="{{ __('agricart.storefront.checkout.delivery_method') }}" x-show="methods.length > 0">
-                            <template x-for="method in methods" :key="method.id">
-                                <label class="ag-store-checkout__delivery-option">
-                                    <input
-                                        type="radio"
-                                        name="delivery_method_id"
-                                        class="ag-store-checkout__pay-input"
-                                        :value="method.id"
-                                        x-model.number="selectedId"
-                                        required
-                                    />
-                                    <span class="ag-store-checkout__delivery-card">
-                                        <span class="ag-store-checkout__delivery-name" x-text="method.name"></span>
-                                        <span class="ag-store-checkout__delivery-desc" x-show="method.description" x-text="method.description"></span>
-                                    </span>
-                                </label>
-                            </template>
-                        </div>
+                        @else
+                            <div class="ag-store-checkout__delivery-grid" role="radiogroup" aria-label="{{ __('agricart.storefront.checkout.delivery_method') }}">
+                                @foreach ($deliveryOptions as $method)
+                                    <label class="ag-store-checkout__delivery-option">
+                                        <input
+                                            type="radio"
+                                            name="delivery_method_id"
+                                            class="ag-store-checkout__pay-input"
+                                            value="{{ $method['id'] }}"
+                                            x-model.number="selectedId"
+                                            @checked((int) old('delivery_method_id', $deliveryOptions[0]['id']) === (int) $method['id'])
+                                        />
+                                        <span class="ag-store-checkout__delivery-card">
+                                            <span class="ag-store-checkout__delivery-name">{{ $method['name'] }}</span>
+                                            @if (filled($method['description']))
+                                                <span class="ag-store-checkout__delivery-desc">{{ $method['description'] }}</span>
+                                            @endif
+                                        </span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        @endif
                         @error('delivery_method_id') <span class="ag-store-checkout__error">{{ $message }}</span> @enderror
                         @error('customer_payment_method') <span class="ag-store-checkout__error">{{ $message }}</span> @enderror
 
@@ -99,7 +101,7 @@
                             <div class="ag-store-pdp__tablist" role="tablist" aria-label="{{ __('agricart.storefront.checkout.secondary_details') }}">
                                 <button
                                     type="button"
-                                    class="ag-store-pdp__tab"
+                                    class="ag-store-pdp__tab @if (! $errors->has('customer_notes')) is-active @endif"
                                     role="tab"
                                     id="checkout-tab-address"
                                     aria-controls="checkout-panel-address"
@@ -110,7 +112,7 @@
                                 >{{ __('agricart.storefront.checkout.tabs.address') }}</button>
                                 <button
                                     type="button"
-                                    class="ag-store-pdp__tab"
+                                    class="ag-store-pdp__tab @if ($errors->has('customer_notes')) is-active @endif"
                                     role="tab"
                                     id="checkout-tab-notes"
                                     aria-controls="checkout-panel-notes"
@@ -122,13 +124,12 @@
                             </div>
 
                             <div
-                                class="ag-store-pdp__panel"
+                                class="ag-store-pdp__panel @if (! $errors->has('customer_notes')) is-active @endif"
                                 role="tabpanel"
                                 id="checkout-panel-address"
                                 aria-labelledby="checkout-tab-address"
                                 data-panel="address"
                                 :class="{ 'is-active': detailsTab === 'address' }"
-                                x-show="detailsTab === 'address'"
                             >
                                 <div class="ag-store-checkout__field-row">
                                     <label class="ag-store-checkout__field">
@@ -173,13 +174,12 @@
                             </div>
 
                             <div
-                                class="ag-store-pdp__panel"
+                                class="ag-store-pdp__panel @if ($errors->has('customer_notes')) is-active @endif"
                                 role="tabpanel"
                                 id="checkout-panel-notes"
                                 aria-labelledby="checkout-tab-notes"
                                 data-panel="notes"
                                 :class="{ 'is-active': detailsTab === 'notes' }"
-                                x-show="detailsTab === 'notes'"
                             >
                                 <label class="ag-store-checkout__field ag-store-checkout__field--flush">
                                     <span class="ag-store-checkout__label">{{ __('agricart.storefront.checkout.order_notes') }}</span>
@@ -260,7 +260,25 @@
                         <p class="ag-store-checkout__delivery-hint" x-show="advanceHint" x-text="advanceHint"></p>
                     </div>
 
-                    <button type="submit" class="ag-store-btn ag-store-btn--primary ag-store-btn--block ag-store-checkout__submit" @disabled(empty($deliveryOptions) || ! ($bankTransferAvailable ?? true))>
+                    @php
+                        $placeOrderBlocked = empty($deliveryOptions) || ! ($bankTransferAvailable ?? true);
+                        $placeOrderBlockReason = empty($deliveryOptions)
+                            ? ($deliveryOptionsEmptyReason ?? __('agricart.storefront.checkout.no_delivery_methods'))
+                            : __('agricart.storefront.checkout.bank_transfer_unavailable');
+                    @endphp
+
+                    @if ($placeOrderBlocked)
+                        <p id="checkout-place-order-blocked" class="ag-store-checkout__delivery-empty ag-store-checkout__submit-block" role="alert">
+                            {{ $placeOrderBlockReason }}
+                        </p>
+                    @endif
+
+                    <button
+                        type="submit"
+                        class="ag-store-btn ag-store-btn--primary ag-store-btn--block ag-store-checkout__submit"
+                        @disabled($placeOrderBlocked)
+                        @if ($placeOrderBlocked) title="{{ $placeOrderBlockReason }}" aria-describedby="checkout-place-order-blocked" @endif
+                    >
                         {{ __('agricart.storefront.checkout.place_order') }}
                     </button>
                 </div>
@@ -282,6 +300,73 @@
             init() {
                 this.$watch('selectedId', () => this.ensurePayment());
                 this.ensurePayment();
+                this.bindInvalidFields();
+                this.$el.addEventListener('submit', (event) => this.onSubmit(event));
+            },
+            onSubmit(event) {
+                this.detailsTab = 'address';
+
+                const form = this.$el;
+                if (! (form instanceof HTMLFormElement)) {
+                    return;
+                }
+
+                if (form.checkValidity()) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                this.$nextTick(() => {
+                    const invalid = form.querySelector(':invalid');
+                    if (invalid instanceof HTMLElement) {
+                        if (typeof invalid.focus === 'function') {
+                            invalid.focus({ preventScroll: false });
+                        }
+                        if (typeof invalid.reportValidity === 'function') {
+                            invalid.reportValidity();
+                        }
+                    }
+                });
+            },
+            bindInvalidFields() {
+                let restoring = false;
+
+                this.$el.addEventListener('invalid', (event) => {
+                    if (restoring) {
+                        return;
+                    }
+
+                    const field = event.target;
+
+                    if (! (field instanceof HTMLElement)) {
+                        return;
+                    }
+
+                    const panel = field.closest('[data-panel]');
+                    const panelKey = panel instanceof HTMLElement ? (panel.dataset.panel || '') : '';
+                    const hiddenPanel = panel instanceof HTMLElement && ! panel.classList.contains('is-active');
+
+                    if (panelKey !== '' && this.detailsTab !== panelKey) {
+                        this.detailsTab = panelKey;
+                    }
+
+                    if (! hiddenPanel) {
+                        return;
+                    }
+
+                    event.preventDefault();
+                    this.$nextTick(() => {
+                        restoring = true;
+                        if (typeof field.focus === 'function') {
+                            field.focus({ preventScroll: false });
+                        }
+                        if (typeof field.reportValidity === 'function') {
+                            field.reportValidity();
+                        }
+                        restoring = false;
+                    });
+                }, true);
             },
             get selectedMethod() {
                 return this.methods.find((method) => Number(method.id) === Number(this.selectedId)) || null;
