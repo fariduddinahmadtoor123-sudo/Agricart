@@ -221,9 +221,45 @@ class PhaseBBatch4RemediationTest extends TestCase
             'slug' => 'user-managers-batch4',
         ]);
         $permissionId = Permission::query()
-            ->where('key', 'settings.users.manage')
+            ->where('key', 'settings.users.edit')
             ->value('id');
-        $role->permissions()->sync([$permissionId]);
+        if ($permissionId === null) {
+            $permissionId = Permission::query()->create([
+                'key' => 'settings.users.edit',
+                'group_key' => 'settings',
+                'label_en' => 'Edit users',
+                'label_ur' => 'یوزرز ترمیم',
+                'sort_order' => 1,
+            ])->id;
+            Permission::query()->firstOrCreate(
+                ['key' => 'settings.users.view'],
+                [
+                    'group_key' => 'settings',
+                    'label_en' => 'View users',
+                    'label_ur' => 'یوزرز دیکھیں',
+                    'sort_order' => 0,
+                ],
+            );
+            Permission::query()->firstOrCreate(
+                ['key' => 'settings.users.create'],
+                [
+                    'group_key' => 'settings',
+                    'label_en' => 'Create users',
+                    'label_ur' => 'یوزرز بنائیں',
+                    'sort_order' => 2,
+                ],
+            );
+        }
+        $ids = Permission::query()
+            ->whereIn('key', [
+                'settings.users.view',
+                'settings.users.create',
+                'settings.users.edit',
+                'settings.users.delete',
+            ])
+            ->pluck('id')
+            ->all();
+        $role->permissions()->sync($ids);
 
         return User::factory()->create([
             'email' => $email,

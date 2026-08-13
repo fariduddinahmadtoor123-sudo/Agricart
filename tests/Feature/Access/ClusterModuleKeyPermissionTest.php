@@ -54,7 +54,7 @@ class ClusterModuleKeyPermissionTest extends TestCase
         ]);
 
         $permissionIds = Permission::query()
-            ->whereIn('key', ['catalog.view', 'catalog.create'])
+            ->whereIn('key', ['catalog.products.view', 'catalog.products.create'])
             ->pluck('id')
             ->all();
 
@@ -85,7 +85,7 @@ class ClusterModuleKeyPermissionTest extends TestCase
         ]);
 
         $permissionIds = Permission::query()
-            ->where('key', 'catalog.view')
+            ->where('key', 'catalog.products.view')
             ->pluck('id')
             ->all();
 

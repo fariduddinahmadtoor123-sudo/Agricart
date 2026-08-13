@@ -194,6 +194,6 @@ class ListMethods extends Component
             return true;
         }
 
-        return $user->hasPermission('logistics.'.$action);
+        return \App\Services\Access\ModulePageAccess::can($user, 'logistics', 'delivery-methods', $action);
     }
 }

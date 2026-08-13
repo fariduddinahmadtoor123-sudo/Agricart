@@ -65,7 +65,7 @@ class Form extends Component
     #[On('sale-return-form-open')]
     public function openForm(?int $returnId = null, string $mode = 'create'): void
     {
-        $this->authorizeAny($mode === 'view' ? ['sales.view', 'sales.edit'] : ($returnId ? 'sales.edit' : 'sales.create'));
+        $this->authorizeAny($mode === 'view' ? ['sales.sales-returns.view', 'sales.sales-returns.edit'] : ($returnId ? 'sales.sales-returns.edit' : 'sales.sales-returns.create'));
         $this->resetForm();
         $this->mode = $mode;
         $this->returnId = $returnId;
@@ -156,7 +156,7 @@ class Form extends Component
 
     public function loadInvoice(): void
     {
-        $this->authorizeAny($this->returnId ? 'sales.edit' : 'sales.create');
+        $this->authorizeAny($this->returnId ? 'sales.sales-returns.edit' : 'sales.sales-returns.create');
 
         if ($this->isReadonly()) {
             return;
@@ -218,7 +218,7 @@ class Form extends Component
 
     public function saveAndClose(): void
     {
-        $this->authorizeAny($this->returnId ? 'sales.edit' : 'sales.create');
+        $this->authorizeAny($this->returnId ? 'sales.sales-returns.edit' : 'sales.sales-returns.create');
         $this->persist(close: true);
     }
 
@@ -245,7 +245,7 @@ class Form extends Component
 
     public function render(): View
     {
-        if (! $this->canAccessAny(['sales.view', 'sales.create', 'sales.edit'])) {
+        if (! $this->canAccessAny(['sales.sales-returns.view', 'sales.sales-returns.create', 'sales.sales-returns.edit'])) {
             return view('livewire.sale-returns.form', [
                 'selectedCustomer' => null,
                 'paymentOptions' => [],
@@ -268,7 +268,7 @@ class Form extends Component
 
     private function persist(bool $close): ?SaleReturn
     {
-        $this->authorizeAny($this->returnId ? 'sales.edit' : 'sales.create');
+        $this->authorizeAny($this->returnId ? 'sales.sales-returns.edit' : 'sales.sales-returns.create');
 
         if ($this->isReadonly()) {
             return null;
@@ -340,7 +340,7 @@ class Form extends Component
 
     private function loadReturn(int $returnId): void
     {
-        $this->authorizeAny($this->mode === 'view' ? ['sales.view', 'sales.edit'] : 'sales.edit');
+        $this->authorizeAny($this->mode === 'view' ? ['sales.sales-returns.view', 'sales.sales-returns.edit'] : 'sales.sales-returns.edit');
         $return = SaleReturn::query()->with('processedBy')->find($returnId);
 
         if ($return === null) {
@@ -443,8 +443,8 @@ class Form extends Component
     private function requiredActionPermission(): array|string
     {
         return $this->isReadonly()
-            ? ['sales.view', 'sales.edit']
-            : ($this->returnId ? 'sales.edit' : 'sales.create');
+            ? ['sales.sales-returns.view', 'sales.sales-returns.edit']
+            : ($this->returnId ? 'sales.sales-returns.edit' : 'sales.sales-returns.create');
     }
 
     private function setStatus(string $message, string $type): void

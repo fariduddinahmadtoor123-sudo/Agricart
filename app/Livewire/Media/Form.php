@@ -37,7 +37,7 @@ class Form extends Component
     public function openForm(?int $assetId = null, string $mode = 'create'): void
     {
         $user = $this->authorizeView();
-        $this->canManage = $user->isSuperAdmin() || $user->hasPermission('settings.media.manage');
+        $this->canManage = $user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'media-library', 'edit') || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'media-library', 'create');
         $this->reset(['upload', 'displayName', 'statusMessage']);
         $this->assetId = $assetId;
         $this->mode = $assetId ? 'edit' : 'create';
@@ -158,7 +158,7 @@ class Form extends Component
     {
         $user = auth()->user();
         $canView = $user instanceof User
-            && ($user->isSuperAdmin() || $user->hasPermission('settings.media.view'));
+            && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'media-library', 'view'));
         $asset = $canView && $this->assetId
             ? MediaAsset::query()->with(['usages' => fn ($query) => $query->latest()])->find($this->assetId)
             : null;
@@ -181,7 +181,7 @@ class Form extends Component
         $user = auth()->user();
         abort_unless(
             $user instanceof User
-            && ($user->isSuperAdmin() || $user->hasPermission('settings.media.view')),
+            && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'media-library', 'view')),
             403,
         );
 
@@ -191,7 +191,7 @@ class Form extends Component
     private function authorizeManage(): User
     {
         $user = $this->authorizeView();
-        abort_unless($user->isSuperAdmin() || $user->hasPermission('settings.media.manage'), 403);
+        abort_unless($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'media-library', 'edit') || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'media-library', 'create'), 403);
 
         return $user;
     }

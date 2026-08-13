@@ -385,7 +385,7 @@ class SettingsPageToolbar extends ClusterPageToolbar
         $user = auth()->user();
 
         return $user instanceof User
-            && ($user->isSuperAdmin() || $user->hasPermission('settings.users.manage'));
+            && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'users', 'view'));
     }
 
     protected static function userCanManageRoles(): bool
@@ -393,7 +393,7 @@ class SettingsPageToolbar extends ClusterPageToolbar
         $user = auth()->user();
 
         return $user instanceof User
-            && ($user->isSuperAdmin() || $user->hasPermission('settings.roles.manage'));
+            && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'permission', 'view'));
     }
 
     protected static function userCanManagePrinting(): bool
@@ -401,7 +401,7 @@ class SettingsPageToolbar extends ClusterPageToolbar
         $user = auth()->user();
 
         return $user instanceof User
-            && ($user->isSuperAdmin() || $user->hasPermission('settings.printing.manage'));
+            && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'printing', 'edit'));
     }
 
     protected static function userCanManageMedia(): bool
@@ -409,6 +409,6 @@ class SettingsPageToolbar extends ClusterPageToolbar
         $user = auth()->user();
 
         return $user instanceof User
-            && ($user->isSuperAdmin() || $user->hasPermission('settings.media.manage'));
+            && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'media-library', 'edit'));
     }
 }

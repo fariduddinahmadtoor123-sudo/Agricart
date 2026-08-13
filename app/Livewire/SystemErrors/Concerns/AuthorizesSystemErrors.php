@@ -13,7 +13,7 @@ trait AuthorizesSystemErrors
         abort_unless(
             $user instanceof User
             && $user->canUseAdmin()
-            && ($user->isSuperAdmin() || $user->hasPermission('settings.system-errors.view')),
+            && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'system-errors', 'view')),
             403,
         );
 
@@ -25,7 +25,7 @@ trait AuthorizesSystemErrors
         $user = $this->authorizeSystemErrorView();
 
         abort_unless(
-            $user->isSuperAdmin() || $user->hasPermission('settings.system-errors.manage'),
+            $user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'system-errors', 'edit'),
             403,
         );
 

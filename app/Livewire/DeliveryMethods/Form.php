@@ -258,7 +258,7 @@ class Form extends Component
             return;
         }
 
-        abort_unless($user->hasPermission('logistics.'.$action), 403);
+        abort_unless(\App\Services\Access\ModulePageAccess::can($user, 'logistics', 'delivery-methods', $action), 403);
     }
 
     private function setStatus(string $message, string $type): void

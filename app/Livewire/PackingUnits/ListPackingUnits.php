@@ -196,6 +196,6 @@ class ListPackingUnits extends Component
 
         return $user instanceof User
             && $user->canUseAdmin()
-            && ($user->isSuperAdmin() || $user->hasPermission('catalog.'.$action));
+            && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'catalog', 'packing-units', $action));
     }
 }

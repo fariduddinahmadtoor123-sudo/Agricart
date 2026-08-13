@@ -330,10 +330,10 @@ class PriceUpdateSheetTest extends TestCase
         ]);
 
         $permission = Permission::query()->create([
-            'key' => 'purchasing.view',
+            'key' => 'purchasing.price-update.view',
             'group_key' => 'purchasing',
-            'label_en' => 'View purchasing',
-            'label_ur' => 'خریداری دیکھیں',
+            'label_en' => 'View price update',
+            'label_ur' => 'پرائس اپڈیٹ دیکھیں',
             'sort_order' => 1,
         ]);
         $viewOnly->permissions()->attach($permission->id);

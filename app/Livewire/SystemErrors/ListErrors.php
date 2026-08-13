@@ -41,7 +41,7 @@ class ListErrors extends Component
     public function mount(SystemErrorReadService $reads): void
     {
         $user = $this->authorizeSystemErrorView();
-        $this->canManage = $user->isSuperAdmin() || $user->hasPermission('settings.system-errors.manage');
+        $this->canManage = $user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'system-errors', 'edit');
         $reads->markCurrentCriticalErrorsRead($user);
         $this->dispatch('topbar-notifications-refresh');
         $this->syncColumnCheckboxes();

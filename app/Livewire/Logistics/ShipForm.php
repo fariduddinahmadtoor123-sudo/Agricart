@@ -281,7 +281,8 @@ class ShipForm extends Component
         }
 
         abort_unless(
-            $user->hasPermission('logistics.'.$action) || $user->hasPermission('sales.'.$action),
+            \App\Services\Access\ModulePageAccess::can($user, 'logistics', 'shipments', $action)
+            || \App\Services\Access\ModulePageAccess::can($user, 'sales', 'order-dispatch', $action),
             403,
         );
     }

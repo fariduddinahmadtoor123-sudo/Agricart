@@ -304,7 +304,7 @@ class ManageBackups extends Component
         $user = auth()->user();
 
         return $user instanceof User
-            && ($user->isSuperAdmin() || $user->hasPermission('settings.backups.manage'));
+            && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'backups', 'edit') || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'backups', 'create'));
     }
 
     private function flash(string $message, string $type): void

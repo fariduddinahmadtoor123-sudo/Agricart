@@ -195,6 +195,6 @@ class ListUnits extends Component
         $user = auth()->user();
         return $user instanceof User
             && $user->canUseAdmin()
-            && ($user->isSuperAdmin() || $user->hasPermission('catalog.'.$action));
+            && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'catalog', 'units', $action));
     }
 }

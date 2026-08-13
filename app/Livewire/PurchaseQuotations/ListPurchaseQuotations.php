@@ -188,6 +188,6 @@ class ListPurchaseQuotations extends Component
             return true;
         }
 
-        return $user->hasPermission('purchasing.' . $action);
+        return \App\Services\Access\ModulePageAccess::can($user, 'purchasing', 'purchase-quotations', $action);
     }
 }

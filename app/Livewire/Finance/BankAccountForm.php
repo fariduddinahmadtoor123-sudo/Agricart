@@ -293,6 +293,7 @@ class BankAccountForm extends Component
             return true;
         }
 
-        return $user->hasAnyPermission(['finance.create', 'finance.edit']);
+        return \App\Services\Access\ModulePageAccess::can($user, 'finance', 'bank-accounts', 'create')
+            || \App\Services\Access\ModulePageAccess::can($user, 'finance', 'bank-accounts', 'edit');
     }
 }

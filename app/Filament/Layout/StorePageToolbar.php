@@ -189,7 +189,7 @@ class StorePageToolbar extends ClusterPageToolbar
             return true;
         }
 
-        return $user->hasPermission('catalog.create') || $user->hasPermission('store.create');
+        return \App\Services\Access\ModulePageAccess::can($user, 'catalog', 'products', 'create') || \App\Services\Access\ModulePageAccess::can($user, 'store', 'items', 'create');
     }
 
     /**

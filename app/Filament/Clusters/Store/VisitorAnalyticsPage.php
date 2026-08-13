@@ -22,11 +22,6 @@ class VisitorAnalyticsPage extends BaseModulePage
 
     protected string $view = 'filament.pages.store.visitor-analytics';
 
-    protected static function requiredPermission(): ?string
-    {
-        return 'store.analytics.view';
-    }
-
     public function getHeading(): string|Htmlable|null
     {
         return null;

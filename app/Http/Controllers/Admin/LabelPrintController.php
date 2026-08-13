@@ -55,7 +55,7 @@ class LabelPrintController extends Controller
 
         abort_unless(
             $user instanceof User
-                && ($user->isSuperAdmin() || $user->hasPermission('catalog.view')),
+                && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'catalog', 'labels', 'print')),
             403,
         );
     }

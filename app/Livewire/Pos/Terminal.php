@@ -328,6 +328,6 @@ class Terminal extends Component
             return true;
         }
 
-        return $user->hasPermission('sales.' . $action);
+        return \App\Services\Access\ModulePageAccess::can($user, 'sales', 'pos-sales', $action);
     }
 }

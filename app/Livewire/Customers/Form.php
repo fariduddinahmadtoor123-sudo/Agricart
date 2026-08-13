@@ -457,6 +457,6 @@ class Form extends Component
             return true;
         }
 
-        return $user->hasPermission('contacts.' . $action);
+        return \App\Services\Access\ModulePageAccess::can($user, 'contacts', 'customers', $action);
     }
 }

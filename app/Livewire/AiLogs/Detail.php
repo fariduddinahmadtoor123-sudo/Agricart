@@ -17,7 +17,7 @@ class Detail extends Component
     #[On('ai-log-detail-open')]
     public function loadLog(int $logId): void
     {
-        $this->authorizeAny('settings.ai.logs.view');
+        $this->authorizeAny('settings.ai-logs.view');
         $this->log = AiLog::query()->with(['configuration', 'user'])->find($logId);
     }
 

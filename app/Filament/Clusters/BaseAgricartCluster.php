@@ -3,8 +3,11 @@
 namespace App\Filament\Clusters;
 
 use App\Models\User;
+use App\Services\Access\ModulePageAccess;
+use App\Services\Access\PermissionRegistry;
 use App\Support\AgricartTranslator;
 use Filament\Clusters\Cluster;
+use Filament\Pages\Page;
 use Illuminate\Contracts\Support\Htmlable;
 
 abstract class BaseAgricartCluster extends Cluster
@@ -47,6 +50,14 @@ abstract class BaseAgricartCluster extends Cluster
 
         if ($slug === '') {
             return false;
+        }
+
+        if (PermissionRegistry::moduleUsesPagePermissions($slug)) {
+            return ModulePageAccess::canAccessModule(
+                $user,
+                $slug,
+                PermissionRegistry::pageSlugs($slug),
+            );
         }
 
         return $user->hasPermission("{$slug}.view");
@@ -95,6 +106,16 @@ abstract class BaseAgricartCluster extends Cluster
     {
         $overviewPage = static::resolveOverviewPageClass();
 
+        if ($overviewPage !== null && $overviewPage::canAccess()) {
+            return $overviewPage::getUrl();
+        }
+
+        foreach (static::getClusteredComponents() as $component) {
+            if (is_subclass_of($component, Page::class) && $component::canAccess()) {
+                return $component::getUrl();
+            }
+        }
+
         if ($overviewPage !== null) {
             return $overviewPage::getUrl();
         }
@@ -107,9 +128,23 @@ abstract class BaseAgricartCluster extends Cluster
         $overviewPage = static::resolveOverviewPageClass();
 
         if ($overviewPage !== null) {
-            redirect($overviewPage::getUrl());
+            if ($overviewPage::canAccess()) {
+                redirect($overviewPage::getUrl());
 
-            return;
+                return;
+            }
+
+            foreach (static::getClusteredComponents() as $component) {
+                if (
+                    is_subclass_of($component, Page::class)
+                    && $component !== $overviewPage
+                    && $component::canAccess()
+                ) {
+                    redirect($component::getUrl());
+
+                    return;
+                }
+            }
         }
 
         parent::mount();

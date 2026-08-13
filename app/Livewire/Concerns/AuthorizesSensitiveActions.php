@@ -3,6 +3,7 @@
 namespace App\Livewire\Concerns;
 
 use App\Models\User;
+use App\Services\Access\ModulePageAccess;
 
 trait AuthorizesSensitiveActions
 {
@@ -20,7 +21,13 @@ trait AuthorizesSensitiveActions
 
         $permissions = is_array($permissions) ? $permissions : [$permissions];
 
-        return $user->hasAnyPermission($permissions);
+        foreach ($permissions as $permission) {
+            if (is_string($permission) && ModulePageAccess::userHasKey($user, $permission)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     protected function authorizeAny(array|string $permissions): void

@@ -82,7 +82,7 @@ class Form extends Component
     #[On('sale-form-open')]
     public function openForm(?int $saleId = null, string $mode = 'create'): void
     {
-        $this->authorizeAny($mode === 'view' ? ['sales.view', 'sales.edit'] : ($saleId ? 'sales.edit' : 'sales.create'));
+        $this->authorizeAny($mode === 'view' ? ['sales.pos-sales.view', 'sales.pos-sales.edit'] : ($saleId ? 'sales.pos-sales.edit' : 'sales.pos-sales.create'));
         $this->resetForm();
         $this->mode = $mode;
         $this->saleId = $saleId;
@@ -300,13 +300,13 @@ class Form extends Component
 
     public function saveAndClose(): void
     {
-        $this->authorizeAny($this->saleId ? 'sales.edit' : 'sales.create');
+        $this->authorizeAny($this->saleId ? 'sales.pos-sales.edit' : 'sales.pos-sales.create');
         $this->persist(Sale::STATUS_COMPLETED, close: true);
     }
 
     public function saveOnHold(): void
     {
-        $this->authorizeAny($this->saleId ? 'sales.edit' : 'sales.create');
+        $this->authorizeAny($this->saleId ? 'sales.pos-sales.edit' : 'sales.pos-sales.create');
         $this->persist(Sale::STATUS_HELD, close: true);
     }
 
@@ -329,7 +329,7 @@ class Form extends Component
 
     public function render(): View
     {
-        if (! $this->canAccessAny(['sales.view', 'sales.create', 'sales.edit'])) {
+        if (! $this->canAccessAny(['sales.pos-sales.view', 'sales.pos-sales.create', 'sales.pos-sales.edit'])) {
             return view('livewire.sales.form', [
                 'productResults' => [],
                 'customerResults' => [],
@@ -438,7 +438,7 @@ class Form extends Component
 
     private function persist(string $targetStatus, bool $close): ?Sale
     {
-        $this->authorizeAny($this->saleId ? 'sales.edit' : 'sales.create');
+        $this->authorizeAny($this->saleId ? 'sales.pos-sales.edit' : 'sales.pos-sales.create');
 
         if ($this->isReadonly()) {
             return null;
@@ -527,7 +527,7 @@ class Form extends Component
 
     private function loadSale(int $saleId): void
     {
-        $this->authorizeAny($this->mode === 'view' ? ['sales.view', 'sales.edit'] : 'sales.edit');
+        $this->authorizeAny($this->mode === 'view' ? ['sales.pos-sales.view', 'sales.pos-sales.edit'] : 'sales.pos-sales.edit');
         $sale = Sale::query()->find($saleId);
 
         if ($sale === null) {
@@ -631,8 +631,8 @@ class Form extends Component
     private function requiredActionPermission(): array|string
     {
         return $this->isReadonly()
-            ? ['sales.view', 'sales.edit']
-            : ($this->saleId ? 'sales.edit' : 'sales.create');
+            ? ['sales.pos-sales.view', 'sales.pos-sales.edit']
+            : ($this->saleId ? 'sales.pos-sales.edit' : 'sales.pos-sales.create');
     }
 
     private function setStatus(string $message, string $type): void

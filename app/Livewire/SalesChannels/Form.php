@@ -113,7 +113,7 @@ class Form extends Component
             return true;
         }
 
-        return $user->hasPermission('marketplace.edit');
+        return \App\Services\Access\ModulePageAccess::can($user, 'marketplace', 'sales-channels', 'edit');
     }
 
     public function render(): View

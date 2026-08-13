@@ -27,7 +27,7 @@ class Manager extends Component
 
     public function mount(AiConfigurationService $service): void
     {
-        if (! $this->canAccessAny('settings.ai.manage')) {
+        if (! $this->canAccessAny('settings.ai-settings.edit')) {
             return;
         }
 
@@ -38,14 +38,14 @@ class Manager extends Component
     #[On('ai-settings-saved')]
     public function refreshConfiguration(AiConfigurationService $service): void
     {
-        $this->authorizeAny('settings.ai.manage');
+        $this->authorizeAny('settings.ai-settings.edit');
         $this->loadActiveConfiguration($service);
         $this->resetPromptState();
     }
 
     public function sendTestPrompt(AiConfigurationService $service): void
     {
-        $this->authorizeAny('settings.ai.manage');
+        $this->authorizeAny('settings.ai-settings.edit');
 
         $this->validate([
             'testPrompt' => ['required', 'string', 'min:2', 'max:500'],
@@ -82,7 +82,7 @@ class Manager extends Component
 
     public function retestConnection(AiConfigurationService $service): void
     {
-        $this->authorizeAny('settings.ai.manage');
+        $this->authorizeAny('settings.ai-settings.edit');
 
         if ($this->activeConfiguration === null) {
             return;
@@ -96,7 +96,7 @@ class Manager extends Component
 
     public function pauseAi(AiConfigurationService $service): void
     {
-        $this->authorizeAny('settings.ai.manage');
+        $this->authorizeAny('settings.ai-settings.edit');
 
         if ($this->activeConfiguration === null || $this->activeConfiguration->isPaused()) {
             return;
@@ -109,7 +109,7 @@ class Manager extends Component
 
     public function resumeAi(AiConfigurationService $service): void
     {
-        $this->authorizeAny('settings.ai.manage');
+        $this->authorizeAny('settings.ai-settings.edit');
 
         if ($this->activeConfiguration === null || ! $this->activeConfiguration->isPaused()) {
             return;
@@ -123,7 +123,7 @@ class Manager extends Component
 
     public function deleteConfiguration(AiConfigurationService $service): void
     {
-        $this->authorizeAny('settings.ai.manage');
+        $this->authorizeAny('settings.ai-settings.edit');
 
         if ($this->activeConfiguration === null) {
             return;

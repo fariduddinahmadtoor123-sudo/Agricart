@@ -22,11 +22,6 @@ class MediaLibraryPage extends BaseModulePage
 
     protected string $view = 'filament.pages.settings.media-library';
 
-    protected static function requiredPermission(): ?string
-    {
-        return 'settings.media.view';
-    }
-
     public function getHeading(): string|Htmlable|null
     {
         return null;

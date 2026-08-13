@@ -67,7 +67,7 @@ class ReorderPrintController extends Controller
 
         abort_unless(
             $user instanceof User
-                && ($user->isSuperAdmin() || $user->hasPermission('purchasing.view')),
+                && \App\Services\Access\ModulePageAccess::can($user, 'purchasing', 're-order-center', 'print'),
             403,
         );
     }

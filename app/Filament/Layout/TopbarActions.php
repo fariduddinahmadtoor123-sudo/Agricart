@@ -5,6 +5,7 @@ namespace App\Filament\Layout;
 use App\Filament\Clusters\Purchasing\PurchasesPage;
 use App\Filament\Clusters\Sales\PosSalesPage;
 use App\Models\User;
+use App\Services\Access\ModulePageAccess;
 use App\Services\Ai\AiConfigurationService;
 use Filament\Facades\Filament;
 
@@ -12,13 +13,13 @@ class TopbarActions
 {
     public static function purchaseUrl(): ?string
     {
-        if (! static::userCan('purchasing', 'view')) {
+        if (! static::userCanPage('purchasing', 'purchases', 'view')) {
             return null;
         }
 
         $url = PurchasesPage::getUrl();
 
-        if (static::userCan('purchasing', 'create')) {
+        if (static::userCanPage('purchasing', 'purchases', 'create')) {
             return static::withQuery($url, ['open' => 'purchase']);
         }
 
@@ -27,13 +28,13 @@ class TopbarActions
 
     public static function posUrl(): ?string
     {
-        if (! static::userCan('sales', 'view')) {
+        if (! static::userCanPage('sales', 'pos-sales', 'view')) {
             return null;
         }
 
         $url = PosSalesPage::getUrl();
 
-        if (static::userCan('sales', 'create')) {
+        if (static::userCanPage('sales', 'pos-sales', 'create')) {
             return static::withQuery($url, ['open' => 'sale']);
         }
 
@@ -52,12 +53,12 @@ class TopbarActions
 
     public static function userCanQuickOpenPos(): bool
     {
-        return static::userCan('sales', 'create');
+        return static::userCanPage('sales', 'pos-sales', 'create');
     }
 
     public static function userCanQuickOpenPurchase(): bool
     {
-        return static::userCan('purchasing', 'create');
+        return static::userCanPage('purchasing', 'purchases', 'create');
     }
 
     public static function timezone(): string
@@ -92,7 +93,7 @@ class TopbarActions
         ];
     }
 
-    protected static function userCan(string $module, string $action): bool
+    protected static function userCanPage(string $module, string $page, string $action): bool
     {
         $user = static::user();
 
@@ -104,7 +105,7 @@ class TopbarActions
             return true;
         }
 
-        return $user->hasPermission("{$module}.{$action}");
+        return ModulePageAccess::can($user, $module, $page, $action);
     }
 
     /**
@@ -120,6 +121,6 @@ class TopbarActions
 
         $separator = str_contains($url, '?') ? '&' : '?';
 
-        return $url . $separator . http_build_query($params);
+        return $url.$separator.http_build_query($params);
     }
 }

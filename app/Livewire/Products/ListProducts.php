@@ -304,6 +304,6 @@ class ListProducts extends Component
             return false;
         }
 
-        return $user->isSuperAdmin() || $user->hasPermission('catalog.'.$action);
+        return $user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'catalog', 'products', $action);
     }
 }

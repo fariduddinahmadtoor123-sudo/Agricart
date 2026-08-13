@@ -269,6 +269,6 @@ class ListProductReviews extends Component
             return false;
         }
 
-        return $user->isSuperAdmin() || $user->hasPermission('store.'.$action);
+        return $user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'store', 'reviews', $action);
     }
 }

@@ -2802,9 +2802,11 @@ return [
             'permissions' => 'Permissions',
         ],
         'hints' => [
-            'permissions' => 'Modules use View / Create / Edit / Delete. Checking the module name selects all actions. View alone opens the module; Create is required for Add buttons (for example Add Product). Super Admin always has every permission.',
-            'permissions_legend' => 'View = browse · Create = Add new · Edit = change existing · Delete = remove',
+            'permissions' => 'Most modules use View / Create / Edit / Delete. Purchasing uses per-page permissions — enable only the pages this role needs. Checking the module name selects all actions for that module. Super Admin always has every permission.',
+            'permissions_legend' => 'View = browse · Create = Add new · Edit = change existing · Delete = remove · Print = print sheets/labels',
             'pages' => 'Pages included with this module:',
+            'page_permissions' => 'Page permissions (only checked pages appear in the menu):',
+            'extra_permissions' => 'Extra permissions:',
             'super_admin_locked' => 'Super Admin has full access and cannot be edited. Re-seeding permissions refreshes this role automatically.',
             'select_all_module' => 'Select all for this module',
         ],

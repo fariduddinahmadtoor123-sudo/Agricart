@@ -36,6 +36,16 @@ class RoleFormPagesTest extends TestCase
         $this->assertContains(__('agricart.pages.marketplace.quantity-control'), $marketplace);
         $this->assertContains(__('agricart.pages.marketplace.secret-coding'), $marketplace);
         $this->assertContains(__('agricart.pages.contacts.transport-companies'), $contacts);
+
+        $form = PermissionRegistry::groupsForForm()['purchasing'];
+        $this->assertArrayHasKey('resources', $form);
+        $slugs = collect($form['resources'])->pluck('slug')->all();
+        $this->assertContains('price-update', $slugs);
+        $this->assertContains('purchases', $slugs);
+
+        $catalogForm = PermissionRegistry::groupsForForm()['catalog'];
+        $this->assertArrayHasKey('resources', $catalogForm);
+        $this->assertContains('products', collect($catalogForm['resources'])->pluck('slug')->all());
     }
 
     public function test_role_form_shows_module_pages_and_full_width_description(): void
@@ -51,10 +61,9 @@ class RoleFormPagesTest extends TestCase
             ->assertSee('agricart-role-form__meta', false)
             ->assertSee('agricart-role-form__description', false)
             ->assertDontSee('agricart-user-form__identity-grid', false)
-            ->assertSee(__('agricart.roles.hints.pages'), false)
-            ->assertSee(__('agricart.pages.marketplace.price-control'), false)
-            ->assertSee(__('agricart.pages.purchasing.price-update'), false)
-            ->assertSee(__('agricart.pages.purchasing.purchase-planning'), false)
-            ->assertSee(__('agricart.pages.contacts.transport-companies'), false);
+            ->assertSee(__('agricart.roles.hints.page_permissions'), false)
+            ->assertSee('Price Control', false)
+            ->assertSee('agricart-role-form__resource', false)
+            ->assertSee('Transport / Goods', false);
     }
 }

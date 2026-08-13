@@ -31,7 +31,7 @@ class PurchasePlanningPrintController extends Controller
 
         abort_unless(
             $user instanceof User
-                && ($user->isSuperAdmin() || $user->hasPermission('purchasing.view')),
+                && \App\Services\Access\ModulePageAccess::can($user, 'purchasing', 'purchase-planning', 'print'),
             403,
         );
     }

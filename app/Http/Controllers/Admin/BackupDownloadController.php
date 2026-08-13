@@ -40,7 +40,7 @@ class BackupDownloadController extends Controller
 
         abort_unless(
             $user instanceof User
-                && ($user->isSuperAdmin() || $user->hasPermission('settings.backups.manage')),
+                && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'backups', 'view')),
             403,
         );
     }

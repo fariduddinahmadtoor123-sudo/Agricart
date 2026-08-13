@@ -133,6 +133,7 @@ class ListShippedOrders extends Component
             return true;
         }
 
-        return $user->hasPermission('sales.'.$ability) || $user->hasPermission('logistics.'.$ability);
+        return \App\Services\Access\ModulePageAccess::can($user, 'sales', 'order-dispatch', $ability)
+            || \App\Services\Access\ModulePageAccess::can($user, 'logistics', 'shipped', $ability);
     }
 }

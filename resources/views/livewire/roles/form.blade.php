@@ -94,7 +94,41 @@
                         <p class="agricart-role-form__group-hint">{{ $groupHint }}</p>
                     @endif
 
-                    @if (! empty($group['pages']))
+                    @if (! empty($group['resources']))
+                        <p class="agricart-role-form__pages-heading">{{ __('agricart.roles.hints.page_permissions') }}</p>
+                        <div class="agricart-role-form__resources">
+                            @foreach ($group['resources'] as $resource)
+                                @php
+                                    $resourceLabel = $isUr && filled($resource['label_ur'] ?? null)
+                                        ? $resource['label_ur']
+                                        : $resource['label_en'];
+                                @endphp
+                                <div class="agricart-role-form__resource" wire:key="role-resource-{{ $groupKey }}-{{ $resource['slug'] }}">
+                                    <div class="agricart-role-form__resource-title">{{ $resourceLabel }}</div>
+                                    <ul class="agricart-role-form__permission-list agricart-role-form__permission-list--inline">
+                                        @foreach ($resource['permissions'] as $permission)
+                                            @php
+                                                $permissionLabel = $isUr && filled($permission['label_ur'] ?? null)
+                                                    ? $permission['label_ur']
+                                                    : $permission['label_en'];
+                                            @endphp
+                                            <li wire:key="role-permission-{{ $permission['key'] }}">
+                                                <label class="agricart-role-form__permission-item">
+                                                    <input
+                                                        type="checkbox"
+                                                        value="{{ $permission['key'] }}"
+                                                        wire:model.live="selectedPermissions"
+                                                        @disabled($this->isReadonly())
+                                                    />
+                                                    <span>{{ $permissionLabel }}</span>
+                                                </label>
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endforeach
+                        </div>
+                    @elseif (! empty($group['pages']))
                         <p class="agricart-role-form__pages-heading">{{ __('agricart.roles.hints.pages') }}</p>
                         <ul class="agricart-role-form__pages">
                             @foreach ($group['pages'] as $pageLabel)
@@ -103,6 +137,29 @@
                         </ul>
                     @endif
 
+                    @if (! empty($group['extras']))
+                        <p class="agricart-role-form__pages-heading">{{ __('agricart.roles.hints.extra_permissions') }}</p>
+                        <ul class="agricart-role-form__permission-list">
+                            @foreach ($group['extras'] as $permission)
+                                @php
+                                    $permissionLabel = $isUr && filled($permission['label_ur'] ?? null)
+                                        ? $permission['label_ur']
+                                        : $permission['label_en'];
+                                @endphp
+                                <li wire:key="role-permission-extra-{{ $permission['key'] }}">
+                                    <label class="agricart-role-form__permission-item">
+                                        <input
+                                            type="checkbox"
+                                            value="{{ $permission['key'] }}"
+                                            wire:model.live="selectedPermissions"
+                                            @disabled($this->isReadonly())
+                                        />
+                                        <span>{{ $permissionLabel }}</span>
+                                    </label>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @elseif (empty($group['resources']))
                     <ul class="agricart-role-form__permission-list">
                         @foreach ($group['permissions'] as $permission)
                             @php
@@ -123,6 +180,7 @@
                             </li>
                         @endforeach
                     </ul>
+                    @endif
                 </div>
             @endforeach
         </div>

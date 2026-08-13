@@ -25,14 +25,14 @@ class ListSecretCodings extends Component
     #[On('secret-codings-saved')]
     public function refreshList(): void
     {
-        $this->authorizeAny(['marketplace.view', 'marketplace.edit']);
+        $this->authorizeAny(['marketplace.secret-coding.view', 'marketplace.secret-coding.edit']);
         $this->resetPage();
     }
 
     #[On('secret-codings-search')]
     public function updateSearch(string $query): void
     {
-        $this->authorizeAny(['marketplace.view', 'marketplace.edit']);
+        $this->authorizeAny(['marketplace.secret-coding.view', 'marketplace.secret-coding.edit']);
         $this->search = $query;
         $this->resetPage();
     }
@@ -40,7 +40,7 @@ class ListSecretCodings extends Component
     #[On('secret-codings-filter')]
     public function applyFilter(string $filter): void
     {
-        $this->authorizeAny(['marketplace.view', 'marketplace.edit']);
+        $this->authorizeAny(['marketplace.secret-coding.view', 'marketplace.secret-coding.edit']);
 
         if (! str_contains($filter, ':')) {
             return;
@@ -57,7 +57,7 @@ class ListSecretCodings extends Component
     #[On('secret-codings-clear-filters')]
     public function clearFilters(): void
     {
-        $this->authorizeAny(['marketplace.view', 'marketplace.edit']);
+        $this->authorizeAny(['marketplace.secret-coding.view', 'marketplace.secret-coding.edit']);
         $this->statusFilter = '';
         $this->resetPage();
     }
@@ -65,7 +65,7 @@ class ListSecretCodings extends Component
     #[On('secret-codings-column-toggle')]
     public function toggleColumn(string $column, bool $visible): void
     {
-        $this->authorizeAny(['marketplace.view', 'marketplace.edit']);
+        $this->authorizeAny(['marketplace.secret-coding.view', 'marketplace.secret-coding.edit']);
 
         if ($visible && ! in_array($column, $this->visibleColumns, true)) {
             $this->visibleColumns[] = $column;
@@ -87,7 +87,7 @@ class ListSecretCodings extends Component
 
     public function openEdit(int $recordId): void
     {
-        $this->authorizeAny('marketplace.edit');
+        $this->authorizeAny('marketplace.secret-coding.edit');
         $record = SecretCodingProfile::query()->find($recordId);
 
         if ($record === null) {
@@ -106,7 +106,7 @@ class ListSecretCodings extends Component
 
     public function render(): View
     {
-        if (! $this->canAccessAny(['marketplace.view', 'marketplace.edit'])) {
+        if (! $this->canAccessAny(['marketplace.secret-coding.view', 'marketplace.secret-coding.edit'])) {
             return view('livewire.secret-codings.list', [
                 'records' => new LengthAwarePaginator([], 0, 15),
                 'mappingService' => app(SecretCodingService::class),

@@ -131,7 +131,13 @@ class UserService
             ]);
         }
 
-        if (! $actor->isSuperAdmin() && ! $actor->hasPermission('settings.users.manage')) {
+        if (
+            ! $actor->isSuperAdmin()
+            && ! (
+                \App\Services\Access\ModulePageAccess::can($actor, 'settings', 'users', 'edit')
+                || \App\Services\Access\ModulePageAccess::can($actor, 'settings', 'users', 'delete')
+            )
+        ) {
             throw ValidationException::withMessages([
                 'user' => [__('agricart.access.denied')],
             ]);

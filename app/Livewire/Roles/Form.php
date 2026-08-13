@@ -115,7 +115,9 @@ class Form extends Component
         $this->name = $role->name;
         $this->description = (string) ($role->description ?? '');
         $this->isSystem = $role->is_system;
-        $this->selectedPermissions = $role->permissions->pluck('key')->all();
+        $this->selectedPermissions = PermissionRegistry::withoutLegacyModuleKeys(
+            $role->permissions->pluck('key')->all(),
+        );
 
         if ($role->isSuperAdmin()) {
             $this->selectedPermissions = Permission::query()->pluck('key')->all();
@@ -130,7 +132,10 @@ class Form extends Component
 
         $user = auth()->user();
 
-        if (! $user instanceof \App\Models\User || ! $user->hasPermission('settings.roles.manage')) {
+        if (! $user instanceof \App\Models\User || ! (
+            \App\Services\Access\ModulePageAccess::can($user, 'settings', 'permission', 'create')
+            || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'permission', 'edit')
+        )) {
             $this->setStatus(__('agricart.access.denied'), 'danger');
 
             return false;

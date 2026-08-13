@@ -1,0 +1,75 @@
+<?php
+
+namespace App\Services\Access;
+
+use App\Models\User;
+
+/**
+ * Page-scoped permissions (e.g. purchasing.price-update.edit) with legacy
+ * module-level fallback (purchasing.edit).
+ */
+final class ModulePageAccess
+{
+    public static function key(string $module, string $page, string $action): string
+    {
+        return "{$module}.{$page}.{$action}";
+    }
+
+    public static function can(User $user, string $module, string $page, string $action): bool
+    {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        if ($user->hasPermission(self::key($module, $page, $action))) {
+            return true;
+        }
+
+        // Legacy module-wide grant still covers every page for that action.
+        return $user->hasPermission("{$module}.{$action}");
+    }
+
+    /**
+     * True when the user may open the module chrome (any page view, or legacy view).
+     *
+     * @param  list<string>  $pageSlugs
+     */
+    public static function canAccessModule(User $user, string $module, array $pageSlugs): bool
+    {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        if ($user->hasPermission("{$module}.view")) {
+            return true;
+        }
+
+        foreach ($pageSlugs as $page) {
+            if ($user->hasPermission(self::key($module, $page, 'view'))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Resolve a concrete permission key, honouring legacy module grants.
+     */
+    public static function userHasKey(User $user, string $key): bool
+    {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        if ($user->hasPermission($key)) {
+            return true;
+        }
+
+        if (preg_match('/^([a-z]+)\.([a-z0-9-]+)\.([a-z_]+)$/', $key, $matches) !== 1) {
+            return false;
+        }
+
+        return $user->hasPermission("{$matches[1]}.{$matches[3]}");
+    }
+}

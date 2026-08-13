@@ -241,6 +241,6 @@ class ListAgricartInbox extends Component
             return false;
         }
 
-        return $user->isSuperAdmin() || $user->hasPermission('store.'.$action);
+        return $user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'store', 'messages', $action);
     }
 }

@@ -331,7 +331,7 @@ class Form extends Component
 
         return $user instanceof User
             && $user->canUseAdmin()
-            && ($user->isSuperAdmin() || $user->hasPermission('catalog.'.$action));
+            && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'catalog', 'controls', $action));
     }
 
     private function setStatus(string $message, string $type): void

@@ -19,9 +19,9 @@ class UserDocumentController extends Controller
                 $actor->isSuperAdmin()
                 || $actor->hasPermission('approvals.view')
                 || $actor->hasPermission('approvals.edit')
-                || $actor->hasPermission('staff.view')
-                || $actor->hasPermission('staff.edit')
-                || $actor->hasPermission('settings.users.manage')
+                || \App\Services\Access\ModulePageAccess::can($actor, 'staff', 'staff', 'view')
+                || \App\Services\Access\ModulePageAccess::can($actor, 'staff', 'staff', 'edit')
+                || \App\Services\Access\ModulePageAccess::can($actor, 'settings', 'users', 'view')
             ),
             403,
         );

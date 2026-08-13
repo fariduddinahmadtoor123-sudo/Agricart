@@ -131,6 +131,6 @@ class ManageMessageTemplates extends Component
             return true;
         }
 
-        return $user->hasPermission('contacts.'.$action);
+        return \App\Services\Access\ModulePageAccess::can($user, 'contacts', 'message-templates', $action);
     }
 }

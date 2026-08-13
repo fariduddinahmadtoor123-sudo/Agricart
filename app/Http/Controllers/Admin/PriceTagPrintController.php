@@ -56,7 +56,7 @@ class PriceTagPrintController extends Controller
 
         abort_unless(
             $user instanceof User
-                && ($user->isSuperAdmin() || $user->hasPermission('purchasing.view')),
+                && \App\Services\Access\ModulePageAccess::can($user, 'purchasing', 'price-tags', 'print'),
             403,
         );
     }

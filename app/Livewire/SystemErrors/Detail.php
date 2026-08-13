@@ -33,7 +33,7 @@ class Detail extends Component
     public function loadError(int $errorId, ?string $fileKey = null): void
     {
         $user = $this->authorizeSystemErrorView();
-        $this->canManage = $user->isSuperAdmin() || $user->hasPermission('settings.system-errors.manage');
+        $this->canManage = $user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'system-errors', 'edit');
         $this->fileEntry = null;
         $this->error = SystemError::query()
             ->with(['user', 'resolvedBy'])
@@ -55,7 +55,7 @@ class Detail extends Component
     public function loadFileEntry(string $fileKey): void
     {
         $user = $this->authorizeSystemErrorView();
-        $this->canManage = $user->isSuperAdmin() || $user->hasPermission('settings.system-errors.manage');
+        $this->canManage = $user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'system-errors', 'edit');
         $this->error = null;
         $this->fileEntry = collect(app(SystemLogFileReader::class)->recent(200))
             ->firstWhere('key', $fileKey);

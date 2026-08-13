@@ -202,7 +202,7 @@ class MessageTemplateForm extends Component
             return true;
         }
 
-        return $user->hasPermission('contacts.edit');
+        return \App\Services\Access\ModulePageAccess::can($user, 'contacts', 'message-templates', 'edit');
     }
 
     private function setStatus(string $message, string $type): void

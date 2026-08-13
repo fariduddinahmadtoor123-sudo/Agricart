@@ -77,7 +77,11 @@ class DocumentationRegistry
             return false;
         }
 
-        return $user->hasPermission($moduleKey.'.view');
+        return \App\Services\Access\ModulePageAccess::canAccessModule(
+            $user,
+            $moduleKey,
+            \App\Services\Access\PermissionRegistry::pageSlugs($moduleKey),
+        );
     }
 
     /**

@@ -203,6 +203,6 @@ class ListOnlineSaleQuotations extends Component
             return true;
         }
 
-        return $user->hasPermission('sales.' . $action);
+        return \App\Services\Access\ModulePageAccess::can($user, 'sales', 'online-quotations', $action);
     }
 }

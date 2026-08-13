@@ -41,7 +41,7 @@ class Form extends Component
 
     public function mount(AiProviderRegistry $registry): void
     {
-        if (! $this->canAccessAny('settings.ai.manage')) {
+        if (! $this->canAccessAny('settings.ai-settings.edit')) {
             return;
         }
 
@@ -53,19 +53,19 @@ class Form extends Component
 
     public function updatedProvider(): void
     {
-        $this->authorizeAny('settings.ai.manage');
+        $this->authorizeAny('settings.ai-settings.edit');
         $this->resetModelState();
     }
 
     public function updatedApiKey(): void
     {
-        $this->authorizeAny('settings.ai.manage');
+        $this->authorizeAny('settings.ai-settings.edit');
         $this->resetModelState();
     }
 
     public function loadModels(AiProviderRegistry $registry): void
     {
-        $this->authorizeAny('settings.ai.manage');
+        $this->authorizeAny('settings.ai-settings.edit');
 
         $this->validate([
             'provider' => ['required', Rule::enum(AiProvider::class)],
@@ -104,7 +104,7 @@ class Form extends Component
 
     public function selectModel(string $modelId): void
     {
-        $this->authorizeAny('settings.ai.manage');
+        $this->authorizeAny('settings.ai-settings.edit');
 
         $model = collect($this->models)->firstWhere('id', $modelId);
 
@@ -120,7 +120,7 @@ class Form extends Component
 
     public function testConnection(AiConfigurationService $service): void
     {
-        $this->authorizeAny('settings.ai.manage');
+        $this->authorizeAny('settings.ai-settings.edit');
 
         if (! $this->validateBeforeSave()) {
             return;
@@ -147,7 +147,7 @@ class Form extends Component
 
     public function saveAndClose(AiConfigurationService $service): void
     {
-        $this->authorizeAny('settings.ai.manage');
+        $this->authorizeAny('settings.ai-settings.edit');
 
         if (! $this->validateBeforeSave()) {
             return;
@@ -193,7 +193,7 @@ class Form extends Component
     public function render(AiProviderRegistry $registry): View
     {
         return view('livewire.ai-settings.form', [
-            'providerOptions' => $this->canAccessAny('settings.ai.manage')
+            'providerOptions' => $this->canAccessAny('settings.ai-settings.edit')
                 ? $registry->providerOptions()
                 : [],
         ]);

@@ -22,11 +22,6 @@ class ActivityPage extends BaseModulePage
 
     protected string $view = 'filament.pages.settings.activity';
 
-    protected static function requiredPermission(): ?string
-    {
-        return 'settings.activity.view';
-    }
-
     public function getHeading(): string|Htmlable|null
     {
         return null;

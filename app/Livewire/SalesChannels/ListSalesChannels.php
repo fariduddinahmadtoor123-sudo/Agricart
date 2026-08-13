@@ -90,8 +90,8 @@ class ListSalesChannels extends Component
             return true;
         }
 
-        return $user->hasPermission('marketplace.edit')
-            || $user->hasPermission('marketplace.view');
+        return \App\Services\Access\ModulePageAccess::can($user, 'marketplace', 'sales-channels', 'edit')
+            || \App\Services\Access\ModulePageAccess::can($user, 'marketplace', 'sales-channels', 'view');
     }
 
     public function toggleChannel(int $channelId): void

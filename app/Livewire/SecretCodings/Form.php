@@ -40,7 +40,7 @@ class Form extends Component
 
     public function mount(): void
     {
-        if (! $this->canAccessAny(['marketplace.view', 'marketplace.edit'])) {
+        if (! $this->canAccessAny(['marketplace.secret-coding.view', 'marketplace.secret-coding.edit'])) {
             return;
         }
 
@@ -53,8 +53,8 @@ class Form extends Component
     {
         $this->authorizeAny(
             $mode === 'view'
-                ? ['marketplace.view', 'marketplace.edit']
-                : 'marketplace.edit'
+                ? ['marketplace.secret-coding.view', 'marketplace.secret-coding.edit']
+                : 'marketplace.secret-coding.edit'
         );
         $this->resetForm();
         $this->mode = $mode;
@@ -68,7 +68,7 @@ class Form extends Component
     #[On('secret-coding-form-action')]
     public function handlePanelAction(string $action): void
     {
-        $this->authorizeAny('marketplace.edit');
+        $this->authorizeAny('marketplace.secret-coding.edit');
 
         match ($action) {
             'save_close' => $this->saveAndClose(),
@@ -79,7 +79,7 @@ class Form extends Component
 
     public function saveAndClose(): void
     {
-        $this->authorizeAny('marketplace.edit');
+        $this->authorizeAny('marketplace.secret-coding.edit');
 
         if ($this->persist()) {
             $this->dispatch('secret-codings-saved');
@@ -89,7 +89,7 @@ class Form extends Component
 
     public function saveAndAddNext(): void
     {
-        $this->authorizeAny('marketplace.edit');
+        $this->authorizeAny('marketplace.secret-coding.edit');
 
         if ($this->persist()) {
             $this->dispatch('secret-codings-saved');
@@ -117,7 +117,7 @@ class Form extends Component
 
     private function loadRecord(int $recordId): void
     {
-        $this->authorizeAny(['marketplace.view', 'marketplace.edit']);
+        $this->authorizeAny(['marketplace.secret-coding.view', 'marketplace.secret-coding.edit']);
         $record = SecretCodingProfile::query()->findOrFail($recordId);
 
         $this->profile_number = $record->profile_number;
@@ -130,7 +130,7 @@ class Form extends Component
 
     private function persist(): bool
     {
-        $this->authorizeAny('marketplace.edit');
+        $this->authorizeAny('marketplace.secret-coding.edit');
 
         if ($this->isReadonly()) {
             return false;

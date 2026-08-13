@@ -90,6 +90,15 @@ abstract class ClusterPageToolbar
             return false;
         }
 
+        if (\App\Services\Access\PermissionRegistry::moduleUsesPagePermissions($moduleKey)) {
+            $pageClass = static::subNavigationClass()::resolveActivePageClass();
+            $pageSlug = $pageClass ? (string) ($pageClass::getSlug() ?? '') : '';
+
+            if ($pageSlug !== '') {
+                return \App\Services\Access\ModulePageAccess::can($user, $moduleKey, $pageSlug, $action);
+            }
+        }
+
         return $user->hasPermission("{$moduleKey}.{$action}");
     }
 

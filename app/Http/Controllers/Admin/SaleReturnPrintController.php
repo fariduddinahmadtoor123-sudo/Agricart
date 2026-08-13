@@ -59,7 +59,7 @@ class SaleReturnPrintController extends Controller
 
         abort_unless(
             $user instanceof User
-                && ($user->isSuperAdmin() || $user->hasPermission('sales.view')),
+                && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'sales', 'sales-returns', 'print')),
             403,
         );
     }

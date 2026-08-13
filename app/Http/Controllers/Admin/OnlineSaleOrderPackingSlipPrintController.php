@@ -82,7 +82,7 @@ class OnlineSaleOrderPackingSlipPrintController extends Controller
 
         abort_unless(
             $user instanceof User
-                && ($user->isSuperAdmin() || $user->hasPermission('sales.view')),
+                && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'sales', 'order-dispatch', 'print')),
             403,
         );
     }

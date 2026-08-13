@@ -234,9 +234,9 @@ class ExpenseForm extends Component
             return false;
         }
 
-        $permission = $this->mode === 'create' ? 'finance.create' : 'finance.edit';
+        $permission = $this->mode === 'create' ? 'finance.expenses.create' : 'finance.expenses.edit';
 
-        return $user->isSuperAdmin() || $user->hasPermission($permission);
+        return $user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::userHasKey($user, $permission);
     }
 
     private function dispatchBusyState(): void

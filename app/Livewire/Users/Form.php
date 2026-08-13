@@ -865,13 +865,13 @@ class Form extends Component
 
         if ($this->formContext === 'staff') {
             if ($this->userId) {
-                return $user->hasPermission('staff.edit');
+                return \App\Services\Access\ModulePageAccess::can($user, 'staff', 'staff', 'edit');
             }
 
-            return $user->hasPermission('staff.create') || $user->hasPermission('staff.edit');
+            return \App\Services\Access\ModulePageAccess::can($user, 'staff', 'staff', 'create') || \App\Services\Access\ModulePageAccess::can($user, 'staff', 'staff', 'edit');
         }
 
-        return $user->hasPermission('settings.users.manage');
+        return \App\Services\Access\ModulePageAccess::can($user, 'settings', 'users', 'edit') || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'users', 'create');
     }
 
     private function canAccessFormOptions(): bool
@@ -890,7 +890,7 @@ class Form extends Component
             return StaffPermissions::canViewRoster($user) || StaffPermissions::canManageRoster($user);
         }
 
-        return $user->hasPermission('settings.users.manage');
+        return \App\Services\Access\ModulePageAccess::can($user, 'settings', 'users', 'edit') || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'users', 'create');
     }
 
     private function authorizeUserForm(string $context, ?int $userId, ?string $mode = null): void
@@ -904,7 +904,7 @@ class Form extends Component
                 default => ['staff.create', 'staff.edit'],
             };
         } else {
-            $permissions = ['settings.users.manage'];
+            $permissions = ['settings.users.view', 'settings.users.create', 'settings.users.edit'];
         }
 
         $this->authorizeAny($permissions);

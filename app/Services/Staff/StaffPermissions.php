@@ -3,6 +3,8 @@
 namespace App\Services\Staff;
 
 use App\Models\User;
+use App\Services\Access\ModulePageAccess;
+use App\Services\Access\PermissionRegistry;
 
 class StaffPermissions
 {
@@ -12,10 +14,15 @@ class StaffPermissions
             return true;
         }
 
-        return $user->hasAnyPermission([
-            'staff.view',
-            'staff.view_self',
-        ]);
+        if ($user->hasPermission('staff.view_self')) {
+            return true;
+        }
+
+        return ModulePageAccess::canAccessModule(
+            $user,
+            'staff',
+            PermissionRegistry::pageSlugs('staff'),
+        );
     }
 
     /** Full employee roster (HR / managers). */
@@ -25,7 +32,7 @@ class StaffPermissions
             return true;
         }
 
-        return $user->hasPermission('staff.view');
+        return ModulePageAccess::can($user, 'staff', 'staff', 'view');
     }
 
     /** Own attendance, payroll, leave, advances (and own row when roster is restricted). */
@@ -35,10 +42,8 @@ class StaffPermissions
             return true;
         }
 
-        return $user->hasAnyPermission([
-            'staff.view',
-            'staff.view_self',
-        ]);
+        return $user->hasPermission('staff.view_self')
+            || ModulePageAccess::can($user, 'staff', 'staff', 'view');
     }
 
     public static function canManageRoster(User $user): bool
@@ -47,10 +52,8 @@ class StaffPermissions
             return true;
         }
 
-        return $user->hasAnyPermission([
-            'staff.create',
-            'staff.edit',
-        ]);
+        return ModulePageAccess::can($user, 'staff', 'staff', 'create')
+            || ModulePageAccess::can($user, 'staff', 'staff', 'edit');
     }
 
     public static function canViewAllAttendance(User $user): bool
@@ -59,10 +62,8 @@ class StaffPermissions
             return true;
         }
 
-        return $user->hasAnyPermission([
-            'staff.view',
-            'staff.attendance.view_all',
-        ]);
+        return $user->hasPermission('staff.attendance.view_all')
+            || ModulePageAccess::can($user, 'staff', 'attendance', 'view');
     }
 
     public static function canViewAllPayroll(User $user): bool
@@ -71,10 +72,8 @@ class StaffPermissions
             return true;
         }
 
-        return $user->hasAnyPermission([
-            'staff.view',
-            'staff.payroll.view_all',
-        ]);
+        return $user->hasPermission('staff.payroll.view_all')
+            || ModulePageAccess::can($user, 'staff', 'payroll', 'view');
     }
 
     public static function canRunPayroll(User $user): bool
@@ -83,10 +82,8 @@ class StaffPermissions
             return true;
         }
 
-        return $user->hasAnyPermission([
-            'staff.payroll.view_all',
-            'staff.edit',
-        ]);
+        return $user->hasPermission('staff.payroll.view_all')
+            || ModulePageAccess::can($user, 'staff', 'payroll', 'edit');
     }
 
     public static function canViewAllLeave(User $user): bool
@@ -95,10 +92,8 @@ class StaffPermissions
             return true;
         }
 
-        return $user->hasAnyPermission([
-            'staff.view',
-            'staff.leave.view_all',
-        ]);
+        return $user->hasPermission('staff.leave.view_all')
+            || ModulePageAccess::can($user, 'staff', 'leave-management', 'view');
     }
 
     public static function canViewAllAdvances(User $user): bool
@@ -107,10 +102,8 @@ class StaffPermissions
             return true;
         }
 
-        return $user->hasAnyPermission([
-            'staff.view',
-            'staff.advances.view_all',
-        ]);
+        return $user->hasPermission('staff.advances.view_all')
+            || ModulePageAccess::can($user, 'staff', 'advances', 'view');
     }
 
     public static function canMarkAttendance(User $user): bool
@@ -119,10 +112,8 @@ class StaffPermissions
             return true;
         }
 
-        return $user->hasAnyPermission([
-            'staff.attendance.mark',
-            'staff.edit',
-        ]);
+        return $user->hasPermission('staff.attendance.mark')
+            || ModulePageAccess::can($user, 'staff', 'attendance', 'edit');
     }
 
     public static function canManageLeaveSettings(User $user): bool
@@ -131,11 +122,9 @@ class StaffPermissions
             return true;
         }
 
-        return $user->hasAnyPermission([
-            'staff.view',
-            'staff.leave.view_all',
-            'staff.edit',
-        ]);
+        return $user->hasPermission('staff.leave.view_all')
+            || ModulePageAccess::can($user, 'staff', 'leave-management', 'view')
+            || ModulePageAccess::can($user, 'staff', 'leave-management', 'edit');
     }
 
     public static function canManageAdvances(User $user): bool
@@ -144,10 +133,8 @@ class StaffPermissions
             return true;
         }
 
-        return $user->hasAnyPermission([
-            'staff.advances.manage',
-            'staff.edit',
-            'staff.create',
-        ]);
+        return $user->hasPermission('staff.advances.manage')
+            || ModulePageAccess::can($user, 'staff', 'advances', 'create')
+            || ModulePageAccess::can($user, 'staff', 'advances', 'edit');
     }
 }

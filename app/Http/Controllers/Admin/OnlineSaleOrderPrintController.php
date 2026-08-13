@@ -67,7 +67,7 @@ class OnlineSaleOrderPrintController extends Controller
 
         abort_unless(
             $user instanceof User
-                && ($user->isSuperAdmin() || $user->hasPermission('sales.view')),
+                && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'sales', 'online-orders', 'print')),
             403,
         );
     }

@@ -151,6 +151,6 @@ class ListExpenseCategories extends Component
             return false;
         }
 
-        return $user->isSuperAdmin() || $user->hasPermission('finance.'.$ability);
+        return $user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'finance', 'expense-categories', $ability);
     }
 }

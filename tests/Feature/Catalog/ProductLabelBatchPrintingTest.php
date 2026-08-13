@@ -162,12 +162,20 @@ class ProductLabelBatchPrintingTest extends TestCase
     {
         $viewerRole = Role::create(['name' => 'Viewer', 'slug' => 'viewer']);
         $viewPermission = Permission::create([
-            'key' => 'catalog.view',
+            'key' => 'catalog.labels.view',
             'group_key' => 'catalog',
-            'label_en' => 'View catalog',
+            'label_en' => 'View labels',
             'sort_order' => 1,
         ]);
-        $viewerRole->permissions()->attach($viewPermission);
+        Permission::create([
+            'key' => 'catalog.labels.print',
+            'group_key' => 'catalog',
+            'label_en' => 'Print labels',
+            'sort_order' => 2,
+        ]);
+        $viewerRole->permissions()->sync(
+            Permission::query()->whereIn('key', ['catalog.labels.view', 'catalog.labels.print'])->pluck('id')->all()
+        );
         $viewer = User::factory()->create([
             'role_id' => $viewerRole->id,
             'status' => User::STATUS_ACTIVE,

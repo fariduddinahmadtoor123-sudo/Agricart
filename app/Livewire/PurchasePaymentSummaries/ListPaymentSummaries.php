@@ -175,6 +175,6 @@ class ListPaymentSummaries extends Component
             return true;
         }
 
-        return $user->hasPermission('purchasing.' . $action);
+        return \App\Services\Access\ModulePageAccess::can($user, 'purchasing', 'purchase-payment-summary', $action);
     }
 }

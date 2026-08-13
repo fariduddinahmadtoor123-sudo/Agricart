@@ -154,7 +154,7 @@ class PurchasingPageToolbar extends ClusterPageToolbar
                 'filterGroups' => static::priceTagFilterGroups(),
                 'filters' => [],
                 'columns' => [],
-                'toolbarActions' => [
+                'toolbarActions' => static::userCan('print') ? [
                     [
                         'label' => __('price_tags.actions.print'),
                         'value' => 'print',
@@ -162,7 +162,7 @@ class PurchasingPageToolbar extends ClusterPageToolbar
                         'color' => 'primary',
                         'outlined' => false,
                     ],
-                ],
+                ] : [],
             ],
             'price-update' => [
                 ...$config,
@@ -354,14 +354,16 @@ class PurchasingPageToolbar extends ClusterPageToolbar
      */
     protected static function reorderToolbarActions(): array
     {
-        $actions = [
-            [
+        $actions = [];
+
+        if (static::userCan('print')) {
+            $actions[] = [
                 'label' => __('reorder.actions.print'),
                 'value' => 'print',
                 'icon' => \Filament\Support\Icons\Heroicon::OutlinedPrinter,
                 'outlined' => true,
-            ],
-        ];
+            ];
+        }
 
         if (static::userCan('create')) {
             $actions = [

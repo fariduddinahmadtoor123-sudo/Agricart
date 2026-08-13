@@ -22,11 +22,6 @@ class UsersPage extends BaseModulePage
 
     protected string $view = 'filament.pages.settings.users';
 
-    protected static function requiredPermission(): ?string
-    {
-        return 'settings.users.manage';
-    }
-
     public function getHeading(): string|Htmlable|null
     {
         return null;

@@ -457,7 +457,7 @@ class ListPriceTags extends Component
             return true;
         }
 
-        return $user->hasPermission('purchasing.' . $action);
+        return \App\Services\Access\ModulePageAccess::can($user, 'purchasing', 'price-tags', $action);
     }
 
     private function setStatus(string $message, string $type): void

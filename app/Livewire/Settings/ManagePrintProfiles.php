@@ -209,7 +209,7 @@ class ManagePrintProfiles extends Component
         $user = auth()->user();
 
         return $user instanceof User
-            && ($user->isSuperAdmin() || $user->hasPermission('settings.printing.manage'));
+            && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'printing', 'edit'));
     }
 
     private function flash(string $message, string $type): void

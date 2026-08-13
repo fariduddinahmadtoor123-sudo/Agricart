@@ -128,6 +128,7 @@ class RoleService
             $permissionKeys,
             fn (mixed $key): bool => is_string($key) && $key !== '',
         )));
+        $keys = PermissionRegistry::withoutLegacyModuleKeys($keys);
 
         $permissionIds = Permission::query()
             ->whereIn('key', $keys)

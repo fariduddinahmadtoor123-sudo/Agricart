@@ -39,7 +39,7 @@ class RolePermissionGrantTest extends TestCase
             $service->update($target, [
                 'name' => $target->name,
                 'description' => null,
-            ], ['catalog.view'], $manager);
+            ], ['catalog.products.view'], $manager);
         } catch (ValidationException $exception) {
             $this->assertSame(
                 __('agricart.roles.messages.permissions_super_admin_only'),
@@ -62,9 +62,12 @@ class RolePermissionGrantTest extends TestCase
         $updated = app(RoleService::class)->update($target, [
             'name' => $target->name,
             'description' => 'Updated',
-        ], ['catalog.view', 'catalog.create'], $super);
+        ], ['catalog.products.view', 'catalog.products.create'], $super);
 
-        $this->assertSame(['catalog.create', 'catalog.view'], $updated->permissions->pluck('key')->sort()->values()->all());
+        $this->assertSame(
+            ['catalog.products.create', 'catalog.products.view'],
+            $updated->permissions->pluck('key')->sort()->values()->all(),
+        );
     }
 
     private function makeSuperAdmin(string $email): User
@@ -85,7 +88,7 @@ class RolePermissionGrantTest extends TestCase
         ]);
 
         $permissionId = Permission::query()
-            ->where('key', 'settings.roles.manage')
+            ->where('key', 'settings.permission.edit')
             ->value('id');
 
         $role->permissions()->sync([$permissionId]);

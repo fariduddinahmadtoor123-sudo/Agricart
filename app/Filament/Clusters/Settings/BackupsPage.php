@@ -22,11 +22,6 @@ class BackupsPage extends BaseModulePage
 
     protected string $view = 'filament.pages.settings.backups';
 
-    protected static function requiredPermission(): ?string
-    {
-        return 'settings.backups.manage';
-    }
-
     public function getHeading(): string|Htmlable|null
     {
         return null;

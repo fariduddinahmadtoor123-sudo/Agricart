@@ -69,7 +69,7 @@ class FundTransferForm extends Component
     #[On('finance-fund-transfer-form-open')]
     public function openForm(?int $transferId = null, ?string $mode = null): void
     {
-        $this->authorizeAny($transferId ? 'finance.edit' : ['finance.create', 'finance.edit']);
+        $this->authorizeAny($transferId ? 'finance.cash-bank-transfers.edit' : ['finance.cash-bank-transfers.create', 'finance.cash-bank-transfers.edit']);
         $this->resetValidation();
         $this->statusMessage = null;
         $this->mode = $mode ?? ($transferId ? 'edit' : 'create');
@@ -80,7 +80,7 @@ class FundTransferForm extends Component
     #[On('finance-fund-transfer-form-action')]
     public function handlePanelAction(string $action): void
     {
-        $this->authorizeAny($this->transferId ? 'finance.edit' : ['finance.create', 'finance.edit']);
+        $this->authorizeAny($this->transferId ? 'finance.cash-bank-transfers.edit' : ['finance.cash-bank-transfers.create', 'finance.cash-bank-transfers.edit']);
 
         if ($action === 'save_close') {
             if ($this->saving) {
@@ -93,13 +93,13 @@ class FundTransferForm extends Component
 
     public function updatedTransactionType(): void
     {
-        $this->authorizeAny($this->transferId ? 'finance.edit' : ['finance.create', 'finance.edit']);
+        $this->authorizeAny($this->transferId ? 'finance.cash-bank-transfers.edit' : ['finance.cash-bank-transfers.create', 'finance.cash-bank-transfers.edit']);
         $this->applyTypeDefaults();
     }
 
     public function updatedSourceWallet(): void
     {
-        $this->authorizeAny($this->transferId ? 'finance.edit' : ['finance.create', 'finance.edit']);
+        $this->authorizeAny($this->transferId ? 'finance.cash-bank-transfers.edit' : ['finance.cash-bank-transfers.create', 'finance.cash-bank-transfers.edit']);
 
         if ($this->source_wallet === self::SOURCE_CASH) {
             $this->source_bank_account_id = null;
@@ -108,7 +108,7 @@ class FundTransferForm extends Component
 
     public function saveAndClose(): void
     {
-        $this->authorizeAny($this->transferId ? 'finance.edit' : ['finance.create', 'finance.edit']);
+        $this->authorizeAny($this->transferId ? 'finance.cash-bank-transfers.edit' : ['finance.cash-bank-transfers.create', 'finance.cash-bank-transfers.edit']);
 
         if ($this->saving) {
             return;
@@ -234,7 +234,7 @@ class FundTransferForm extends Component
 
     public function render(): View
     {
-        if (! $this->canAccessAny(['finance.create', 'finance.edit'])) {
+        if (! $this->canAccessAny(['finance.cash-bank-transfers.create', 'finance.cash-bank-transfers.edit'])) {
             return view('livewire.finance.fund-transfers.form', [
                 'transactionTypeOptions' => [],
                 'sourceWalletOptions' => [],

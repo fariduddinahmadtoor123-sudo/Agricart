@@ -3,6 +3,8 @@
 namespace App\Filament\Layout;
 
 use App\Models\User;
+use App\Services\Access\ModulePageAccess;
+use App\Services\Access\PermissionRegistry;
 
 final class FormPanelRegistry
 {
@@ -12,53 +14,53 @@ final class FormPanelRegistry
     public static function forms(): array
     {
         return [
-            'ai-settings' => ['component' => 'ai-settings.form', 'permission' => 'settings.ai.manage'],
-            'ai-log-detail' => ['component' => 'ai-logs.detail', 'permission' => 'settings.ai.logs.view'],
+            'ai-settings' => ['component' => 'ai-settings.form', 'permission' => 'settings.ai-settings.view'],
+            'ai-log-detail' => ['component' => 'ai-logs.detail', 'permission' => 'settings.ai-logs.view'],
             'activity-log-detail' => ['component' => 'activity-logs.detail', 'permission' => 'settings.activity.view'],
             'system-error-detail' => ['component' => 'system-errors.detail', 'permission' => 'settings.system-errors.view'],
-            'media-library' => ['component' => 'media.form', 'permission' => 'settings.media.view'],
-            'categories' => ['component' => 'categories.form', 'permission' => 'catalog.view'],
-            'brands' => ['component' => 'brands.form', 'permission' => 'catalog.view'],
-            'units' => ['component' => 'units.form', 'permission' => 'catalog.view'],
-            'packing-units' => ['component' => 'packing-units.form', 'permission' => 'catalog.view'],
-            'attributes' => ['component' => 'attributes.form', 'permission' => 'catalog.view'],
-            'controls' => ['component' => 'controls.form', 'permission' => 'catalog.view'],
-            'products' => ['component' => 'products.form', 'permission' => 'catalog.view'],
-            'product-reviews' => ['component' => 'products.agricart-review-editor', 'permission' => 'catalog.view'],
-            'labels' => ['component' => 'labels.print-labels-form', 'permission' => 'catalog.view'],
-            'users' => ['component' => 'users.form', 'permission' => 'settings.users.manage'],
-            'staff' => ['component' => 'users.form', 'permission' => 'staff.view'],
-            'roles' => ['component' => 'roles.form', 'permission' => 'settings.roles.manage'],
-            'company-profile' => ['component' => 'company-profile.form', 'permission' => 'settings.view'],
-            'suppliers' => ['component' => 'suppliers.form', 'permission' => 'contacts.view'],
-            'customers' => ['component' => 'customers.form', 'permission' => 'contacts.view'],
-            'transport-companies' => ['component' => 'transport-companies.form', 'permission' => 'contacts.view'],
-            'contact-message-templates' => ['component' => 'contacts.message-template-form', 'permission' => 'contacts.view'],
-            'staff-salary' => ['component' => 'staff.salary-assignment-form', 'permission' => 'staff.view'],
-            'staff-attendance' => ['component' => 'staff.daily-attendance-form', 'permission' => 'staff.view'],
-            'staff-advance' => ['component' => 'staff.advance-transaction-form', 'permission' => 'staff.view'],
-            'staff-leave' => ['component' => 'staff.leave-settings-form', 'permission' => 'staff.view'],
-            'staff-payroll' => ['component' => 'staff.payroll-roll-form', 'permission' => 'staff.view'],
-            'finance-bank' => ['component' => 'finance.bank-account-form', 'permission' => 'finance.view'],
-            'finance-fund-transfer' => ['component' => 'finance.fund-transfer-form', 'permission' => 'finance.view'],
-            'finance-expense-category' => ['component' => 'finance.expense-category-form', 'permission' => 'finance.view'],
-            'finance-expense' => ['component' => 'finance.expense-form', 'permission' => 'finance.view'],
-            'finance-expense-payment' => ['component' => 'finance.expense-payment-form', 'permission' => 'finance.view'],
-            'purchase-planning' => ['component' => 'purchase-planning.form', 'permission' => 'purchasing.view'],
-            'purchase-payment-summary' => ['component' => 'purchase-payment-summaries.form', 'permission' => 'purchasing.view'],
-            'purchase-quotations' => ['component' => 'purchase-quotations.form', 'permission' => 'purchasing.view'],
-            'purchases' => ['component' => 'purchases.form', 'permission' => 'purchasing.view'],
-            'price-update' => ['component' => 'price-updates.sheet', 'permission' => 'purchasing.edit'],
-            'sales' => ['component' => 'sales.form', 'permission' => 'sales.view'],
-            'sale-quotations' => ['component' => 'sale-quotations.form', 'permission' => 'sales.view'],
-            'sale-returns' => ['component' => 'sale-returns.form', 'permission' => 'sales.view'],
-            'online-orders' => ['component' => 'online-sale-orders.form', 'permission' => 'sales.view'],
-            'price-controls' => ['component' => 'price-controls.form', 'permission' => 'marketplace.view'],
-            'quantity-controls' => ['component' => 'quantity-controls.form', 'permission' => 'marketplace.view'],
-            'secret-coding' => ['component' => 'secret-codings.form', 'permission' => 'marketplace.view'],
-            'sales-channel' => ['component' => 'sales-channels.form', 'permission' => 'marketplace.view'],
-            'delivery-methods' => ['component' => 'delivery-methods.form', 'permission' => 'logistics.view'],
-            'logistics-ship' => ['component' => 'logistics.ship-form', 'permission' => 'logistics.view'],
+            'media-library' => ['component' => 'media.form', 'permission' => 'settings.media-library.view'],
+            'categories' => ['component' => 'categories.form', 'permission' => 'catalog.categories.view'],
+            'brands' => ['component' => 'brands.form', 'permission' => 'catalog.brands.view'],
+            'units' => ['component' => 'units.form', 'permission' => 'catalog.units.view'],
+            'packing-units' => ['component' => 'packing-units.form', 'permission' => 'catalog.packing-units.view'],
+            'attributes' => ['component' => 'attributes.form', 'permission' => 'catalog.attributes.view'],
+            'controls' => ['component' => 'controls.form', 'permission' => 'catalog.controls.view'],
+            'products' => ['component' => 'products.form', 'permission' => 'catalog.products.view'],
+            'product-reviews' => ['component' => 'products.agricart-review-editor', 'permission' => 'catalog.product-reviews.view'],
+            'labels' => ['component' => 'labels.print-labels-form', 'permission' => 'catalog.labels.view'],
+            'users' => ['component' => 'users.form', 'permission' => 'settings.users.view'],
+            'staff' => ['component' => 'users.form', 'permission' => 'staff.staff.view'],
+            'roles' => ['component' => 'roles.form', 'permission' => 'settings.permission.view'],
+            'company-profile' => ['component' => 'company-profile.form', 'permission' => 'settings.store-profile.view'],
+            'suppliers' => ['component' => 'suppliers.form', 'permission' => 'contacts.suppliers.view'],
+            'customers' => ['component' => 'customers.form', 'permission' => 'contacts.customers.view'],
+            'transport-companies' => ['component' => 'transport-companies.form', 'permission' => 'contacts.transport-companies.view'],
+            'contact-message-templates' => ['component' => 'contacts.message-template-form', 'permission' => 'contacts.message-templates.view'],
+            'staff-salary' => ['component' => 'staff.salary-assignment-form', 'permission' => 'staff.pay-management.view'],
+            'staff-attendance' => ['component' => 'staff.daily-attendance-form', 'permission' => 'staff.attendance.view'],
+            'staff-advance' => ['component' => 'staff.advance-transaction-form', 'permission' => 'staff.advances.view'],
+            'staff-leave' => ['component' => 'staff.leave-settings-form', 'permission' => 'staff.leave-management.view'],
+            'staff-payroll' => ['component' => 'staff.payroll-roll-form', 'permission' => 'staff.payroll.view'],
+            'finance-bank' => ['component' => 'finance.bank-account-form', 'permission' => 'finance.bank-accounts.view'],
+            'finance-fund-transfer' => ['component' => 'finance.fund-transfer-form', 'permission' => 'finance.cash-bank-transfers.view'],
+            'finance-expense-category' => ['component' => 'finance.expense-category-form', 'permission' => 'finance.expense-categories.view'],
+            'finance-expense' => ['component' => 'finance.expense-form', 'permission' => 'finance.expenses.view'],
+            'finance-expense-payment' => ['component' => 'finance.expense-payment-form', 'permission' => 'finance.expense-payments.view'],
+            'purchase-planning' => ['component' => 'purchase-planning.form', 'permission' => 'purchasing.purchase-planning.view'],
+            'purchase-payment-summary' => ['component' => 'purchase-payment-summaries.form', 'permission' => 'purchasing.purchase-payment-summary.view'],
+            'purchase-quotations' => ['component' => 'purchase-quotations.form', 'permission' => 'purchasing.purchase-quotations.view'],
+            'purchases' => ['component' => 'purchases.form', 'permission' => 'purchasing.purchases.view'],
+            'price-update' => ['component' => 'price-updates.sheet', 'permission' => 'purchasing.price-update.edit'],
+            'sales' => ['component' => 'sales.form', 'permission' => 'sales.pos-sales.view'],
+            'sale-quotations' => ['component' => 'sale-quotations.form', 'permission' => 'sales.sales-quotations.view'],
+            'sale-returns' => ['component' => 'sale-returns.form', 'permission' => 'sales.sales-returns.view'],
+            'online-orders' => ['component' => 'online-sale-orders.form', 'permission' => 'sales.online-orders.view'],
+            'price-controls' => ['component' => 'price-controls.form', 'permission' => 'marketplace.price-control.view'],
+            'quantity-controls' => ['component' => 'quantity-controls.form', 'permission' => 'marketplace.quantity-control.view'],
+            'secret-coding' => ['component' => 'secret-codings.form', 'permission' => 'marketplace.secret-coding.view'],
+            'sales-channel' => ['component' => 'sales-channels.form', 'permission' => 'marketplace.sales-channels.view'],
+            'delivery-methods' => ['component' => 'delivery-methods.form', 'permission' => 'logistics.delivery-methods.view'],
+            'logistics-ship' => ['component' => 'logistics.ship-form', 'permission' => 'logistics.shipments.view'],
         ];
     }
 
@@ -71,25 +73,26 @@ final class FormPanelRegistry
         }
 
         $permission = $form['permission'];
-        $module = is_string($permission) ? str($permission)->before('.')->toString() : '';
 
+        // Page-scoped keys: module.page.view → .create / .edit by mode.
         if (
-            in_array($module, ['catalog', 'contacts', 'staff', 'finance', 'purchasing', 'sales', 'marketplace', 'logistics'], true)
-            && str_ends_with((string) $permission, '.view')
+            is_string($permission)
+            && preg_match('/^([a-z]+)\.([a-z0-9-]+)\.view$/', $permission, $matches) === 1
+            && PermissionRegistry::moduleUsesPagePermissions($matches[1])
         ) {
-            $permission = $module.'.'.match ($mode) {
+            $permission = ModulePageAccess::key($matches[1], $matches[2], match ($mode) {
                 'view' => 'view',
                 'edit' => 'edit',
                 default => 'create',
-            };
+            });
         }
 
-        // Message templates are managed by contacts.edit (no separate create permission).
+        // Message templates: create uses edit (no separate create action).
         if ($formKey === 'contact-message-templates' && $mode === 'create') {
-            $permission = 'contacts.edit';
+            $permission = 'contacts.message-templates.edit';
         }
 
-        if (! $user->isSuperAdmin() && filled($permission) && ! $user->hasPermission($permission)) {
+        if (! $user->isSuperAdmin() && filled($permission) && ! ModulePageAccess::userHasKey($user, $permission)) {
             return null;
         }
 

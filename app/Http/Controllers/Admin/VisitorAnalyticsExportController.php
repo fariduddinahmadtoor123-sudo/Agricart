@@ -16,7 +16,7 @@ class VisitorAnalyticsExportController extends Controller
         $user = auth()->user();
         abort_unless(
             $user instanceof User
-            && ($user->isSuperAdmin() || $user->hasPermission('store.analytics.view')),
+            && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'store', 'visitor-analytics', 'view')),
             403,
         );
 

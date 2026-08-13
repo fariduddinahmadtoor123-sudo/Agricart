@@ -147,6 +147,7 @@ class ListStoreItems extends Component
             return true;
         }
 
-        return $user->hasPermission('catalog.'.$action) || $user->hasPermission('store.'.$action);
+        return \App\Services\Access\ModulePageAccess::can($user, 'catalog', 'products', $action)
+            || \App\Services\Access\ModulePageAccess::can($user, 'store', 'items', $action);
     }
 }

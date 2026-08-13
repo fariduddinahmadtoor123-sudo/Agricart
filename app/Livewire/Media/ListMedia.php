@@ -38,7 +38,7 @@ class ListMedia extends Component
     public function mount(): void
     {
         $user = $this->authorizeView();
-        $this->canManage = $user->isSuperAdmin() || $user->hasPermission('settings.media.manage');
+        $this->canManage = $user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'media-library', 'edit') || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'media-library', 'create');
     }
 
     #[On('media-library-search')]
@@ -332,7 +332,7 @@ class ListMedia extends Component
         $user = auth()->user();
         abort_unless(
             $user instanceof User
-            && ($user->isSuperAdmin() || $user->hasPermission('settings.media.view')),
+            && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'media-library', 'view')),
             403,
         );
 
@@ -342,7 +342,7 @@ class ListMedia extends Component
     private function authorizeManage(): User
     {
         $user = $this->authorizeView();
-        abort_unless($user->isSuperAdmin() || $user->hasPermission('settings.media.manage'), 403);
+        abort_unless($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'media-library', 'edit') || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'media-library', 'create'), 403);
 
         return $user;
     }

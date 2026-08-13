@@ -877,7 +877,7 @@ class Form extends Component
             return true;
         }
 
-        return $user->hasPermission('sales.' . $action);
+        return \App\Services\Access\ModulePageAccess::can($user, 'sales', 'online-orders', $action);
     }
 
     private function setStatus(string $message, string $type): void

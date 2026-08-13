@@ -22,11 +22,6 @@ class PermissionPage extends BaseModulePage
 
     protected string $view = 'filament.pages.settings.permission';
 
-    protected static function requiredPermission(): ?string
-    {
-        return 'settings.roles.manage';
-    }
-
     public function getHeading(): string|Htmlable|null
     {
         return null;

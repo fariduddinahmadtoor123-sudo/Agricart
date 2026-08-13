@@ -8882,6 +8882,32 @@ span.agricart-sales-channels__switch.is-readonly {
     border: 1px solid var(--agricart-border);
 }
 
+.agricart-role-form__resources {
+    display: grid;
+    gap: 0.45rem;
+    margin: 0 0 0.35rem;
+}
+
+.agricart-role-form__resource {
+    padding: 0.4rem 0.5rem;
+    border: 1px solid var(--agricart-border);
+    background: #f8fafc;
+}
+
+.agricart-role-form__resource-title {
+    margin: 0 0 0.3rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.agricart-role-form__permission-list--inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+    margin: 0;
+}
+
 .agricart-user-form .agricart-form-panel__field {
     min-width: 0;
 }

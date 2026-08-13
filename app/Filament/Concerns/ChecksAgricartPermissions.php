@@ -2,7 +2,10 @@
 
 namespace App\Filament\Concerns;
 
+use App\Filament\Clusters\BaseAgricartCluster;
 use App\Models\User;
+use App\Services\Access\ModulePageAccess;
+use App\Services\Access\PermissionRegistry;
 
 trait ChecksAgricartPermissions
 {
@@ -12,6 +15,18 @@ trait ChecksAgricartPermissions
 
         if ($cluster === null) {
             return null;
+        }
+
+        $moduleSlug = is_subclass_of($cluster, BaseAgricartCluster::class)
+            ? $cluster::moduleSlug()
+            : '';
+
+        if (
+            $moduleSlug !== ''
+            && PermissionRegistry::moduleUsesPagePermissions($moduleSlug)
+            && filled(static::getSlug())
+        ) {
+            return ModulePageAccess::key($moduleSlug, (string) static::getSlug(), 'view');
         }
 
         return method_exists($cluster, 'viewPermission')
@@ -42,6 +57,6 @@ trait ChecksAgricartPermissions
             return false;
         }
 
-        return $user->hasPermission($permission);
+        return ModulePageAccess::userHasKey($user, $permission);
     }
 }

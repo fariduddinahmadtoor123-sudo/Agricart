@@ -145,6 +145,6 @@ class LogisticsPageToolbar extends ClusterPageToolbar
         $user = auth()->user();
 
         return $user instanceof User
-            && ($user->isSuperAdmin() || $user->hasPermission('logistics.create'));
+            && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'logistics', 'delivery-methods', 'create'));
     }
 }

@@ -144,7 +144,7 @@ class ListUsers extends Component
             return false;
         }
 
-        return $user->isSuperAdmin() || $user->hasPermission('settings.users.manage');
+        return $user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'users', 'view');
     }
 
     public function canArchiveUser(User $target): bool

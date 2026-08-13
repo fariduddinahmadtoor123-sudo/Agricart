@@ -22,11 +22,6 @@ class SystemErrorsPage extends BaseModulePage
 
     protected string $view = 'filament.pages.settings.system-errors';
 
-    protected static function requiredPermission(): ?string
-    {
-        return 'settings.system-errors.view';
-    }
-
     public function getHeading(): string|Htmlable|null
     {
         return null;

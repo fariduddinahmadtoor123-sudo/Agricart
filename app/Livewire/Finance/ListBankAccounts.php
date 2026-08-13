@@ -180,6 +180,6 @@ class ListBankAccounts extends Component
             return true;
         }
 
-        return $user->hasPermission('finance.' . $action);
+        return \App\Services\Access\ModulePageAccess::can($user, 'finance', 'bank-accounts', $action);
     }
 }
