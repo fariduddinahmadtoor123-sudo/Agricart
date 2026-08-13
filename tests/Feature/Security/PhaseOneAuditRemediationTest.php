@@ -27,6 +27,7 @@ use App\Models\AiLog;
 use App\Models\AiConfiguration;
 use App\Models\Customer;
 use App\Models\OnlineSaleOrder;
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use App\Rules\SafeUrl;
@@ -110,6 +111,31 @@ class PhaseOneAuditRemediationTest extends TestCase
         $this->actingAs($unauthorizedAdmin)
             ->get(route('admin.online-sale-orders.payment-proof.show', $order))
             ->assertForbidden();
+
+        $this->flushSession();
+
+        $this->seed(\Database\Seeders\RolesAndPermissionsSeeder::class);
+        $pageRole = Role::query()->create([
+            'name' => 'Quotations Clerk',
+            'slug' => 'quotations-clerk-'.uniqid(),
+            'is_system' => false,
+        ]);
+        $permissionIds = Permission::query()
+            ->whereIn('key', [
+                'sales.online-quotations.view',
+                'sales.online-quotations.edit',
+            ])
+            ->pluck('id')
+            ->all();
+        $pageRole->permissions()->sync($permissionIds);
+        $pageAdmin = User::factory()->create([
+            'status' => User::STATUS_ACTIVE,
+            'role_id' => $pageRole->id,
+        ]);
+
+        $this->actingAs($pageAdmin)
+            ->get(route('admin.online-sale-orders.payment-proof.show', $order))
+            ->assertOk();
     }
 
     public function test_checkout_controller_stores_new_payment_proofs_on_private_local_disk(): void

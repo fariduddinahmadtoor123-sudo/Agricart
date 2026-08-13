@@ -5,6 +5,7 @@ namespace App\Filament\Layout;
 use App\Models\User;
 use App\Services\Access\ModulePageAccess;
 use App\Services\Access\PermissionRegistry;
+use App\Services\Sales\OnlineSaleOrderPaymentAccess;
 
 final class FormPanelRegistry
 {
@@ -90,6 +91,20 @@ final class FormPanelRegistry
         // Message templates: create uses edit (no separate create action).
         if ($formKey === 'contact-message-templates' && $mode === 'create') {
             $permission = 'contacts.message-templates.edit';
+        }
+
+        if ($formKey === 'online-orders') {
+            $action = match ($mode) {
+                'view' => 'view',
+                'edit' => 'edit',
+                default => 'create',
+            };
+
+            if ($user->isSuperAdmin() || OnlineSaleOrderPaymentAccess::canManageOrders($user, $action)) {
+                return $form['component'];
+            }
+
+            return null;
         }
 
         if (! $user->isSuperAdmin() && filled($permission) && ! ModulePageAccess::userHasKey($user, $permission)) {

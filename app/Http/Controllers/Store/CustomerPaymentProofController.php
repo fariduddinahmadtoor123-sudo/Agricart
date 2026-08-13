@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Store;
 use App\Http\Controllers\Controller;
 use App\Models\OnlineSaleOrder;
 use App\Models\User;
+use App\Services\Sales\OnlineSaleOrderPaymentAccess;
 use App\Services\Security\PrivateDocumentStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -29,8 +30,7 @@ class CustomerPaymentProofController extends Controller
         $user = auth()->user();
 
         abort_unless(
-            $user instanceof User
-            && ($user->isSuperAdmin() || $user->hasAnyPermission(['sales.view', 'sales.edit'])),
+            $user instanceof User && OnlineSaleOrderPaymentAccess::canViewProof($user),
             403,
         );
 

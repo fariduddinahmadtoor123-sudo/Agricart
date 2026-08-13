@@ -66,10 +66,22 @@ final class ModulePageAccess
             return true;
         }
 
-        if (preg_match('/^([a-z]+)\.([a-z0-9-]+)\.([a-z_]+)$/', $key, $matches) !== 1) {
-            return false;
+        if (preg_match('/^([a-z]+)\.([a-z0-9-]+)\.([a-z_]+)$/', $key, $matches) === 1) {
+            return $user->hasPermission("{$matches[1]}.{$matches[3]}");
         }
 
-        return $user->hasPermission("{$matches[1]}.{$matches[3]}");
+        // Legacy module.action (e.g. sales.view) after page-scoped migration.
+        if (
+            preg_match('/^([a-z]+)\.(view|create|edit|delete|print)$/', $key, $matches) === 1
+            && PermissionRegistry::moduleUsesPagePermissions($matches[1])
+        ) {
+            foreach (array_keys(PermissionRegistry::pagesFor($matches[1])) as $page) {
+                if (self::can($user, $matches[1], $page, $matches[2])) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 }

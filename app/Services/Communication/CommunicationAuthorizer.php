@@ -6,6 +6,7 @@ use App\Models\Communication\Channel;
 use App\Models\Communication\Conversation;
 use App\Models\Communication\Participant;
 use App\Models\User;
+use App\Services\Access\ModulePageAccess;
 use App\Services\Communication\Support\ActorRef;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
@@ -45,12 +46,12 @@ class CommunicationAuthorizer
                 $fallbacks = [];
             }
 
-            if ($permission !== null && $user->hasPermission($permission)) {
+            if ($permission !== null && ModulePageAccess::userHasKey($user, $permission)) {
                 return;
             }
 
             foreach ($fallbacks as $fallback) {
-                if (is_string($fallback) && $fallback !== '' && $user->hasPermission($fallback)) {
+                if (is_string($fallback) && $fallback !== '' && ModulePageAccess::userHasKey($user, $fallback)) {
                     return;
                 }
             }
@@ -126,7 +127,7 @@ class CommunicationAuthorizer
 
         $permission = config("communication.linkable_permissions.{$linkableType}");
 
-        if (is_string($permission) && $permission !== '' && ! $user->hasPermission($permission)) {
+        if (is_string($permission) && $permission !== '' && ! ModulePageAccess::userHasKey($user, $permission)) {
             throw new AuthorizationException('Missing permission to link this record.');
         }
 
@@ -134,7 +135,7 @@ class CommunicationAuthorizer
             $allowed = false;
 
             foreach ($permission as $key) {
-                if (is_string($key) && $key !== '' && $user->hasPermission($key)) {
+                if (is_string($key) && $key !== '' && ModulePageAccess::userHasKey($user, $key)) {
                     $allowed = true;
                     break;
                 }

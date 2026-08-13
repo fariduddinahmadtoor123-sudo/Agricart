@@ -533,8 +533,26 @@ class PermissionRegistry
 
         self::expandLegacyModuleGrants();
         self::expandLegacyFineGrainedGrants();
+        self::syncSuperAdminPermissions($ids);
 
         return $ids;
+    }
+
+    /**
+     * Keep Super Admin pivots aligned with the registry so Access UI stays truthful.
+     *
+     * @param  list<int>  $permissionIds
+     */
+    public static function syncSuperAdminPermissions(array $permissionIds): void
+    {
+        $role = \App\Models\Role::query()->where('slug', 'super-admin')->first();
+
+        if ($role === null || $permissionIds === []) {
+            return;
+        }
+
+        $role->permissions()->sync($permissionIds);
+        $role->unsetRelation('permissions');
     }
 
     /**

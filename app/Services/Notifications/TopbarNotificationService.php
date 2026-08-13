@@ -5,6 +5,7 @@ namespace App\Services\Notifications;
 use App\Filament\Clusters\Approvals\StaffPage;
 use App\Filament\Clusters\Approvals\SuppliersPage;
 use App\Filament\Clusters\Sales\InboxPage;
+use App\Filament\Clusters\Sales\OnlineOrdersPage;
 use App\Filament\Clusters\Sales\OnlineQuotationsPage;
 use App\Filament\Clusters\Settings\SystemErrorsPage;
 use App\Filament\Clusters\Store\MessagesPage;
@@ -14,6 +15,7 @@ use App\Models\ProductReview;
 use App\Models\Supplier;
 use App\Models\SystemError;
 use App\Models\User;
+use App\Services\Access\ModulePageAccess;
 use App\Services\Staff\StaffMessagingService;
 use App\Services\Store\AgricartInboxService;
 use Illuminate\Support\Facades\Cache;
@@ -52,18 +54,7 @@ class TopbarNotificationService
                 count: $this->pendingProductReviews(),
                 pageClass: ReviewsPage::class,
             ),
-            $this->item(
-                key: 'online_orders',
-                count: OnlineSaleOrder::query()
-                    ->where('order_status', '!=', OnlineSaleOrder::STATUS_CONVERTED)
-                    ->where(function ($query): void {
-                        $query
-                            ->where('order_status', OnlineSaleOrder::STATUS_PENDING)
-                            ->orWhere('customer_payment_proof_status', OnlineSaleOrder::PROOF_SUBMITTED);
-                    })
-                    ->count(),
-                pageClass: OnlineQuotationsPage::class,
-            ),
+            $this->onlineOrdersAwaitingItem(),
             $this->item(
                 key: 'system_errors',
                 count: $this->unreadCriticalSystemErrors(),
@@ -75,6 +66,49 @@ class TopbarNotificationService
             'total' => array_sum(array_column($items, 'count')),
             'items' => $items,
             'inbox_unread' => $this->unreadStaffInbox(),
+        ];
+    }
+
+    /**
+     * @return array{key: string, label: string, meta: string, count: int, url: string}|null
+     */
+    private function onlineOrdersAwaitingItem(): ?array
+    {
+        $count = OnlineSaleOrder::query()
+            ->where('order_status', '!=', OnlineSaleOrder::STATUS_CONVERTED)
+            ->where(function ($query): void {
+                $query
+                    ->where('order_status', OnlineSaleOrder::STATUS_PENDING)
+                    ->orWhere('customer_payment_proof_status', OnlineSaleOrder::PROOF_SUBMITTED);
+            })
+            ->count();
+
+        if ($count < 1) {
+            return null;
+        }
+
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return null;
+        }
+
+        if (! $user->isSuperAdmin()
+            && ! ModulePageAccess::can($user, 'sales', 'online-quotations', 'view')
+            && ! ModulePageAccess::can($user, 'sales', 'online-orders', 'view')) {
+            return null;
+        }
+
+        $url = OnlineQuotationsPage::canAccess()
+            ? OnlineQuotationsPage::getUrl()
+            : OnlineOrdersPage::getUrl();
+
+        return [
+            'key' => 'online_orders',
+            'label' => (string) __('agricart.topbar.notification_items.online_orders'),
+            'meta' => (string) trans_choice('agricart.topbar.notification_counts.online_orders', $count, ['count' => number_format($count)]),
+            'count' => $count,
+            'url' => $url,
         ];
     }
 

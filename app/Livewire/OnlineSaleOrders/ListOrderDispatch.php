@@ -171,6 +171,12 @@ class ListOrderDispatch extends Component
 
     public function forwardToInbox(int $staffId): void
     {
+        if (! $this->userCan('edit')) {
+            $this->forwardStatusMessage = __('agricart.access.denied');
+
+            return;
+        }
+
         $order = $this->forwardOrder();
 
         if ($order === null) {

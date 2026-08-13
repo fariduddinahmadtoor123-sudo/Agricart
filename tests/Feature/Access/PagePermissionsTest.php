@@ -130,6 +130,39 @@ class PagePermissionsTest extends TestCase
         $this->assertContains('settings.users.edit', $keys);
     }
 
+    public function test_super_admin_permissions_are_synced_on_registry_sync(): void
+    {
+        $super = Role::query()->where('slug', 'super-admin')->firstOrFail();
+        $super->permissions()->detach();
+
+        $this->assertSame(0, $super->fresh()->permissions()->count());
+
+        $ids = PermissionRegistry::syncToDatabase();
+
+        $this->assertNotEmpty($ids);
+        $this->assertSame(count($ids), $super->fresh()->permissions()->count());
+    }
+
+    public function test_page_scoped_quotations_clerk_can_open_online_order_form_panel(): void
+    {
+        $role = $this->makeRoleWithKeys([
+            'sales.online-quotations.view',
+            'sales.online-quotations.edit',
+        ]);
+
+        $user = User::factory()->create([
+            'role_id' => $role->id,
+            'status' => User::STATUS_ACTIVE,
+        ]);
+
+        $this->assertSame(
+            'online-sale-orders.form',
+            \App\Filament\Layout\FormPanelRegistry::component('online-orders', $user, 'edit'),
+        );
+        $this->assertTrue(\App\Services\Sales\OnlineSaleOrderPaymentAccess::canViewProof($user));
+        $this->assertTrue(\App\Services\Sales\OnlineSaleOrderPaymentAccess::canVerifyProof($user));
+    }
+
     /**
      * @param  list<string>  $keys
      */

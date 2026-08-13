@@ -8,6 +8,7 @@ use App\Models\OnlineSaleOrderSupplierAssignment;
 use App\Models\User;
 use App\Services\PricingControls\ChannelPricingEngine;
 use App\Services\Sales\OnlineOrderDispatchService;
+use App\Services\Sales\OnlineSaleOrderPaymentAccess;
 use App\Services\Sales\OnlineSaleOrderService;
 use App\Services\Sales\SaleService;
 use App\Services\Sales\SalesBankAccountService;
@@ -355,7 +356,9 @@ class Form extends Component
             return false;
         }
 
-        return $this->userCan('edit');
+        $user = auth()->user();
+
+        return $user instanceof User && OnlineSaleOrderPaymentAccess::canVerifyProof($user);
     }
 
     public function isInvoice(): bool
@@ -873,11 +876,7 @@ class Form extends Component
             return false;
         }
 
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
-        return \App\Services\Access\ModulePageAccess::can($user, 'sales', 'online-orders', $action);
+        return OnlineSaleOrderPaymentAccess::canManageOrders($user, $action);
     }
 
     private function setStatus(string $message, string $type): void

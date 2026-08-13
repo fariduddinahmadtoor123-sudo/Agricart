@@ -50,14 +50,19 @@ return [
     | Customers/suppliers rely on participation + channel policy instead.
     */
     'linkable_permissions' => [
-        'online_sale_order' => 'sales.view',
-        'product' => 'catalog.view',
-        'product_review' => 'store.view',
-        'brand' => 'catalog.view',
-        'category' => 'catalog.view',
-        'supplier' => ['purchasing.view', 'contacts.view'],
-        'customer' => 'contacts.view',
-        'user' => 'staff.view',
+        'online_sale_order' => [
+            'sales.online-orders.view',
+            'sales.online-quotations.view',
+            'sales.order-dispatch.view',
+            'sales.inbox.view',
+        ],
+        'product' => 'catalog.products.view',
+        'product_review' => 'catalog.product-reviews.view',
+        'brand' => 'catalog.brands.view',
+        'category' => 'catalog.categories.view',
+        'supplier' => ['purchasing.purchases.view', 'contacts.suppliers.view'],
+        'customer' => 'contacts.customers.view',
+        'user' => 'staff.staff.view',
     ],
 
     /*
