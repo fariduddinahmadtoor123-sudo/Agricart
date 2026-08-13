@@ -339,12 +339,5 @@
         </div>
     @endif
 
-    @if ($orderId)
-        <x-communication.record-panels
-            linkable-type="online_sale_order"
-            :linkable-id="$orderId"
-        />
-    @endif
-
     @endunless
 </div>

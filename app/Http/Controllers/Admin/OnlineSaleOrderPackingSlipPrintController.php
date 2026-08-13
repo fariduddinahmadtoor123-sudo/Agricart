@@ -9,14 +9,47 @@ use App\Models\PrintProfile;
 use App\Models\User;
 use App\Services\Printing\PrintProfileService;
 use App\Services\Sales\OnlineSaleOrderService;
+use App\Support\Documentation\DocumentationPdfText;
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\Response as SymfonyResponse;
 
 class OnlineSaleOrderPackingSlipPrintController extends Controller
 {
-    public function show(OnlineSaleOrder $order): View
+    public function show(OnlineSaleOrder $order): View|Response
     {
         $this->authorizeSalesAccess();
 
+        $context = $this->buildContext($order);
+
+        if (request()->query('download') === 'pdf') {
+            return $this->pdfResponse($order, $context);
+        }
+
+        return view('prints.online-sale-order-packing-slip', $context);
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private function pdfResponse(OnlineSaleOrder $order, array $context): Response
+    {
+        $html = view('prints.online-sale-order-packing-slip-pdf', $context)->render();
+        $binary = DocumentationPdfText::render($html, (string) $context['locale'])->output();
+        $filename = 'packing-list-'.$order->order_number.'.pdf';
+
+        return response($binary, SymfonyResponse::HTTP_OK, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+            'Cache-Control' => 'private, max-age=0, must-revalidate',
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildContext(OnlineSaleOrder $order): array
+    {
         $order->load([
             'items' => fn ($query) => $query->orderBy('sort_order'),
         ]);
@@ -45,7 +78,7 @@ class OnlineSaleOrderPackingSlipPrintController extends Controller
         $receiptProfile = app(PrintProfileService::class)
             ->defaultForCategory(PrintProfile::CATEGORY_RECEIPT);
 
-        return view('prints.online-sale-order-packing-slip', [
+        return [
             'order' => $order,
             'locale' => $locale,
             'paper' => $paper,
@@ -53,8 +86,15 @@ class OnlineSaleOrderPackingSlipPrintController extends Controller
             'storeName' => (string) ($company->localized('business_name') ?? ''),
             'storeLogoUrl' => $company->displayLogoUrl(),
             'receiptProfile' => $receiptProfile,
-            'autoprint' => request()->query('autoprint', '1') !== '0',
-        ]);
+            'autoprint' => request()->query('autoprint', '1') !== '0' && request()->query('download') !== 'pdf',
+            'downloadPdfUrl' => route('admin.online-sale-orders.packing-slip', array_filter([
+                'order' => $order,
+                'download' => 'pdf',
+                'locale' => $locale,
+                'item_ids' => request()->query('item_ids'),
+                'autoprint' => 0,
+            ], static fn ($value): bool => $value !== null && $value !== '')),
+        ];
     }
 
     /**

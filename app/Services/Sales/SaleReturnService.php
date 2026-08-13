@@ -385,14 +385,11 @@ class SaleReturnService
         }
 
         $subtotal = $this->refundSubtotalFromRows($rows);
-        $paid = $this->saleService->numeric((string) ($validated['amount_paid'] ?? '0'));
+        $paid = $this->saleService->normalizePaidAgainstTotal(
+            $this->saleService->numeric((string) ($validated['amount_paid'] ?? '0')),
+            $subtotal,
+        );
         $total = $subtotal;
-
-        if ($paid > $total + 0.001) {
-            throw ValidationException::withMessages([
-                'amount_paid' => [__('online_sale_orders.validation.amount_paid_exceeds_total')],
-            ]);
-        }
 
         $validated['customer_id'] = $sale->customer_id;
         $validated['refund_subtotal'] = $subtotal;

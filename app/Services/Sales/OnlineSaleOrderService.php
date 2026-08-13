@@ -192,7 +192,35 @@ class OnlineSaleOrderService
             Product::query()->whereIn('id', $productIds)->orderBy('id')->lockForUpdate()->get();
 
             $paymentMethod = $order->payment_method ?: $order->customer_payment_method ?: 'cash';
-            $total = (float) $order->total_amount;
+            $orderTotal = round((float) $order->total_amount, 2);
+            $shippingAmount = round((float) ($order->shipping_amount ?? 0), 2);
+
+            $rows = $order->items->map(static fn (OnlineSaleOrderItem $item): array => [
+                'product_id' => $item->product_id,
+                'product_name_en' => $item->product_name_en,
+                'product_name_ur' => $item->product_name_ur,
+                'brand_name_en' => $item->brand_name_en,
+                'brand_name_ur' => $item->brand_name_ur,
+                'unit_label' => $item->unit_label,
+                'image_path' => $item->image_path,
+                'quantity' => $item->quantity,
+                'unit_price' => $item->unit_price,
+                'price_tier_key' => $item->price_tier_key,
+                'line_total' => $item->line_total,
+                // Keep storefront unit prices — do not reprice with POS quantity tiers.
+                'price_manual' => true,
+            ])->all();
+
+            $rows = $this->saleService->recalculateRows($rows);
+            $saleTotal = $this->saleService->subtotalFromRows($rows);
+
+            $notes = 'Converted from online order '.$order->order_number;
+            if ($shippingAmount > 0) {
+                $notes .= sprintf(
+                    ' (shipping %s collected on online order; POS invoice is items only)',
+                    $this->saleService->formatMoney($shippingAmount),
+                );
+            }
 
             $sale = $this->saleService->complete([
                 'customer_id' => $order->customer_id,
@@ -205,22 +233,11 @@ class OnlineSaleOrderService
                 'price_display' => 'plain',
                 'discount_type' => null,
                 'discount_value' => 0,
-                'amount_paid' => $total,
+                // POS sale has no shipping line — never pass online grand total here.
+                'amount_paid' => $saleTotal,
                 'print_controls' => false,
-                'notes' => 'Converted from online order '.$order->order_number,
-                'rows' => $order->items->map(fn (OnlineSaleOrderItem $item): array => [
-                    'product_id' => $item->product_id,
-                    'product_name_en' => $item->product_name_en,
-                    'product_name_ur' => $item->product_name_ur,
-                    'brand_name_en' => $item->brand_name_en,
-                    'brand_name_ur' => $item->brand_name_ur,
-                    'unit_label' => $item->unit_label,
-                    'image_path' => $item->image_path,
-                    'quantity' => $item->quantity,
-                    'unit_price' => $item->unit_price,
-                    'price_tier_key' => $item->price_tier_key,
-                    'line_total' => $item->line_total,
-                ])->all(),
+                'notes' => $notes,
+                'rows' => $rows,
             ]);
 
             $order->forceFill([
@@ -228,7 +245,7 @@ class OnlineSaleOrderService
                 'order_status' => OnlineSaleOrder::STATUS_CONVERTED,
                 'payment_status' => 'paid',
                 'payment_method' => $paymentMethod,
-                'amount_paid' => $total,
+                'amount_paid' => $orderTotal,
                 'converted_at' => now(),
                 'converted_by_id' => $actor->id,
                 // Skip the old "Ready for Queue" holding step — invoices enter dispatch immediately.
@@ -482,6 +499,10 @@ class OnlineSaleOrderService
             ]);
         }
 
+        if (array_key_exists('amount_paid', $payload)) {
+            $payload['amount_paid'] = $this->saleService->numeric((string) ($payload['amount_paid'] ?? '0'));
+        }
+
         $validated = validator($payload, [
             'order_status' => ['required', 'string', Rule::in(OnlineSaleOrder::STATUSES)],
             'fulfillment_status' => ['nullable', 'string', Rule::in(OnlineSaleOrder::FULFILLMENT_STATUSES)],
@@ -511,12 +532,9 @@ class OnlineSaleOrderService
             $amountPaid = $total;
         } elseif ($validated['payment_status'] === 'unpaid') {
             $amountPaid = 0.0;
-        }
-
-        if ($amountPaid > $total + 0.001) {
-            throw ValidationException::withMessages([
-                'amount_paid' => [__('online_sale_orders.validation.amount_paid_exceeds_total')],
-            ]);
+        } else {
+            $amountPaid = $this->saleService->normalizePaidAgainstTotal($amountPaid, $total);
+            $validated['payment_status'] = $this->saleService->resolvePaymentStatus($total, $amountPaid);
         }
 
         $orderStatus = $validated['order_status'];

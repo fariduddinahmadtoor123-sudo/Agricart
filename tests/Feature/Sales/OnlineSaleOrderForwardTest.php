@@ -197,10 +197,32 @@ class OnlineSaleOrderForwardTest extends TestCase
             ->assertSee('Boom Sprayer', false)
             ->assertSee(__('pos.print.layout_a4'), false)
             ->assertSee('Receipt', false)
+            ->assertSee(__('order_dispatch.packing_slip.download_pdf'), false)
             ->assertDontSee('Forwarded', false)
             ->assertDontSee('forwarded', false)
             ->assertDontSee(__('pos.fields.unit_price'), false)
             ->assertDontSee('Forward Buyer', false);
+    }
+
+    public function test_packing_slip_pdf_download_returns_attachment(): void
+    {
+        [$admin, $order] = $this->seedForwardScenario();
+
+        $response = $this->actingAs($admin)
+            ->get(route('admin.online-sale-orders.packing-slip', [
+                'order' => $order,
+                'download' => 'pdf',
+                'locale' => 'en',
+                'autoprint' => 0,
+            ]));
+
+        $response->assertOk();
+        $this->assertSame('application/pdf', $response->headers->get('content-type'));
+        $this->assertStringContainsString(
+            'packing-list-'.$order->order_number.'.pdf',
+            (string) $response->headers->get('content-disposition'),
+        );
+        $this->assertStringStartsWith('%PDF', $response->getContent());
     }
 
     public function test_inbox_print_actions_include_invoice_and_packing(): void

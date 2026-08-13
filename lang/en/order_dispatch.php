@@ -109,6 +109,7 @@ return [
     'packing_slip' => [
         'title' => 'Packing list',
         'heading' => 'Packing list',
+        'download_pdf' => 'Download PDF',
         'to' => 'To: :name',
         'notice' => 'Pack these items for the order number above. Do not share this slip with the end customer. Customer name, rates, and delivery address are not shown.',
         'footer' => 'Return packed goods to Agricart staff for dispatch. Tracking and bilty details are entered by office staff only.',

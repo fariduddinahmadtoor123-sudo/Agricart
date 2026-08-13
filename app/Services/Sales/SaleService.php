@@ -11,6 +11,7 @@ use App\Models\SaleReturn;
 use App\Services\Finance\BankAccountService;
 use App\Services\Finance\CashBookService;
 use App\Services\Identifiers\DocumentCounterService;
+use App\Services\PricingControls\ChannelPricingEngine;
 use App\Services\PricingControls\QuantityPricingEngine;
 use App\Services\Purchasing\PurchaseService;
 use Illuminate\Support\Facades\DB;
@@ -324,6 +325,9 @@ class SaleService
 
     public function resolvePaymentStatus(float $total, float $paid): string
     {
+        $total = round(max(0, $total), 2);
+        $paid = round(max(0, $paid), 2);
+
         if ($total <= 0) {
             return 'paid';
         }
@@ -339,9 +343,48 @@ class SaleService
         return 'unpaid';
     }
 
+    /**
+     * Normalize a paid amount against an order/sale total.
+     *
+     * Accepts equal money after 2dp rounding, and also amounts that only look higher
+     * because the storefront/admin UI rounds prices (often to whole rupees).
+     *
+     * @throws ValidationException
+     */
+    public function normalizePaidAgainstTotal(float $paid, float $total): float
+    {
+        $paid = round(max(0, $paid), 2);
+        $total = round(max(0, $total), 2);
+
+        if ($paid <= $total) {
+            return $paid;
+        }
+
+        // UI may show the same rounded figure for both (e.g. 1,749.60 and 1,750.00 → "1750").
+        if ($this->sameDisplayedMoney($paid, $total)) {
+            return $total;
+        }
+
+        throw ValidationException::withMessages([
+            'amount_paid' => [__('online_sale_orders.validation.amount_paid_exceeds_total')],
+        ]);
+    }
+
+    public function sameDisplayedMoney(float $left, float $right): bool
+    {
+        $engine = app(ChannelPricingEngine::class);
+
+        return $engine->formatPrice($left) === $engine->formatPrice($right);
+    }
+
     public function numeric(string $value): float
     {
-        $value = str_replace([',', ' '], '', trim($value));
+        $value = trim($value);
+        $value = preg_replace('/[^\d.\-]/', '', $value) ?? '';
+
+        if ($value === '' || $value === '-' || $value === '.' || $value === '-.') {
+            return 0.0;
+        }
 
         return is_numeric($value) ? (float) $value : 0.0;
     }
@@ -411,6 +454,7 @@ class SaleService
             'rows.*.unit_label' => ['nullable', 'string', 'max:64'],
             'rows.*.image_path' => ['nullable', 'string', 'max:500'],
             'rows.*.price_tier_key' => ['nullable', 'string', 'max:64'],
+            'rows.*.price_manual' => ['sometimes', 'boolean'],
         ])->validate();
 
         if (! in_array($targetStatus, Sale::STATUSES, true)) {
@@ -450,13 +494,10 @@ class SaleService
             isset($validated['discount_value']) ? (string) $validated['discount_value'] : null,
         );
         $total = max(0, round($subtotal - $discountAmount, 2));
-        $paid = $this->numeric((string) ($validated['amount_paid'] ?? '0'));
-
-        if ($paid > $total + 0.001) {
-            throw ValidationException::withMessages([
-                'amount_paid' => [__('online_sale_orders.validation.amount_paid_exceeds_total')],
-            ]);
-        }
+        $paid = $this->normalizePaidAgainstTotal(
+            $this->numeric((string) ($validated['amount_paid'] ?? '0')),
+            $total,
+        );
 
         $validated['subtotal'] = $subtotal;
         $validated['discount_amount'] = $discountAmount;

@@ -65,6 +65,7 @@
             <a href="{{ route('admin.online-sale-orders.packing-slip', array_merge(['order' => $order], $layoutQuery, ['paper' => 'receipt', 'locale' => $locale, 'autoprint' => 0])) }}" @class(['is-active' => $isReceipt])>{{ __('pos.print.layout_receipt') }}</a>
             <a href="{{ route('admin.online-sale-orders.packing-slip', array_merge(['order' => $order], $layoutQuery, ['paper' => $paper, 'locale' => 'en', 'autoprint' => 0])) }}" @class(['is-active' => $locale === 'en'])>{{ __('pos.locales.en') }}</a>
             <a href="{{ route('admin.online-sale-orders.packing-slip', array_merge(['order' => $order], $layoutQuery, ['paper' => $paper, 'locale' => 'ur', 'autoprint' => 0])) }}" @class(['is-active' => $locale === 'ur'])>{{ __('pos.locales.ur') }}</a>
+            <a href="{{ $downloadPdfUrl }}" class="is-primary">{{ __('order_dispatch.packing_slip.download_pdf') }}</a>
             <button type="button" class="is-primary" onclick="window.print()">{{ __('pos.print.print_button') }}</button>
             <button type="button" onclick="window.close()">{{ __('pos.print.close_button') }}</button>
         </div>

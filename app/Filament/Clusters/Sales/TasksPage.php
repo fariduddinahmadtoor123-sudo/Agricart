@@ -20,6 +20,16 @@ class TasksPage extends BaseModulePage
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
 
+    /**
+     * Staff task inbox is unused for now; keep the route for deep links / future use.
+     */
+    protected static bool $shouldRegisterNavigation = false;
+
+    public static function registersInModuleChrome(): bool
+    {
+        return false;
+    }
+
     protected string $view = 'filament.pages.sales.tasks';
 
     public function getHeading(): string|Htmlable|null

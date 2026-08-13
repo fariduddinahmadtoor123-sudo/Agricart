@@ -103,6 +103,63 @@ class OnlineQuotationInvoiceSplitTest extends TestCase
             ->assertSee(__('pos.channels.online'), false);
     }
 
+    public function test_convert_with_shipping_does_not_fail_paid_amount_check(): void
+    {
+        $admin = $this->superAdmin();
+        [$order, $product] = $this->makeConvertibleOrder();
+        $product->update(['stock_qty' => 10]);
+
+        $order->update([
+            'order_number' => 'ONL-CONV-SHIP',
+            'subtotal' => 250,
+            'shipping_amount' => 75,
+            'total_amount' => 325,
+            'amount_paid' => 325,
+        ]);
+
+        $sale = app(OnlineSaleOrderService::class)->convertToSale($order->fresh(['items']), $admin);
+
+        $order->refresh();
+        $this->assertSame(OnlineSaleOrder::STATUS_CONVERTED, $order->order_status);
+        $this->assertSame(325.0, (float) $order->amount_paid);
+        $this->assertSame(250.0, (float) $sale->total_amount);
+        $this->assertSame(250.0, (float) $sale->amount_paid);
+        $this->assertStringContainsString('shipping', (string) $sale->notes);
+    }
+
+    public function test_convert_keeps_online_unit_price_when_pos_retail_differs(): void
+    {
+        $admin = $this->superAdmin();
+        [$order, $product] = $this->makeConvertibleOrder();
+
+        // Storefront charged 203; POS retail card is lower — convert must keep 203.
+        $product->update([
+            'stock_qty' => 10,
+            'retail_price' => 193,
+        ]);
+        $order->items()->first()?->update([
+            'unit_price' => 203,
+            'line_total' => 609,
+            'quantity' => 3,
+        ]);
+        $order->update([
+            'order_number' => 'ONL-CONV-PRICE',
+            'subtotal' => 609,
+            'shipping_amount' => 0,
+            'total_amount' => 609,
+            'amount_paid' => 609,
+        ]);
+
+        $sale = app(OnlineSaleOrderService::class)->convertToSale($order->fresh(['items']), $admin);
+
+        $order->refresh();
+        $this->assertSame(OnlineSaleOrder::STATUS_CONVERTED, $order->order_status);
+        $this->assertSame(609.0, (float) $order->amount_paid);
+        $this->assertSame(609.0, (float) $sale->total_amount);
+        $this->assertSame(609.0, (float) $sale->amount_paid);
+        $this->assertSame(203.0, (float) $sale->items()->first()->unit_price);
+    }
+
     public function test_quotation_and_unqueued_invoice_forms_hide_fulfillment(): void
     {
         $admin = $this->superAdmin();
