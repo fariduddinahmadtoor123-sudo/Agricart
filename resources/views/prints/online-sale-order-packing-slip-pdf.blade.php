@@ -6,7 +6,7 @@
 <head>
     <meta charset="utf-8">
     <style>
-        body { font-family: Arial, Helvetica, sans-serif; color: #111827; font-size: 12pt; line-height: 1.45; }
+        body { font-family: dejavusans, Arial, Helvetica, sans-serif; color: #111827; font-size: 12pt; line-height: 1.45; }
         .head { text-align: center; border-bottom: 2px solid #111827; padding-bottom: 8pt; margin-bottom: 12pt; }
         .store { margin: 0; font-size: 16pt; font-weight: 800; }
         .title { margin: 6pt 0 0; font-size: 12pt; font-weight: 700; color: #374151; }
