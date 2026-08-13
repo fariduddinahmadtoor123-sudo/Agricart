@@ -222,6 +222,22 @@ class OnlineSaleOrderService
                 );
             }
 
+            $skipBankReceipt = false;
+
+            if ($paymentMethod === 'bank_transfer' && $order->bank_account_id) {
+                // Bank once on the online order (full total). Do not post again on the POS sale.
+                if ((float) $order->amount_paid <= 0) {
+                    $order->forceFill([
+                        'amount_paid' => $orderTotal,
+                        'payment_status' => 'paid',
+                        'payment_method' => $paymentMethod,
+                    ])->save();
+                }
+
+                app(BankAccountService::class)->recordOnlineOrderReceiptIfApplicable($order->fresh());
+                $skipBankReceipt = true;
+            }
+
             $sale = $this->saleService->complete([
                 'customer_id' => $order->customer_id,
                 'cashier_id' => $actor->id,
@@ -238,6 +254,8 @@ class OnlineSaleOrderService
                 'print_controls' => false,
                 'notes' => $notes,
                 'rows' => $rows,
+                'skip_bank_receipt' => $skipBankReceipt,
+                'online_sale_order_id' => $order->id,
             ]);
 
             $order->forceFill([

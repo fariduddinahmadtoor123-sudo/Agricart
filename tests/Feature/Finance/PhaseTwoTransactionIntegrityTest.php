@@ -206,6 +206,95 @@ class PhaseTwoTransactionIntegrityTest extends TestCase
         $this->assertSame(300.0, app(BankAccountService::class)->balance($bank));
     }
 
+    public function test_verify_then_convert_posts_bank_credit_only_once(): void
+    {
+        $bank = $this->bank(0);
+        $category = Category::query()->create([
+            'slug' => 'phase2-bank-cat',
+            'status' => 'active',
+            'name_en' => 'Phase2',
+            'name_ur' => 'Phase2',
+        ]);
+        $product = Product::query()->create([
+            'category_id' => $category->id,
+            'slug' => 'phase2-bank-product',
+            'code' => 'P2-BANK',
+            'status' => 'active',
+            'name_en' => 'Bank Item',
+            'name_ur' => 'Bank Item',
+            'stock_qty' => 20,
+            'retail_price' => 300,
+        ]);
+        $customer = Customer::query()->create([
+            'customer_number' => 'CUS-PHASE2B',
+            'customer_channel' => Customer::CHANNEL_ONLINE,
+            'first_name' => 'Convert',
+            'last_name' => 'Pay',
+            'email' => 'phase2-convert@example.test',
+            'phone' => '03007654321',
+            'password' => bcrypt('password'),
+            'address_line1' => '1 Test Street',
+            'city' => 'Lahore',
+            'state' => 'Punjab',
+            'country' => 'Pakistan',
+            'is_active' => true,
+        ]);
+        $order = OnlineSaleOrder::query()->create([
+            'order_number' => 'WEB-PHASE2-CONV',
+            'customer_id' => $customer->id,
+            'order_date' => today(),
+            'order_status' => OnlineSaleOrder::STATUS_PENDING,
+            'payment_status' => 'unpaid',
+            'customer_payment_method' => 'bank_transfer',
+            'customer_payment_proof_status' => OnlineSaleOrder::PROOF_SUBMITTED,
+            'payment_method' => 'bank_transfer',
+            'bank_account_id' => $bank->id,
+            'subtotal' => 300,
+            'total_amount' => 300,
+            'amount_paid' => 0,
+        ]);
+        $order->items()->create([
+            'product_id' => $product->id,
+            'sort_order' => 1,
+            'product_name_en' => 'Bank Item',
+            'quantity' => 1,
+            'unit_price' => 300,
+            'line_total' => 300,
+        ]);
+
+        $actor = User::factory()->create();
+        $service = app(OnlineSaleOrderService::class);
+
+        $service->verifyCustomerPaymentProof($order, $actor);
+        $service->convertToSale($order->fresh(['items']), $actor);
+
+        $this->assertSame(1, BankAccountTransaction::query()
+            ->where('type', BankAccountTransaction::TYPE_SALE_RECEIPT)
+            ->where('direction', BankAccountTransaction::DIRECTION_CREDIT)
+            ->where(function ($query) use ($order): void {
+                $query->where('online_sale_order_id', $order->id)
+                    ->orWhere('sale_id', $order->fresh()->sale_id);
+            })
+            ->count());
+        $this->assertSame(300.0, app(BankAccountService::class)->balance($bank->fresh()));
+        $this->assertSame(0, app(BankAccountService::class)->removeDuplicateConvertedOnlineOrderSaleReceipts());
+
+        // Legacy double-post: sale credit without online_sale_order_id while order credit exists.
+        BankAccountTransaction::query()->create([
+            'bank_account_id' => $bank->id,
+            'type' => BankAccountTransaction::TYPE_SALE_RECEIPT,
+            'direction' => BankAccountTransaction::DIRECTION_CREDIT,
+            'amount' => 300,
+            'transaction_date' => today(),
+            'sale_id' => $order->fresh()->sale_id,
+            'description' => 'duplicate sale credit',
+        ]);
+        $this->assertSame(600.0, app(BankAccountService::class)->balance($bank->fresh()));
+        $this->assertSame(1, app(BankAccountService::class)->removeDuplicateConvertedOnlineOrderSaleReceipts());
+        $this->assertSame(0, app(BankAccountService::class)->removeDuplicateConvertedOnlineOrderSaleReceipts());
+        $this->assertSame(300.0, app(BankAccountService::class)->balance($bank->fresh()));
+    }
+
     public function test_negative_and_nonnumeric_sale_and_purchase_inputs_are_rejected(): void
     {
         $product = $this->product('VALIDATION');

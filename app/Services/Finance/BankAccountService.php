@@ -332,12 +332,7 @@ class BankAccountService
             return;
         }
 
-        $sourceKey = 'online-sale-order:'.$order->id;
-
-        if (BankAccountTransaction::query()
-            ->where('online_sale_order_id', $order->id)
-            ->orWhere('source_key', $sourceKey)
-            ->exists()) {
+        if ($this->onlineOrderReceiptExists((int) $order->id)) {
             return;
         }
 
@@ -356,13 +351,13 @@ class BankAccountService
             __('agricart.finance.banks.ledger.online_order_receipt', ['number' => $order->order_number]),
             [
                 'online_sale_order_id' => $order->id,
-                'source_key' => $sourceKey,
+                'source_key' => $this->onlineOrderReceiptSourceKey((int) $order->id),
             ],
             null,
         );
     }
 
-    public function recordSaleReceiptIfApplicable(Sale $sale): void
+    public function recordSaleReceiptIfApplicable(Sale $sale, ?int $onlineSaleOrderId = null): void
     {
         if ($sale->payment_method !== 'bank_transfer' || ! $sale->bank_account_id) {
             return;
@@ -378,10 +373,30 @@ class BankAccountService
             return;
         }
 
+        $onlineSaleOrderId ??= OnlineSaleOrder::query()
+            ->where('sale_id', $sale->id)
+            ->value('id');
+        $onlineSaleOrderId = $onlineSaleOrderId !== null ? (int) $onlineSaleOrderId : null;
+
+        // Converted invoices: payment was already banked on the online order.
+        if ($onlineSaleOrderId !== null && $this->onlineOrderReceiptExists($onlineSaleOrderId)) {
+            return;
+        }
+
         $account = BankAccount::query()->find($sale->bank_account_id);
 
         if ($account === null || ! $account->isActive()) {
             return;
+        }
+
+        $attrs = [
+            'sale_id' => $sale->id,
+            'source_key' => 'sale:'.$sale->id,
+        ];
+
+        if ($onlineSaleOrderId !== null) {
+            $attrs['online_sale_order_id'] = $onlineSaleOrderId;
+            $attrs['source_key'] = $this->onlineOrderReceiptSourceKey($onlineSaleOrderId);
         }
 
         $this->postTransaction(
@@ -391,9 +406,62 @@ class BankAccountService
             $paid,
             $sale->sale_date?->toDateString() ?? now()->toDateString(),
             __('agricart.finance.banks.ledger.sale_receipt', ['number' => $sale->sale_number]),
-            ['sale_id' => $sale->id],
+            $attrs,
             null,
         );
+    }
+
+    /**
+     * Remove sale-side bank credits that duplicate an online-order receipt
+     * (legacy double-post from verify/mark paid + convert into invoice).
+     */
+    public function removeDuplicateConvertedOnlineOrderSaleReceipts(): int
+    {
+        $deleted = 0;
+
+        $orders = OnlineSaleOrder::query()
+            ->whereNotNull('sale_id')
+            ->get(['id', 'sale_id']);
+
+        foreach ($orders as $order) {
+            if (! $this->onlineOrderReceiptExists((int) $order->id)) {
+                continue;
+            }
+
+            $duplicates = BankAccountTransaction::query()
+                ->where('sale_id', $order->sale_id)
+                ->where('type', BankAccountTransaction::TYPE_SALE_RECEIPT)
+                ->where('direction', BankAccountTransaction::DIRECTION_CREDIT)
+                ->where(function ($query) use ($order): void {
+                    $query->whereNull('online_sale_order_id')
+                        ->orWhere('online_sale_order_id', '!=', $order->id);
+                })
+                ->get();
+
+            foreach ($duplicates as $duplicate) {
+                $duplicate->delete();
+                $deleted++;
+            }
+        }
+
+        return $deleted;
+    }
+
+    public function onlineOrderReceiptExists(int $onlineSaleOrderId): bool
+    {
+        $sourceKey = $this->onlineOrderReceiptSourceKey($onlineSaleOrderId);
+
+        return BankAccountTransaction::query()
+            ->where(function ($query) use ($onlineSaleOrderId, $sourceKey): void {
+                $query->where('online_sale_order_id', $onlineSaleOrderId)
+                    ->orWhere('source_key', $sourceKey);
+            })
+            ->exists();
+    }
+
+    private function onlineOrderReceiptSourceKey(int $onlineSaleOrderId): string
+    {
+        return 'online-sale-order:'.$onlineSaleOrderId;
     }
 
     public function recordSaleReturnRefundIfApplicable(SaleReturn $return): void

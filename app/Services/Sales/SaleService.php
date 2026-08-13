@@ -63,11 +63,15 @@ class SaleService
      */
     public function create(array $data, string $status): Sale
     {
+        $skipBankReceipt = (bool) ($data['skip_bank_receipt'] ?? false);
+        $onlineSaleOrderId = isset($data['online_sale_order_id']) ? (int) $data['online_sale_order_id'] : null;
+        unset($data['skip_bank_receipt'], $data['online_sale_order_id']);
+
         $validated = $this->validate($data, $status);
         $rows = $validated['rows'];
         unset($validated['rows']);
 
-        return DB::transaction(function () use ($validated, $rows, $status): Sale {
+        return DB::transaction(function () use ($validated, $rows, $status, $skipBankReceipt, $onlineSaleOrderId): Sale {
             if (! filled($validated['sale_number'] ?? null)) {
                 $validated['sale_number'] = $this->nextSaleNumber();
             }
@@ -86,7 +90,12 @@ class SaleService
             $sale = $sale->fresh(['items', 'customer', 'cashier']);
 
             if ($status === Sale::STATUS_COMPLETED) {
-                app(BankAccountService::class)->recordSaleReceiptIfApplicable($sale);
+                if (! $skipBankReceipt) {
+                    app(BankAccountService::class)->recordSaleReceiptIfApplicable(
+                        $sale,
+                        $onlineSaleOrderId > 0 ? $onlineSaleOrderId : null,
+                    );
+                }
                 app(CashBookService::class)->recordSaleReceiptIfApplicable($sale);
             }
 
