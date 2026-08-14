@@ -374,7 +374,7 @@ class Form extends Component
         }
 
         $filename = pathinfo($this->imageUpload->getClientOriginalName(), PATHINFO_FILENAME);
-        $this->imagePreviewUrl = \App\Support\LivewireImagePreview::url($this->imageUpload);
+        $this->imagePreviewUrl = \App\Support\LivewireImagePreview::url($this->imageUpload, true);
 
         $cleanName = Str::title(str_replace(['-', '_'], ' ', $filename));
 

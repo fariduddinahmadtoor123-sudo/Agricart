@@ -21,6 +21,25 @@ class PublicStorage
         return is_link(public_path('storage'));
     }
 
+    /**
+     * Host-relative public media URL. Prefer this over Storage::url() in admin
+     * previews so www/non-www and APP_URL mismatches cannot break <img src>.
+     */
+    public static function webUrl(?string $relative): ?string
+    {
+        if (! is_string($relative) || trim($relative) === '') {
+            return null;
+        }
+
+        $relative = ltrim(str_replace('\\', '/', $relative), '/');
+
+        if ($relative === '' || str_contains($relative, '..')) {
+            return null;
+        }
+
+        return '/storage/'.$relative;
+    }
+
     public static function deploymentModeLabel(): string
     {
         if (self::symlinkAvailable()) {

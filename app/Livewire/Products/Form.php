@@ -19,6 +19,8 @@ use App\Services\Catalog\ProductImageWatermarkService;
 use App\Services\Catalog\ProductService;
 use App\Services\PricingControls\QuantityPricingEngine;
 use App\Support\FriendlyError;
+use App\Support\LivewireImagePreview;
+use App\Support\PublicStorage;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -271,7 +273,7 @@ class Form extends Component
         }
 
         $cleanName = $this->nameFromImageFilename($this->imageUpload);
-        $this->imagePreviewUrl = $this->imageUpload->temporaryUrl();
+        $this->imagePreviewUrl = LivewireImagePreview::url($this->imageUpload, true);
 
         if (filled($cleanName) && ! filled(trim($this->name_en))) {
             $this->name_en = $cleanName;
@@ -324,7 +326,7 @@ class Form extends Component
             return;
         }
 
-        $this->galleryPreviewUrls[$index] = $upload->temporaryUrl();
+        $this->galleryPreviewUrls[$index] = LivewireImagePreview::url($upload, true);
     }
 
     public function removeGalleryImage(int $index): void
@@ -1089,7 +1091,7 @@ class Form extends Component
         $pair = app(ProductImageWatermarkService::class)->processUpload($this->imageUpload, 'main');
         $this->storedImagePath = $pair['public'];
         $this->storedImageOriginalPath = $pair['original'];
-        $this->imagePreviewUrl = Storage::disk('public')->url($pair['public']);
+        $this->imagePreviewUrl = PublicStorage::webUrl($pair['public']);
         $this->imageUpload = null;
 
         return $pair['public'];
@@ -1111,7 +1113,7 @@ class Form extends Component
             $pair = app(ProductImageWatermarkService::class)->processUpload($upload, 'gallery');
             $this->storedGalleryPaths[$index] = $pair['public'];
             $this->storedGalleryOriginalPaths[$index] = $pair['original'];
-            $this->galleryPreviewUrls[$index] = Storage::disk('public')->url($pair['public']);
+            $this->galleryPreviewUrls[$index] = PublicStorage::webUrl($pair['public']);
             $this->galleryUploads[$index] = null;
             $storedPublic[] = $pair['public'];
             $storedOriginal[] = $pair['original'];
@@ -1185,9 +1187,7 @@ class Form extends Component
         $this->imageUpload = null;
         $this->storedImagePath = $imagePath;
         $this->storedImageOriginalPath = $imageOriginalPath;
-        $this->imagePreviewUrl = filled($imagePath)
-            ? Storage::disk('public')->url($imagePath)
-            : null;
+        $this->imagePreviewUrl = PublicStorage::webUrl($imagePath);
         $this->resetGallerySlots();
 
         foreach (array_slice($galleryPaths, 0, self::GALLERY_SLOT_COUNT) as $index => $path) {
@@ -1199,7 +1199,7 @@ class Form extends Component
             $this->storedGalleryOriginalPaths[$index] = is_string($galleryOriginalPaths[$index] ?? null)
                 ? $galleryOriginalPaths[$index]
                 : null;
-            $this->galleryPreviewUrls[$index] = Storage::disk('public')->url($path);
+            $this->galleryPreviewUrls[$index] = PublicStorage::webUrl($path);
         }
 
         $this->galleryOverflowPaths = array_values(array_filter(
@@ -1305,9 +1305,7 @@ class Form extends Component
         $this->brand_id = $product->brand_id;
         $this->storedImagePath = $product->image_path;
         $this->storedImageOriginalPath = $product->image_original_path;
-        $this->imagePreviewUrl = filled($product->image_path)
-            ? Storage::disk('public')->url($product->image_path)
-            : null;
+        $this->imagePreviewUrl = PublicStorage::webUrl($product->image_path);
         $this->resetGallerySlots();
         $galleryImages = $product->gallery_images ?? [];
         $galleryOriginals = $product->gallery_original_images ?? [];
@@ -1333,7 +1331,7 @@ class Form extends Component
             $this->storedGalleryOriginalPaths[$index] = is_string($galleryOriginals[$index] ?? null)
                 ? $galleryOriginals[$index]
                 : null;
-            $this->galleryPreviewUrls[$index] = Storage::disk('public')->url($path);
+            $this->galleryPreviewUrls[$index] = PublicStorage::webUrl($path);
         }
 
         $this->code = $product->code;

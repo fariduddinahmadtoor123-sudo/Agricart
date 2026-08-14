@@ -2,44 +2,80 @@
 
 namespace App\Support;
 
+use App\Services\Media\PublicMediaMirror;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Throwable;
 
 /**
  * Reliable image previews for Livewire uploads.
  *
- * Livewire temporaryUrl() fails for some formats / rare temp-file edge cases even when
- * the file can still be stored and shown from public storage after save.
+ * Catalog images ($onPublicDisk): write a small file on the public disk (same
+ * /storage path the storefront uses). Livewire temporaryUrl() and data URIs
+ * often fail in the Filament panel on Hostinger.
+ *
+ * Identity documents: keep an inline data URI so CNIC scans are not copied
+ * into public storage.
  */
 final class LivewireImagePreview
 {
-    public static function url(TemporaryUploadedFile $file): ?string
+    public static function url(TemporaryUploadedFile $file, bool $onPublicDisk = false): ?string
     {
-        $path = $file->getRealPath();
+        $absolute = $file->getRealPath();
+        $jpeg = is_string($absolute) && $absolute !== '' && is_readable($absolute)
+            ? self::thumbnailBinary($absolute)
+            : null;
 
-        if (is_string($path) && $path !== '' && is_readable($path)) {
-            $thumb = self::thumbnailBinary($path);
-
-            if ($thumb !== null) {
-                return 'data:image/jpeg;base64,'.base64_encode($thumb);
+        if ($onPublicDisk) {
+            if ($jpeg !== null) {
+                return self::publish('livewire-previews/'.Str::uuid()->toString().'.jpg', $jpeg);
             }
+
+            $bytes = self::readableBytes($file, 2_000_000);
+
+            if ($bytes === null) {
+                return null;
+            }
+
+            $ext = strtolower((string) ($file->guessExtension() ?: 'jpg'));
+            if (! in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'], true)) {
+                $ext = 'jpg';
+            }
+
+            return self::publish('livewire-previews/'.Str::uuid()->toString().'.'.$ext, $bytes);
         }
 
-        try {
-            if ($file->isPreviewable()) {
-                return $file->temporaryUrl();
-            }
-        } catch (\Throwable) {
-            // Fall through to a full-file data URI when safe.
+        if ($jpeg !== null) {
+            return 'data:image/jpeg;base64,'.base64_encode($jpeg);
         }
 
         return self::inlineDataUri($file);
     }
 
+    private static function publish(string $relative, string $contents): ?string
+    {
+        $disk = Storage::disk('public');
+        $disk->makeDirectory('livewire-previews');
+
+        if (! $disk->put($relative, $contents)) {
+            return null;
+        }
+
+        try {
+            app(PublicMediaMirror::class)->publish($relative, 'public');
+        } catch (Throwable) {
+            // Local/fake disks have no Apache mirror.
+        }
+
+        return PublicStorage::webUrl($relative);
+    }
+
     private static function inlineDataUri(TemporaryUploadedFile $file): ?string
     {
-        $path = $file->getRealPath();
+        $bytes = self::readableBytes($file, 350_000);
 
-        if (! is_string($path) || $path === '' || ! is_readable($path)) {
+        if ($bytes === null) {
             return null;
         }
 
@@ -49,19 +85,26 @@ final class LivewireImagePreview
             return null;
         }
 
+        return 'data:'.$mime.';base64,'.base64_encode($bytes);
+    }
+
+    private static function readableBytes(TemporaryUploadedFile $file, int $maxBytes): ?string
+    {
+        $path = $file->getRealPath();
+
+        if (! is_string($path) || $path === '' || ! is_readable($path)) {
+            return null;
+        }
+
         $size = filesize($path);
 
-        if ($size === false || $size > 350_000) {
+        if ($size === false || $size > $maxBytes) {
             return null;
         }
 
         $binary = @file_get_contents($path);
 
-        if ($binary === false || $binary === '') {
-            return null;
-        }
-
-        return 'data:'.$mime.';base64,'.base64_encode($binary);
+        return is_string($binary) && $binary !== '' ? $binary : null;
     }
 
     private static function thumbnailBinary(string $path): ?string

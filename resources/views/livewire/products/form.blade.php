@@ -161,7 +161,7 @@
                 <div class="agricart-product-form__image-slot" role="listitem">
                     <label class="agricart-category-form__icon-slot agricart-category-form__icon-slot--upload agricart-product-form__image-upload" title="{{ __('agricart.products.fields.image') }}">
                         @if ($imagePreviewUrl)
-                            <img src="{{ $imagePreviewUrl }}" alt="" class="agricart-category-form__icon-preview" />
+                            <img src="{{ $imagePreviewUrl }}" alt="" class="agricart-category-form__icon-preview" wire:key="product-main-preview-{{ sha1($imagePreviewUrl) }}" />
                         @else
                             <x-filament::icon :icon="Heroicon::OutlinedPhoto" class="agricart-category-form__icon-placeholder" />
                         @endif
@@ -256,7 +256,7 @@
                             title="{{ __('agricart.products.fields.gallery_image') }} {{ $slot + 1 }}"
                         >
                             @if ($galleryPreviewUrls[$slot] ?? null)
-                                <img src="{{ $galleryPreviewUrls[$slot] }}" alt="" class="agricart-category-form__icon-preview" />
+                                <img src="{{ $galleryPreviewUrls[$slot] }}" alt="" class="agricart-category-form__icon-preview" wire:key="product-gallery-preview-{{ $slot }}-{{ sha1((string) $galleryPreviewUrls[$slot]) }}" />
                             @else
                                 <x-filament::icon :icon="Heroicon::OutlinedPlus" class="agricart-category-form__icon-placeholder" />
                             @endif

@@ -296,7 +296,13 @@ class ProductFormInteractionTest extends TestCase
             ->call('openForm')
             ->set('imageUpload', UploadedFile::fake()->image('battery-sprayer.jpg'));
 
-        $this->assertSame([], Storage::disk('public')->allFiles());
+        $this->assertSame(
+            [],
+            array_values(array_filter(
+                Storage::disk('public')->allFiles(),
+                fn (string $path): bool => ! str_starts_with($path, 'livewire-previews/'),
+            )),
+        );
 
         $this->fillRequiredProductFields($component, $category->id, $catalog)
             ->set('name_ur', 'بیٹری سپریئر')

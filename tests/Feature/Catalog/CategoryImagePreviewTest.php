@@ -35,6 +35,7 @@ class CategoryImagePreviewTest extends TestCase
             ->get('imagePreviewUrl');
 
         $this->assertIsString($preview);
-        $this->assertStringStartsWith('data:image/jpeg;base64,', $preview);
+        $this->assertStringStartsWith('/storage/livewire-previews/', $preview);
+        Storage::disk('public')->assertExists(substr($preview, strlen('/storage/')));
     }
 }
