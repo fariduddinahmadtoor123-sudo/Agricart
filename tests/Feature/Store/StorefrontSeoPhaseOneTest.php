@@ -132,6 +132,21 @@ class StorefrontSeoPhaseOneTest extends TestCase
             ->assertSee('9988776655', false);
     }
 
+    public function test_ga4_tag_renders_once_in_layout_head_when_configured(): void
+    {
+        StoreSetting::current()->update([
+            'ga_measurement_id' => 'G-JV0SHL1YGX',
+            'gtm_container_id' => null,
+        ]);
+
+        $html = $this->get(route('store.home'))->assertOk()->getContent();
+
+        $this->assertSame(1, substr_count($html, 'https://www.googletagmanager.com/gtag/js?id=G-JV0SHL1YGX'));
+        $this->assertSame(1, substr_count($html, "gtag('config', \"G-JV0SHL1YGX\""));
+        $this->assertStringContainsString('send_page_view', $html);
+        $this->assertStringNotContainsString('googletagmanager.com/gtm.js', $html);
+    }
+
     public function test_google_merchant_feed_lists_active_product_with_image_and_price(): void
     {
         Storage::fake('public');
