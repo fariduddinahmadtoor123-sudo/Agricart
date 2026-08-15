@@ -351,7 +351,7 @@ return [
         ],
         'sales' => [
             'overview' => 'جائزہ', 'pos-sales' => 'سیلز اینڈ پی او ایس',
-            'online-quotations' => 'آن لائن کوٹیشنز', 'online-orders' => 'Ready for Queue', 'order-dispatch' => 'آن لائن آرڈرز ان کیو', 'forwarded-orders' => 'فارورڈڈ', 'sales-quotations' => 'سیل کوٹیشنز', 'sales-returns' => 'سیل ریٹرنز', 'inbox' => 'ان باکس', 'tasks' => 'ٹاسکس',
+            'online-quotations' => 'آن لائن کوٹیشنز', 'online-orders' => 'Ready for Queue', 'order-dispatch' => 'آن لائن آرڈرز ان کیو', 'forwarded-orders' => 'فارورڈڈ', 'sales-quotations' => 'سیل کوٹیشنز', 'sales-returns' => 'سیل ریٹرنز', 'inbox' => 'اسٹاف ان باکس', 'tasks' => 'ٹاسکس',
         ],
         'store' => ['overview' => 'جائزہ', 'top-bar' => 'اوپر پٹی', 'ticker' => 'ٹکر', 'header' => 'ہیڈر', 'menu' => 'مینیو', 'pages' => 'صفحات', 'footer' => 'فٹر', 'items' => 'اشیاء', 'messages' => 'ایگری کارٹ ان باکس', 'reviews' => 'ریویوز', 'testimonials' => 'Testimonials', 'visitor-analytics' => 'وزیٹر اینالیٹکس', 'seo' => 'SEO', 'about' => 'About', 'registration' => 'رجسٹریشن نوٹس', 'brand-reviews' => 'Brand Reviews'],
         'logistics' => ['overview' => 'جائزہ', 'delivery-methods' => 'ڈیلیوری طریقے', 'shipments' => 'زیر التوا', 'shipped' => 'بھیجے گئے'],
@@ -2804,6 +2804,8 @@ return [
             'permissions_legend' => 'دیکھیں = براؤز · بنائیں = نیا شامل · ترمیم = موجودہ بدلنا · حذف = ہٹانا · پرنٹ = شیٹ/لیبل پرنٹ',
             'pages' => 'اس ماڈیول کے صفحات:',
             'page_permissions' => 'صفحہ اجازتیں (صرف منتخب صفحات مینو میں نظر آئیں گی):',
+            'search_permissions' => 'صفحہ تلاش کریں',
+            'search_permissions_placeholder' => 'مثلاً ایگری کارٹ ان باکس',
             'extra_permissions' => 'اضافی اجازتیں:',
             'super_admin_locked' => 'سپر ایڈمن کی مکمل رسائی ہے اور اسے تبدیل نہیں کیا جا سکتا۔ پرمیشنز دوبارہ سیڈ کرنے سے یہ رول خود تازہ ہو جاتا ہے۔',
             'select_all_module' => 'اس ماڈیول کی تمام اجازتیں منتخب کریں',

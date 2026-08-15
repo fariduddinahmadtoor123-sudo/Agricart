@@ -15,6 +15,10 @@
 @section('robots', $currentPage > 1 ? 'noindex,follow' : 'index,follow,max-image-preview:large')
 
 @section('content')
+    @include('store.components.breadcrumbs', [
+        'crumbs' => $categoryService->storefrontBreadcrumbs(null, __('agricart.storefront.products.heading')),
+    ])
+
     <header class="ag-store-products-index__header">
         <h1 class="ag-store-page-title">
             {{ __('agricart.storefront.products.heading') }}

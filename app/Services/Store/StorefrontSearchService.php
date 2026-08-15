@@ -12,7 +12,10 @@ use Illuminate\Support\Str;
 
 class StorefrontSearchService
 {
-    public function __construct(private readonly StoreProductService $products) {}
+    public function __construct(
+        private readonly StoreProductService $products,
+        private readonly StoreCategoryService $categoryService,
+    ) {}
 
     /**
      * @return array{
@@ -47,9 +50,17 @@ class StorefrontSearchService
         $categoryResults = $this->categories($term, min(12, $limit), preview: true);
         $pageResults = $this->pages($term, min(5, $limit), preview: true);
         $remaining = max(0, $limit - $categoryResults->count() - $pageResults->count());
-        $productResults = $this->products->searchPreview($term, max(1, $remaining))
-            ->map(function ($product): array {
+        $productResults = $this->products->searchPreview($term, max(1, $remaining));
+        $productCategories = $this->categoryService->ancestorMap(
+            $productResults->map(static fn ($product) => $product->category)->all(),
+        );
+
+        $productResults = $productResults
+            ->map(function ($product) use ($productCategories): array {
                 $brand = $this->products->localizedBrandName($product);
+                $hierarchy = $this->categoryService->compactHierarchyLabel(
+                    $this->categoryService->hierarchyNames($product->category, $productCategories),
+                );
 
                 return [
                     'id' => $product->id,
@@ -63,6 +74,7 @@ class StorefrontSearchService
                         : null,
                     'code' => filled($product->code) ? $product->code : null,
                     'brand' => $brand,
+                    'hierarchy' => $hierarchy,
                 ];
             });
 
@@ -101,7 +113,7 @@ class StorefrontSearchService
 
         $query = Category::query()
             ->where('status', 'active')
-            ->with('parent:id,name_en,name_ur,image_path,slug')
+            ->with('parent:id,parent_id,name_en,name_ur,image_path,slug')
             ->where(fn (Builder $query) => $this->applyTokenSearch($query, $term, $fields));
 
         if ($preview) {
@@ -133,26 +145,33 @@ class StorefrontSearchService
                 $category->code,
             ))
             ->take($limit)
-            ->map(fn (Category $category): array => [
-                'id' => $category->id,
-                'type' => 'category',
-                'type_label' => $category->parent
-                    ? __('agricart.storefront.search.subcategory')
-                    : __('agricart.storefront.search.category'),
-                'name' => $this->localized($category->name_en, $category->name_ur),
-                'url' => route('store.category', $category->slug),
-                'image' => $this->categoryImageUrl($category),
-                'meta' => $category->parent
-                    ? __('agricart.storefront.search.in_category', [
-                        'category' => $this->localized($category->parent->name_en, $category->parent->name_ur),
-                    ])
-                    : null,
-                'excerpt' => $this->excerpt(
-                    $this->localized($category->short_description_en, $category->short_description_ur)
-                        ?: $this->localized($category->full_description_en, $category->full_description_ur),
-                ),
-            ])
-            ->values();
+            ->values()
+            ->pipe(function (Collection $matches): Collection {
+                $byId = $this->categoryService->ancestorMap($matches);
+
+                return $matches->map(function (Category $category) use ($byId): array {
+                    $names = $this->categoryService->hierarchyNames($category, $byId);
+                    $hierarchy = $this->categoryService->compactHierarchyLabel($names);
+                    $isNested = count($names) > 1;
+
+                    return [
+                        'id' => $category->id,
+                        'type' => 'category',
+                        'type_label' => $isNested
+                            ? __('agricart.storefront.search.subcategory')
+                            : __('agricart.storefront.search.category'),
+                        'name' => $this->localized($category->name_en, $category->name_ur),
+                        'url' => route('store.category', $category->slug),
+                        'image' => $this->categoryImageUrl($category),
+                        'meta' => $hierarchy,
+                        'hierarchy' => $hierarchy,
+                        'excerpt' => $this->excerpt(
+                            $this->localized($category->short_description_en, $category->short_description_ur)
+                                ?: $this->localized($category->full_description_en, $category->full_description_ur),
+                        ),
+                    ];
+                })->values();
+            });
     }
 
     private function categoryImageUrl(Category $category): ?string

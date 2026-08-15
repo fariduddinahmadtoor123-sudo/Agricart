@@ -9204,6 +9204,11 @@ span.agricart-sales-channels__switch.is-readonly {
     border: 1px solid color-mix(in srgb, var(--agricart-primary) 30%, var(--agricart-border));
 }
 
+.agricart-role-form__search-wrap {
+    max-width: 22rem;
+    margin: 0 0 0.85rem;
+}
+
 .agricart-role-form__permission-groups {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));

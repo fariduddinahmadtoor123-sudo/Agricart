@@ -248,4 +248,58 @@ class StoreCategoryDisplayTest extends TestCase
             ->assertSee(__('agricart.storefront.category.subcategories'), false)
             ->assertDontSee('>Farm</a>', false);
     }
+
+    public function test_category_and_product_pages_show_full_hierarchy_from_home(): void
+    {
+        $root = Category::query()->create([
+            'slug' => 'tools-root',
+            'code' => 'CAT-TOOLS-ROOT',
+            'status' => 'active',
+            'name_en' => 'Hand Tools',
+            'name_ur' => 'ہاتھ کے اوزار',
+        ]);
+        $mid = Category::query()->create([
+            'parent_id' => $root->id,
+            'slug' => 'soldering-mid',
+            'code' => 'CAT-SOLDER-MID',
+            'status' => 'active',
+            'name_en' => 'Soldering',
+            'name_ur' => 'سولڈرنگ',
+        ]);
+        $leaf = Category::query()->create([
+            'parent_id' => $mid->id,
+            'slug' => 'desoldering-pump',
+            'code' => 'CAT-DESOLDER',
+            'status' => 'active',
+            'name_en' => 'Desoldering Pump',
+            'name_ur' => 'ڈیسولڈرنگ پمپ',
+        ]);
+        $product = Product::query()->create([
+            'category_id' => $leaf->id,
+            'slug' => 'desoldering-pump-tool',
+            'code' => 'PRD-DESOLDER',
+            'status' => 'active',
+            'name_en' => 'Desoldering Pump Tool',
+            'name_ur' => 'ڈیسولڈرنگ پمپ ٹول',
+        ]);
+
+        $this->get(route('store.category', $leaf->slug))
+            ->assertOk()
+            ->assertSee(__('agricart.storefront.category.home'), false)
+            ->assertSee(route('store.home'), false)
+            ->assertSee(route('store.category', $root->slug), false)
+            ->assertSee(route('store.category', $mid->slug), false)
+            ->assertSee('Hand Tools', false)
+            ->assertSee('Soldering', false)
+            ->assertSee('Desoldering Pump', false)
+            ->assertDontSee(route('store.category', $leaf->slug).'">Desoldering Pump', false);
+
+        $this->get(route('store.product', $product->slug))
+            ->assertOk()
+            ->assertSee(route('store.home'), false)
+            ->assertSee(route('store.category', $root->slug), false)
+            ->assertSee(route('store.category', $mid->slug), false)
+            ->assertSee(route('store.category', $leaf->slug), false)
+            ->assertSee('Desoldering Pump Tool', false);
+    }
 }

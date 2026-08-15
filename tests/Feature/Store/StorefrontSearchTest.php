@@ -156,6 +156,40 @@ class StorefrontSearchTest extends TestCase
         $this->assertNotEmpty($categoryResult['image']);
     }
 
+    public function test_search_shows_compact_category_hierarchy_for_nested_matches(): void
+    {
+        $root = $this->category('agriculture-root', 'Agriculture Root');
+        $mid = $this->category('crop-tools-mid', 'Crop Tools Mid', [
+            'parent_id' => $root->id,
+        ]);
+        $leaf = $this->category('boom-filter-leaf', 'Boom Filter Leaf', [
+            'parent_id' => $mid->id,
+        ]);
+        $product = $this->product('boom-arm-mesh', 'Boom Arm Mesh', $leaf);
+
+        $expected = 'Agriculture Root › Crop Tools Mid › Boom Filter Leaf';
+
+        $suggest = $this->getJson(route('store.search.suggest', ['q' => 'Boom Filter']))
+            ->assertOk()
+            ->json('results');
+
+        $categoryHit = collect($suggest)->firstWhere('id', $leaf->id);
+        $this->assertIsArray($categoryHit);
+        $this->assertSame($expected, $categoryHit['hierarchy']);
+        $this->assertSame($expected, $categoryHit['meta']);
+
+        $productHit = collect($this->getJson(route('store.search.suggest', ['q' => 'Boom Arm']))
+            ->assertOk()
+            ->json('results'))->firstWhere('id', $product->id);
+        $this->assertIsArray($productHit);
+        $this->assertSame($expected, $productHit['hierarchy']);
+
+        $this->get(route('store.search', ['q' => 'Boom']))
+            ->assertOk()
+            ->assertSee($expected, false)
+            ->assertSee($product->name_en);
+    }
+
     public function test_all_results_page_returns_more_than_twelve_matching_categories(): void
     {
         $parent = $this->category('boom-parent', 'Boom Parent');

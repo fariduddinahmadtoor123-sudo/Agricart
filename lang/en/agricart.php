@@ -352,7 +352,7 @@ return [
         ],
         'sales' => [
             'overview' => 'Overview', 'pos-sales' => 'Sales & POS',
-            'online-quotations' => 'Online Quotations', 'online-orders' => 'Ready for Queue', 'order-dispatch' => 'Online Orders in Queue', 'forwarded-orders' => 'Forwarded', 'sales-quotations' => 'Sale Quotations', 'sales-returns' => 'Sale Returns', 'inbox' => 'Inbox', 'tasks' => 'Tasks',
+            'online-quotations' => 'Online Quotations', 'online-orders' => 'Ready for Queue', 'order-dispatch' => 'Online Orders in Queue', 'forwarded-orders' => 'Forwarded', 'sales-quotations' => 'Sale Quotations', 'sales-returns' => 'Sale Returns', 'inbox' => 'Staff Inbox', 'tasks' => 'Tasks',
         ],
         'store' => ['overview' => 'Overview', 'top-bar' => 'Top Bar', 'ticker' => 'Ticker', 'header' => 'Header', 'menu' => 'Menu', 'pages' => 'Pages', 'footer' => 'Footer', 'items' => 'Items', 'messages' => 'Agricart Inbox', 'reviews' => 'Reviews', 'testimonials' => 'Testimonials', 'visitor-analytics' => 'Visitor Analytics', 'seo' => 'SEO', 'about' => 'About', 'registration' => 'Registration', 'brand-reviews' => 'Brand Reviews'],
         'logistics' => ['overview' => 'Overview', 'delivery-methods' => 'Delivery Methods', 'shipments' => 'Pending', 'shipped' => 'Shipped'],
@@ -2806,6 +2806,8 @@ return [
             'permissions_legend' => 'View = browse · Create = Add new · Edit = change existing · Delete = remove · Print = print sheets/labels',
             'pages' => 'Pages included with this module:',
             'page_permissions' => 'Page permissions (only checked pages appear in the menu):',
+            'search_permissions' => 'Find a page',
+            'search_permissions_placeholder' => 'e.g. Agricart Inbox',
             'extra_permissions' => 'Extra permissions:',
             'super_admin_locked' => 'Super Admin has full access and cannot be edited. Re-seeding permissions refreshes this role automatically.',
             'select_all_module' => 'Select all for this module',

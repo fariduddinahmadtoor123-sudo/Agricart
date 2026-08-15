@@ -28,13 +28,9 @@
 @endpush
 
 @section('content')
-    <nav class="ag-store-breadcrumb ag-store-breadcrumb--compact" aria-label="{{ __('agricart.storefront.category.breadcrumb') }}">
-        <a href="{{ route('store.home') }}">{{ __('agricart.storefront.category.home') }}</a>
-        @if ($product->category)
-            <span aria-hidden="true">/</span>
-            <a href="{{ route('store.category', $product->category->slug) }}">{{ $categoryService->localizedName($product->category) }}</a>
-        @endif
-    </nav>
+    @include('store.components.breadcrumbs', [
+        'crumbs' => $categoryService->storefrontBreadcrumbs($product->category, $productName),
+    ])
 
     @if ($errors->any())
         <div class="ag-store-alert ag-store-alert--error" role="alert">

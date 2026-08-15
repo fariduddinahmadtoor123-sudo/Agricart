@@ -51,6 +51,15 @@ class PagePermissionsTest extends TestCase
         $this->assertArrayHasKey('resources', $form['sales']);
         $this->assertArrayHasKey('extras', $form['staff']);
         $this->assertContains('products', collect($form['catalog']['resources'])->pluck('slug')->all());
+        $this->assertContains('store.messages.view', collect(PermissionRegistry::flatPermissions())->pluck('key')->all());
+        $this->assertSame(
+            'Agricart Inbox',
+            collect(PermissionRegistry::groupsForForm()['store']['resources'])->firstWhere('slug', 'messages')['label_en'] ?? null,
+        );
+        $this->assertSame(
+            'messages',
+            collect(PermissionRegistry::groupsForForm()['store']['resources'])->pluck('slug')->get(1),
+        );
     }
 
     public function test_products_only_role_cannot_open_brands(): void
@@ -161,6 +170,39 @@ class PagePermissionsTest extends TestCase
         );
         $this->assertTrue(\App\Services\Sales\OnlineSaleOrderPaymentAccess::canViewProof($user));
         $this->assertTrue(\App\Services\Sales\OnlineSaleOrderPaymentAccess::canVerifyProof($user));
+    }
+
+    public function test_agricart_inbox_requires_store_messages_view(): void
+    {
+        $role = $this->makeRoleWithKeys([
+            'store.messages.view',
+            'store.messages.edit',
+        ]);
+
+        $user = User::factory()->create([
+            'role_id' => $role->id,
+            'status' => User::STATUS_ACTIVE,
+        ]);
+
+        $this->actingAs($user);
+        $this->assertTrue(\App\Filament\Clusters\Store\MessagesPage::canAccess());
+        $this->assertFalse(\App\Filament\Clusters\Store\ReviewsPage::canAccess());
+    }
+
+    public function test_store_layout_role_cannot_open_agricart_inbox(): void
+    {
+        $role = $this->makeRoleWithKeys([
+            'store.menu.view',
+            'store.menu.edit',
+        ]);
+
+        $user = User::factory()->create([
+            'role_id' => $role->id,
+            'status' => User::STATUS_ACTIVE,
+        ]);
+
+        $this->actingAs($user);
+        $this->assertFalse(\App\Filament\Clusters\Store\MessagesPage::canAccess());
     }
 
     /**

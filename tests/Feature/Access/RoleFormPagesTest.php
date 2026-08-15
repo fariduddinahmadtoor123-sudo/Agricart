@@ -64,6 +64,8 @@ class RoleFormPagesTest extends TestCase
             ->assertSee(__('agricart.roles.hints.page_permissions'), false)
             ->assertSee('Price Control', false)
             ->assertSee('agricart-role-form__resource', false)
-            ->assertSee('Transport / Goods', false);
+            ->assertSee('Transport / Goods', false)
+            ->assertSee('Agricart Inbox', false)
+            ->assertSee(__('agricart.roles.hints.search_permissions_placeholder'), false);
     }
 }

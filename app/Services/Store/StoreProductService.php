@@ -82,7 +82,7 @@ class StoreProductService
         }
 
         $products = $this->storefrontSearchQuery($term)
-            ->with(['brand', 'category:id,image_path'])
+            ->with(['brand', 'category:id,parent_id,image_path,name_en,name_ur,slug'])
             ->tap(fn (Builder $query) => $this->orderBySearchRelevance($query, $term))
             ->orderBy('id')
             ->paginate($perPage)
@@ -125,7 +125,7 @@ class StoreProductService
             ->tap(fn (Builder $query) => $this->applyStorefrontPreviewSearch($query, $term))
             ->with([
                 'brand:id,name_en,name_ur',
-                'category:id,image_path',
+                'category:id,parent_id,image_path,name_en,name_ur,slug',
             ])
             ->tap(fn (Builder $query) => $this->orderBySearchRelevance($query, $term))
             ->orderBy('id')

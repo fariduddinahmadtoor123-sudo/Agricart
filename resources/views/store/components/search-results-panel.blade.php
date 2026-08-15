@@ -34,8 +34,8 @@
                             <span class="ag-store-search-link-card__content">
                                 <span class="ag-store-search-link-card__type">{{ $result['type_label'] }}</span>
                                 <strong>{{ $result['name'] }}</strong>
-                                @if ($result['meta'])
-                                    <small>{{ $result['meta'] }}</small>
+                                @if ($result['hierarchy'] ?? $result['meta'] ?? null)
+                                    <small class="ag-store-search-link-card__hierarchy" title="{{ $result['hierarchy'] ?? $result['meta'] }}">{{ $result['hierarchy'] ?? $result['meta'] }}</small>
                                 @endif
                                 @if ($result['excerpt'])
                                     <span class="ag-store-search-link-card__excerpt">{{ $result['excerpt'] }}</span>
@@ -79,6 +79,10 @@
                     <span>{{ $products->total() }}</span>
                 </div>
                 <div @class(['ag-store-product-grid', 'ag-store-product-grid--cols-' . $columns, 'ag-store-search-results-grid'])>
+                    @php
+                        $searchCategoryService = app(\App\Services\Store\StoreCategoryService::class);
+                        $searchAncestorMap = $searchCategoryService->ancestorMap($products->pluck('category'));
+                    @endphp
                     @foreach ($products as $product)
                         @php
                             $imageUrl = $productService->imageUrl($product);
@@ -101,6 +105,14 @@
                             </a>
                             <a href="{{ $productUrl }}" class="ag-store-product-card__body">
                                 <h3 class="ag-store-product-card__name">{{ $name }}</h3>
+                                @php
+                                    $searchHierarchy = $searchCategoryService->compactHierarchyLabel(
+                                        $searchCategoryService->hierarchyNames($product->category, $searchAncestorMap),
+                                    );
+                                @endphp
+                                @if ($searchHierarchy)
+                                    <p class="ag-store-product-card__hierarchy" title="{{ $searchHierarchy }}">{{ $searchHierarchy }}</p>
+                                @endif
                                 @php
                                     $searchPresenter = app(\App\Services\Store\StorefrontProductPresenter::class);
                                     $searchProductRating = $searchPresenter->agricartProductRatingSummary($product);

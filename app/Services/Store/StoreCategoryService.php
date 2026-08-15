@@ -96,6 +96,139 @@ class StoreCategoryService
         return $category->name_en;
     }
 
+    /**
+     * @param  iterable<int, Category|null>  $categories
+     * @return Collection<int, Category>
+     */
+    public function ancestorMap(iterable $categories): Collection
+    {
+        $byId = collect();
+
+        foreach ($categories as $category) {
+            if ($category instanceof Category) {
+                $byId->put($category->id, $category);
+            }
+        }
+
+        $missing = $byId->pluck('parent_id')->filter()->unique()->diff($byId->keys());
+        $guard = 0;
+
+        while ($missing->isNotEmpty() && $guard++ < 8) {
+            $parents = Category::query()
+                ->whereIn('id', $missing->all())
+                ->get(['id', 'parent_id', 'name_en', 'name_ur', 'slug', 'image_path']);
+
+            foreach ($parents as $parent) {
+                $byId->put($parent->id, $parent);
+            }
+
+            $missing = $parents->pluck('parent_id')->filter()->unique()->diff($byId->keys());
+        }
+
+        return $byId;
+    }
+
+    /**
+     * Root → current localized names.
+     *
+     * @return list<string>
+     */
+    public function hierarchyNames(?Category $category, ?Collection $byId = null): array
+    {
+        if ($category === null) {
+            return [];
+        }
+
+        $names = [];
+        $current = $category;
+        $seen = [];
+
+        while ($current instanceof Category && ! isset($seen[$current->id])) {
+            $seen[$current->id] = true;
+            array_unshift($names, $this->localizedName($current));
+            $parentId = $current->parent_id;
+
+            if (! $parentId) {
+                break;
+            }
+
+            $current = $byId?->get($parentId)
+                ?? ($current->relationLoaded('parent') ? $current->parent : null);
+        }
+
+        return $names;
+    }
+
+    /**
+     * Compact breadcrumb: keep the root and the last two levels when the tree is deep.
+     *
+     * @param  list<string>  $names
+     */
+    public function compactHierarchyLabel(array $names): ?string
+    {
+        $names = array_values(array_filter($names, static fn (mixed $name): bool => filled($name)));
+
+        if ($names === []) {
+            return null;
+        }
+
+        if (count($names) > 4) {
+            $names = [$names[0], '…', $names[count($names) - 2], $names[count($names) - 1]];
+        }
+
+        return implode(' › ', $names);
+    }
+
+    /**
+     * Home → each ancestor → current category (and optional leaf such as a product).
+     *
+     * @return list<array{name: string, url: ?string, current: bool}>
+     */
+    public function storefrontBreadcrumbs(?Category $category, ?string $leafName = null): array
+    {
+        $crumbs = [[
+            'name' => __('agricart.storefront.category.home'),
+            'url' => route('store.home'),
+            'current' => false,
+        ]];
+
+        if ($category instanceof Category) {
+            $byId = $this->ancestorMap([$category]);
+            $chain = [];
+            $current = $category;
+            $seen = [];
+
+            while ($current instanceof Category && ! isset($seen[$current->id])) {
+                $seen[$current->id] = true;
+                array_unshift($chain, $current);
+                $parentId = $current->parent_id;
+                $current = $parentId ? $byId->get($parentId) : null;
+            }
+
+            $lastIndex = array_key_last($chain);
+
+            foreach ($chain as $index => $node) {
+                $isCurrentCategory = $leafName === null && $index === $lastIndex;
+
+                $crumbs[] = [
+                    'name' => $this->localizedName($node),
+                    'url' => $isCurrentCategory ? null : route('store.category', $node->slug),
+                    'current' => $isCurrentCategory,
+                ];
+            }
+        }
+
+        if (filled($leafName)) {
+            $crumbs[] = [
+                'name' => $leafName,
+                'url' => null,
+                'current' => true,
+            ];
+        }
+
+        return $crumbs;
+    }
+
     public function localizedField(Category $category, string $base): ?string
     {
         $localizedKey = $base . '_' . app()->getLocale();

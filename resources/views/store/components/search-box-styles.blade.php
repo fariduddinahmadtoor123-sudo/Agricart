@@ -81,8 +81,12 @@
         line-height: 1.3;
     }
     .ag-store-search-suggestions__meta {
+        overflow: hidden;
         color: var(--agricart-muted, #64748b);
         font-size: 0.75rem;
+        line-height: 1.3;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     .ag-store-search-suggestions__all {
         color: var(--agricart-primary, #83b735);

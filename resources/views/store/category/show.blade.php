@@ -21,6 +21,10 @@
 @endpush
 
 @section('content')
+    @include('store.components.breadcrumbs', [
+        'crumbs' => $categoryService->storefrontBreadcrumbs($category),
+    ])
+
     <h1 class="ag-store-page-title">
         {{ $categoryName }}
         <span class="ag-store-page-title__meta">

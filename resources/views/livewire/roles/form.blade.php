@@ -1,6 +1,6 @@
 <div
     class="agricart-role-form"
-    x-data
+    x-data="{ permissionQuery: '' }"
     x-init="
         $watch('$wire.saving', (value) => {
             window.dispatchEvent(new CustomEvent('role-form-busy', {
@@ -59,6 +59,17 @@
         <h3 class="agricart-form-panel__section-title">{{ __('agricart.roles.sections.permissions') }}</h3>
         <p class="agricart-form-panel__hint">{{ __('agricart.roles.hints.permissions') }}</p>
         <p class="agricart-role-form__legend">{{ __('agricart.roles.hints.permissions_legend') }}</p>
+        <label class="agricart-form-panel__label" for="agricart-role-permission-search">{{ __('agricart.roles.hints.search_permissions') }}</label>
+        <x-filament::input.wrapper class="agricart-role-form__search-wrap">
+            <input
+                id="agricart-role-permission-search"
+                type="search"
+                x-model="permissionQuery"
+                class="fi-input"
+                placeholder="{{ __('agricart.roles.hints.search_permissions_placeholder') }}"
+                autocomplete="off"
+            />
+        </x-filament::input.wrapper>
 
         <div class="agricart-role-form__permission-groups">
             @foreach ($permissionGroups as $groupKey => $group)
@@ -74,8 +85,21 @@
                     $groupHint = $isUr && filled($group['hint_ur'] ?? null)
                         ? $group['hint_ur']
                         : ($group['hint_en'] ?? null);
+                    $groupSearch = mb_strtolower(trim(implode(' ', array_filter([
+                        $groupLabel,
+                        $group['label_en'] ?? null,
+                        $group['label_ur'] ?? null,
+                        collect($group['resources'] ?? [])->pluck('label_en')->implode(' '),
+                        collect($group['resources'] ?? [])->pluck('label_ur')->implode(' '),
+                        collect($group['resources'] ?? [])->pluck('slug')->implode(' '),
+                    ]))));
                 @endphp
-                <div class="agricart-role-form__permission-group" wire:key="role-permission-group-{{ $groupKey }}">
+                <div
+                    class="agricart-role-form__permission-group"
+                    wire:key="role-permission-group-{{ $groupKey }}"
+                    data-search="{{ $groupSearch }}"
+                    x-show="!String(permissionQuery || '').trim() || ($el.dataset.search || '').includes(String(permissionQuery).trim().toLowerCase())"
+                >
                     <label class="agricart-role-form__group-toggle" title="{{ __('agricart.roles.hints.select_all_module') }}">
                         <input
                             type="checkbox"
