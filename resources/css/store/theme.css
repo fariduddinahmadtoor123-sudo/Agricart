@@ -6301,6 +6301,81 @@ html[dir='rtl'] .ag-store-footer__col--map {
     color: color-mix(in oklab, var(--agricart-primary) 80%, #000);
 }
 
+.ag-store-return {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.ag-store-return__lines {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ag-store-return__line {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem;
+    padding: 0.85rem 0;
+    border-bottom: 1px solid var(--agricart-border);
+}
+
+.ag-store-return__fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    gap: 0.65rem;
+    margin-top: 0.65rem;
+}
+
+.ag-store-return__fields label,
+.ag-store-return__note {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.ag-store-return__fields input,
+.ag-store-return__fields select,
+.ag-store-return__note textarea {
+    font: inherit;
+    font-weight: 400;
+    padding: 0.4rem 0.5rem;
+    border: 1px solid var(--agricart-border);
+    background: #fff;
+}
+
+.ag-store-return__note {
+    margin-top: 0.5rem;
+}
+
+.ag-store-return__status {
+    margin: 0 0 0.75rem;
+    font-weight: 600;
+}
+
+.ag-store-return__history {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ag-store-return__history li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.85rem;
+    padding: 0.4rem 0;
+    font-size: 0.875rem;
+}
+
+.ag-store-return__done {
+    margin: 0.35rem 0 0;
+    color: var(--agricart-muted);
+    font-size: 0.8125rem;
+}
+
 .ag-store-orders__totals {
     margin-top: 0.85rem;
     padding-top: 0.85rem;

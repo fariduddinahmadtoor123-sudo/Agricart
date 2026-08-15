@@ -387,9 +387,8 @@ class OnlineSaleOrder extends Model
             return false;
         }
 
-        if ($this->customer_payment_proof_status === self::PROOF_SUBMITTED
-            && ! filled($this->customer_bank_receipt_path)) {
-            return true;
+        if ($this->customer_payment_proof_status === self::PROOF_SUBMITTED) {
+            return false;
         }
 
         return in_array($this->customer_payment_proof_status, [
@@ -430,5 +429,10 @@ class OnlineSaleOrder extends Model
     public function items(): HasMany
     {
         return $this->hasMany(OnlineSaleOrderItem::class)->orderBy('sort_order');
+    }
+
+    public function returnRequests(): HasMany
+    {
+        return $this->hasMany(OnlineOrderReturnRequest::class);
     }
 }

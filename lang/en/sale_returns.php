@@ -81,4 +81,26 @@ return [
         'title' => 'Sale return',
         'heading' => 'Sales Return / Credit Note',
     ],
+
+    'requests' => [
+        'heading' => 'Online return requests',
+        'empty' => 'No pending online return requests.',
+        'col_number' => 'Request',
+        'col_order' => 'Order',
+        'col_customer' => 'Customer',
+        'col_items' => 'Items',
+        'col_note' => 'Customer note',
+        'approve' => 'Approve',
+        'reject' => 'Decline',
+        'reject_save' => 'Decline request',
+        'reject_note' => 'Reason for the customer',
+        'approve_confirm' => 'Approve this return? Stock will increase and the refund will be posted.',
+        'errors' => [
+            'not_pending' => 'This request is no longer pending.',
+            'rejection_note' => 'Enter a short reason for the customer (max 1000 characters).',
+            'sale_missing' => 'This order has no completed POS invoice yet, so the return cannot be posted.',
+            'items_required' => 'This request has no returnable lines.',
+            'sale_line_missing' => 'A requested item could not be matched on the POS invoice.',
+        ],
+    ],
 ];

@@ -44,8 +44,8 @@ class StorefrontSearchService
             return collect();
         }
 
-        $categoryResults = $this->categories($term, min(12, $limit));
-        $pageResults = $this->pages($term, min(5, $limit));
+        $categoryResults = $this->categories($term, min(12, $limit), preview: true);
+        $pageResults = $this->pages($term, min(5, $limit), preview: true);
         $remaining = max(0, $limit - $categoryResults->count() - $pageResults->count());
         $productResults = $this->products->searchPreview($term, max(1, $remaining))
             ->map(function ($product): array {
@@ -76,32 +76,55 @@ class StorefrontSearchService
     /**
      * @return Collection<int, array<string, mixed>>
      */
-    private function categories(string $term, int $limit): Collection
+    private function categories(string $term, int $limit, bool $preview = false): Collection
     {
         if (! $this->products->isSearchableTerm($term)) {
             return collect();
         }
 
-        $fields = [
-            'name_en', 'name_ur', 'code', 'slug',
-            'short_description_en', 'short_description_ur',
-            'full_description_en', 'full_description_ur',
-            'usage_guidelines_en', 'usage_guidelines_ur',
-            'benefits_en', 'benefits_ur',
-            'warnings_en', 'warnings_ur',
-            'buying_guide_en', 'buying_guide_ur',
-            'seo_title_en', 'seo_title_ur',
-            'seo_description_en', 'seo_description_ur',
-            'seo_keywords_en', 'seo_keywords_ur',
-            'seo_focus_keyword_en', 'seo_focus_keyword_ur',
-            'search_terms', 'hs_code',
-        ];
+        $fields = $preview
+            ? ['name_en', 'name_ur', 'code', 'slug', 'search_terms']
+            : [
+                'name_en', 'name_ur', 'code', 'slug',
+                'short_description_en', 'short_description_ur',
+                'full_description_en', 'full_description_ur',
+                'usage_guidelines_en', 'usage_guidelines_ur',
+                'benefits_en', 'benefits_ur',
+                'warnings_en', 'warnings_ur',
+                'buying_guide_en', 'buying_guide_ur',
+                'seo_title_en', 'seo_title_ur',
+                'seo_description_en', 'seo_description_ur',
+                'seo_keywords_en', 'seo_keywords_ur',
+                'seo_focus_keyword_en', 'seo_focus_keyword_ur',
+                'search_terms', 'hs_code',
+            ];
 
-        return Category::query()
+        $query = Category::query()
             ->where('status', 'active')
-            ->with('parent')
-            ->where(fn (Builder $query) => $this->applyTokenSearch($query, $term, $fields))
-            ->limit(max(200, $limit))
+            ->with('parent:id,name_en,name_ur,image_path,slug')
+            ->where(fn (Builder $query) => $this->applyTokenSearch($query, $term, $fields));
+
+        if ($preview) {
+            $normalized = mb_strtolower(trim($term));
+            $prefix = $this->escapeLike($normalized).'%';
+
+            $query->select([
+                'id', 'parent_id', 'slug', 'name_en', 'name_ur', 'code', 'image_path',
+                'short_description_en', 'short_description_ur',
+            ])
+                ->orderByRaw(
+                    'CASE
+                        WHEN LOWER(COALESCE(name_en, \'\')) = ? OR LOWER(COALESCE(name_ur, \'\')) = ? THEN 0
+                        WHEN LOWER(COALESCE(name_en, \'\')) LIKE ? ESCAPE \'!\' OR LOWER(COALESCE(name_ur, \'\')) LIKE ? ESCAPE \'!\' THEN 1
+                        ELSE 2 END',
+                    [$normalized, $normalized, $prefix, $prefix],
+                )
+                ->limit($limit);
+        } else {
+            $query->limit(max(200, $limit));
+        }
+
+        return $query
             ->get()
             ->sortBy(fn (Category $category): int => $this->relevance(
                 $term,
@@ -139,7 +162,7 @@ class StorefrontSearchService
                 continue;
             }
 
-            if (! Storage::disk('public')->exists($path)) {
+            if (! $this->products->publicFileExists($path)) {
                 continue;
             }
 
@@ -152,20 +175,20 @@ class StorefrontSearchService
     /**
      * @return Collection<int, array<string, mixed>>
      */
-    private function pages(string $term, int $limit): Collection
+    private function pages(string $term, int $limit, bool $preview = false): Collection
     {
         if (! $this->products->isSearchableTerm($term)) {
             return collect();
         }
 
+        $fields = $preview
+            ? ['title_en', 'title_ur', 'slug']
+            : ['title_en', 'title_ur', 'content_en', 'content_ur', 'slug'];
+
         return StorePage::query()
             ->where('is_active', true)
-            ->where(fn (Builder $query) => $this->applyTokenSearch(
-                $query,
-                $term,
-                ['title_en', 'title_ur', 'content_en', 'content_ur', 'slug'],
-            ))
-            ->limit(30)
+            ->where(fn (Builder $query) => $this->applyTokenSearch($query, $term, $fields))
+            ->limit($preview ? $limit : 30)
             ->get()
             ->sortBy(fn (StorePage $page): int => $this->relevance(
                 $term,

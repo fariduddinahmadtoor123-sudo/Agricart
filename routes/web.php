@@ -37,6 +37,7 @@ use App\Http\Controllers\Store\CustomerInboxController;
 use App\Http\Controllers\Store\CustomerLogoutController;
 use App\Http\Controllers\Store\CustomerOrderController;
 use App\Http\Controllers\Store\CustomerOrderPaymentController;
+use App\Http\Controllers\Store\CustomerOrderReturnController;
 use App\Http\Controllers\Store\CustomerPaymentProofController;
 use App\Http\Controllers\Store\CustomerPasswordResetController;
 use App\Http\Controllers\Store\CustomerProductReviewController;
@@ -109,6 +110,14 @@ Route::middleware([
         Route::post('/account/password', [CustomerProfileController::class, 'updatePassword'])->name('store.customer.account.password');
         Route::get('/account/orders', [CustomerOrderController::class, 'index'])->name('store.customer.orders');
         Route::get('/account/orders/{order}', [CustomerOrderController::class, 'show'])->name('store.customer.orders.show');
+        Route::get('/account/orders/{order}/return', [CustomerOrderReturnController::class, 'create'])
+            ->name('store.customer.orders.return');
+        Route::post('/account/orders/{order}/return', [CustomerOrderReturnController::class, 'store'])
+            ->middleware('throttle:customer-order-return')
+            ->name('store.customer.orders.return.store');
+        Route::post('/account/orders/{order}/return/cancel', [CustomerOrderReturnController::class, 'cancel'])
+            ->middleware('throttle:customer-order-return')
+            ->name('store.customer.orders.return.cancel');
         Route::get('/account/orders/{order}/payment-proof', [CustomerPaymentProofController::class, 'customer'])
             ->name('store.customer.orders.payment-proof.show');
         Route::post('/account/orders/{order}/payment-proof', [CustomerOrderPaymentController::class, 'store'])

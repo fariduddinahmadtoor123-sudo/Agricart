@@ -6615,6 +6615,13 @@ span.agricart-sales-channels__switch.is-readonly {
     border-color: #f0d9a0;
 }
 
+.agricart-visitor-analytics__scope {
+    margin: 0 0 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--agricart-muted);
+    line-height: 1.45;
+}
+
 .agricart-visitor-analytics__funnel {
     margin: 0 0 1rem;
     padding: 0.875rem 1rem;
@@ -8814,6 +8821,29 @@ span.agricart-sales-channels__switch.is-readonly {
     font-weight: 700;
     color: var(--agricart-primary);
     cursor: pointer;
+}
+
+.agricart-sale-return-requests {
+    margin-bottom: 1.25rem;
+}
+
+.agricart-sale-return-requests__title {
+    margin: 0 0 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+}
+
+.agricart-sale-return-requests__reject {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+}
+
+.agricart-sale-return-requests__reject textarea {
+    min-width: 12rem;
+    font: inherit;
+    font-size: 0.75rem;
 }
 
 /* ── User & role forms ────────────────────────────────────────────────────── */

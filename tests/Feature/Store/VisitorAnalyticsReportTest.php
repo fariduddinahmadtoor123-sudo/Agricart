@@ -149,6 +149,7 @@ class VisitorAnalyticsReportTest extends TestCase
         Livewire::actingAs($authorized)
             ->test(VisitorAnalyticsDashboard::class)
             ->assertSee(__('agricart.analytics.total_visitors'))
+            ->assertSee(__('agricart.analytics.storefront_only'))
             ->assertSee(__('agricart.analytics.daily_graph'));
 
         $this->actingAs($authorized)

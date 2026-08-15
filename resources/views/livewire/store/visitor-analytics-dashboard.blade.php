@@ -27,6 +27,8 @@
         </div>
     @endunless
 
+    <p class="agricart-visitor-analytics__scope">{{ __('agricart.analytics.storefront_only') }}</p>
+
     <div class="agricart-visitor-analytics__actions">
         <a href="{{ $exportUrl }}">{{ __('agricart.analytics.export') }}</a>
     </div>

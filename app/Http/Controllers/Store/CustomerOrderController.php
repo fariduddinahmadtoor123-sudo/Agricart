@@ -7,6 +7,7 @@ use App\Models\BankAccount;
 use App\Models\Customer;
 use App\Models\OnlineSaleOrder;
 use App\Models\ProductReview;
+use App\Services\Sales\OnlineOrderReturnRequestService;
 use App\Services\Sales\SaleService;
 use App\Services\Store\StoreLayoutService;
 use Illuminate\Contracts\View\View;
@@ -34,8 +35,13 @@ class CustomerOrderController extends Controller
         ]);
     }
 
-    public function show(Request $request, string $order, StoreLayoutService $layout, SaleService $sales): View
-    {
+    public function show(
+        Request $request,
+        string $order,
+        StoreLayoutService $layout,
+        SaleService $sales,
+        OnlineOrderReturnRequestService $returns,
+    ): View {
         /** @var Customer $customer */
         $customer = $request->user('customer');
 
@@ -60,11 +66,16 @@ class CustomerOrderController extends Controller
                 ->get()
                 ->keyBy('product_id');
 
+        $canReturn = $returns->orderIsReturnable($model)
+            && $model->items->contains(fn ($item): bool => $returns->remainingQuantity($item) > 0);
+
         return view('store.orders.show', [
             ...$layout->layoutData(),
             'order' => $model,
             'sales' => $sales,
             'reviewsByProduct' => $reviewsByProduct,
+            'canReturn' => $canReturn,
+            'pendingReturn' => $returns->pendingForOrder($model),
             'bankTransferAccounts' => BankAccount::query()
                 ->where('status', BankAccount::STATUS_ACTIVE)
                 ->orderBy('account_code')

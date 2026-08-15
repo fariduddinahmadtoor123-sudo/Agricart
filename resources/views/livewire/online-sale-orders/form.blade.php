@@ -256,21 +256,24 @@
             <div class="agricart-online-order__declared-payment">
                 <h3 class="agricart-online-order__section-title">{{ __('online_sale_orders.sections.customer_payment') }}</h3>
 
-                @if ($hasReceipt && $receiptNotified)
+                @if ($receiptNotified)
                     <p class="agricart-online-order__receipt-status is-ready">{{ __('online_sale_orders.payment_proof_statuses.' . $customer_payment_proof_status) }}</p>
-                    <div class="agricart-online-order__customer-receipt">
-                        @if ($this->customerBankReceiptIsPreviewable())
-                            <a href="{{ $customer_bank_receipt_url }}" target="_blank" rel="noopener" class="agricart-online-order__receipt-preview-link">
-                                <img src="{{ $customer_bank_receipt_url }}" alt="" class="agricart-online-order__receipt-preview" />
+                    @if ($hasReceipt)
+                        <div class="agricart-online-order__customer-receipt">
+                            @if ($this->customerBankReceiptIsPreviewable())
+                                <a href="{{ $customer_bank_receipt_url }}" target="_blank" rel="noopener" class="agricart-online-order__receipt-preview-link">
+                                    <img src="{{ $customer_bank_receipt_url }}" alt="" class="agricart-online-order__receipt-preview" />
+                                </a>
+                            @endif
+                            <a href="{{ $customer_bank_receipt_url }}" target="_blank" rel="noopener" class="agricart-online-order__proof-link">
+                                {{ __('online_sale_orders.actions.view_customer_receipt') }}
                             </a>
-                        @endif
-                        <a href="{{ $customer_bank_receipt_url }}" target="_blank" rel="noopener" class="agricart-online-order__proof-link">
-                            {{ __('online_sale_orders.actions.view_customer_receipt') }}
-                        </a>
-                    </div>
+                        </div>
+                    @endif
                     @if (filled($customer_payment_reference))
                         <p class="agricart-online-order__meta-line">
-                            <strong><code>{{ $customer_payment_reference }}</code></strong>
+                            <strong>{{ __('online_sale_orders.fields.customer_payment_reference') }}:</strong>
+                            <code>{{ $customer_payment_reference }}</code>
                         </p>
                     @endif
                 @else

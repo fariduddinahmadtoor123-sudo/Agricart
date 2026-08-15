@@ -105,6 +105,9 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('customer-payment-proof', fn (Request $request) => [
             Limit::perMinute(5)->by((string) ($request->user('customer')?->id ?? $request->ip())),
         ]);
+        RateLimiter::for('customer-order-return', fn (Request $request) => [
+            Limit::perMinute(5)->by((string) ($request->user('customer')?->id ?? $request->ip())),
+        ]);
 
         foreach ([
             Category::class,

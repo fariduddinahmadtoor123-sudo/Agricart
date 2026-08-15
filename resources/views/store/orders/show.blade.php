@@ -13,6 +13,15 @@
             <header class="ag-store-orders__detail-head">
                 <div class="ag-store-orders__detail-toolbar ag-store-no-print">
                     <a href="{{ route('store.customer.orders') }}" class="ag-store-orders__link">{{ __('agricart.customer.orders.back_to_list') }}</a>
+                    @if ($pendingReturn ?? null)
+                        <a href="{{ route('store.customer.orders.return', $order->order_number) }}" class="ag-store-btn ag-store-btn--secondary ag-store-btn--sm">
+                            {{ __('agricart.customer.returns.view_request') }}
+                        </a>
+                    @elseif ($canReturn ?? false)
+                        <a href="{{ route('store.customer.orders.return', $order->order_number) }}" class="ag-store-btn ag-store-btn--secondary ag-store-btn--sm">
+                            {{ __('agricart.customer.returns.request_return') }}
+                        </a>
+                    @endif
                     <button type="button" class="ag-store-btn ag-store-btn--secondary ag-store-btn--sm" onclick="window.print()">
                         {{ __('agricart.customer.orders.print') }}
                     </button>

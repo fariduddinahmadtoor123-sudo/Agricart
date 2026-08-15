@@ -2,8 +2,10 @@
 
 namespace App\Livewire\SaleReturns;
 
+use App\Models\OnlineOrderReturnRequest;
 use App\Models\SaleReturn;
 use App\Models\User;
+use App\Services\Sales\OnlineOrderReturnRequestService;
 use App\Services\Sales\SaleReturnService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
@@ -23,6 +25,10 @@ class ListSaleReturns extends Component
     public string $paymentFilter = '';
 
     public string $methodFilter = '';
+
+    public ?int $rejectingRequestId = null;
+
+    public string $rejectNote = '';
 
     #[On('sale-returns-saved')]
     public function refreshList(): void
@@ -197,6 +203,76 @@ class ListSaleReturns extends Component
         $this->dispatch('sale-returns-open-print', url: route('admin.sale-returns.print', $return));
     }
 
+    public function startRejectRequest(int $requestId): void
+    {
+        if (! $this->userCan('edit')) {
+            return;
+        }
+
+        $this->rejectingRequestId = $requestId;
+        $this->rejectNote = '';
+    }
+
+    public function cancelRejectRequest(): void
+    {
+        $this->rejectingRequestId = null;
+        $this->rejectNote = '';
+    }
+
+    public function approveRequest(int $requestId): void
+    {
+        if (! $this->userCan('create')) {
+            return;
+        }
+
+        $request = OnlineOrderReturnRequest::query()->find($requestId);
+
+        if ($request === null) {
+            return;
+        }
+
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return;
+        }
+
+        try {
+            app(OnlineOrderReturnRequestService::class)->approve($request, $user);
+            $this->rejectingRequestId = null;
+            $this->resetPage();
+        } catch (ValidationException $exception) {
+            session()->flash('sale_return_error', collect($exception->errors())->flatten()->first());
+        }
+    }
+
+    public function rejectRequest(int $requestId): void
+    {
+        if (! $this->userCan('edit')) {
+            return;
+        }
+
+        $request = OnlineOrderReturnRequest::query()->find($requestId);
+
+        if ($request === null) {
+            return;
+        }
+
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return;
+        }
+
+        try {
+            app(OnlineOrderReturnRequestService::class)->reject($request, $user, $this->rejectNote);
+            $this->rejectingRequestId = null;
+            $this->rejectNote = '';
+        } catch (ValidationException $exception) {
+            session()->flash('sale_return_error', collect($exception->errors())->flatten()->first());
+        }
+    }
+
     public function render(): View
     {
         $returns = SaleReturn::query()
@@ -219,12 +295,21 @@ class ListSaleReturns extends Component
             ->orderByDesc('created_at')
             ->paginate(20);
 
+        $pendingRequests = OnlineOrderReturnRequest::query()
+            ->with(['customer', 'order', 'items.orderItem'])
+            ->where('status', OnlineOrderReturnRequest::STATUS_PENDING)
+            ->orderByDesc('id')
+            ->limit(50)
+            ->get();
+
         return view('livewire.sale-returns.list', [
             'returns' => $returns,
+            'pendingRequests' => $pendingRequests,
             'activeFilters' => $this->activeFilters(),
             'hasListConstraints' => $this->hasListConstraints(),
             'canEdit' => $this->userCan('edit'),
             'canDelete' => $this->userCan('delete'),
+            'canApprove' => $this->userCan('create'),
         ]);
     }
 
