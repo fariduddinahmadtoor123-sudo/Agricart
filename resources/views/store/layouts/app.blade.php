@@ -48,7 +48,9 @@
     <meta name="twitter:description" content="{{ $seoDescription }}">
     @stack('structured-data')
     @include('store.components.seo-tracking')
-    @livewireStyles
+    @if (request()->routeIs('auth.register', 'auth.staff.register', 'auth.supplier.register'))
+        @livewireStyles
+    @endif
     @vite(['resources/css/app.css', 'resources/css/store/theme.css', 'resources/js/store.js'])
     @include('store.components.search-box-styles')
     @stack('styles')
@@ -120,7 +122,9 @@
 
     @include('store.components.contact-float')
 
-    @livewireScripts
+    @if (request()->routeIs('auth.register', 'auth.staff.register', 'auth.supplier.register'))
+        @livewireScripts
+    @endif
     @include('store.components.store-search-script')
     @include('store.components.analytics-presence-script')
     @stack('scripts')

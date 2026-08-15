@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\BackupRestoreProgressController;
+use App\Http\Exceptions\MethodNotAllowedRecovery;
 use App\Services\Backup\BackupScheduleRegistrar;
 use App\Services\SystemErrors\SystemErrorCaptureService;
 use App\Http\Middleware\RunSchedulerWebTick;
@@ -13,6 +14,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 
 $trustedProxySetting = trim((string) env('TRUSTED_PROXIES', ''));
 $trustedProxies = $trustedProxySetting === ''
@@ -135,6 +137,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*'),
         );
+
+        $exceptions->render(function (MethodNotAllowedHttpException $exception, Request $request) {
+            return app(MethodNotAllowedRecovery::class)->toResponse($exception, $request);
+        });
 
         $exceptions->report(function (Throwable $exception): void {
             app(SystemErrorCaptureService::class)->capture($exception);
