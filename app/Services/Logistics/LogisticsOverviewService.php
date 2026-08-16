@@ -2,6 +2,7 @@
 
 namespace App\Services\Logistics;
 
+use App\Filament\Clusters\Logistics\DeliveredOrdersPage;
 use App\Filament\Clusters\Logistics\DeliveryMethodsPage;
 use App\Filament\Clusters\Logistics\ShipmentsPage;
 use App\Filament\Clusters\Logistics\ShippedOrdersPage;
@@ -19,6 +20,7 @@ class LogisticsOverviewService
         $active = DeliveryMethod::query()->where('status', DeliveryMethod::STATUS_ACTIVE)->count();
         $pending = OnlineSaleOrder::query()->logisticsPending()->count();
         $shipped = OnlineSaleOrder::query()->logisticsShipped()->count();
+        $delivered = OnlineSaleOrder::query()->logisticsDelivered()->count();
 
         return [
             [
@@ -41,6 +43,13 @@ class LogisticsOverviewService
                 'count' => $shipped,
                 'active' => null,
                 'url' => ShippedOrdersPage::getUrl(),
+            ],
+            [
+                'key' => 'delivered_orders',
+                'label' => __('agricart.logistics.overview.cards.delivered_orders'),
+                'count' => $delivered,
+                'active' => null,
+                'url' => DeliveredOrdersPage::getUrl(),
             ],
         ];
     }

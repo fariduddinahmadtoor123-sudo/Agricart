@@ -355,7 +355,7 @@ return [
             'online-quotations' => 'Online Quotations', 'online-orders' => 'Ready for Queue', 'order-dispatch' => 'Online Orders in Queue', 'forwarded-orders' => 'Forwarded', 'sales-quotations' => 'Sale Quotations', 'sales-returns' => 'Sale Returns', 'inbox' => 'Staff Inbox', 'tasks' => 'Tasks',
         ],
         'store' => ['overview' => 'Overview', 'top-bar' => 'Top Bar', 'ticker' => 'Ticker', 'header' => 'Header', 'menu' => 'Menu', 'pages' => 'Pages', 'footer' => 'Footer', 'items' => 'Items', 'messages' => 'Agricart Inbox', 'reviews' => 'Reviews', 'testimonials' => 'Testimonials', 'visitor-analytics' => 'Visitor Analytics', 'seo' => 'SEO', 'about' => 'About', 'registration' => 'Registration', 'brand-reviews' => 'Brand Reviews'],
-        'logistics' => ['overview' => 'Overview', 'delivery-methods' => 'Delivery Methods', 'shipments' => 'Pending', 'shipped' => 'Shipped'],
+        'logistics' => ['overview' => 'Overview', 'delivery-methods' => 'Delivery Methods', 'shipments' => 'Pending', 'shipped' => 'Shipped', 'delivered' => 'Delivered'],
         'service' => ['overview' => 'Overview', 'requests' => 'Requests'],
         'reports' => [
             'overview' => 'Overview',
@@ -774,6 +774,7 @@ return [
                 'delivery_methods' => 'Delivery methods',
                 'pending_shipments' => 'Pending shipments',
                 'shipped_orders' => 'Shipped orders',
+                'delivered_orders' => 'Delivered orders',
             ],
             'active_count' => ':count active',
         ],

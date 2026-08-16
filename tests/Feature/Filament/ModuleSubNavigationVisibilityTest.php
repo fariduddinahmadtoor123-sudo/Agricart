@@ -108,7 +108,7 @@ class ModuleSubNavigationVisibilityTest extends TestCase
         $this->get('/admin/logistics/overview')->assertOk();
         $logisticsLabels = array_column(\App\Filament\Layout\LogisticsSubNavigation::items(), 'label');
 
-        foreach (['Overview', 'Delivery Methods', 'Pending', 'Shipped'] as $label) {
+        foreach (['Overview', 'Delivery Methods', 'Pending', 'Shipped', 'Delivered'] as $label) {
             $this->assertContains($label, $logisticsLabels);
         }
     }

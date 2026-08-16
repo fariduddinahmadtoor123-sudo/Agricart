@@ -107,4 +107,42 @@ return [
             ],
         ],
     ],
+
+    'shipped' => [
+        'title' => 'Shipped',
+        'summary' => 'Orders handed to courier or transport, waiting for staff to mark delivered.',
+        'meta' => [
+            'routes' => ['/admin/logistics/shipped'],
+            'permissions' => ['logistics.shipped.view', 'logistics.shipped.edit'],
+        ],
+        'sections' => [
+            [
+                'id' => 'purpose',
+                'type' => 'purpose',
+                'heading' => 'Purpose',
+                'paragraphs' => [
+                    'After tracking or bilty is recorded on Pending, the order sits here. Staff mark Delivered when the customer has received the goods. Customers do not confirm delivery themselves.',
+                ],
+            ],
+        ],
+    ],
+
+    'delivered' => [
+        'title' => 'Delivered',
+        'summary' => 'Completed logistics handoffs. Reviews and return requests open for these orders.',
+        'meta' => [
+            'routes' => ['/admin/logistics/delivered'],
+            'permissions' => ['logistics.delivered.view', 'logistics.delivered.edit'],
+        ],
+        'sections' => [
+            [
+                'id' => 'purpose',
+                'type' => 'purpose',
+                'heading' => 'Purpose',
+                'paragraphs' => [
+                    'Archive of orders staff marked delivered. Product reviews and customer return requests become available only after this status.',
+                ],
+            ],
+        ],
+    ],
 ];

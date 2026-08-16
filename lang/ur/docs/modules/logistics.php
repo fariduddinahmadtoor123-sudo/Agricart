@@ -107,4 +107,42 @@ return [
             ],
         ],
     ],
+
+    'shipped' => [
+        'title' => 'بھیجے گئے',
+        'summary' => 'کوریئر یا ٹرانسپورٹ کے حوالے آرڈرز؛ عملہ ڈلیورڈ مارک کرنے کا انتظار۔',
+        'meta' => [
+            'routes' => ['/admin/logistics/shipped'],
+            'permissions' => ['logistics.shipped.view', 'logistics.shipped.edit'],
+        ],
+        'sections' => [
+            [
+                'id' => 'purpose',
+                'type' => 'purpose',
+                'heading' => 'مقصد',
+                'paragraphs' => [
+                    'Pending پر ٹریکنگ یا بلٹی کے بعد آرڈر یہاں رہتا ہے۔ مال گاہک کے پاس پہنچنے پر عملہ ڈلیورڈ مارک کرتا ہے۔ گاہک خود تصدیق نہیں کرتا۔',
+                ],
+            ],
+        ],
+    ],
+
+    'delivered' => [
+        'title' => 'ڈلیورڈ',
+        'summary' => 'مکمل ہینڈ اوفر۔ ان آرڈرز پر ریویو اور واپسی کھلتی ہے۔',
+        'meta' => [
+            'routes' => ['/admin/logistics/delivered'],
+            'permissions' => ['logistics.delivered.view', 'logistics.delivered.edit'],
+        ],
+        'sections' => [
+            [
+                'id' => 'purpose',
+                'type' => 'purpose',
+                'heading' => 'مقصد',
+                'paragraphs' => [
+                    'عملے کے ڈلیورڈ مارک کیے آرڈرز۔ پروڈکٹ ریویو اور گاہک کی واپسی کی درخواست صرف اس سٹیٹس کے بعد دستیاب ہوتی ہے۔',
+                ],
+            ],
+        ],
+    ],
 ];

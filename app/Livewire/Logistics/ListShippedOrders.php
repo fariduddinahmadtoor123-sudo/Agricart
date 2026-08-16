@@ -4,10 +4,13 @@ namespace App\Livewire\Logistics;
 
 use App\Models\OnlineSaleOrder;
 use App\Models\User;
+use App\Services\Sales\OnlineOrderDispatchService;
 use Illuminate\Contracts\View\View;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Throwable;
 
 class ListShippedOrders extends Component
 {
@@ -32,6 +35,7 @@ class ListShippedOrders extends Component
 
     #[On('shipped-orders-saved')]
     #[On('pending-shipments-saved')]
+    #[On('delivered-orders-saved')]
     public function refreshList(): void
     {
         $this->resetPage();
@@ -83,6 +87,47 @@ class ListShippedOrders extends Component
             orderId: $orderId,
             mode: $canUpdate ? 'edit' : 'view',
         );
+    }
+
+    public function markDelivered(int $orderId)
+    {
+        if (! $this->userCan('edit')) {
+            session()->flash('shipped_orders_status', __('logistics_ship.messages.deliver_denied'));
+
+            return;
+        }
+
+        $order = OnlineSaleOrder::query()
+            ->with(['supplierAssignments', 'staffAssignments', 'customer'])
+            ->find($orderId);
+
+        if ($order === null) {
+            session()->flash('shipped_orders_status', __('logistics_ship.messages.deliver_failed'));
+
+            return;
+        }
+
+        try {
+            app(OnlineOrderDispatchService::class)->markLogisticsDelivered($order);
+        } catch (ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first();
+            session()->flash(
+                'shipped_orders_status',
+                is_string($message) ? $message : __('logistics_ship.messages.deliver_failed'),
+            );
+
+            return;
+        } catch (Throwable) {
+            session()->flash('shipped_orders_status', __('logistics_ship.messages.deliver_failed'));
+
+            return;
+        }
+
+        session()->flash('delivered_orders_status', __('logistics_ship.messages.delivered', [
+            'number' => $order->order_number,
+        ]));
+
+        $this->redirect(url('/admin/logistics/delivered'), navigate: true);
     }
 
     public function render(): View

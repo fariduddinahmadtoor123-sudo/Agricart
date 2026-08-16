@@ -57,6 +57,10 @@ class ShipForm extends Component
 
         if ($orderId) {
             $this->loadOrder($orderId);
+            $loaded = OnlineSaleOrder::query()->find($orderId);
+            if ($loaded?->fulfillment_status === OnlineSaleOrder::FULFILLMENT_DELIVERED) {
+                $this->mode = 'view';
+            }
         }
     }
 
@@ -105,7 +109,7 @@ class ShipForm extends Component
             $order = OnlineSaleOrder::query()->logisticsPending()->find($this->orderId)
                 ?? OnlineSaleOrder::query()->logisticsShipped()->find($this->orderId);
 
-            if ($order === null) {
+            if ($order === null || $order->fulfillment_status === OnlineSaleOrder::FULFILLMENT_DELIVERED) {
                 throw ValidationException::withMessages([
                     'order' => [__('logistics_ship.validation.order_not_found')],
                 ]);
@@ -282,6 +286,8 @@ class ShipForm extends Component
 
         abort_unless(
             \App\Services\Access\ModulePageAccess::can($user, 'logistics', 'shipments', $action)
+            || \App\Services\Access\ModulePageAccess::can($user, 'logistics', 'shipped', $action)
+            || ($action === 'view' && \App\Services\Access\ModulePageAccess::can($user, 'logistics', 'delivered', 'view'))
             || \App\Services\Access\ModulePageAccess::can($user, 'sales', 'order-dispatch', $action),
             403,
         );

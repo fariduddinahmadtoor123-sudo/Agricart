@@ -846,14 +846,25 @@ class OnlineSaleOrderService
 
     private function notifyInboxIfDelivered(OnlineSaleOrder $order, string $previousFulfillment): void
     {
-        if ($order->fulfillment_status !== OnlineSaleOrder::FULFILLMENT_DELIVERED) {
+        if (
+            $order->fulfillment_status === OnlineSaleOrder::FULFILLMENT_DELIVERED
+            && $previousFulfillment !== OnlineSaleOrder::FULFILLMENT_DELIVERED
+        ) {
+            if ($order->delivered_at === null) {
+                $order->forceFill(['delivered_at' => now()])->save();
+            }
+
+            app(\App\Services\Store\AgricartInboxService::class)->notifyOrderDelivered($order);
+
             return;
         }
 
-        if ($previousFulfillment === OnlineSaleOrder::FULFILLMENT_DELIVERED) {
-            return;
+        if (
+            $previousFulfillment === OnlineSaleOrder::FULFILLMENT_DELIVERED
+            && $order->fulfillment_status !== OnlineSaleOrder::FULFILLMENT_DELIVERED
+            && $order->delivered_at !== null
+        ) {
+            $order->forceFill(['delivered_at' => null])->save();
         }
-
-        app(\App\Services\Store\AgricartInboxService::class)->notifyOrderDelivered($order);
     }
 }

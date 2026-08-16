@@ -1,4 +1,10 @@
 <div class="agricart-categories agricart-shipped-orders">
+    @if (session('shipped_orders_status'))
+        <div class="agricart-forwarded-orders__status" role="status">
+            {{ session('shipped_orders_status') }}
+        </div>
+    @endif
+
     <div class="agricart-online-order__list-note" role="note">
         {{ __('shipped_orders.list.note') }}
     </div>
@@ -76,10 +82,20 @@
                             @if (in_array('shipped_at', $visibleColumns, true))
                                 <td>{{ agricart_datetime($shippedAt) }}</td>
                             @endif
-                            <td>
-                                <button type="button" class="agricart-categories__link" wire:click="openOrder({{ $order->id }})">
+                            <td class="agricart-categories__actions">
+                                <button type="button" class="agricart-categories__action" wire:click="openOrder({{ $order->id }})">
                                     {{ $canEdit ? __('logistics_ship.actions.ship') : __('logistics_ship.actions.view') }}
                                 </button>
+                                @if ($canEdit)
+                                    <button
+                                        type="button"
+                                        class="agricart-categories__action is-primary"
+                                        wire:click="markDelivered({{ $order->id }})"
+                                        wire:confirm="{{ __('logistics_ship.actions.deliver_confirm') }}"
+                                        wire:loading.attr="disabled"
+                                        wire:target="markDelivered"
+                                    >{{ __('logistics_ship.actions.deliver') }}</button>
+                                @endif
                             </td>
                         </tr>
                     @endforeach

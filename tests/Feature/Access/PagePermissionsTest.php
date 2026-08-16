@@ -37,6 +37,7 @@ class PagePermissionsTest extends TestCase
         $this->assertContains('settings.users.edit', $keys);
         $this->assertContains('staff.attendance.view', $keys);
         $this->assertContains('staff.view_self', $keys);
+        $this->assertContains('logistics.delivered.view', $keys);
         $this->assertNotContains('catalog.view', $keys);
         $this->assertNotContains('settings.users.manage', $keys);
         $this->assertTrue(PermissionRegistry::moduleUsesPagePermissions('catalog'));

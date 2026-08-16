@@ -134,6 +134,7 @@ class OnlineSaleOrder extends Model
         'converted_by_id',
         'notification_dispatched_at',
         'shipping_customer_notified_at',
+        'delivered_at',
         'assigned_user_id',
     ];
 
@@ -155,6 +156,7 @@ class OnlineSaleOrder extends Model
             'queued_at' => 'datetime',
             'notification_dispatched_at' => 'datetime',
             'shipping_customer_notified_at' => 'datetime',
+            'delivered_at' => 'datetime',
             'payment_proof_reviewed_at' => 'datetime',
         ];
     }
@@ -197,6 +199,10 @@ class OnlineSaleOrder extends Model
             ->where('order_status', self::STATUS_CONVERTED)
             ->whereNotNull('queued_at')
             ->where(function ($inner): void {
+                $inner->whereNull('fulfillment_status')
+                    ->orWhere('fulfillment_status', '!=', self::FULFILLMENT_DELIVERED);
+            })
+            ->where(function ($inner): void {
                 $inner->whereHas(
                     'supplierAssignments',
                     fn ($assignment) => $assignment->whereNotNull('shipped_at'),
@@ -205,6 +211,20 @@ class OnlineSaleOrder extends Model
                     fn ($assignment) => $assignment->whereNotNull('shipped_at'),
                 );
             });
+    }
+
+    /**
+     * Staff marked the order delivered after courier handoff (Delivered list).
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeLogisticsDelivered(Builder $query): Builder
+    {
+        return $query
+            ->where('order_status', self::STATUS_CONVERTED)
+            ->whereNotNull('queued_at')
+            ->where('fulfillment_status', self::FULFILLMENT_DELIVERED);
     }
 
     /**

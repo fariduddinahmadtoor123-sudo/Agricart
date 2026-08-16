@@ -110,6 +110,25 @@ class LogisticsPageToolbar extends ClusterPageToolbar
                     ['label' => __('shipped_orders.list.col_shipped'), 'value' => 'shipped_at', 'visible' => true],
                 ],
             ],
+            'delivered' => [
+                ...$config,
+                'addLabel' => null,
+                'formKey' => 'logistics-ship',
+                'livewirePrefix' => 'delivered-orders',
+                'columnDataAttr' => 'data-delivered-order-column',
+                'interactive' => true,
+                'searchPlaceholder' => __('delivered_orders.list.search'),
+                'hideFilters' => true,
+                'filters' => [],
+                'columns' => [
+                    ['label' => __('online_sale_orders.list.col_number'), 'value' => 'order_number', 'visible' => true],
+                    ['label' => __('online_sale_orders.list.col_customer'), 'value' => 'customer', 'visible' => true],
+                    ['label' => __('online_sale_orders.list.col_total'), 'value' => 'total_amount', 'visible' => true],
+                    ['label' => __('pending_shipments.list.col_shipping'), 'value' => 'shipping', 'visible' => true],
+                    ['label' => __('shipped_orders.list.col_shipped'), 'value' => 'shipped_at', 'visible' => true],
+                    ['label' => __('delivered_orders.list.col_delivered'), 'value' => 'delivered_at', 'visible' => true],
+                ],
+            ],
             default => $config,
         };
     }

@@ -61,8 +61,8 @@ class PermissionRegistry
                 'ur' => 'آن لائن اسٹور کا ہر صفحہ الگ دیں۔ ایگری کارٹ ان باکس (کسٹمر میسجز اور گھنٹی) جائزہ کے بعد سب سے پہلے ہے۔',
             ],
             'logistics' => [
-                'en' => 'Grant each Logistics page separately (delivery methods, shipments, shipped).',
-                'ur' => 'لاجسٹکس کا ہر صفحہ الگ دیں (ڈیلیوری طریقے، شپمنٹس، بھیجے گئے)۔',
+                'en' => 'Grant each Logistics page separately (delivery methods, pending, shipped, delivered).',
+                'ur' => 'لاجسٹکس کا ہر صفحہ الگ دیں (ڈیلیوری طریقے، زیر التوا، بھیجے گئے، ڈلیورڈ)۔',
             ],
             'service' => [
                 'en' => 'Grant each Service page separately.',
@@ -252,6 +252,7 @@ class PermissionRegistry
                 'delivery-methods' => ['label_en' => 'Delivery Methods', 'label_ur' => 'ڈیلیوری طریقے', 'actions' => $crud],
                 'shipments' => ['label_en' => 'Shipments', 'label_ur' => 'شپمنٹس', 'actions' => $crud],
                 'shipped' => ['label_en' => 'Shipped', 'label_ur' => 'بھیجے گئے', 'actions' => $viewEdit],
+                'delivered' => ['label_en' => 'Delivered', 'label_ur' => 'ڈلیورڈ', 'actions' => $viewEdit],
             ],
             'service' => [
                 'overview' => ['label_en' => 'Overview', 'label_ur' => 'جائزہ', 'actions' => $viewOnly],

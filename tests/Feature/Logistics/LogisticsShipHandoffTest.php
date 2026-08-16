@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Logistics;
 
+use App\Livewire\Logistics\ListDeliveredOrders;
 use App\Livewire\Logistics\ListPendingShipments;
 use App\Livewire\Logistics\ListShippedOrders;
 use App\Livewire\Logistics\ShipForm;
@@ -113,7 +114,51 @@ class LogisticsShipHandoffTest extends TestCase
         $cards = collect(app(LogisticsOverviewService::class)->statCards());
         $this->assertSame(1, $cards->firstWhere('key', 'pending_shipments')['count']);
         $this->assertSame(1, $cards->firstWhere('key', 'shipped_orders')['count']);
+        $this->assertSame(0, $cards->firstWhere('key', 'delivered_orders')['count']);
         $this->assertSame('ONL-OV-PEND', $pending->order_number);
+    }
+
+    public function test_mark_delivered_moves_order_off_shipped_and_opens_fulfillment(): void
+    {
+        Notification::fake();
+        Mail::fake();
+
+        $admin = $this->superAdmin();
+        $order = $this->makeReleasedOrder('ONL-DELIVER-1');
+
+        app(OnlineOrderDispatchService::class)->shipLogisticsHandoff(
+            $order,
+            [
+                (int) $order->supplierAssignments->first()->supplier_id => [
+                    'carrier_name' => 'TCS',
+                    'tracking_number' => 'TCS-DEL-1',
+                    'shipping_reference' => '',
+                ],
+            ],
+        );
+
+        Livewire::actingAs($admin)
+            ->test(ListShippedOrders::class)
+            ->assertSee('ONL-DELIVER-1', false)
+            ->call('markDelivered', $order->id)
+            ->assertRedirect('/admin/logistics/delivered');
+
+        Livewire::actingAs($admin)
+            ->test(ListShippedOrders::class)
+            ->assertDontSee('ONL-DELIVER-1', false);
+
+        $order->refresh();
+        $this->assertSame(OnlineSaleOrder::FULFILLMENT_DELIVERED, $order->fulfillment_status);
+        $this->assertNotNull($order->delivered_at);
+
+        Livewire::actingAs($admin)
+            ->test(ListDeliveredOrders::class)
+            ->assertSee('ONL-DELIVER-1', false)
+            ->assertSee('TCS-DEL-1', false);
+
+        $cards = collect(app(LogisticsOverviewService::class)->statCards());
+        $this->assertSame(0, $cards->firstWhere('key', 'shipped_orders')['count']);
+        $this->assertSame(1, $cards->firstWhere('key', 'delivered_orders')['count']);
     }
 
     private function makeReleasedOrder(string $number): OnlineSaleOrder

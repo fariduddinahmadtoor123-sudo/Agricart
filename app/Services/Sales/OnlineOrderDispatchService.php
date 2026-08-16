@@ -595,6 +595,43 @@ class OnlineOrderDispatchService
         }
     }
 
+    public function markLogisticsDelivered(OnlineSaleOrder $order): OnlineSaleOrder
+    {
+        $order->loadMissing(['supplierAssignments', 'staffAssignments', 'customer']);
+
+        $shipped = $order->supplierAssignments->contains(
+            fn (OnlineSaleOrderSupplierAssignment $assignment): bool => $assignment->shipped_at !== null,
+        ) || $order->staffAssignments->contains(
+            fn (OnlineSaleOrderStaffAssignment $assignment): bool => $assignment->shipped_at !== null,
+        );
+
+        if (! $shipped || $order->order_status !== OnlineSaleOrder::STATUS_CONVERTED || $order->queued_at === null) {
+            throw ValidationException::withMessages([
+                'order' => [__('logistics_ship.validation.not_ready_to_deliver')],
+            ]);
+        }
+
+        if ($order->fulfillment_status === OnlineSaleOrder::FULFILLMENT_DELIVERED) {
+            return $order;
+        }
+
+        $order->fulfillment_status = OnlineSaleOrder::FULFILLMENT_DELIVERED;
+
+        if (\Illuminate\Support\Facades\Schema::hasColumn($order->getTable(), 'delivered_at')) {
+            $order->delivered_at = now();
+        }
+
+        $order->save();
+
+        try {
+            app(\App\Services\Store\AgricartInboxService::class)->notifyOrderDelivered($order);
+        } catch (\Throwable) {
+            // Delivery is recorded even if the customer inbox note fails.
+        }
+
+        return $order->fresh(['supplierAssignments', 'staffAssignments', 'customer']);
+    }
+
     public function syncOrderFulfillmentFromSuppliers(OnlineSaleOrder $order): void
     {
         $assignments = $order->supplierAssignments;

@@ -107,6 +107,31 @@ final class FormPanelRegistry
             return null;
         }
 
+        if ($formKey === 'logistics-ship') {
+            $action = $mode === 'edit' ? 'edit' : 'view';
+
+            if ($user->isSuperAdmin()) {
+                return $form['component'];
+            }
+
+            foreach (['shipments', 'shipped', 'delivered'] as $page) {
+                if ($action === 'edit' && $page === 'delivered') {
+                    continue;
+                }
+
+                if (ModulePageAccess::can($user, 'logistics', $page, $action)
+                    || ($action === 'view' && ModulePageAccess::can($user, 'logistics', $page, 'view'))) {
+                    return $form['component'];
+                }
+            }
+
+            if (ModulePageAccess::can($user, 'sales', 'order-dispatch', $action)) {
+                return $form['component'];
+            }
+
+            return null;
+        }
+
         if (! $user->isSuperAdmin() && filled($permission) && ! ModulePageAccess::userHasKey($user, $permission)) {
             return null;
         }

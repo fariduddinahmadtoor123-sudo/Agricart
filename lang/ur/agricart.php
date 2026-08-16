@@ -354,7 +354,7 @@ return [
             'online-quotations' => 'آن لائن کوٹیشنز', 'online-orders' => 'Ready for Queue', 'order-dispatch' => 'آن لائن آرڈرز ان کیو', 'forwarded-orders' => 'فارورڈڈ', 'sales-quotations' => 'سیل کوٹیشنز', 'sales-returns' => 'سیل ریٹرنز', 'inbox' => 'اسٹاف ان باکس', 'tasks' => 'ٹاسکس',
         ],
         'store' => ['overview' => 'جائزہ', 'top-bar' => 'اوپر پٹی', 'ticker' => 'ٹکر', 'header' => 'ہیڈر', 'menu' => 'مینیو', 'pages' => 'صفحات', 'footer' => 'فٹر', 'items' => 'اشیاء', 'messages' => 'ایگری کارٹ ان باکس', 'reviews' => 'ریویوز', 'testimonials' => 'Testimonials', 'visitor-analytics' => 'وزیٹر اینالیٹکس', 'seo' => 'SEO', 'about' => 'About', 'registration' => 'رجسٹریشن نوٹس', 'brand-reviews' => 'Brand Reviews'],
-        'logistics' => ['overview' => 'جائزہ', 'delivery-methods' => 'ڈیلیوری طریقے', 'shipments' => 'زیر التوا', 'shipped' => 'بھیجے گئے'],
+        'logistics' => ['overview' => 'جائزہ', 'delivery-methods' => 'ڈیلیوری طریقے', 'shipments' => 'زیر التوا', 'shipped' => 'بھیجے گئے', 'delivered' => 'ڈلیورڈ'],
         'service' => ['overview' => 'جائزہ', 'requests' => 'درخواستیں'],
         'reports' => [
             'overview' => 'جائزہ',
@@ -773,6 +773,7 @@ return [
                 'delivery_methods' => 'ڈیلیوری طریقے',
                 'pending_shipments' => 'زیر التوا شپمنٹ',
                 'shipped_orders' => 'بھیجے گئے آرڈرز',
+                'delivered_orders' => 'ڈلیورڈ آرڈرز',
             ],
             'active_count' => ':count فعال',
         ],
