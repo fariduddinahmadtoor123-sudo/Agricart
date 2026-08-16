@@ -191,7 +191,7 @@ class PermissionRegistry
             'contacts' => [
                 'overview' => ['label_en' => 'Overview', 'label_ur' => 'جائزہ', 'actions' => $viewOnly],
                 'customers' => ['label_en' => 'Customers', 'label_ur' => 'گاہک', 'actions' => $crud],
-                'suppliers' => ['label_en' => 'Suppliers', 'label_ur' => 'سپلائرز', 'actions' => $crud],
+                'suppliers' => ['label_en' => 'Suppliers', 'label_ur' => 'سپلائرز', 'actions' => $crudPrint],
                 'transport-companies' => ['label_en' => 'Transport / Goods', 'label_ur' => 'ٹرانسپورٹ / گڈز', 'actions' => $crud],
                 'message-templates' => ['label_en' => 'Message Templates', 'label_ur' => 'میسج ٹیمپلیٹس', 'actions' => $viewEdit],
             ],

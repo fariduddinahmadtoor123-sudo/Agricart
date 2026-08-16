@@ -12,6 +12,10 @@ return [
         'add_bank' => 'Add bank account',
         'export_archive' => 'Export archive',
         'import_archive' => 'Import archive',
+        'print' => 'Print',
+        'print_short' => 'Print',
+        'print_all' => 'Print all',
+        'print_selected' => 'Print selected',
     ],
 
     'portable' => [
@@ -134,5 +138,14 @@ return [
         'inactive' => 'Inactive suppliers',
         'by_category' => 'Has categories',
         'by_city' => 'Filter by city',
+    ],
+
+    'print' => [
+        'title' => 'Supplier',
+        'directory_title' => 'Supplier directory',
+        'empty' => 'No suppliers to print.',
+        'none_selected' => 'Select at least one supplier to print.',
+        'application_note' => 'Introduction / note',
+        'count' => ':count supplier|:count suppliers',
     ],
 ];

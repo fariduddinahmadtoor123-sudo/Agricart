@@ -12,6 +12,10 @@ return [
         'add_bank' => 'بینک اکاؤنٹ شامل کریں',
         'export_archive' => 'آرکائیو ایکسپورٹ',
         'import_archive' => 'آرکائیو امپورٹ',
+        'print' => 'پرنٹ',
+        'print_short' => 'پرنٹ',
+        'print_all' => 'سب پرنٹ',
+        'print_selected' => 'منتخب پرنٹ',
     ],
 
     'portable' => [
@@ -134,5 +138,14 @@ return [
         'inactive' => 'غیر فعال سپلائرز',
         'by_category' => 'کیٹگری والے',
         'by_city' => 'شہر کے لحاظ سے',
+    ],
+
+    'print' => [
+        'title' => 'سپلائر',
+        'directory_title' => 'سپلائر ڈائریکٹری',
+        'empty' => 'پرنٹ کے لیے کوئی سپلائر نہیں۔',
+        'none_selected' => 'پرنٹ کے لیے کم از کم ایک سپلائر منتخب کریں۔',
+        'application_note' => 'تعارف / نوٹ',
+        'count' => ':count سپلائر|:count سپلائرز',
     ],
 ];

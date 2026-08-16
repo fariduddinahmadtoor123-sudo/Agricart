@@ -252,6 +252,20 @@
         </x-filament::button>
 
         <x-filament::button
+            color="gray"
+            outlined
+            :icon="Heroicon::OutlinedPrinter"
+            tag="button"
+            type="button"
+            class="agricart-form-panel__action-btn"
+            x-show="formKey === 'suppliers' && formMode !== 'create'"
+            x-cloak
+            x-on:click="handleAction('print')"
+        >
+            {{ __('suppliers.actions.print') }}
+        </x-filament::button>
+
+        <x-filament::button
             color="primary"
             tag="button"
             type="button"

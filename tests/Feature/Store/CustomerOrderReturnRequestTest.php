@@ -84,6 +84,12 @@ class CustomerOrderReturnRequestTest extends TestCase
         $this->actingAs($admin);
 
         Livewire::test(ListSaleReturns::class)
+            ->assertSee('SALE-RET-1', false)
+            ->assertSee('WEB-RET-00001', false)
+            ->call('openRequest', $request->id)
+            ->assertSee('Drive chain', false)
+            ->assertSee(__('agricart.customer.returns.reasons.damaged'), false)
+            ->assertSee('Chain links were broken on arrival.', false)
             ->call('approveRequest', $request->id)
             ->assertHasNoErrors();
 

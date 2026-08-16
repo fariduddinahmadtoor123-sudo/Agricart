@@ -32,6 +32,9 @@
             <table class="agricart-categories__table">
                 <thead>
                     <tr>
+                        @if ($canPrint)
+                            <th class="agricart-categories__check-col"></th>
+                        @endif
                         @if (in_array('supplier_code', $visibleColumns, true))
                             <th>{{ __('suppliers.list.col_code') }}</th>
                         @endif
@@ -62,6 +65,11 @@
                 <tbody>
                     @foreach ($suppliers as $supplier)
                         <tr wire:key="supplier-{{ $supplier->id }}" class="agricart-categories__row">
+                            @if ($canPrint)
+                                <td class="agricart-categories__check-col">
+                                    <input type="checkbox" wire:model.live="selectedIds" value="{{ $supplier->id }}" aria-label="{{ $supplier->displayBusinessName() }}">
+                                </td>
+                            @endif
                             @if (in_array('supplier_code', $visibleColumns, true))
                                 <td><code>{{ $supplier->supplier_code }}</code></td>
                             @endif
@@ -93,6 +101,9 @@
                                 <td>{{ $supplier->created_at?->format('M j, Y') }}</td>
                             @endif
                             <td class="agricart-categories__actions">
+                                @if ($canPrint)
+                                    <button type="button" class="agricart-categories__action" wire:click="printSupplier({{ $supplier->id }})">{{ __('suppliers.actions.print_short') }}</button>
+                                @endif
                                 <button type="button" class="agricart-categories__action" wire:click="openView({{ $supplier->id }})">{{ __('suppliers.actions.view_short') }}</button>
                                 @if ($canEdit)
                                     <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $supplier->id }})">{{ __('suppliers.actions.edit_short') }}</button>
@@ -112,3 +123,15 @@
         </div>
     @endif
 </div>
+
+@script
+<script>
+    Livewire.on('suppliers-open-print', (payload) => {
+        const url = payload?.url ?? payload?.[0]?.url;
+
+        if (url) {
+            window.open(url, '_blank');
+        }
+    });
+</script>
+@endscript

@@ -40,6 +40,9 @@ class ListSuppliers extends Component
 
     public string $portableStatusTone = 'success';
 
+    /** @var list<int|string> */
+    public array $selectedIds = [];
+
     #[On('suppliers-saved')]
     public function refreshList(): void
     {
@@ -106,6 +109,8 @@ class ListSuppliers extends Component
         return match ($action) {
             'export_archive' => $this->exportArchive(),
             'import_archive' => $this->openImportPanel(),
+            'print_all' => $this->printFiltered(),
+            'print_selected' => $this->printSelected(),
             default => null,
         };
     }
@@ -238,6 +243,59 @@ class ListSuppliers extends Component
         );
     }
 
+    public function printSupplier(int $supplierId): void
+    {
+        if (! $this->userCanPrint()) {
+            return;
+        }
+
+        $supplier = Supplier::query()->find($supplierId);
+
+        if ($supplier === null) {
+            return;
+        }
+
+        $this->dispatchPrint(['ids' => (string) $supplier->id]);
+    }
+
+    public function printSelected(): void
+    {
+        if (! $this->userCanPrint()) {
+            return;
+        }
+
+        $ids = $this->selectedIdList();
+
+        if ($ids === []) {
+            $this->portableStatus = __('suppliers.print.none_selected');
+            $this->portableStatusTone = 'danger';
+
+            return;
+        }
+
+        $this->dispatchPrint(['ids' => implode(',', $ids)]);
+    }
+
+    public function printFiltered(): void
+    {
+        if (! $this->userCanPrint()) {
+            return;
+        }
+
+        if (! $this->filteredSuppliersQuery()->exists()) {
+            $this->portableStatus = __('suppliers.print.empty');
+            $this->portableStatusTone = 'danger';
+
+            return;
+        }
+
+        $this->dispatchPrint(array_filter([
+            'q' => filled($this->search) ? $this->search : null,
+            'status' => filled($this->statusFilter) ? $this->statusFilter : null,
+            'city' => filled($this->cityFilter) ? $this->cityFilter : null,
+        ]));
+    }
+
     public function deleteSupplier(int $supplierId): void
     {
         if (! $this->userCan('delete')) {
@@ -260,7 +318,52 @@ class ListSuppliers extends Component
 
     public function render(): View
     {
-        $suppliers = Supplier::query()
+        $suppliers = $this->filteredSuppliersQuery()
+            ->latest('created_at')
+            ->latest('id')
+            ->paginate(15);
+
+        return view('livewire.suppliers.list', [
+            'suppliers' => $suppliers,
+            'canEdit' => $this->userCan('edit'),
+            'canDelete' => $this->userCan('delete'),
+            'canPrint' => $this->userCanPrint(),
+            'categoryLabels' => CategoryForm::categoryLabelsByIds(
+                $suppliers->getCollection()
+                    ->flatMap(fn (Supplier $supplier): array => $supplier->categories->pluck('id')->all())
+                    ->unique()
+                    ->values()
+                    ->all(),
+            ),
+        ]);
+    }
+
+    private function userCan(string $action): bool
+    {
+        $user = auth()->user();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        return \App\Services\Access\ModulePageAccess::can($user, 'contacts', 'suppliers', $action);
+    }
+
+    private function userCanPrint(): bool
+    {
+        return $this->userCan('view') || $this->userCan('print');
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder<\App\Models\Supplier>
+     */
+    private function filteredSuppliersQuery()
+    {
+        return Supplier::query()
             ->with('categories')
             ->when(filled($this->search), function ($query): void {
                 $term = trim($this->search);
@@ -295,37 +398,39 @@ class ListSuppliers extends Component
                 fn ($query) => $query->where('status', $this->statusFilter),
                 fn ($query) => $query->whereIn('status', [Supplier::STATUS_ACTIVE, Supplier::STATUS_INACTIVE]),
             )
-            ->when(filled($this->cityFilter), fn ($query) => $query->where('city_key', $this->cityFilter))
-            ->latest('created_at')
-            ->latest('id')
-            ->paginate(15);
-
-        return view('livewire.suppliers.list', [
-            'suppliers' => $suppliers,
-            'canEdit' => $this->userCan('edit'),
-            'canDelete' => $this->userCan('delete'),
-            'categoryLabels' => CategoryForm::categoryLabelsByIds(
-                $suppliers->getCollection()
-                    ->flatMap(fn (Supplier $supplier): array => $supplier->categories->pluck('id')->all())
-                    ->unique()
-                    ->values()
-                    ->all(),
-            ),
-        ]);
+            ->when(filled($this->cityFilter), fn ($query) => $query->where('city_key', $this->cityFilter));
     }
 
-    private function userCan(string $action): bool
+    /**
+     * @param  array<string, string>  $query
+     */
+    private function dispatchPrint(array $query): void
     {
-        $user = auth()->user();
+        $this->dispatch(
+            'suppliers-open-print',
+            url: route('admin.suppliers.print', [
+                ...$query,
+                'locale' => app()->getLocale() === 'ur' ? 'ur' : 'en',
+                'autoprint' => '1',
+            ]),
+        );
+    }
 
-        if (! $user instanceof User) {
-            return false;
+    /**
+     * @return list<int>
+     */
+    private function selectedIdList(): array
+    {
+        $ids = [];
+
+        foreach ($this->selectedIds as $id) {
+            $value = (int) $id;
+
+            if ($value > 0) {
+                $ids[] = $value;
+            }
         }
 
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
-        return \App\Services\Access\ModulePageAccess::can($user, 'contacts', 'suppliers', $action);
+        return array_values(array_unique($ids));
     }
 }

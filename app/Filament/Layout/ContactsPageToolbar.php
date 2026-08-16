@@ -65,6 +65,18 @@ class ContactsPageToolbar extends ClusterPageToolbar
                 'filters' => static::supplierFilters(),
                 'toolbarActions' => array_values(array_filter([
                     static::userCan('view') ? [
+                        'label' => __('suppliers.actions.print_all'),
+                        'value' => 'print_all',
+                        'color' => 'gray',
+                        'outlined' => true,
+                    ] : null,
+                    static::userCan('view') ? [
+                        'label' => __('suppliers.actions.print_selected'),
+                        'value' => 'print_selected',
+                        'color' => 'gray',
+                        'outlined' => true,
+                    ] : null,
+                    static::userCan('view') ? [
                         'label' => __('suppliers.actions.export_archive'),
                         'value' => 'export_archive',
                         'color' => 'gray',

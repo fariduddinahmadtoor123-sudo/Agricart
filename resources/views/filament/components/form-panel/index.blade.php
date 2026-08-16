@@ -1926,7 +1926,7 @@
             document.addEventListener('livewire:navigated', tryQuickFormOpen);
         }
 
-        ['sales-open-print', 'sale-quotations-open-print', 'sale-returns-open-print', 'online-sale-orders-open-print', 'finance-banks-open-print', 'brands-open-print', 'online-order-open-external'].forEach((eventName) => {
+        ['sales-open-print', 'sale-quotations-open-print', 'sale-returns-open-print', 'online-sale-orders-open-print', 'finance-banks-open-print', 'brands-open-print', 'suppliers-open-print', 'online-order-open-external'].forEach((eventName) => {
             Livewire.on(eventName, (payload) => {
                 const url = payload?.url ?? payload?.[0]?.url;
 

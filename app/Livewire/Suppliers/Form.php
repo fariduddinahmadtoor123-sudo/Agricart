@@ -131,8 +131,25 @@ class Form extends Component
             'save_close' => $this->saveAndClose(),
             'save_next' => $this->saveAndAddNext(),
             'ai' => $this->enrichWithAi(),
+            'print' => $this->printSupplier(),
             default => null,
         };
+    }
+
+    public function printSupplier(): void
+    {
+        if ($this->supplierId === null) {
+            return;
+        }
+
+        $this->dispatch(
+            'suppliers-open-print',
+            url: route('admin.suppliers.print', [
+                'ids' => (string) $this->supplierId,
+                'locale' => app()->getLocale() === 'ur' ? 'ur' : 'en',
+                'autoprint' => '1',
+            ]),
+        );
     }
 
     public function updatedCountryCode(): void

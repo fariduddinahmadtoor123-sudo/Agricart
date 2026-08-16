@@ -34,10 +34,10 @@
                 <thead>
                     <tr>
                         <th>{{ __('sale_returns.requests.col_number') }}</th>
+                        <th>{{ __('sale_returns.requests.col_invoice') }}</th>
                         <th>{{ __('sale_returns.requests.col_order') }}</th>
                         <th>{{ __('sale_returns.requests.col_customer') }}</th>
                         <th>{{ __('sale_returns.requests.col_items') }}</th>
-                        <th>{{ __('sale_returns.requests.col_note') }}</th>
                         <th>{{ __('sale_returns.list.col_actions') }}</th>
                     </tr>
                 </thead>
@@ -45,41 +45,98 @@
                     @foreach ($pendingRequests as $request)
                         <tr wire:key="online-return-request-{{ $request->id }}">
                             <td><code>{{ $request->request_number }}</code></td>
+                            <td><code>{{ $request->order?->sale?->sale_number ?? '—' }}</code></td>
                             <td>{{ $request->order?->order_number ?? '—' }}</td>
                             <td>{{ $request->customer?->displayLabel() ?? '—' }}</td>
-                            <td>
-                                @foreach ($request->items as $line)
-                                    {{ $line->orderItem?->displayName() ?? $line->product_id }}
-                                    × {{ $line->quantity }}
-                                    @if (! $loop->last)<br>@endif
-                                @endforeach
-                            </td>
-                            <td>{{ $request->customer_note ?: '—' }}</td>
-                            <td>
-                                @if ($canApprove)
-                                    <button
-                                        type="button"
-                                        class="agricart-categories__action"
-                                        wire:click="approveRequest({{ $request->id }})"
-                                        wire:confirm="{{ __('sale_returns.requests.approve_confirm') }}"
-                                    >{{ __('sale_returns.requests.approve') }}</button>
-                                @endif
-                                @if ($canEdit)
-                                    @if ($rejectingRequestId === $request->id)
-                                        <div class="agricart-sale-return-requests__reject">
-                                            <textarea wire:model="rejectNote" rows="2" placeholder="{{ __('sale_returns.requests.reject_note') }}"></textarea>
-                                            <button type="button" class="agricart-categories__action" wire:click="rejectRequest({{ $request->id }})">{{ __('sale_returns.requests.reject_save') }}</button>
-                                            <button type="button" class="agricart-categories__action" wire:click="cancelRejectRequest">{{ __('sale_returns.actions.view_short') }}</button>
-                                        </div>
-                                    @else
-                                        <button type="button" class="agricart-categories__action" wire:click="startRejectRequest({{ $request->id }})">{{ __('sale_returns.requests.reject') }}</button>
-                                    @endif
-                                @endif
+                            <td>{{ $request->items->sum('quantity') }}</td>
+                            <td class="agricart-categories__actions">
+                                <button type="button" class="agricart-categories__action" wire:click="openRequest({{ $request->id }})">{{ __('sale_returns.requests.view') }}</button>
                             </td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
+        </div>
+    @endif
+
+    @if ($viewingRequest)
+        <div class="agricart-categories__table-wrap agricart-sale-return-requests__detail" wire:key="online-return-request-detail-{{ $viewingRequest->id }}">
+            <div class="agricart-sale-return-requests__detail-head">
+                <h2 class="agricart-sale-return-requests__title">{{ __('sale_returns.requests.detail_heading', ['number' => $viewingRequest->request_number]) }}</h2>
+                <button type="button" class="agricart-categories__action" wire:click="closeRequest">{{ __('sale_returns.requests.close') }}</button>
+            </div>
+
+            <dl class="agricart-sale-return-requests__meta">
+                <div>
+                    <dt>{{ __('sale_returns.requests.col_invoice') }}</dt>
+                    <dd><code>{{ $viewingRequest->order?->sale?->sale_number ?? '—' }}</code></dd>
+                </div>
+                <div>
+                    <dt>{{ __('sale_returns.requests.col_order') }}</dt>
+                    <dd>{{ $viewingRequest->order?->order_number ?? '—' }}</dd>
+                </div>
+                <div>
+                    <dt>{{ __('sale_returns.requests.col_customer') }}</dt>
+                    <dd>{{ $viewingRequest->customer?->displayLabel() ?? '—' }}</dd>
+                </div>
+                <div>
+                    <dt>{{ __('sale_returns.requests.col_note') }}</dt>
+                    <dd>{{ $viewingRequest->customer_note ?: '—' }}</dd>
+                </div>
+            </dl>
+
+            <table class="agricart-categories__table">
+                <thead>
+                    <tr>
+                        <th>{{ __('sale_returns.requests.col_product') }}</th>
+                        <th>{{ __('sale_returns.requests.col_qty') }}</th>
+                        <th>{{ __('sale_returns.requests.col_reason') }}</th>
+                        <th>{{ __('sale_returns.requests.col_photo') }}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($viewingRequest->items as $line)
+                        <tr>
+                            <td>{{ $line->orderItem?->displayName() ?: ($line->product?->name_en ?? '—') }}</td>
+                            <td>{{ rtrim(rtrim(number_format((float) $line->quantity, 4, '.', ''), '0'), '.') }}</td>
+                            <td>{{ __('agricart.customer.returns.reasons.'.$line->reason) }}</td>
+                            <td>
+                                @if ($line->photoUrl())
+                                    <a href="{{ $line->photoUrl() }}" target="_blank" rel="noopener">{{ __('sale_returns.requests.open_photo') }}</a>
+                                @else
+                                    —
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4">{{ __('sale_returns.requests.errors.items_required') }}</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+
+            <div class="agricart-categories__actions agricart-sale-return-requests__detail-actions">
+                @if ($canApprove)
+                    <button
+                        type="button"
+                        class="agricart-categories__action is-primary"
+                        wire:click="approveRequest({{ $viewingRequest->id }})"
+                        wire:confirm="{{ __('sale_returns.requests.approve_confirm') }}"
+                    >{{ __('sale_returns.requests.approve') }}</button>
+                @endif
+                @if ($canEdit)
+                    @if ($rejectingRequestId === $viewingRequest->id)
+                        <div class="agricart-sale-return-requests__reject">
+                            <textarea wire:model="rejectNote" rows="2" placeholder="{{ __('sale_returns.requests.reject_note') }}"></textarea>
+                            <button type="button" class="agricart-categories__action" wire:click="rejectRequest({{ $viewingRequest->id }})">{{ __('sale_returns.requests.reject_save') }}</button>
+                            <button type="button" class="agricart-categories__action" wire:click="cancelRejectRequest">{{ __('sale_returns.requests.reject_cancel') }}</button>
+                        </div>
+                    @else
+                        <button type="button" class="agricart-categories__action" wire:click="startRejectRequest({{ $viewingRequest->id }})">{{ __('sale_returns.requests.reject') }}</button>
+                    @endif
+                @endif
+            </div>
         </div>
     @endif
 

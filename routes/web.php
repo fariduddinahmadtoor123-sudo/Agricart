@@ -20,6 +20,7 @@ use App\Http\Controllers\Admin\SalePrintController;
 use App\Http\Controllers\Admin\StaffNotePrintController;
 use App\Http\Controllers\Admin\SaleQuotationPrintController;
 use App\Http\Controllers\Admin\SaleReturnPrintController;
+use App\Http\Controllers\Admin\SupplierPrintController;
 use App\Http\Controllers\Admin\CommunicationAttachmentController;
 use App\Http\Controllers\Admin\StaffMessengerController;
 use App\Http\Middleware\ReleaseSessionLockForPolling;
@@ -275,6 +276,8 @@ Route::middleware(['web', 'auth', AuthenticateSession::class, EnsureActiveAdminU
         ->name('admin.sale-quotations.print');
     Route::get('/sale-returns/{saleReturn}/print', [SaleReturnPrintController::class, 'show'])
         ->name('admin.sale-returns.print');
+    Route::get('/suppliers/print', [SupplierPrintController::class, 'show'])
+        ->name('admin.suppliers.print');
     Route::get('/online-sale-orders/{order}/print', [OnlineSaleOrderPrintController::class, 'show'])
         ->name('admin.online-sale-orders.print');
     Route::get('/bank-accounts/{account}/print', [BankAccountPrintController::class, 'details'])

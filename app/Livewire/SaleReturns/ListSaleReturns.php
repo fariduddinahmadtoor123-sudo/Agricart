@@ -30,6 +30,8 @@ class ListSaleReturns extends Component
 
     public string $rejectNote = '';
 
+    public ?int $viewingRequestId = null;
+
     #[On('sale-returns-saved')]
     public function refreshList(): void
     {
@@ -203,6 +205,26 @@ class ListSaleReturns extends Component
         $this->dispatch('sale-returns-open-print', url: route('admin.sale-returns.print', $return));
     }
 
+    public function openRequest(int $requestId): void
+    {
+        $request = OnlineOrderReturnRequest::query()->find($requestId);
+
+        if ($request === null) {
+            return;
+        }
+
+        $this->viewingRequestId = $requestId;
+        $this->rejectingRequestId = null;
+        $this->rejectNote = '';
+    }
+
+    public function closeRequest(): void
+    {
+        $this->viewingRequestId = null;
+        $this->rejectingRequestId = null;
+        $this->rejectNote = '';
+    }
+
     public function startRejectRequest(int $requestId): void
     {
         if (! $this->userCan('edit')) {
@@ -240,6 +262,7 @@ class ListSaleReturns extends Component
         try {
             app(OnlineOrderReturnRequestService::class)->approve($request, $user);
             $this->rejectingRequestId = null;
+            $this->viewingRequestId = null;
             $this->resetPage();
         } catch (ValidationException $exception) {
             session()->flash('sale_return_error', collect($exception->errors())->flatten()->first());
@@ -268,6 +291,7 @@ class ListSaleReturns extends Component
             app(OnlineOrderReturnRequestService::class)->reject($request, $user, $this->rejectNote);
             $this->rejectingRequestId = null;
             $this->rejectNote = '';
+            $this->viewingRequestId = null;
         } catch (ValidationException $exception) {
             session()->flash('sale_return_error', collect($exception->errors())->flatten()->first());
         }
@@ -296,15 +320,22 @@ class ListSaleReturns extends Component
             ->paginate(20);
 
         $pendingRequests = OnlineOrderReturnRequest::query()
-            ->with(['customer', 'order', 'items.orderItem'])
+            ->with(['customer', 'order.sale', 'items.orderItem'])
             ->where('status', OnlineOrderReturnRequest::STATUS_PENDING)
             ->orderByDesc('id')
             ->limit(50)
             ->get();
 
+        $viewingRequest = $this->viewingRequestId === null
+            ? null
+            : OnlineOrderReturnRequest::query()
+                ->with(['customer', 'order.sale', 'items.orderItem', 'items.product'])
+                ->find($this->viewingRequestId);
+
         return view('livewire.sale-returns.list', [
             'returns' => $returns,
             'pendingRequests' => $pendingRequests,
+            'viewingRequest' => $viewingRequest,
             'activeFilters' => $this->activeFilters(),
             'hasListConstraints' => $this->hasListConstraints(),
             'canEdit' => $this->userCan('edit'),
