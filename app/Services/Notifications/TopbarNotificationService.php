@@ -4,6 +4,7 @@ namespace App\Services\Notifications;
 
 use App\Filament\Clusters\Approvals\StaffPage;
 use App\Filament\Clusters\Approvals\SuppliersPage;
+use App\Filament\Clusters\Finance\ExpensesPage;
 use App\Filament\Clusters\Sales\InboxPage;
 use App\Filament\Clusters\Sales\OnlineOrdersPage;
 use App\Filament\Clusters\Sales\OnlineQuotationsPage;
@@ -16,6 +17,7 @@ use App\Models\Supplier;
 use App\Models\SystemError;
 use App\Models\User;
 use App\Services\Access\ModulePageAccess;
+use App\Services\Finance\ExpenseScheduleService;
 use App\Services\Staff\StaffMessagingService;
 use App\Services\Store\AgricartInboxService;
 use Illuminate\Support\Facades\Cache;
@@ -55,6 +57,11 @@ class TopbarNotificationService
                 pageClass: ReviewsPage::class,
             ),
             $this->onlineOrdersAwaitingItem(),
+            $this->item(
+                key: 'expense_bills',
+                count: $this->unpaidIssuedExpenseBills(),
+                pageClass: ExpensesPage::class,
+            ),
             $this->item(
                 key: 'system_errors',
                 count: $this->unreadCriticalSystemErrors(),
@@ -188,6 +195,15 @@ class TopbarNotificationService
         }
 
         return $query->count();
+    }
+
+    private function unpaidIssuedExpenseBills(): int
+    {
+        if (! Schema::hasTable('expenses') || ! Schema::hasColumn('expenses', 'issue_day')) {
+            return 0;
+        }
+
+        return app(ExpenseScheduleService::class)->openCycleCount();
     }
 
     /**

@@ -230,7 +230,7 @@ class ProfitLossReportServiceTest extends TestCase
 
         \App\Models\FundTransfer::query()->create([
             'transfer_number' => 'FT-PL01',
-            'transaction_type' => \App\Models\FundTransfer::TYPE_EXPENSE_PAYMENT,
+            'transaction_type' => \App\Models\FundTransfer::TYPE_PURCHASER_PAYMENT,
             'source_wallet' => \App\Models\FundTransfer::WALLET_CASH,
             'amount' => 10,
             'transaction_date' => '2026-07-17',

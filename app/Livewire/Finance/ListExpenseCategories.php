@@ -4,7 +4,10 @@ namespace App\Livewire\Finance;
 
 use App\Models\ExpenseCategory;
 use App\Models\User;
+use App\Services\Finance\ExpenseCategoryService;
+use Filament\Notifications\Notification;
 use Illuminate\Contracts\View\View;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -104,8 +107,34 @@ class ListExpenseCategories extends Component
         );
     }
 
+    public function openView(int $categoryId): void
+    {
+        if (! $this->userCan('view')) {
+            return;
+        }
+
+        $category = ExpenseCategory::query()->find($categoryId);
+
+        if ($category === null) {
+            return;
+        }
+
+        $this->dispatch(
+            'open-form-panel',
+            title: __('agricart.finance.expense_categories.actions.view', ['name' => $category->displayName()]),
+            resource: __('agricart.nav.finance.expense-categories'),
+            formKey: 'finance-expense-category',
+            categoryId: $categoryId,
+            mode: 'view',
+        );
+    }
+
     public function openEdit(int $categoryId): void
     {
+        if (! $this->userCan('edit')) {
+            return;
+        }
+
         $category = ExpenseCategory::query()->find($categoryId);
 
         if ($category === null) {
@@ -120,6 +149,32 @@ class ListExpenseCategories extends Component
             categoryId: $categoryId,
             mode: 'edit',
         );
+    }
+
+    public function deleteCategory(int $categoryId): void
+    {
+        if (! $this->userCan('delete')) {
+            return;
+        }
+
+        $category = ExpenseCategory::query()->find($categoryId);
+
+        if ($category === null) {
+            return;
+        }
+
+        try {
+            app(ExpenseCategoryService::class)->delete($category);
+        } catch (ValidationException $exception) {
+            Notification::make()
+                ->danger()
+                ->title((string) collect($exception->errors())->flatten()->first())
+                ->send();
+
+            return;
+        }
+
+        $this->resetPage();
     }
 
     public function render(): View
@@ -140,6 +195,9 @@ class ListExpenseCategories extends Component
 
         return view('livewire.finance.expense-categories.list', [
             'categories' => $categories,
+            'canView' => $this->userCan('view'),
+            'canEdit' => $this->userCan('edit'),
+            'canDelete' => $this->userCan('delete'),
         ]);
     }
 

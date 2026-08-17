@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -18,6 +20,16 @@ class Expense extends Model
         self::STATUS_INACTIVE,
     ];
 
+    public const DUE_UPCOMING = 'upcoming';
+
+    public const DUE_ISSUED = 'issued';
+
+    public const DUE_SOON = 'due_soon';
+
+    public const DUE_OVERDUE = 'overdue';
+
+    public const DUE_PAID = 'paid';
+
     /** @var list<string> */
     protected $fillable = [
         'expense_number',
@@ -26,8 +38,24 @@ class Expense extends Model
         'name_en',
         'name_ur',
         'information',
+        'issue_day',
+        'due_day',
+        'detail_1',
+        'detail_2',
+        'detail_3',
+        'detail_4',
+        'estimated_cost',
         'created_by',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'issue_day' => 'integer',
+            'due_day' => 'integer',
+            'estimated_cost' => 'decimal:2',
+        ];
+    }
 
     public function displayName(?string $locale = null): string
     {
@@ -43,6 +71,31 @@ class Expense extends Model
     public function isActive(): bool
     {
         return $this->status === self::STATUS_ACTIVE;
+    }
+
+    public function hasMonthlySchedule(): bool
+    {
+        return $this->issue_day !== null;
+    }
+
+    public function dueStatus(?CarbonInterface $today = null): ?string
+    {
+        return app(\App\Services\Finance\ExpenseScheduleService::class)->dueStatus($this, $today);
+    }
+
+    /**
+     * @param  Builder<Expense>  $query
+     * @return Builder<Expense>
+     */
+    public function scopeAwaitingPayment(Builder $query, ?CarbonInterface $today = null): Builder
+    {
+        $ids = app(\App\Services\Finance\ExpenseScheduleService::class)->awaitingExpenseIds($today);
+
+        if ($ids === []) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereIn('id', $ids);
     }
 
     /**
@@ -67,6 +120,14 @@ class Expense extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(ExpensePayment::class);
+    }
+
+    /**
+     * @return HasMany<ExpenseBillCycle, $this>
+     */
+    public function billCycles(): HasMany
+    {
+        return $this->hasMany(ExpenseBillCycle::class);
     }
 
     /**

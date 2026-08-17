@@ -49,12 +49,20 @@ class ListFundTransfers extends Component
         $service = app(FundTransferService::class);
 
         $transfers = FundTransfer::query()
-            ->with(['sourceBankAccount', 'destinationBankAccount', 'destinationSupplier', 'destinationCustomer', 'destinationPurchaser'])
+            ->with(['sourceBankAccount', 'destinationBankAccount', 'destinationSupplier', 'destinationCustomer', 'destinationPurchaser', 'destinationExpense'])
             ->when(filled($this->search), function ($query): void {
                 $needle = '%' . $this->search . '%';
                 $query->where(function ($inner) use ($needle): void {
                     $inner->where('transfer_number', 'like', $needle)
-                        ->orWhere('notes', 'like', $needle);
+                        ->orWhere('notes', 'like', $needle)
+                        ->orWhereHas('destinationExpense', function ($expense) use ($needle): void {
+                            $expense->where('expense_number', 'like', $needle)
+                                ->orWhere('name_en', 'like', $needle)
+                                ->orWhere('name_ur', 'like', $needle);
+                        })
+                        ->orWhereHas('destinationPurchaser', function ($user) use ($needle): void {
+                            $user->where('name', 'like', $needle);
+                        });
                 });
             })
             ->orderByDesc('transaction_date')
@@ -89,9 +97,12 @@ class ListFundTransfers extends Component
     {
         return match ($transfer->transaction_type) {
             FundTransfer::TYPE_DEPOSIT, FundTransfer::TYPE_TRANSFER => $transfer->destinationBankAccount?->displayName() ?? '—',
+            FundTransfer::TYPE_WITHDRAWAL => __('agricart.finance.fund_transfers.source_wallets.cash'),
             FundTransfer::TYPE_VENDOR_PAYMENT => $transfer->destinationSupplier?->displayBusinessName() ?? '—',
             FundTransfer::TYPE_CUSTOMER_RECEIPT => $transfer->destinationCustomer?->displayName() ?? '—',
-            FundTransfer::TYPE_EXPENSE_PAYMENT => (string) ($transfer->destinationPurchaser?->name ?? '—'),
+            FundTransfer::TYPE_EXPENSE_PAYMENT => $transfer->destinationExpense?->displayName()
+                ?? (string) ($transfer->destinationPurchaser?->name ?? '—'),
+            FundTransfer::TYPE_PURCHASER_PAYMENT => (string) ($transfer->destinationPurchaser?->name ?? '—'),
             default => '—',
         };
     }

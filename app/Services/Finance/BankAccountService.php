@@ -234,6 +234,34 @@ class BankAccountService
         );
     }
 
+    public function recordCashWithdrawal(
+        BankAccount $account,
+        float $amount,
+        string $transactionDate,
+        ?string $description,
+        ?string $notes = null,
+        ?int $fundTransferId = null,
+        ?User $actor = null,
+    ): void {
+        DB::transaction(function () use ($account, $amount, $transactionDate, $description, $notes, $fundTransferId, $actor): void {
+            $locked = BankAccount::query()->lockForUpdate()->findOrFail($account->id);
+            $this->assertSufficientBalance($locked, $amount);
+            $this->postTransaction(
+                $locked,
+                BankAccountTransaction::TYPE_CASH_WITHDRAWAL,
+                BankAccountTransaction::DIRECTION_DEBIT,
+                $amount,
+                $transactionDate,
+                $description,
+                [
+                    'fund_transfer_id' => $fundTransferId,
+                    'notes' => $notes,
+                ],
+                $actor,
+            );
+        });
+    }
+
     public function paySupplier(
         BankAccount $from,
         Supplier $supplier,

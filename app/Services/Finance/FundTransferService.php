@@ -4,6 +4,7 @@ namespace App\Services\Finance;
 
 use App\Models\BankAccount;
 use App\Models\Customer;
+use App\Models\Expense;
 use App\Models\FundTransfer;
 use App\Models\Supplier;
 use App\Models\User;
@@ -40,6 +41,7 @@ class FundTransferService
                 'destination_supplier_id' => $validated['destination_supplier_id'] ?? null,
                 'destination_customer_id' => $validated['destination_customer_id'] ?? null,
                 'destination_purchaser_id' => $validated['destination_purchaser_id'] ?? null,
+                'destination_expense_id' => $validated['destination_expense_id'] ?? null,
                 'amount' => $amount,
                 'transaction_date' => $date,
                 'transaction_time' => $validated['transaction_time'],
@@ -49,10 +51,12 @@ class FundTransferService
 
             match ($type) {
                 FundTransfer::TYPE_DEPOSIT => $this->postDeposit($transfer, $actor),
+                FundTransfer::TYPE_WITHDRAWAL => $this->postWithdrawal($transfer, $actor),
                 FundTransfer::TYPE_TRANSFER => $this->postBankTransfer($transfer, $actor),
                 FundTransfer::TYPE_VENDOR_PAYMENT => $this->postVendorPayment($transfer, $actor),
                 FundTransfer::TYPE_CUSTOMER_RECEIPT => $this->postCustomerReceipt($transfer, $actor),
-                FundTransfer::TYPE_EXPENSE_PAYMENT => $this->postExpensePayment($transfer, $actor),
+                FundTransfer::TYPE_EXPENSE_PAYMENT => $this->postExpenseHeadPayment($transfer, $actor),
+                FundTransfer::TYPE_PURCHASER_PAYMENT => $this->postPurchaserPayment($transfer, $actor),
                 default => throw ValidationException::withMessages([
                     'transaction_type' => [__('agricart.finance.fund_transfers.messages.invalid_type')],
                 ]),
@@ -90,6 +94,33 @@ class FundTransferService
             $description,
             $transfer->notes,
             $transfer->id,
+            $actor,
+        );
+    }
+
+    private function postWithdrawal(FundTransfer $transfer, ?User $actor): void
+    {
+        $bank = BankAccount::query()->findOrFail($transfer->source_bank_account_id);
+        $description = __('agricart.finance.fund_transfers.ledger.cash_withdrawal', [
+            'number' => $transfer->transfer_number,
+        ]);
+
+        $this->bankAccountService->recordCashWithdrawal(
+            $bank,
+            (float) $transfer->amount,
+            $transfer->transaction_date->toDateString(),
+            $description,
+            $transfer->notes,
+            $transfer->id,
+            $actor,
+        );
+
+        $this->cashBookService->recordIn(
+            (float) $transfer->amount,
+            $transfer->transaction_date->toDateString(),
+            $description,
+            $transfer->id,
+            $transfer->notes,
             $actor,
         );
     }
@@ -180,10 +211,30 @@ class FundTransferService
         }
     }
 
-    private function postExpensePayment(FundTransfer $transfer, ?User $actor): void
+    private function postExpenseHeadPayment(FundTransfer $transfer, ?User $actor): void
+    {
+        $expense = Expense::query()->findOrFail($transfer->destination_expense_id);
+
+        $payment = app(ExpensePaymentService::class)->create([
+            'expense_id' => $expense->id,
+            'amount' => $transfer->amount,
+            'payment_date' => $transfer->transaction_date->toDateString(),
+            'payment_time' => substr((string) $transfer->transaction_time, 0, 5),
+            'source_wallet' => $transfer->source_wallet,
+            'bank_account_id' => $transfer->source_bank_account_id,
+            'notes' => $transfer->notes,
+            'fund_transfer_id' => $transfer->id,
+        ], $actor);
+
+        $transfer->update([
+            'expense_payment_id' => $payment->id,
+        ]);
+    }
+
+    private function postPurchaserPayment(FundTransfer $transfer, ?User $actor): void
     {
         $purchaser = User::query()->findOrFail($transfer->destination_purchaser_id);
-        $description = __('agricart.finance.fund_transfers.ledger.expense_payment', [
+        $description = __('agricart.finance.fund_transfers.ledger.purchaser_payment', [
             'name' => $purchaser->name,
             'number' => $transfer->transfer_number,
         ]);
@@ -231,7 +282,7 @@ class FundTransferService
     private function validate(array $data): array
     {
         $rules = [
-            'transaction_type' => ['required', 'in:deposit,transfer,vendor_payment,customer_receipt,expense_payment'],
+            'transaction_type' => ['required', 'in:deposit,withdrawal,transfer,vendor_payment,customer_receipt,expense_payment,purchaser_payment'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'transaction_date' => ['required', 'date'],
             'transaction_time' => ['required', 'date_format:H:i'],
@@ -242,16 +293,24 @@ class FundTransferService
 
         if ($type === FundTransfer::TYPE_DEPOSIT) {
             $data['source_wallet'] = FundTransfer::WALLET_CASH;
+            $rules['source_wallet'] = ['required', 'in:cash,bank'];
             $rules['destination_bank_account_id'] = ['required', 'integer', 'exists:bank_accounts,id'];
         }
 
         if ($type === FundTransfer::TYPE_TRANSFER) {
             $data['source_wallet'] = FundTransfer::WALLET_BANK;
+            $rules['source_wallet'] = ['required', 'in:cash,bank'];
             $rules['source_bank_account_id'] = ['required', 'integer', 'exists:bank_accounts,id'];
             $rules['destination_bank_account_id'] = ['required', 'integer', 'exists:bank_accounts,id', 'different:source_bank_account_id'];
         }
 
-        if (in_array($type, [FundTransfer::TYPE_VENDOR_PAYMENT, FundTransfer::TYPE_CUSTOMER_RECEIPT, FundTransfer::TYPE_EXPENSE_PAYMENT], true)) {
+        if ($type === FundTransfer::TYPE_WITHDRAWAL) {
+            $data['source_wallet'] = FundTransfer::WALLET_BANK;
+            $rules['source_wallet'] = ['required', 'in:cash,bank'];
+            $rules['source_bank_account_id'] = ['required', 'integer', 'exists:bank_accounts,id'];
+        }
+
+        if (in_array($type, [FundTransfer::TYPE_VENDOR_PAYMENT, FundTransfer::TYPE_CUSTOMER_RECEIPT, FundTransfer::TYPE_EXPENSE_PAYMENT, FundTransfer::TYPE_PURCHASER_PAYMENT], true)) {
             $rules['source_wallet'] = ['required', 'in:cash,bank'];
             if (($data['source_wallet'] ?? '') === FundTransfer::WALLET_BANK) {
                 $rules['source_bank_account_id'] = ['required', 'integer', 'exists:bank_accounts,id'];
@@ -267,6 +326,10 @@ class FundTransferService
         }
 
         if ($type === FundTransfer::TYPE_EXPENSE_PAYMENT) {
+            $rules['destination_expense_id'] = ['required', 'integer', 'exists:expenses,id'];
+        }
+
+        if ($type === FundTransfer::TYPE_PURCHASER_PAYMENT) {
             $rules['destination_purchaser_id'] = ['required', 'integer', 'exists:users,id'];
         }
 

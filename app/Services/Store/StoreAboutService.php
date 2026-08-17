@@ -173,7 +173,7 @@ class StoreAboutService
     {
         $this->validateImage($file, 4096);
         $about = $this->settings();
-        $path = $this->images->store($file, 'store/about', 'avatar');
+        $path = $this->images->store($file, 'store/about', 'about');
         $old = $about->ceo_photo_path;
         $about->update(['ceo_photo_path' => $path]);
         $this->deleteIfUnused($old);
@@ -203,7 +203,7 @@ class StoreAboutService
             ]);
         }
 
-        $path = $this->images->store($file, 'store/about', 'gallery');
+        $path = $this->images->store($file, 'store/about', 'about');
         $images[] = [
             'path' => $path,
             'caption_en' => $this->nullableTrim($captionEn),
@@ -246,7 +246,7 @@ class StoreAboutService
             ]);
         }
 
-        $path = $this->images->store($file, 'store/about', 'avatar');
+        $path = $this->images->store($file, 'store/about', 'about');
         $old = $members[$index]['photo_path'] ?? null;
         $members[$index]['photo_path'] = $path;
         $about->update(['team_members' => $members]);

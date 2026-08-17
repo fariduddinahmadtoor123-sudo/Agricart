@@ -51,7 +51,7 @@
                     <x-filament::input.wrapper>
                         <input type="text" class="fi-input" readonly value="{{ __('agricart.finance.fund_transfers.source_wallets.cash') }}" />
                     </x-filament::input.wrapper>
-                @elseif ($transaction_type === \App\Livewire\Finance\FundTransferForm::TYPE_TRANSFER)
+                @elseif ($this->sourceIsBankLocked())
                     <x-filament::input.wrapper>
                         <select id="fund-source-bank" class="fi-select-input" wire:model.live="source_bank_account_id">
                             <option value="">{{ __('agricart.finance.fund_transfers.placeholders.select_bank') }}</option>
@@ -117,6 +117,16 @@
                         </select>
                     </x-filament::input.wrapper>
                     @error('destination_customer_id') <p class="agricart-form-panel__error agricart-finance-bank-form__error">{{ $message }}</p> @enderror
+                @elseif ($this->destinationIsExpense())
+                    <x-filament::input.wrapper>
+                        <select id="fund-dest-expense" class="fi-select-input" wire:model.live="destination_expense_id">
+                            <option value="">{{ __('agricart.finance.fund_transfers.placeholders.select_expense') }}</option>
+                            @foreach ($expenseOptions as $id => $label)
+                                <option value="{{ $id }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </x-filament::input.wrapper>
+                    @error('destination_expense_id') <p class="agricart-form-panel__error agricart-finance-bank-form__error">{{ $message }}</p> @enderror
                 @elseif ($this->destinationIsPurchaser())
                     <x-filament::input.wrapper>
                         <select id="fund-dest-purchaser" class="fi-select-input" wire:model.live="destination_purchaser_id">
@@ -127,9 +137,14 @@
                         </select>
                     </x-filament::input.wrapper>
                     @error('destination_purchaser_id') <p class="agricart-form-panel__error agricart-finance-bank-form__error">{{ $message }}</p> @enderror
+                @elseif ($this->destinationIsCash())
+                    <x-filament::input.wrapper>
+                        <input type="text" class="fi-input" readonly value="{{ __('agricart.finance.fund_transfers.source_wallets.cash') }}" />
+                    </x-filament::input.wrapper>
                 @endif
             </div>
         </div>
+        <p class="agricart-form-panel__hint">{{ $this->typeHint() }}</p>
 
         <div class="agricart-purchase-form__grid agricart-purchase-form__grid--2">
             <div>

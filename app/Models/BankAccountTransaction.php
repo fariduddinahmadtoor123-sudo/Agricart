@@ -23,6 +23,8 @@ class BankAccountTransaction extends Model
 
     public const TYPE_CASH_DEPOSIT = 'cash_deposit';
 
+    public const TYPE_CASH_WITHDRAWAL = 'cash_withdrawal';
+
     public const TYPE_EXPENSE_PAYMENT = 'expense_payment';
 
     public const DIRECTION_CREDIT = 'credit';

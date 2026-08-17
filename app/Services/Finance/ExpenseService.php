@@ -82,6 +82,13 @@ class ExpenseService
             'name_en' => ['required', 'string', 'max:255'],
             'name_ur' => ['nullable', 'string', 'max:255'],
             'information' => ['nullable', 'string', 'max:5000'],
+            'issue_day' => ['nullable', 'integer', 'min:1', 'max:31', 'required_with:due_day'],
+            'due_day' => ['nullable', 'integer', 'min:1', 'max:31'],
+            'detail_1' => ['nullable', 'string', 'max:120'],
+            'detail_2' => ['nullable', 'string', 'max:120'],
+            'detail_3' => ['nullable', 'string', 'max:120'],
+            'detail_4' => ['nullable', 'string', 'max:120'],
+            'estimated_cost' => ['nullable', 'numeric', 'min:0', 'max:999999999.99'],
         ])->validate();
     }
 }

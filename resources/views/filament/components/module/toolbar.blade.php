@@ -28,6 +28,7 @@
             'agricart-catalog-toolbar--compact' => ! empty($toolbar['hideSearch']) && ! empty($toolbar['hideFilters']) && ! empty($toolbar['hideColumns']),
             'agricart-catalog-toolbar--segmented' => ! empty($toolbar['segments']),
             'agricart-catalog-toolbar--reorder' => ($toolbar['resourceSlug'] ?? '') === 're-order-center',
+            'agricart-catalog-toolbar--expenses' => ($toolbar['resourceSlug'] ?? '') === 'expenses',
         ])
         @if (! empty($toolbar['segments']))
             x-data="{
@@ -56,9 +57,14 @@
             <div @class([
                 'agricart-catalog-toolbar__search',
                 'agricart-catalog-toolbar__search--segments' => ! empty($toolbar['segments']),
+                'agricart-catalog-toolbar__search--expense-estimate' => ($toolbar['resourceSlug'] ?? '') === 'expenses',
             ])>
                 @if (! empty($toolbar['segments']))
                     @include('filament.components.module.toolbar-segments', ['toolbar' => $toolbar, 'moduleKey' => $moduleKey])
+                @endif
+
+                @if (($toolbar['resourceSlug'] ?? '') === 'expenses')
+                    @include('filament.components.module.expense-estimate-toolbar', ['toolbar' => $toolbar])
                 @endif
 
                 @if (empty($toolbar['hideSearchInput']))

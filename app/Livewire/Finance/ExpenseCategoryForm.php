@@ -80,7 +80,7 @@ class ExpenseCategoryForm extends Component
 
     public function isReadonly(): bool
     {
-        return ! $this->canEditFields();
+        return $this->mode === 'view' || ! $this->canEditFields();
     }
 
     public function render(): View
@@ -90,7 +90,7 @@ class ExpenseCategoryForm extends Component
 
     private function persist(): bool
     {
-        if ($this->saving || ! $this->canEditFields()) {
+        if ($this->saving || $this->mode === 'view' || ! $this->canEditFields()) {
             return false;
         }
 

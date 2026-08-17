@@ -45,9 +45,15 @@
                                 </td>
                             @endif
                             <td class="agricart-categories__actions">
-                                <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $category->id }})">
-                                    {{ __('agricart.finance.expense_categories.actions.edit_short') }}
-                                </button>
+                                @if ($canView)
+                                    <button type="button" class="agricart-categories__action" wire:click="openView({{ $category->id }})">{{ __('agricart.finance.expense_categories.actions.view_short') }}</button>
+                                @endif
+                                @if ($canEdit)
+                                    <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $category->id }})">{{ __('agricart.finance.expense_categories.actions.edit_short') }}</button>
+                                @endif
+                                @if ($canDelete)
+                                    <button type="button" class="agricart-categories__action is-danger" wire:click="deleteCategory({{ $category->id }})" wire:confirm="{{ __('agricart.finance.expense_categories.actions.delete_confirm') }}">{{ __('agricart.finance.expense_categories.actions.delete_short') }}</button>
+                                @endif
                             </td>
                         </tr>
                     @endforeach

@@ -1618,6 +1618,88 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
     width: auto;
 }
 
+.agricart-catalog-toolbar__search--expense-estimate {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.agricart-catalog-toolbar__search--expense-estimate > .fi-input-wrp {
+    flex: 1 1 9rem;
+    min-width: 7rem;
+    max-width: 14rem;
+    width: auto !important;
+}
+
+.agricart-expense-estimate-toolbar {
+    display: inline-flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 0.35rem;
+    flex: 0 1 auto;
+    min-width: 0;
+}
+
+.agricart-expense-estimate-toolbar__date {
+    height: 2.25rem;
+    width: 9.25rem;
+    min-width: 8.5rem;
+    flex: 0 0 auto;
+    padding: 0 0.45rem;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0;
+    background: var(--agricart-surface, #fff);
+    color: inherit;
+    font-family: Arial, sans-serif;
+    font-size: 0.8125rem;
+    line-height: 1.2;
+}
+
+.agricart-expense-estimate-toolbar__date:focus {
+    outline: 2px solid color-mix(in oklab, var(--primary-500, #f59e0b) 45%, transparent);
+    outline-offset: 1px;
+}
+
+.agricart-expense-estimate-toolbar__sep {
+    flex: 0 0 auto;
+    color: var(--agricart-muted, #667085);
+    font-size: 0.8125rem;
+    line-height: 1;
+}
+
+.agricart-expense-estimate-toolbar__total {
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.1rem;
+    min-height: 2.25rem;
+    padding: 0.15rem 0.65rem;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-surface, #fff);
+    white-space: nowrap;
+}
+
+.agricart-expense-estimate-toolbar__total-label {
+    font-family: Arial, sans-serif;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--agricart-muted, #667085);
+    line-height: 1;
+}
+
+.agricart-expense-estimate-toolbar__total-value {
+    font-family: Arial, sans-serif;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--agricart-text, inherit);
+}
+
 .agricart-staff-attendance-toolbar {
     display: inline-flex;
     flex-direction: row;
@@ -1683,6 +1765,33 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
         flex: 1 1 100%;
         width: 100%;
         justify-content: flex-end;
+    }
+
+    .agricart-catalog-toolbar--expenses .agricart-catalog-toolbar__search--expense-estimate {
+        flex-wrap: wrap;
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+    .agricart-catalog-toolbar--expenses .agricart-catalog-toolbar__search--expense-estimate > .fi-input-wrp {
+        flex: 1 1 100%;
+        max-width: none;
+        width: 100% !important;
+    }
+
+    .agricart-expense-estimate-toolbar {
+        flex: 1 1 100%;
+        width: 100%;
+    }
+
+    .agricart-expense-estimate-toolbar__date {
+        flex: 1 1 0;
+        width: auto;
+        min-width: 0;
+    }
+
+    .agricart-expense-estimate-toolbar__total {
+        margin-inline-start: auto;
     }
 }
 
@@ -2305,6 +2414,177 @@ body.agricart-form-panel-open {
 .agricart-form-panel__textarea {
     min-height: 6rem;
     resize: vertical;
+}
+
+.agricart-form-panel__fields.agricart-finance-expense-category-form {
+    display: flex !important;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.agricart-finance-expense-category-form__row,
+.agricart-finance-expense-category-form__notes {
+    grid-column: 1 / -1;
+    min-width: 0;
+    width: 100%;
+}
+
+.agricart-finance-expense-category-form__row {
+    display: grid !important;
+    gap: 0.75rem 1rem;
+    align-items: end;
+}
+
+.agricart-finance-expense-category-form__row--meta {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.agricart-finance-expense-category-form__row--names {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.agricart-finance-expense-category-form__row--meta .fi-input-wrp {
+    min-height: 2.625rem;
+}
+
+.agricart-finance-expense-category-form__row--meta input.fi-input,
+.agricart-finance-expense-category-form__row--meta select.fi-input,
+.agricart-finance-expense-category-form__row--meta select.fi-select-input {
+    min-height: 2.625rem;
+    height: 2.625rem;
+    padding-block: 0.5rem;
+}
+
+.agricart-finance-expense-category-form__notes .fi-input-wrp {
+    display: flex;
+    width: 100%;
+}
+
+.agricart-finance-expense-category-form__notes textarea.fi-input {
+    display: block;
+    width: 100% !important;
+    min-height: 8.5rem;
+    padding: 0.65rem 0.75rem;
+}
+
+.agricart-form-panel__fields.agricart-finance-expense-form {
+    display: flex !important;
+    flex-direction: column;
+    gap: 0.9rem;
+}
+
+.agricart-finance-expense-form__row,
+.agricart-finance-expense-form__notes,
+.agricart-finance-expense-form__ai {
+    grid-column: 1 / -1;
+    min-width: 0;
+    width: 100%;
+}
+
+.agricart-finance-expense-form__row {
+    display: grid !important;
+    gap: 0.75rem 1rem;
+    align-items: end;
+}
+
+.agricart-finance-expense-form__row--meta {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) minmax(0, 1fr);
+}
+
+.agricart-finance-expense-form__row--names,
+.agricart-finance-expense-form__row--dates {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.agricart-finance-expense-form__row--meta .fi-input-wrp,
+.agricart-finance-expense-form__row--dates .fi-input-wrp {
+    min-height: 2.625rem;
+}
+
+.agricart-finance-expense-form__row--meta input.fi-input,
+.agricart-finance-expense-form__row--meta select.fi-input,
+.agricart-finance-expense-form__row--meta select.fi-select-input,
+.agricart-finance-expense-form__row--dates input.fi-input {
+    min-height: 2.625rem;
+    height: 2.625rem;
+    padding-block: 0.5rem;
+}
+
+.agricart-finance-expense-form__notes .fi-input-wrp,
+.agricart-finance-expense-form__ai .fi-input-wrp {
+    display: flex;
+    width: 100%;
+}
+
+.agricart-finance-expense-form__notes textarea.fi-input,
+.agricart-finance-expense-form__ai textarea.fi-input {
+    display: block;
+    width: 100% !important;
+    max-width: 100%;
+    min-width: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    direction: ltr;
+    text-align: start;
+    padding: 0.65rem 0.75rem;
+}
+
+.agricart-finance-expense-form__notes textarea.fi-input {
+    min-height: 8.5rem;
+}
+
+.agricart-finance-expense-form__ai textarea.fi-input {
+    min-height: 4.75rem;
+    resize: vertical;
+}
+
+.agricart-form-panel__alert {
+    padding: 0.625rem 0.875rem;
+    border: 1px solid var(--agricart-border);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border-radius: var(--agricart-radius);
+}
+
+.agricart-form-panel__alert.is-warning {
+    background: #fffaeb;
+    color: #b54708;
+    border: 1px solid #fedf89;
+}
+
+.agricart-form-panel__alert.is-success {
+    background: #ecfdf3;
+    color: #027a48;
+    border: 1px solid #abefc6;
+}
+
+.agricart-form-panel__alert.is-error {
+    background: #fef3f2;
+    color: #b42318;
+    border: 1px solid #fecdca;
+}
+
+.agricart-finance-expense-due {
+    margin-top: 0.2rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.agricart-finance-expense-due.is-issued {
+    color: #026aa2;
+}
+
+.agricart-finance-expense-due.is-due-soon {
+    color: #b54708;
+}
+
+.agricart-finance-expense-due.is-overdue {
+    color: #b42318;
+}
+
+.agricart-finance-expense-due.is-paid {
+    color: #027a48;
 }
 
 .agricart-form-panel__hint {

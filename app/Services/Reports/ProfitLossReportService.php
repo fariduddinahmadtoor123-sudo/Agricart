@@ -269,10 +269,11 @@ class ProfitLossReportService
 
     /**
      * Operating expenses for the period:
-     * - Structured Finance → Payments (`expense_payments`)
-     * - Fund Transfer purchaser / payee payments (legacy type `expense_payment`)
+     * - Structured Finance → Payments (`expense_payments`), including those posted from Cash/Bank Transfers
+     * - Fund Transfer staff/purchaser payments (`purchaser_payment`)
+     * - Legacy unlinked Fund Transfer `expense_payment` rows (no EXPAY link)
      *
-     * Both reduce net profit. They are separate cash paths and are not double-counted.
+     * Linked expense-head transfers are counted once via EXPAY, not again as a fund transfer.
      */
     private function operatingExpenses(?CarbonImmutable $start, ?CarbonImmutable $end): float
     {
@@ -280,11 +281,18 @@ class ProfitLossReportService
         $this->applyDateRange($structured, 'payment_date', $start, $end);
 
         $purchaserPays = FundTransfer::query()
-            ->where('transaction_type', FundTransfer::TYPE_EXPENSE_PAYMENT);
+            ->where('transaction_type', FundTransfer::TYPE_PURCHASER_PAYMENT);
         $this->applyDateRange($purchaserPays, 'transaction_date', $start, $end);
 
+        $legacyExpenseTransfers = FundTransfer::query()
+            ->where('transaction_type', FundTransfer::TYPE_EXPENSE_PAYMENT)
+            ->whereNull('expense_payment_id');
+        $this->applyDateRange($legacyExpenseTransfers, 'transaction_date', $start, $end);
+
         return round(
-            $this->sumDecimal($structured, 'amount') + $this->sumDecimal($purchaserPays, 'amount'),
+            $this->sumDecimal($structured, 'amount')
+            + $this->sumDecimal($purchaserPays, 'amount')
+            + $this->sumDecimal($legacyExpenseTransfers, 'amount'),
             2,
         );
     }

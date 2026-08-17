@@ -248,7 +248,7 @@ return [
 
     'profit-loss' => [
         'title' => 'Profit & Loss',
-        'summary' => 'سیل قطار: net، COGS، منافع؛ KPI میں ExpensePayment + TYPE_EXPENSE_PAYMENT۔',
+        'summary' => 'سیل قطار: net، COGS، منافع؛ KPI میں ExpensePayment + purchaser_payment + لیگیسی unlinked expense_payment۔',
         'meta' => [
             'routes' => ['/admin/reports/profit-loss'],
             'permissions' => ['reports.view'],
@@ -277,8 +277,8 @@ return [
                 'type' => 'rules',
                 'heading' => 'قواعد',
                 'list' => [
-                    'صرف TYPE_EXPENSE_PAYMENT transfers۔',
-                    'vendor/عام transfers P&L اخراجات میں نہیں۔',
+                    'ExpensePayment، purchaser_payment، اور لیگیسی unlinked expense_payment الگ راستے (linked expense FT دو بار نہیں)۔',
+                    'vendor/deposit/withdrawal/عام transfers P&L اخراجات میں نہیں۔',
                 ],
             ],
             [
@@ -294,7 +294,7 @@ return [
                 'type' => 'rebuild_notes',
                 'heading' => 'Rebuild نوٹس',
                 'list' => [
-                    'تمام fund transfers نہیں — صرف expense type۔',
+                    'linked expense_payment صرف EXPAY سے؛ purchaser_payment اور لیگیسی unlinked FT الگ۔',
                 ],
             ],
             [

@@ -29,6 +29,7 @@ class ExpensePayment extends Model
         'bank_account_id',
         'notes',
         'created_by',
+        'fund_transfer_id',
     ];
 
     protected function casts(): array
@@ -61,6 +62,14 @@ class ExpensePayment extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * @return BelongsTo<FundTransfer, $this>
+     */
+    public function fundTransfer(): BelongsTo
+    {
+        return $this->belongsTo(FundTransfer::class);
     }
 
     /**

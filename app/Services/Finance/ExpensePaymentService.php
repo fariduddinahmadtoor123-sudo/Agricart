@@ -41,6 +41,8 @@ class ExpensePaymentService
                 $validated['created_by'] = $actor?->id;
                 $payment = ExpensePayment::query()->create($validated);
                 $this->postLedger($payment, $actor);
+                $payment->load(['expense', 'createdBy']);
+                app(ExpenseScheduleService::class)->completeFromPayment($payment);
 
                 return $payment->fresh(['expense.category', 'bankAccount']);
             });
@@ -98,6 +100,7 @@ class ExpensePaymentService
                 description: $description,
                 notes: $payment->notes,
                 actor: $actor,
+                fundTransferId: $payment->fund_transfer_id,
                 expenseId: $expense->id,
                 expensePaymentId: $payment->id,
             );
@@ -120,6 +123,7 @@ class ExpensePaymentService
             description: $description,
             notes: $payment->notes,
             actor: $actor,
+            fundTransferId: $payment->fund_transfer_id,
             expenseId: $expense->id,
             expensePaymentId: $payment->id,
         );
@@ -140,6 +144,7 @@ class ExpensePaymentService
             'source_wallet' => ['required', Rule::in(ExpensePayment::WALLETS)],
             'bank_account_id' => ['nullable', 'integer', 'exists:bank_accounts,id'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'fund_transfer_id' => ['nullable', 'integer', 'exists:fund_transfers,id'],
         ])->validate();
 
         if ($validated['source_wallet'] === ExpensePayment::WALLET_BANK && empty($validated['bank_account_id'])) {

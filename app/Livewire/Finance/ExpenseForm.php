@@ -6,6 +6,7 @@ use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\User;
 use App\Services\Finance\ExpenseEnrichmentService;
+use App\Services\Finance\ExpenseScheduleService;
 use App\Services\Finance\ExpenseService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -25,9 +26,26 @@ class ExpenseForm extends Component
 
     public string $name_ur = '';
 
-    public ?int $expense_category_id = null;
+    /** @var int|string|null */
+    public $expense_category_id = null;
 
     public string $information = '';
+
+    /** @var int|string|null */
+    public $issue_day = null;
+
+    /** @var int|string|null */
+    public $due_day = null;
+
+    public string $detail_1 = '';
+
+    public string $detail_2 = '';
+
+    public string $detail_3 = '';
+
+    public string $detail_4 = '';
+
+    public string $estimated_cost = '';
 
     public string $status = Expense::STATUS_ACTIVE;
 
@@ -58,9 +76,9 @@ class ExpenseForm extends Component
     }
 
     #[On('finance-expense-form-action')]
-    public function handlePanelAction(string $action): void
+    public function handlePanelAction(mixed $action = null): void
     {
-        match ($action) {
+        match ($this->panelActionKey($action)) {
             'ai' => $this->enrichWithAi(),
             'save_close' => $this->saveAndClose(),
             'save_next' => $this->saveAndAddNext(),
@@ -136,7 +154,134 @@ class ExpenseForm extends Component
 
     public function isReadonly(): bool
     {
-        return ! $this->canEditFields();
+        return $this->mode === 'view' || ! $this->canEditFields();
+    }
+
+    public function markCycleDone(): void
+    {
+        if ($this->expenseId === null || $this->mode === 'view' || ! $this->canEditFields()) {
+            return;
+        }
+
+        try {
+            $expense = Expense::query()->with(['payments', 'billCycles'])->findOrFail($this->expenseId);
+            app(ExpenseScheduleService::class)->markOldestOpenDone($expense, auth()->user() instanceof User ? auth()->user() : null);
+            $this->dispatch('finance-expenses-saved');
+            $this->setStatus(__('agricart.finance.expenses.messages.cycle_done'), 'success');
+        } catch (ValidationException $exception) {
+            $this->setStatus(collect($exception->errors())->flatten()->first() ?: __('agricart.finance.expenses.messages.save_failed'), 'error');
+        }
+    }
+
+    /**
+     * @return array{type: string, message: string}|null
+     */
+    public function dueNotice(): ?array
+    {
+        if ($this->nullableInt($this->issue_day) === null) {
+            return null;
+        }
+
+        try {
+            return $this->dueNoticeForSchedule();
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return [
+                'type' => 'info',
+                'message' => __('agricart.finance.expenses.due.schedule_set'),
+            ];
+        }
+    }
+
+    /**
+     * @return array{type: string, message: string}|null
+     */
+    private function dueNoticeForSchedule(): ?array
+    {
+        $schedule = app(ExpenseScheduleService::class);
+        $stub = $this->schedulePreviewExpense();
+
+        if ($stub === null) {
+            return [
+                'type' => 'info',
+                'message' => __('agricart.finance.expenses.due.schedule_set'),
+            ];
+        }
+
+        $open = $schedule->oldestOpenCycle($stub);
+        $status = $schedule->dueStatus($stub);
+
+        if ($status === Expense::DUE_UPCOMING && $open === null) {
+            $cycle = $schedule->cycleForMonth($stub, (int) now()->year, (int) now()->month);
+
+            if ($cycle === null) {
+                return [
+                    'type' => 'info',
+                    'message' => __('agricart.finance.expenses.due.schedule_set'),
+                ];
+            }
+
+            return [
+                'type' => 'info',
+                'message' => __('agricart.finance.expenses.due.upcoming', [
+                    'date' => $cycle['issue_on']->toDateString(),
+                ]),
+            ];
+        }
+
+        if ($status === Expense::DUE_PAID) {
+            return [
+                'type' => 'success',
+                'message' => __('agricart.finance.expenses.due.paid'),
+            ];
+        }
+
+        $due = $open['due_on'] ?? null;
+        $issue = $open['issue_on'] ?? null;
+
+        if ($status === Expense::DUE_OVERDUE) {
+            return [
+                'type' => 'error',
+                'message' => __('agricart.finance.expenses.due.overdue', [
+                    'date' => $due?->toDateString() ?? '',
+                ]),
+            ];
+        }
+
+        if ($status === Expense::DUE_SOON) {
+            return [
+                'type' => 'warning',
+                'message' => __('agricart.finance.expenses.due.due_soon', [
+                    'date' => $due?->toDateString() ?? '',
+                ]),
+            ];
+        }
+
+        return [
+            'type' => 'warning',
+            'message' => $due !== null
+                ? __('agricart.finance.expenses.due.issued_with_due', ['date' => $due->toDateString()])
+                : __('agricart.finance.expenses.due.issued', ['date' => $issue?->toDateString() ?? '']),
+        ];
+    }
+
+    public function hasOpenCycle(): bool
+    {
+        if ($this->expenseId === null || $this->nullableInt($this->issue_day) === null) {
+            return false;
+        }
+
+        try {
+            $expense = Expense::query()->with(['payments', 'billCycles'])->find($this->expenseId);
+
+            return $expense instanceof Expense
+                && app(ExpenseScheduleService::class)->oldestOpenCycle($expense) !== null;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return false;
+        }
     }
 
     public function render(): View
@@ -154,7 +299,13 @@ class ExpenseForm extends Component
 
     private function persist(): bool
     {
-        if ($this->saving || ! $this->canEditFields()) {
+        if ($this->saving) {
+            return false;
+        }
+
+        if ($this->mode === 'view' || ! $this->canEditFields()) {
+            $this->setStatus(__('agricart.errors.denied'), 'error');
+
             return false;
         }
 
@@ -183,6 +334,11 @@ class ExpenseForm extends Component
             $this->setStatus(collect($exception->errors())->flatten()->first() ?: __('agricart.finance.expenses.messages.save_failed'), 'error');
 
             return false;
+        } catch (\Throwable $exception) {
+            report($exception);
+            $this->setStatus(__('agricart.finance.expenses.messages.save_failed'), 'error');
+
+            return false;
         } finally {
             $this->saving = false;
             $this->dispatchBusyState();
@@ -196,11 +352,18 @@ class ExpenseForm extends Component
     {
         return [
             'expense_number' => filled($this->expense_number) ? $this->expense_number : null,
-            'expense_category_id' => $this->expense_category_id,
+            'expense_category_id' => $this->nullableInt($this->expense_category_id),
             'status' => $this->status,
             'name_en' => $this->name_en,
             'name_ur' => $this->name_ur !== '' ? $this->name_ur : null,
             'information' => $this->information !== '' ? $this->information : null,
+            'issue_day' => $this->nullableDay($this->issue_day),
+            'due_day' => $this->nullableDay($this->due_day),
+            'detail_1' => $this->nullableString($this->detail_1),
+            'detail_2' => $this->nullableString($this->detail_2),
+            'detail_3' => $this->nullableString($this->detail_3),
+            'detail_4' => $this->nullableString($this->detail_4),
+            'estimated_cost' => $this->nullableAmount($this->estimated_cost),
         ];
     }
 
@@ -212,6 +375,15 @@ class ExpenseForm extends Component
         $this->name_ur = (string) ($expense->name_ur ?? '');
         $this->expense_category_id = $expense->expense_category_id;
         $this->information = (string) ($expense->information ?? '');
+        $this->issue_day = $expense->issue_day;
+        $this->due_day = $expense->due_day;
+        $this->detail_1 = (string) ($expense->detail_1 ?? '');
+        $this->detail_2 = (string) ($expense->detail_2 ?? '');
+        $this->detail_3 = (string) ($expense->detail_3 ?? '');
+        $this->detail_4 = (string) ($expense->detail_4 ?? '');
+        $this->estimated_cost = $expense->estimated_cost !== null
+            ? number_format((float) $expense->estimated_cost, 2, '.', '')
+            : '';
         $this->status = (string) $expense->status;
     }
 
@@ -222,6 +394,13 @@ class ExpenseForm extends Component
         $this->name_ur = '';
         $this->expense_category_id = null;
         $this->information = '';
+        $this->issue_day = null;
+        $this->due_day = null;
+        $this->detail_1 = '';
+        $this->detail_2 = '';
+        $this->detail_3 = '';
+        $this->detail_4 = '';
+        $this->estimated_cost = '';
         $this->status = Expense::STATUS_ACTIVE;
         $this->enrichmentPrompt = '';
     }
@@ -237,6 +416,70 @@ class ExpenseForm extends Component
         $permission = $this->mode === 'create' ? 'finance.expenses.create' : 'finance.expenses.edit';
 
         return $user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::userHasKey($user, $permission);
+    }
+
+    private function schedulePreviewExpense(): ?Expense
+    {
+        if ($this->expenseId !== null) {
+            $expense = Expense::query()->with(['payments', 'billCycles'])->find($this->expenseId);
+
+            if ($expense instanceof Expense) {
+                $expense->issue_day = $this->nullableDay($this->issue_day);
+                $expense->due_day = $this->nullableDay($this->due_day);
+
+                return $expense;
+            }
+        }
+
+        $expense = new Expense([
+            'issue_day' => $this->nullableDay($this->issue_day),
+            'due_day' => $this->nullableDay($this->due_day),
+            'status' => Expense::STATUS_ACTIVE,
+        ]);
+        $expense->created_at = now();
+        $expense->setRelation('payments', collect());
+        $expense->setRelation('billCycles', collect());
+
+        return $expense;
+    }
+
+    private function panelActionKey(mixed $action): string
+    {
+        if (is_array($action)) {
+            $action = $action['action'] ?? $action[0] ?? '';
+        }
+
+        return is_string($action) ? $action : '';
+    }
+
+    private function nullableInt(mixed $value): ?int
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return (int) $value;
+    }
+
+    private function nullableDay(mixed $value): ?int
+    {
+        $day = $this->nullableInt($value);
+
+        return ($day !== null && $day >= 1) ? $day : null;
+    }
+
+    private function nullableString(mixed $value): ?string
+    {
+        $value = trim((string) ($value ?? ''));
+
+        return $value !== '' ? $value : null;
+    }
+
+    private function nullableAmount(mixed $value): ?string
+    {
+        $value = trim((string) ($value ?? ''));
+
+        return $value !== '' ? $value : null;
     }
 
     private function dispatchBusyState(): void

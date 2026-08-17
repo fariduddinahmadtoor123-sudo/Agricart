@@ -54,4 +54,15 @@ class OptimizedImageStorageTest extends TestCase
         $this->assertStringEndsWith('.jpg', $path);
         Storage::disk('public')->assertExists($path);
     }
+
+    public function test_about_uploads_keep_original_format_instead_of_webp(): void
+    {
+        Storage::fake('public');
+
+        $upload = UploadedFile::fake()->image('office.jpg', 2000, 1200);
+        $path = app(OptimizedImageStorage::class)->store($upload, 'store/about');
+
+        $this->assertStringEndsWith('.jpg', $path);
+        Storage::disk('public')->assertExists($path);
+    }
 }

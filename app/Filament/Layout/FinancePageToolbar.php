@@ -95,11 +95,16 @@ class FinancePageToolbar extends ClusterPageToolbar
                 'filters' => [
                     ['label' => __('agricart.form_panel.statuses.active'), 'value' => 'status:active'],
                     ['label' => __('agricart.form_panel.statuses.inactive'), 'value' => 'status:inactive'],
+                    ['label' => __('agricart.finance.expenses.due.statuses.issued'), 'value' => 'due:issued'],
+                    ['label' => __('agricart.finance.expenses.due.statuses.due_soon'), 'value' => 'due:due_soon'],
+                    ['label' => __('agricart.finance.expenses.due.statuses.overdue'), 'value' => 'due:overdue'],
                 ],
                 'columns' => [
                     ['label' => __('agricart.finance.expenses.list.col_number'), 'value' => 'expense_number', 'visible' => true],
                     ['label' => __('agricart.finance.expenses.list.col_name'), 'value' => 'name', 'visible' => true],
                     ['label' => __('agricart.finance.expenses.list.col_category'), 'value' => 'category', 'visible' => true],
+                    ['label' => __('agricart.finance.expenses.list.col_schedule'), 'value' => 'schedule', 'visible' => true],
+                    ['label' => __('agricart.finance.expenses.list.col_estimated'), 'value' => 'estimated_cost', 'visible' => true],
                     ['label' => __('agricart.finance.expenses.list.col_status'), 'value' => 'status', 'visible' => true],
                 ],
             ],

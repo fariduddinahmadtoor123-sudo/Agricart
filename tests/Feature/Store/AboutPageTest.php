@@ -43,8 +43,11 @@ class AboutPageTest extends TestCase
             ],
         ]);
 
-        $service->storeCeoPhoto($photo);
+        $ceoPath = $service->storeCeoPhoto($photo);
         $service->addOfficeImage($office, 'Front counter');
+
+        $this->assertStringEndsWith('.jpg', $ceoPath);
+        $this->assertStringEndsWith('.jpg', (string) StoreAboutSetting::current()->office_images[0]['path']);
 
         $this->get(route('store.about'))
             ->assertOk()

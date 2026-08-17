@@ -5,6 +5,8 @@ namespace App\Livewire\Finance;
 use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\BankAccount;
 use App\Models\Customer;
+use App\Models\Expense;
+use App\Models\FundTransfer;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Services\Finance\FundTransferService;
@@ -17,15 +19,19 @@ class FundTransferForm extends Component
 {
     use AuthorizesSensitiveActions;
 
-    public const TYPE_DEPOSIT = 'deposit';
+    public const TYPE_DEPOSIT = FundTransfer::TYPE_DEPOSIT;
 
-    public const TYPE_TRANSFER = 'transfer';
+    public const TYPE_WITHDRAWAL = FundTransfer::TYPE_WITHDRAWAL;
 
-    public const TYPE_VENDOR_PAYMENT = 'vendor_payment';
+    public const TYPE_TRANSFER = FundTransfer::TYPE_TRANSFER;
 
-    public const TYPE_CUSTOMER_RECEIPT = 'customer_receipt';
+    public const TYPE_VENDOR_PAYMENT = FundTransfer::TYPE_VENDOR_PAYMENT;
 
-    public const TYPE_EXPENSE_PAYMENT = 'expense_payment';
+    public const TYPE_CUSTOMER_RECEIPT = FundTransfer::TYPE_CUSTOMER_RECEIPT;
+
+    public const TYPE_EXPENSE_PAYMENT = FundTransfer::TYPE_EXPENSE_PAYMENT;
+
+    public const TYPE_PURCHASER_PAYMENT = FundTransfer::TYPE_PURCHASER_PAYMENT;
 
     public const SOURCE_CASH = 'cash';
 
@@ -49,6 +55,8 @@ class FundTransferForm extends Component
     public ?int $destination_customer_id = null;
 
     public ?int $destination_purchaser_id = null;
+
+    public ?int $destination_expense_id = null;
 
     public string $amount = '';
 
@@ -145,6 +153,7 @@ class FundTransferForm extends Component
             'destination_supplier_id' => $this->destination_supplier_id,
             'destination_customer_id' => $this->destination_customer_id,
             'destination_purchaser_id' => $this->destination_purchaser_id,
+            'destination_expense_id' => $this->destination_expense_id,
             'amount' => $this->amount,
             'transaction_date' => $this->transaction_date,
             'transaction_time' => $this->transaction_time,
@@ -158,7 +167,7 @@ class FundTransferForm extends Component
     protected function rules(): array
     {
         $rules = [
-            'transaction_type' => ['required', 'in:deposit,transfer,vendor_payment,customer_receipt,expense_payment'],
+            'transaction_type' => ['required', 'in:deposit,withdrawal,transfer,vendor_payment,customer_receipt,expense_payment,purchaser_payment'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'transaction_date' => ['required', 'date'],
             'transaction_time' => ['required', 'date_format:H:i'],
@@ -176,6 +185,10 @@ class FundTransferForm extends Component
             $rules['destination_bank_account_id'] = $destRules;
         }
 
+        if (in_array($this->transaction_type, [self::TYPE_VENDOR_PAYMENT, self::TYPE_CUSTOMER_RECEIPT, self::TYPE_EXPENSE_PAYMENT, self::TYPE_PURCHASER_PAYMENT], true)) {
+            $rules['source_wallet'] = ['required', 'in:cash,bank'];
+        }
+
         if ($this->transaction_type === self::TYPE_VENDOR_PAYMENT) {
             $rules['destination_supplier_id'] = ['required', 'integer', 'exists:suppliers,id'];
         }
@@ -185,6 +198,10 @@ class FundTransferForm extends Component
         }
 
         if ($this->transaction_type === self::TYPE_EXPENSE_PAYMENT) {
+            $rules['destination_expense_id'] = ['required', 'integer', 'exists:expenses,id'];
+        }
+
+        if ($this->transaction_type === self::TYPE_PURCHASER_PAYMENT) {
             $rules['destination_purchaser_id'] = ['required', 'integer', 'exists:users,id'];
         }
 
@@ -194,8 +211,8 @@ class FundTransferForm extends Component
     public function requiresSourceBank(): bool
     {
         return match ($this->transaction_type) {
-            self::TYPE_TRANSFER => true,
-            self::TYPE_VENDOR_PAYMENT, self::TYPE_CUSTOMER_RECEIPT, self::TYPE_EXPENSE_PAYMENT => $this->source_wallet === self::SOURCE_BANK,
+            self::TYPE_TRANSFER, self::TYPE_WITHDRAWAL => true,
+            self::TYPE_VENDOR_PAYMENT, self::TYPE_CUSTOMER_RECEIPT, self::TYPE_EXPENSE_PAYMENT, self::TYPE_PURCHASER_PAYMENT => $this->source_wallet === self::SOURCE_BANK,
             default => false,
         };
     }
@@ -210,6 +227,11 @@ class FundTransferForm extends Component
         return $this->transaction_type === self::TYPE_DEPOSIT;
     }
 
+    public function sourceIsBankLocked(): bool
+    {
+        return in_array($this->transaction_type, [self::TYPE_WITHDRAWAL, self::TYPE_TRANSFER], true);
+    }
+
     public function destinationIsVendor(): bool
     {
         return $this->transaction_type === self::TYPE_VENDOR_PAYMENT;
@@ -222,7 +244,17 @@ class FundTransferForm extends Component
 
     public function destinationIsPurchaser(): bool
     {
+        return $this->transaction_type === self::TYPE_PURCHASER_PAYMENT;
+    }
+
+    public function destinationIsExpense(): bool
+    {
         return $this->transaction_type === self::TYPE_EXPENSE_PAYMENT;
+    }
+
+    public function destinationIsCash(): bool
+    {
+        return $this->transaction_type === self::TYPE_WITHDRAWAL;
     }
 
     public function sourceWalletLabel(): string
@@ -243,6 +275,7 @@ class FundTransferForm extends Component
                 'supplierOptions' => [],
                 'customerOptions' => [],
                 'purchaserOptions' => [],
+                'expenseOptions' => [],
                 'formattedDateTime' => '—',
             ]);
         }
@@ -265,6 +298,7 @@ class FundTransferForm extends Component
             'supplierOptions' => $this->supplierOptions(),
             'customerOptions' => $this->customerOptions(),
             'purchaserOptions' => $this->purchaserOptions(),
+            'expenseOptions' => $this->expenseOptions(),
             'formattedDateTime' => $this->formattedDateTime(),
         ]);
     }
@@ -272,6 +306,13 @@ class FundTransferForm extends Component
     private function resetFormFields(): void
     {
         $this->transaction_type = self::TYPE_DEPOSIT;
+        $this->source_wallet = self::SOURCE_CASH;
+        $this->source_bank_account_id = null;
+        $this->destination_bank_account_id = null;
+        $this->destination_supplier_id = null;
+        $this->destination_customer_id = null;
+        $this->destination_purchaser_id = null;
+        $this->destination_expense_id = null;
         $this->amount = '';
         $this->notes = '';
         $this->transaction_number = '';
@@ -282,45 +323,27 @@ class FundTransferForm extends Component
 
     private function applyTypeDefaults(): void
     {
+        $this->destination_bank_account_id = in_array($this->transaction_type, [self::TYPE_DEPOSIT, self::TYPE_TRANSFER], true)
+            ? $this->destination_bank_account_id
+            : null;
+        $this->destination_supplier_id = $this->transaction_type === self::TYPE_VENDOR_PAYMENT ? $this->destination_supplier_id : null;
+        $this->destination_customer_id = $this->transaction_type === self::TYPE_CUSTOMER_RECEIPT ? $this->destination_customer_id : null;
+        $this->destination_purchaser_id = $this->transaction_type === self::TYPE_PURCHASER_PAYMENT ? $this->destination_purchaser_id : null;
+        $this->destination_expense_id = $this->transaction_type === self::TYPE_EXPENSE_PAYMENT ? $this->destination_expense_id : null;
+
         match ($this->transaction_type) {
             self::TYPE_DEPOSIT => (function (): void {
                 $this->source_wallet = self::SOURCE_CASH;
                 $this->source_bank_account_id = null;
-                $this->destination_supplier_id = null;
-                $this->destination_customer_id = null;
-                $this->destination_purchaser_id = null;
             })(),
-            self::TYPE_TRANSFER => (function (): void {
+            self::TYPE_WITHDRAWAL, self::TYPE_TRANSFER => (function (): void {
                 $this->source_wallet = self::SOURCE_BANK;
-                $this->destination_supplier_id = null;
-                $this->destination_customer_id = null;
-                $this->destination_purchaser_id = null;
             })(),
-            self::TYPE_VENDOR_PAYMENT => (function (): void {
-                $this->destination_bank_account_id = null;
-                $this->destination_customer_id = null;
-                $this->destination_purchaser_id = null;
+            default => (function (): void {
                 if ($this->source_wallet === self::SOURCE_CASH) {
                     $this->source_bank_account_id = null;
                 }
             })(),
-            self::TYPE_CUSTOMER_RECEIPT => (function (): void {
-                $this->destination_bank_account_id = null;
-                $this->destination_supplier_id = null;
-                $this->destination_purchaser_id = null;
-                if ($this->source_wallet === self::SOURCE_CASH) {
-                    $this->source_bank_account_id = null;
-                }
-            })(),
-            self::TYPE_EXPENSE_PAYMENT => (function (): void {
-                $this->destination_bank_account_id = null;
-                $this->destination_supplier_id = null;
-                $this->destination_customer_id = null;
-                if ($this->source_wallet === self::SOURCE_CASH) {
-                    $this->source_bank_account_id = null;
-                }
-            })(),
-            default => null,
         };
     }
 
@@ -331,10 +354,12 @@ class FundTransferForm extends Component
     {
         return [
             self::TYPE_DEPOSIT => __('agricart.finance.fund_transfers.types.deposit'),
+            self::TYPE_WITHDRAWAL => __('agricart.finance.fund_transfers.types.withdrawal'),
             self::TYPE_TRANSFER => __('agricart.finance.fund_transfers.types.transfer'),
             self::TYPE_VENDOR_PAYMENT => __('agricart.finance.fund_transfers.types.vendor_payment'),
             self::TYPE_CUSTOMER_RECEIPT => __('agricart.finance.fund_transfers.types.customer_receipt'),
             self::TYPE_EXPENSE_PAYMENT => __('agricart.finance.fund_transfers.types.expense_payment'),
+            self::TYPE_PURCHASER_PAYMENT => __('agricart.finance.fund_transfers.types.purchaser_payment'),
         ];
     }
 
@@ -402,6 +427,26 @@ class FundTransferForm extends Component
             ->orderBy('name')
             ->pluck('name', 'id')
             ->all();
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function expenseOptions(): array
+    {
+        return Expense::query()
+            ->where('status', Expense::STATUS_ACTIVE)
+            ->orderBy('name_en')
+            ->get()
+            ->mapWithKeys(fn (Expense $expense): array => [
+                $expense->id => $expense->expense_number.' — '.$expense->displayName(),
+            ])
+            ->all();
+    }
+
+    public function typeHint(): string
+    {
+        return __('agricart.finance.fund_transfers.hints.'.$this->transaction_type);
     }
 
     private function formattedDateTime(): string

@@ -259,7 +259,7 @@ return [
 
     'profit-loss' => [
         'title' => 'Profit & Loss',
-        'summary' => 'Per completed sale: net after returns, COGS from purchase cost timeline, gross profit; KPIs subtract operating expenses (ExpensePayment + TYPE_EXPENSE_PAYMENT transfers).',
+        'summary' => 'Per completed sale: net after returns, COGS from purchase cost timeline, gross profit; KPIs subtract operating expenses (ExpensePayment + purchaser_payment + legacy unlinked expense_payment transfers).',
         'meta' => [
             'routes' => ['/admin/reports/profit-loss'],
             'permissions' => ['reports.view'],
@@ -272,7 +272,7 @@ return [
                 'heading' => 'Purpose',
                 'paragraphs' => [
                     'Table rows are completed sales: gross = total_amount; returns = linked SaleReturn.refund_total; net = gross − returns; COGS from PurchaseItem cost_price else current_rate as-of sale date; profit = net − COGS; result profit/loss/even.',
-                    'KPIs sum invoice gross profit then subtract operating expenses: ExpensePayment.amount by payment_date plus FundTransfer TYPE_EXPENSE_PAYMENT by transaction_date. Expenses are not table rows.',
+                    'KPIs sum invoice gross profit then subtract operating expenses: ExpensePayment.amount by payment_date, FundTransfer purchaser_payment by transaction_date, and legacy unlinked TYPE_EXPENSE_PAYMENT rows (expense_payment_id null). Linked expense-head transfers are counted once via EXPAY. Expenses are not table rows.',
                 ],
             ],
             [
@@ -289,8 +289,8 @@ return [
                 'type' => 'rules',
                 'heading' => 'Rules',
                 'list' => [
-                    'Expense payments and expense-type fund transfers are separate paths (not double-counted).',
-                    'Vendor payments and generic cash/bank transfers are not included in P&L expenses.',
+                    'Expense payments, purchaser_payment transfers, and legacy unlinked expense_payment transfers are separate paths (linked expense-head FTs are not double-counted).',
+                    'Vendor payments, deposits, withdrawals, and generic bank transfers are not included in P&L expenses.',
                 ],
             ],
             [
@@ -298,7 +298,8 @@ return [
                 'type' => 'integrations',
                 'heading' => 'Integrations',
                 'list' => [
-                    'Finance → Expense Payments (ExpensePayment).',
+                    'Finance → Expense Payments (ExpensePayment), including those created from Cash/Bank Transfers.',
+                    'Fund Transfer purchaser_payment (staff/payee) and legacy unlinked expense_payment.',
                     'Sales / Sale Returns / Purchase items for COGS.',
                 ],
             ],
@@ -307,7 +308,7 @@ return [
                 'type' => 'rebuild_notes',
                 'heading' => 'Rebuild notes',
                 'list' => [
-                    'Only TYPE_EXPENSE_PAYMENT fund transfers count — not all fund transfers.',
+                    'Linked TYPE_EXPENSE_PAYMENT fund transfers count via EXPAY only; purchaser_payment and unlinked legacy expense_payment still count as transfers.',
                     'COGS depends on purchase cost history; missing costs skew margin.',
                 ],
             ],

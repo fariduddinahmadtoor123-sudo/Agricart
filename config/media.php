@@ -9,7 +9,8 @@ return [
     |
     | Uploads are resized and stored as WebP so a large catalog (~100k images)
     | stays fast to deliver. Legal / ID scans use the "document" preset and
-    | are stored unchanged.
+    | are stored unchanged. About-page photos use the "about" preset and keep
+    | the original file so phone colour profiles are not stripped by GD WebP.
     |
     */
 
@@ -40,6 +41,12 @@ return [
             'quality' => 80,
             'convert_webp' => true,
         ],
+        'about' => [
+            'max_width' => null,
+            'max_height' => null,
+            'quality' => null,
+            'convert_webp' => false,
+        ],
         'document' => [
             'max_width' => null,
             'max_height' => null,
@@ -57,7 +64,7 @@ return [
         'products/originals' => 'catalog',
         'products/gallery/originals' => 'gallery',
         'store' => 'logo',
-        'store/about' => 'gallery',
+        'store/about' => 'about',
         'store/watermarks' => 'logo',
         'customers/photos' => 'avatar',
         'suppliers/profile-photos' => 'avatar',
