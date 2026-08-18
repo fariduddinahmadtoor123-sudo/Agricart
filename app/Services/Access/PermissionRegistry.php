@@ -215,6 +215,7 @@ class PermissionRegistry
                 'purchase-payment-summary' => ['label_en' => 'Payment Summary', 'label_ur' => 'ادائیگی سمری', 'actions' => $crudPrint],
                 're-order-center' => ['label_en' => 'Re-Order Center', 'label_ur' => 'ری آرڈر سینٹر', 'actions' => ['view', 'create', 'print']],
                 'price-tags' => ['label_en' => 'Price Tags', 'label_ur' => 'قیمت ٹیگز', 'actions' => $crudPrint],
+                'rate-list' => ['label_en' => 'Rate List', 'label_ur' => 'ریٹ لسٹ', 'actions' => ['view', 'print']],
                 'price-update' => ['label_en' => 'Price Update', 'label_ur' => 'پرائس اپڈیٹ', 'actions' => ['view', 'edit', 'print']],
             ],
             'sales' => [

@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\PurchasePlanningPrintController;
 use App\Http\Controllers\Admin\PurchasePrintController;
 use App\Http\Controllers\Admin\PurchaseQuotationPrintController;
 use App\Http\Controllers\Admin\ReorderPrintController;
+use App\Http\Controllers\Admin\ShopRateListPrintController;
 use App\Http\Controllers\Admin\SalePrintController;
 use App\Http\Controllers\Admin\StaffNotePrintController;
 use App\Http\Controllers\Admin\SaleQuotationPrintController;
@@ -262,6 +263,8 @@ Route::middleware(['web', 'auth', AuthenticateSession::class, EnsureActiveAdminU
         ->name('admin.reorder.print');
     Route::get('/price-tags/print', [PriceTagPrintController::class, 'show'])
         ->name('admin.price-tags.print');
+    Route::get('/rate-list/print', [ShopRateListPrintController::class, 'show'])
+        ->name('admin.rate-list.print');
     Route::get('/price-updates/buy-sheet/print', [PriceUpdateBuySheetPrintController::class, 'show'])
         ->name('admin.price-updates.buy-sheet.print');
     Route::get('/purchases/{purchase}/print', [PurchasePrintController::class, 'show'])

@@ -432,4 +432,52 @@ return [
             ],
         ],
     ],
+
+    'rate-list' => [
+        'title' => 'شاپ ریٹ لسٹ',
+        'summary' => 'ریٹیل ریٹ والی چیزوں کی دیوار والی ریٹ لسٹ — انگریزی، اردو، یا دونوں، نام کے اے سے زیڈ حساب سے۔',
+        'meta' => [
+            'routes' => ['/admin/purchasing/rate-list'],
+            'permissions' => ['purchasing.view', 'purchasing.print'],
+        ],
+        'sections' => [
+            [
+                'id' => 'purpose',
+                'type' => 'purpose',
+                'heading' => 'مقصد',
+                'paragraphs' => [
+                    'دکان پر لگانے کے لیے ریٹ لسٹ۔ صرف ریٹ والی فعال مصنوعات شامل ہوتی ہیں، نام کے اے سے زیڈ حساب سے۔',
+                ],
+            ],
+            [
+                'id' => 'workflows',
+                'type' => 'workflows',
+                'heading' => 'عمل',
+                'steps' => [
+                    'Purchasing → Rate List کھولیں۔',
+                    'انگریزی، اردو، یا دونوں منتخب کریں۔',
+                    'پرنٹ؛ ہر A4 صفحے پر تقریباً 30 مصنوعات (نمبر شمار، نام، ریٹ)۔',
+                ],
+            ],
+            [
+                'id' => 'rebuild_notes',
+                'type' => 'rebuild_notes',
+                'heading' => 'Rebuild نوٹس',
+                'list' => [
+                    'یہ اسٹیکر نہیں — لیبل کے لیے Price Tags استعمال کریں۔',
+                    'بغیر ریٹ والی چیزیں شامل نہیں ہوتیں۔ اسٹاک ضروری نہیں۔',
+                ],
+            ],
+            [
+                'id' => 'technical',
+                'type' => 'technical',
+                'heading' => 'تکنیکی',
+                'classes' => [
+                    'livewire' => 'App\\Livewire\\RateLists\\ListRateLists',
+                    'services' => 'App\\Services\\Purchasing\\ShopRateListService',
+                    'print' => 'admin.rate-list.print',
+                ],
+            ],
+        ],
+    ],
 ];

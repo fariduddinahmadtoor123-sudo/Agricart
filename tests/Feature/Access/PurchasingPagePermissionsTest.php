@@ -35,6 +35,8 @@ class PurchasingPagePermissionsTest extends TestCase
         $this->assertContains('purchasing.price-update.view', $keys);
         $this->assertContains('purchasing.price-update.edit', $keys);
         $this->assertContains('purchasing.price-update.print', $keys);
+        $this->assertContains('purchasing.rate-list.view', $keys);
+        $this->assertContains('purchasing.rate-list.print', $keys);
         $this->assertContains('purchasing.purchases.view', $keys);
         $this->assertNotContains('purchasing.view', $keys);
         $this->assertNotContains('purchasing.edit', $keys);

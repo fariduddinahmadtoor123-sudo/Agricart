@@ -17454,3 +17454,15 @@ body.agricart-form-panel-open .agricart-staff-messenger {
     appearance: textfield;
 }
 
+.agricart-rate-list__hint {
+    margin: 0 0 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--agricart-muted, #6b7280);
+}
+
+.agricart-rate-list__sr {
+    width: 4.5rem;
+    text-align: center;
+    font-weight: 700;
+}
+

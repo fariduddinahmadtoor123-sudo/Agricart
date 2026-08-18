@@ -445,4 +445,52 @@ return [
             ],
         ],
     ],
+
+    'rate-list' => [
+        'title' => 'Shop Rate List',
+        'summary' => 'Printable in-shop rate list of products that already have a retail price — English, Urdu, or both, sorted A to Z.',
+        'meta' => [
+            'routes' => ['/admin/purchasing/rate-list'],
+            'permissions' => ['purchasing.view', 'purchasing.print'],
+        ],
+        'sections' => [
+            [
+                'id' => 'purpose',
+                'type' => 'purpose',
+                'heading' => 'Purpose',
+                'paragraphs' => [
+                    'Produce a wall-ready rate list for shop display. Only active products with a retail rate are included, sorted A to Z by name.',
+                ],
+            ],
+            [
+                'id' => 'workflows',
+                'type' => 'workflows',
+                'heading' => 'Workflow',
+                'steps' => [
+                    'Open Purchasing → Rate List.',
+                    'Choose English, Urdu, or English + Urdu.',
+                    'Print; each A4 page holds about 30 products (serial, name, rate).',
+                ],
+            ],
+            [
+                'id' => 'rebuild_notes',
+                'type' => 'rebuild_notes',
+                'heading' => 'Rebuild notes',
+                'list' => [
+                    'Does not print stickers — use Price Tags for shelf labels.',
+                    'Products without a retail_price are omitted. Stock is not required.',
+                ],
+            ],
+            [
+                'id' => 'technical',
+                'type' => 'technical',
+                'heading' => 'Technical',
+                'classes' => [
+                    'livewire' => 'App\\Livewire\\RateLists\\ListRateLists',
+                    'services' => 'App\\Services\\Purchasing\\ShopRateListService',
+                    'print' => 'admin.rate-list.print',
+                ],
+            ],
+        ],
+    ],
 ];

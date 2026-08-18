@@ -347,7 +347,7 @@ return [
             'overview' => 'جائزہ', 'purchases' => 'خریداری',             'purchase-planning' => 'خریداری منصوبہ بندی',
             'purchase-payment-summary' => 'خریداری ادائیگی سمری',
             'purchase-quotations' => 'خریداری کوٹیشنز',
-            're-order-center' => 'خریداری ری آرڈرز', 'price-tags' => 'قیمت ٹیگز', 'price-update' => 'پرائس اپڈیٹ',
+            're-order-center' => 'خریداری ری آرڈرز', 'price-tags' => 'قیمت ٹیگز', 'rate-list' => 'ریٹ لسٹ', 'price-update' => 'پرائس اپڈیٹ',
         ],
         'sales' => [
             'overview' => 'جائزہ', 'pos-sales' => 'سیلز اینڈ پی او ایس',

@@ -164,6 +164,28 @@ class PurchasingPageToolbar extends ClusterPageToolbar
                     ],
                 ] : [],
             ],
+            'rate-list' => [
+                ...$config,
+                'livewirePrefix' => 'rate-list',
+                'livewireComponent' => 'rate-lists.list-rate-lists',
+                'interactive' => true,
+                'hideColumns' => true,
+                'formKey' => null,
+                'addLabel' => null,
+                'searchPlaceholder' => __('rate_lists.toolbar.search'),
+                'filterGroups' => static::rateListFilterGroups(),
+                'filters' => [],
+                'columns' => [],
+                'toolbarActions' => static::userCan('print') ? [
+                    [
+                        'label' => __('rate_lists.actions.print'),
+                        'value' => 'print',
+                        'icon' => \Filament\Support\Icons\Heroicon::OutlinedPrinter,
+                        'color' => 'primary',
+                        'outlined' => false,
+                    ],
+                ] : [],
+            ],
             'price-update' => [
                 ...$config,
                 'livewirePrefix' => 'price-updates',
@@ -298,6 +320,23 @@ class PurchasingPageToolbar extends ClusterPageToolbar
                     ['label' => __('price_tags.filters.ready_to_label'), 'value' => 'readiness:ready'],
                     ['label' => __('price_tags.filters.missing_sale_price'), 'value' => 'readiness:missing_sale_price'],
                     ['label' => __('price_tags.filters.missing_barcode'), 'value' => 'readiness:missing_barcode'],
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @return list<array{label: string, filters: list<array{label: string, value: string}>}>
+     */
+    protected static function rateListFilterGroups(): array
+    {
+        return [
+            [
+                'label' => __('rate_lists.filters.language'),
+                'filters' => [
+                    ['label' => __('rate_lists.locales.en'), 'value' => 'locale:en'],
+                    ['label' => __('rate_lists.locales.ur'), 'value' => 'locale:ur'],
+                    ['label' => __('rate_lists.locales.both'), 'value' => 'locale:both'],
                 ],
             ],
         ];

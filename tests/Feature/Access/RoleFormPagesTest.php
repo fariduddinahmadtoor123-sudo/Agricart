@@ -31,6 +31,7 @@ class RoleFormPagesTest extends TestCase
 
         $this->assertContains(__('agricart.pages.purchasing.price-update'), $purchasing);
         $this->assertContains(__('agricart.pages.purchasing.price-tags'), $purchasing);
+        $this->assertContains(__('agricart.pages.purchasing.rate-list'), $purchasing);
         $this->assertContains(__('agricart.pages.purchasing.purchase-planning'), $purchasing);
         $this->assertContains(__('agricart.pages.marketplace.price-control'), $marketplace);
         $this->assertContains(__('agricart.pages.marketplace.quantity-control'), $marketplace);
