@@ -101,7 +101,7 @@ class ModuleSubNavigationVisibilityTest extends TestCase
         $this->get('/admin/settings/overview')->assertOk();
         $settingsLabels = array_column(\App\Filament\Layout\SettingsSubNavigation::items(), 'label');
 
-        foreach (['Overview', 'Business Profile', 'Tax', 'Media Library', 'AI', 'Logs', 'Print', 'System Errors', 'Activity', 'Permission', 'Users', 'Backups'] as $label) {
+        foreach (['Overview', 'Profile', 'Tax', 'Media', 'AI', 'AI Logs', 'Print', 'Errors', 'Activity', 'Access', 'Users', 'Backup'] as $label) {
             $this->assertContains($label, $settingsLabels);
         }
 
