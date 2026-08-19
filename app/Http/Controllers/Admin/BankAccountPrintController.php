@@ -118,7 +118,8 @@ class BankAccountPrintController extends Controller
 
         abort_unless(
             $user instanceof User
-                && ($user->isSuperAdmin() || $user->hasAnyPermission(['finance.create', 'finance.edit'])),
+                && ($user->isSuperAdmin()
+                    || \App\Services\Access\ModulePageAccess::can($user, 'finance', 'bank-accounts', 'print')),
             403,
         );
     }

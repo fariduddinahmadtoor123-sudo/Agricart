@@ -65,8 +65,7 @@ class SupplierPrintController extends Controller
         abort_unless(
             $user instanceof User
                 && ($user->isSuperAdmin()
-                    || \App\Services\Access\ModulePageAccess::can($user, 'contacts', 'suppliers', 'print')
-                    || \App\Services\Access\ModulePageAccess::can($user, 'contacts', 'suppliers', 'view')),
+                    || \App\Services\Access\ModulePageAccess::can($user, 'contacts', 'suppliers', 'print')),
             403,
         );
     }

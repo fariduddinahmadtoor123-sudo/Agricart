@@ -104,7 +104,8 @@ class BrandAgricartReviewPrintController extends Controller
 
         abort_unless(
             $user instanceof User
-                && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'catalog', 'brands', 'print') || \App\Services\Access\ModulePageAccess::can($user, 'catalog', 'brands', 'view')),
+                && ($user->isSuperAdmin()
+                    || \App\Services\Access\ModulePageAccess::can($user, 'catalog', 'brands', 'print')),
             403,
         );
     }

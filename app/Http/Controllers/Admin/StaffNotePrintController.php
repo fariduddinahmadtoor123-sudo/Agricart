@@ -17,6 +17,11 @@ class StaffNotePrintController extends Controller
     {
         $user = auth()->user();
         abort_unless($user instanceof User && $user->canUseAdmin(), 403);
+        abort_unless(
+            $user->isSuperAdmin()
+                || \App\Services\Access\ModulePageAccess::can($user, 'dashboard', 'notes', 'print'),
+            403,
+        );
         abort_unless($notes->canView($user, $note), 403);
 
         $note->loadMissing(['creator', 'assignee', 'completedByUser']);

@@ -198,7 +198,7 @@ class PermissionRegistry
             'catalog' => [
                 'overview' => ['label_en' => 'Overview', 'label_ur' => 'جائزہ', 'actions' => $viewOnly],
                 'products' => ['label_en' => 'Products', 'label_ur' => 'پروڈکٹس', 'actions' => $crud],
-                'brands' => ['label_en' => 'Brands', 'label_ur' => 'برانڈز', 'actions' => $crud],
+                'brands' => ['label_en' => 'Brands', 'label_ur' => 'برانڈز', 'actions' => $crudPrint],
                 'categories' => ['label_en' => 'Categories', 'label_ur' => 'زمرے', 'actions' => $crud],
                 'units' => ['label_en' => 'Units', 'label_ur' => 'یونٹس', 'actions' => $crud],
                 'packing-units' => ['label_en' => 'Packing Units', 'label_ur' => 'پیکنگ یونٹس', 'actions' => $crud],
@@ -224,7 +224,7 @@ class PermissionRegistry
                 'sales-quotations' => ['label_en' => 'Sales Quotations', 'label_ur' => 'سیلز کوٹیشنز', 'actions' => $crudPrint],
                 'online-quotations' => ['label_en' => 'Online Quotations', 'label_ur' => 'آن لائن کوٹیشنز', 'actions' => $crud],
                 'order-dispatch' => ['label_en' => 'Order Dispatch', 'label_ur' => 'آرڈر ڈسپیچ', 'actions' => $crudPrint],
-                'forwarded-orders' => ['label_en' => 'Forwarded Orders', 'label_ur' => 'فارورڈڈ آرڈرز', 'actions' => $crud],
+                'forwarded-orders' => ['label_en' => 'Forwarded Orders', 'label_ur' => 'فارورڈڈ آرڈرز', 'actions' => $crudPrint],
                 'sales-returns' => ['label_en' => 'Sales Returns', 'label_ur' => 'سیلز ریٹرنز', 'actions' => $crudPrint],
                 'tasks' => ['label_en' => 'Tasks', 'label_ur' => 'ٹاسکس', 'actions' => $crud],
                 'inbox' => ['label_en' => 'Staff Inbox', 'label_ur' => 'اسٹاف ان باکس', 'actions' => $viewEdit],
