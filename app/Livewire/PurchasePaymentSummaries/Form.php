@@ -83,13 +83,6 @@ class Form extends Component
         }
 
         $service = app(PurchasePaymentSummaryService::class);
-
-        if ($service->supplierAlreadyInRows($this->rows, $supplierId)) {
-            $this->setStatus(__('purchase_payment_summary.messages.supplier_exists'), 'error');
-
-            return;
-        }
-
         $row = $service->rowFromSupplierId($supplierId);
 
         if ($row === null) {
