@@ -53,7 +53,7 @@ class DashboardPageToolbar extends ClusterPageToolbar
                 'livewirePrefix' => 'staff-notes',
                 'interactive' => true,
                 'formKey' => null,
-                'addLabel' => __('staff_notes.actions.add_note'),
+                'addLabel' => static::userCan('create') ? __('staff_notes.actions.add_note') : null,
                 'addEvent' => 'staff-notes-open-form',
                 'compactAddButton' => false,
                 'hideColumns' => true,

@@ -81,8 +81,8 @@ class PermissionRegistry
                 'ur' => 'مالیات کا ہر صفحہ الگ دیں (بینک، ٹرانسفر، اخراجات، کیش بک…)۔',
             ],
             'marketplace' => [
-                'en' => 'Grant each Channels Hub page separately (sales channels, price control, quantity, secret coding).',
-                'ur' => 'چینلز حب کا ہر صفحہ الگ دیں (سیلز چینلز، پرائس کنٹرول، مقدار، خفیہ کوڈنگ)۔',
+                'en' => 'Grant each Channels Hub page separately. View alone cannot Add on Price / Quantity / Secret Coding — also enable Create (and Edit to change).',
+                'ur' => 'چینلز حب کا ہر صفحہ الگ دیں۔ پرائس / مقدار / خفیہ کوڈنگ پر صرف دیکھیں سے Add نہیں — بنائیں (اور ترمیم) بھی آن کریں۔',
             ],
             'settings' => [
                 'en' => 'Grant each Settings page separately (profile, tax, media, AI, users, backups…).',
@@ -205,7 +205,7 @@ class PermissionRegistry
                 'attributes' => ['label_en' => 'Attributes', 'label_ur' => 'خصوصیات', 'actions' => $crud],
                 'controls' => ['label_en' => 'Controls', 'label_ur' => 'کنٹرولز', 'actions' => $crud],
                 'labels' => ['label_en' => 'Labels', 'label_ur' => 'لیبلز', 'actions' => ['view', 'create', 'print']],
-                'product-reviews' => ['label_en' => 'Product Reviews', 'label_ur' => 'پروڈکٹ ریویوز', 'actions' => $viewEdit],
+                'product-reviews' => ['label_en' => 'Product Reviews', 'label_ur' => 'پروڈکٹ ریویوز', 'actions' => $crud],
             ],
             'purchasing' => [
                 'overview' => ['label_en' => 'Overview', 'label_ur' => 'جائزہ', 'actions' => $viewOnly],
@@ -294,9 +294,9 @@ class PermissionRegistry
             'marketplace' => [
                 'overview' => ['label_en' => 'Overview', 'label_ur' => 'جائزہ', 'actions' => $viewOnly],
                 'sales-channels' => ['label_en' => 'Sales Channels', 'label_ur' => 'سیلز چینلز', 'actions' => $crud],
-                'price-control' => ['label_en' => 'Price Control', 'label_ur' => 'پرائس کنٹرول', 'actions' => $viewEdit],
-                'quantity-control' => ['label_en' => 'Quantity Control', 'label_ur' => 'کوانٹٹی کنٹرول', 'actions' => $viewEdit],
-                'secret-coding' => ['label_en' => 'Secret Coding', 'label_ur' => 'خفیہ کوڈنگ', 'actions' => $viewEdit],
+                'price-control' => ['label_en' => 'Price Control', 'label_ur' => 'پرائس کنٹرول', 'actions' => $crud],
+                'quantity-control' => ['label_en' => 'Quantity Control', 'label_ur' => 'کوانٹٹی کنٹرول', 'actions' => $crud],
+                'secret-coding' => ['label_en' => 'Secret Coding', 'label_ur' => 'خفیہ کوڈنگ', 'actions' => $crud],
             ],
             'settings' => [
                 'overview' => ['label_en' => 'Overview', 'label_ur' => 'جائزہ', 'actions' => $viewOnly],

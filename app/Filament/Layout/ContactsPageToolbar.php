@@ -64,13 +64,13 @@ class ContactsPageToolbar extends ClusterPageToolbar
                 'searchPlaceholder' => __('suppliers.list.search'),
                 'filters' => static::supplierFilters(),
                 'toolbarActions' => array_values(array_filter([
-                    static::userCan('view') ? [
+                    static::userCan('print') ? [
                         'label' => __('suppliers.actions.print_all'),
                         'value' => 'print_all',
                         'color' => 'gray',
                         'outlined' => true,
                     ] : null,
-                    static::userCan('view') ? [
+                    static::userCan('print') ? [
                         'label' => __('suppliers.actions.print_selected'),
                         'value' => 'print_selected',
                         'color' => 'gray',

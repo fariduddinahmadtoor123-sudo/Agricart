@@ -141,12 +141,12 @@ class SettingsPageToolbar extends ClusterPageToolbar
             ],
             'ai-settings' => [
                 ...$config,
-                'addLabel' => __('agricart.toolbar.add_ai'),
+                'addLabel' => static::userCan('edit') ? __('agricart.toolbar.add_ai') : null,
                 'formKey' => 'ai-settings',
             ],
             'store-profile' => [
                 ...$config,
-                'addLabel' => __('company_profile.actions.add'),
+                'addLabel' => static::userCan('edit') ? __('company_profile.actions.add') : null,
                 'actionIcon' => Heroicon::OutlinedPlus,
                 'formKey' => 'company-profile',
                 'hideSearch' => true,
