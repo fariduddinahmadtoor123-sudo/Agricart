@@ -28,11 +28,6 @@
                                     {{ __('agricart.storefront.testimonials.nav') }}
                                 </a>
                             </li>
-                            <li>
-                                <a href="{{ route('store.brands') }}" class="ag-store-footer__link">
-                                    {{ __('agricart.storefront.brands.nav') }}
-                                </a>
-                            </li>
                             @foreach ($footer_quick_entries ?? [] as $entry)
                                 <li>
                                     @if ($entry['type'] === 'page')

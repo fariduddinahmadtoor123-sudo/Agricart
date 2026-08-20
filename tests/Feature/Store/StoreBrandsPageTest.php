@@ -325,6 +325,32 @@ class StoreBrandsPageTest extends TestCase
             ->assertSee('4.0 / 5', false);
     }
 
+    public function test_brands_link_appears_in_top_menu_not_footer_quick_links(): void
+    {
+        $brandsUrl = route('store.brands');
+        $brandsLabel = __('agricart.storefront.brands.nav');
+
+        $this->get(route('store.home'))
+            ->assertOk()
+            ->assertSee('ag-store-menu__list', false)
+            ->assertSee($brandsUrl, false)
+            ->assertSee($brandsLabel, false);
+
+        $html = $this->get(route('store.home'))->getContent();
+        $menuPos = strpos($html, 'ag-store-menu__list');
+        $footerQuickPos = strpos($html, 'ag-store-footer__col--quick');
+        $brandsInMenu = strpos(substr($html, (int) $menuPos, max(0, $footerQuickPos - $menuPos)), $brandsUrl);
+
+        $this->assertNotFalse($menuPos);
+        $this->assertNotFalse($footerQuickPos);
+        $this->assertNotFalse($brandsInMenu);
+
+        $this->get(route('store.brands'))
+            ->assertOk()
+            ->assertSee('ag-store-menu__link is-active', false)
+            ->assertSee($brandsUrl, false);
+    }
+
     /**
      * @return array<string, array{rating: int, reason_en: string, reason_ur: string}>
      */

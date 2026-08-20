@@ -1,6 +1,7 @@
 @php
     $currentPath = trim(request()->path(), '/');
     $navEntries = $menu_nav_entries ?? collect();
+    $brandsActive = $currentPath === 'brands' || str_starts_with($currentPath, 'brand/');
 @endphp
 
 <nav class="ag-store-menu" aria-label="{{ __('agricart.storefront.menu.label') }}">
@@ -41,6 +42,12 @@
             <li>
                 <a href="{{ route('store.products') }}" @class(['ag-store-menu__link', 'is-active' => $currentPath === 'products']) @if ($currentPath === 'products') aria-current="page" @endif>
                     {{ __('agricart.storefront.products.nav') }}
+                </a>
+            </li>
+
+            <li>
+                <a href="{{ route('store.brands') }}" @class(['ag-store-menu__link', 'is-active' => $brandsActive]) @if ($brandsActive) aria-current="page" @endif>
+                    {{ __('agricart.storefront.brands.nav') }}
                 </a>
             </li>
 
