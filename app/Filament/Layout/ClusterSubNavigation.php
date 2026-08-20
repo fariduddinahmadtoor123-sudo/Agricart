@@ -5,6 +5,7 @@ namespace App\Filament\Layout;
 use App\Filament\Clusters\BaseAgricartCluster;
 use App\Filament\Pages\BasePlaceholderPage;
 use Filament\Pages\Page;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 abstract class ClusterSubNavigation
 {
@@ -115,9 +116,15 @@ abstract class ClusterSubNavigation
 
             $isPlaceholder = is_subclass_of($component, BasePlaceholderPage::class);
 
+            try {
+                $url = $component::getUrl();
+            } catch (RouteNotFoundException) {
+                continue;
+            }
+
             $items[] = [
                 'label' => $component::getNavigationLabel(),
-                'url' => $component::getUrl(),
+                'url' => $url,
                 'icon' => $component::getNavigationIcon(),
                 'active' => static::isActivePage($component),
                 'sort' => $component::getNavigationSort() ?? 0,
