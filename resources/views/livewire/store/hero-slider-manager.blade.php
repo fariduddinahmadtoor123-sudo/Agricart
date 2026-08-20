@@ -34,6 +34,9 @@
         >
             <div class="agricart-store-admin__field">
                 <label>{{ __('agricart.store.admin.hero_slider.image') }}</label>
+                <p class="agricart-store-admin__hint" style="font-weight:700;margin-block:0.35rem 0.5rem;">
+                    {{ __('agricart.store.admin.hero_slider.image_size', ['size' => $recommendedSize]) }}
+                </p>
                 <input type="file" wire:model="imageUpload" accept="image/jpeg,image/png,image/webp" class="agricart-store-admin__input" @if (! $editingId) required @endif />
                 <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.hero_slider.image_hint', ['size' => $recommendedSize]) }}</p>
                 @if ($imageUpload)

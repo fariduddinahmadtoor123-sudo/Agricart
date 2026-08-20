@@ -35,6 +35,13 @@ return [
             'quality' => 85,
             'convert_webp' => true,
         ],
+        'hero' => [
+            // Homepage banner: keep full 3:1 sharpness on desktop / retina (up to 2× 1152×384).
+            'max_width' => 2304,
+            'max_height' => 768,
+            'quality' => 86,
+            'convert_webp' => true,
+        ],
         'avatar' => [
             'max_width' => 512,
             'max_height' => 512,
@@ -64,6 +71,7 @@ return [
         'products/originals' => 'catalog',
         'products/gallery/originals' => 'gallery',
         'store' => 'logo',
+        'store/hero' => 'hero',
         'store/about' => 'about',
         'store/watermarks' => 'logo',
         'customers/photos' => 'avatar',

@@ -9,13 +9,13 @@ use Illuminate\Support\Facades\Cache;
 
 class StoreHeroSliderService
 {
-    /** Banner width × height in pixels — matches storefront container (72rem) at 3:1 ratio. */
-    public const IMAGE_WIDTH = 1152;
+    /** Banner width × height in pixels — 3:1 ratio, sharp on desktop (≈72rem) and retina. */
+    public const IMAGE_WIDTH = 1920;
 
-    public const IMAGE_HEIGHT = 384;
+    public const IMAGE_HEIGHT = 640;
 
-    /** @var list<int> Interval step 1–5 → 0.5s … 2.5s */
-    public const INTERVAL_STEPS = [1, 2, 3, 4, 5];
+    /** @var list<int> Interval step 1–10 → 0.5s … 5s */
+    public const INTERVAL_STEPS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
     public function clearCache(): void
     {
@@ -76,6 +76,11 @@ class StoreHeroSliderService
             3 => '1.5',
             4 => '2',
             5 => '2.5',
+            6 => '3',
+            7 => '3.5',
+            8 => '4',
+            9 => '4.5',
+            10 => '5',
         ];
     }
 }

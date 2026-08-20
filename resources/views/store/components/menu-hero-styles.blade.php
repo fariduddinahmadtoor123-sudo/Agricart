@@ -111,7 +111,7 @@
         position: relative;
         width: 100%;
         overflow: hidden;
-        aspect-ratio: 1152 / 384;
+        aspect-ratio: 3 / 1;
         background: color-mix(in oklab, var(--agricart-border) 35%, white);
     }
     .ag-store-hero-slider__track {
@@ -141,7 +141,7 @@
         display: block;
         width: 100%;
         height: 100%;
-        object-fit: contain;
+        object-fit: cover;
         object-position: center center;
     }
 </style>

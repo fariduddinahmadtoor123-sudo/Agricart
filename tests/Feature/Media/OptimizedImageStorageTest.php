@@ -65,4 +65,38 @@ class OptimizedImageStorageTest extends TestCase
         $this->assertStringEndsWith('.jpg', $path);
         Storage::disk('public')->assertExists($path);
     }
+
+    public function test_hero_slider_uploads_use_hero_preset_not_logo_cap(): void
+    {
+        Storage::fake('public');
+
+        $storage = app(OptimizedImageStorage::class);
+        $this->assertSame('hero', $storage->presetForDirectory('store/hero'));
+
+        $png = imagecreatetruecolor(1920, 640);
+        $white = imagecolorallocate($png, 255, 255, 255);
+        imagefilledrectangle($png, 0, 0, 1919, 639, $white);
+        ob_start();
+        imagepng($png);
+        imagedestroy($png);
+        $binary = ob_get_clean();
+
+        $this->assertIsString($binary);
+        $tmp = tempnam(sys_get_temp_dir(), 'agricart-hero-');
+        $this->assertNotFalse($tmp);
+        file_put_contents($tmp, $binary);
+
+        $upload = new UploadedFile($tmp, 'banner.png', 'image/png', null, true);
+        $path = $storage->store($upload, 'store/hero');
+
+        $this->assertStringEndsWith('.webp', $path);
+        $saved = Storage::disk('public')->get($path);
+        $image = imagecreatefromstring($saved);
+        $this->assertNotFalse($image);
+        $this->assertSame(1920, imagesx($image));
+        $this->assertSame(640, imagesy($image));
+        imagedestroy($image);
+
+        @unlink($tmp);
+    }
 }

@@ -59,13 +59,16 @@ class StoreHeroSliderTest extends TestCase
         $this->assertSame($slide->id, $cached->first()->id);
     }
 
-    public function test_interval_milliseconds_uses_five_step_presets(): void
+    public function test_interval_milliseconds_uses_ten_step_presets(): void
     {
         StoreSetting::current()->update(['hero_slider_interval' => 1]);
         $this->assertSame(500, app(StoreHeroSliderService::class)->intervalMilliseconds());
 
         StoreSetting::current()->update(['hero_slider_interval' => 5]);
         $this->assertSame(2500, app(StoreHeroSliderService::class)->intervalMilliseconds());
+
+        StoreSetting::current()->update(['hero_slider_interval' => 10]);
+        $this->assertSame(5000, app(StoreHeroSliderService::class)->intervalMilliseconds());
     }
 
     public function test_products_page_does_not_show_hero_slider(): void

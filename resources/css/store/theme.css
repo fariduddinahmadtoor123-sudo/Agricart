@@ -1126,7 +1126,7 @@ body.ag-store-menu-open {
     overflow: hidden;
 }
 
-/* Hero slider (homepage) — images must be 1152×384 px */
+/* Hero slider (homepage) — upload 1920×640 (3:1); stored up to 2304×768 */
 .ag-store-hero-slider {
     background: var(--agricart-surface);
     border-bottom: 1px solid var(--agricart-border);
@@ -1137,7 +1137,7 @@ body.ag-store-menu-open {
     position: relative;
     width: 100%;
     overflow: hidden;
-    aspect-ratio: 1152 / 384;
+    aspect-ratio: 3 / 1;
     background: color-mix(in oklab, var(--agricart-border) 35%, white);
 }
 
@@ -1174,7 +1174,7 @@ body.ag-store-menu-open {
     display: block;
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
     object-position: center center;
 }
 
