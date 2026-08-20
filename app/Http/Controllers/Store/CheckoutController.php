@@ -175,6 +175,11 @@ class CheckoutController extends Controller
 
         $allowedPayments = $deliveryMethods->paymentMethodsFor($method);
 
+        // Storefront is bank-transfer first; default when the field is missing (e.g. no JS).
+        if (! filled($request->input('customer_payment_method')) && in_array('bank_transfer', $allowedPayments, true)) {
+            $request->merge(['customer_payment_method' => 'bank_transfer']);
+        }
+
         $validated = array_merge($validated, $request->validate([
             'customer_payment_method' => ['required', 'string', Rule::in($allowedPayments)],
         ]));

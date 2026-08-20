@@ -33,7 +33,13 @@
         >
             @csrf
             <input type="hidden" name="checkout_token" value="{{ old('checkout_token', $checkoutToken) }}" />
-            <input type="hidden" name="customer_payment_method" x-model="selectedPayment" />
+            {{-- Static value required: storefront does not load Alpine, so x-model alone would submit empty. --}}
+            <input
+                type="hidden"
+                name="customer_payment_method"
+                value="{{ old('customer_payment_method', 'bank_transfer') }}"
+                x-bind:value="selectedPayment || 'bank_transfer'"
+            />
 
             <div class="ag-store-checkout__main">
 
@@ -393,7 +399,7 @@
                     this.selectedPayment = 'bank_transfer';
                     return;
                 }
-                this.selectedPayment = allowed[0] || '';
+                this.selectedPayment = allowed[0] || 'bank_transfer';
             },
         }));
     });

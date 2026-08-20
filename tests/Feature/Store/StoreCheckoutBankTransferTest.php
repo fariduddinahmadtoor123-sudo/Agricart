@@ -65,6 +65,31 @@ class StoreCheckoutBankTransferTest extends TestCase
 
         $html = (string) $response->getContent();
         $this->assertMatchesRegularExpression('/<button[^>]*ag-store-checkout__submit(?![^>]*\bdisabled\b)[^>]*>/', $html);
+        $this->assertMatchesRegularExpression(
+            '/name="customer_payment_method"[^>]*value="bank_transfer"|value="bank_transfer"[^>]*name="customer_payment_method"/',
+            $html,
+        );
+    }
+
+    public function test_checkout_place_defaults_to_bank_transfer_when_payment_field_omitted(): void
+    {
+        \Illuminate\Support\Facades\Queue::fake();
+
+        [$customer, $product, $method] = $this->checkoutFixtures();
+        $this->activeBankAccount();
+        app(StoreCartService::class)->add($product->id, 1);
+
+        $payload = $this->placePayload($method->id);
+        unset($payload['customer_payment_method']);
+
+        $this->actingAs($customer, 'customer')
+            ->post(route('store.checkout.place'), $payload)
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('online_sale_orders', [
+            'customer_id' => $customer->id,
+            'customer_payment_method' => 'bank_transfer',
+        ]);
     }
 
     /**
