@@ -23,6 +23,7 @@ class HomeController extends Controller
             ...$layoutData,
             'rootCategories' => $rootCategories,
             'categoryService' => $categories,
+            'hero_slides' => app(\App\Services\Store\StoreHeroSliderService::class)->activeSlides(),
         ]);
     }
 }

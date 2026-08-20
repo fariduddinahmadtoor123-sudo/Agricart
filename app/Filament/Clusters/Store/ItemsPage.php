@@ -14,7 +14,7 @@ class ItemsPage extends BaseModulePage
 
     protected static ?string $navigationLabel = 'Items';
 
-    protected static ?int $navigationSort = 8;
+    protected static ?int $navigationSort = 9;
 
     protected static ?string $slug = 'items';
 

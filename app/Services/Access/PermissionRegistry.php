@@ -241,6 +241,7 @@ class PermissionRegistry
                 'top-bar' => ['label_en' => 'Top Bar', 'label_ur' => 'ٹاپ بار', 'actions' => $viewEdit],
                 'header' => ['label_en' => 'Header', 'label_ur' => 'ہیڈر', 'actions' => $viewEdit],
                 'menu' => ['label_en' => 'Menu', 'label_ur' => 'مینو', 'actions' => $viewEdit],
+                'hero-slider' => ['label_en' => 'Hero Slider', 'label_ur' => 'ہیرو سلائیڈر', 'actions' => $viewEdit],
                 'ticker' => ['label_en' => 'Ticker', 'label_ur' => 'ٹکر', 'actions' => $viewEdit],
                 'footer' => ['label_en' => 'Footer', 'label_ur' => 'فوٹر', 'actions' => $viewEdit],
                 'pages' => ['label_en' => 'Pages', 'label_ur' => 'صفحات', 'actions' => $crud],

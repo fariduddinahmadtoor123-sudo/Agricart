@@ -74,6 +74,15 @@
         @include('store.components.menu')
     @endif
 
+    @if (request()->routeIs('store.home') && ($settings->hero_slider_enabled ?? false))
+        @php
+            $heroSlides = $hero_slides ?? app(\App\Services\Store\StoreHeroSliderService::class)->activeSlides();
+        @endphp
+        @if ($heroSlides->isNotEmpty())
+            @include('store.components.hero-slider', ['slides' => $heroSlides])
+        @endif
+    @endif
+
     <main id="store-main" class="ag-store-main" tabindex="-1">
         @if (! ($onlineStoreChannel['enabled'] ?? true))
             <div class="ag-store__container ag-store-channel-banner-wrap">

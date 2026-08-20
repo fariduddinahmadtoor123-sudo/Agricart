@@ -78,24 +78,155 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelectorAll('[data-store-menu-toggle]').forEach((button) => {
-        const menu = document.getElementById(button.getAttribute('aria-controls'));
+        const drawer = button.closest('.ag-store-menu')?.querySelector('[data-store-menu-drawer]');
+        const backdrop = drawer?.querySelector('[data-store-menu-backdrop]');
+        const closeButtons = drawer?.querySelectorAll('[data-store-menu-close]') ?? [];
 
-        if (! menu) {
+        if (! drawer) {
             return;
         }
 
         button.classList.add('is-enhanced');
-        menu.classList.add('is-collapsible');
 
         const labelOpen = button.dataset.labelOpen || 'Open menu';
         const labelClose = button.dataset.labelClose || 'Close menu';
 
-        button.addEventListener('click', () => {
-            const open = button.getAttribute('aria-expanded') !== 'true';
+        const setOpen = (open) => {
             button.setAttribute('aria-expanded', open ? 'true' : 'false');
             button.setAttribute('aria-label', open ? labelClose : labelOpen);
-            menu.classList.toggle('is-open', open);
+            drawer.classList.toggle('is-open', open);
+            drawer.setAttribute('aria-hidden', open ? 'false' : 'true');
+            document.body.classList.toggle('ag-store-menu-open', open);
+
+            if (open) {
+                drawer.querySelector('[data-store-menu-close]')?.focus();
+            } else {
+                button.focus();
+            }
+        };
+
+        button.addEventListener('click', () => {
+            setOpen(button.getAttribute('aria-expanded') !== 'true');
         });
+
+        backdrop?.addEventListener('click', () => setOpen(false));
+        closeButtons.forEach((closeButton) => {
+            closeButton.addEventListener('click', () => setOpen(false));
+        });
+
+        drawer.querySelectorAll('[data-store-menu-link]').forEach((link) => {
+            link.addEventListener('click', () => setOpen(false));
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && drawer.classList.contains('is-open')) {
+                setOpen(false);
+            }
+        });
+    });
+
+    document.querySelectorAll('[data-store-hero-slider]').forEach((root) => {
+        const slides = [...root.querySelectorAll('[data-store-hero-slide]')];
+        const dots = [...root.querySelectorAll('[data-store-hero-dot]')];
+        const prev = root.querySelector('[data-store-hero-prev]');
+        const next = root.querySelector('[data-store-hero-next]');
+
+        if (slides.length <= 1) {
+            return;
+        }
+
+        let index = 0;
+        let timer = null;
+        const intervalMs = Math.max(3000, Number.parseInt(root.dataset.interval ?? '5', 10) * 1000);
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        let touchStartX = null;
+
+        const show = (nextIndex) => {
+            index = (nextIndex + slides.length) % slides.length;
+
+            slides.forEach((slide, slideIndex) => {
+                const active = slideIndex === index;
+                slide.classList.toggle('is-active', active);
+                slide.hidden = ! active;
+            });
+
+            dots.forEach((dot, dotIndex) => {
+                const active = dotIndex === index;
+                dot.classList.toggle('is-active', active);
+                dot.setAttribute('aria-selected', active ? 'true' : 'false');
+            });
+        };
+
+        const stop = () => {
+            if (timer !== null) {
+                window.clearInterval(timer);
+                timer = null;
+            }
+        };
+
+        const start = () => {
+            stop();
+
+            if (reducedMotion) {
+                return;
+            }
+
+            timer = window.setInterval(() => {
+                show(index + 1);
+            }, intervalMs);
+        };
+
+        prev?.addEventListener('click', () => {
+            show(index - 1);
+            start();
+        });
+
+        next?.addEventListener('click', () => {
+            show(index + 1);
+            start();
+        });
+
+        dots.forEach((dot) => {
+            dot.addEventListener('click', () => {
+                const target = Number.parseInt(dot.dataset.storeHeroDot ?? '0', 10);
+
+                if (! Number.isNaN(target)) {
+                    show(target);
+                    start();
+                }
+            });
+        });
+
+        root.addEventListener('mouseenter', stop);
+        root.addEventListener('mouseleave', start);
+        root.addEventListener('focusin', stop);
+        root.addEventListener('focusout', () => {
+            window.setTimeout(start, 0);
+        });
+
+        root.addEventListener('touchstart', (event) => {
+            touchStartX = event.changedTouches[0]?.clientX ?? null;
+        }, { passive: true });
+
+        root.addEventListener('touchend', (event) => {
+            if (touchStartX === null) {
+                return;
+            }
+
+            const touchEndX = event.changedTouches[0]?.clientX ?? touchStartX;
+            const delta = touchEndX - touchStartX;
+            touchStartX = null;
+
+            if (Math.abs(delta) < 40) {
+                return;
+            }
+
+            show(delta < 0 ? index + 1 : index - 1);
+            start();
+        }, { passive: true });
+
+        show(0);
+        start();
     });
 
     document.querySelectorAll('[data-copy-value]').forEach((button) => {
