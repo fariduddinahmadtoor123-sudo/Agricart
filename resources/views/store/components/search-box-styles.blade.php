@@ -9,17 +9,30 @@
     }
     .ag-store-header__search--live .ag-store-header__search-btn--submit {
         position: absolute;
-        width: 1px;
-        height: 1px;
+        inset-block: 0;
+        inset-inline-end: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 2.5rem;
         padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
         border: 0;
+        border-inline-start: 0;
+        background: transparent;
+        color: var(--agricart-muted, #64748b);
+        cursor: pointer;
+    }
+    .ag-store-header__search--live .ag-store-header__search-btn--submit:hover,
+    .ag-store-header__search--live .ag-store-header__search-btn--submit:focus-visible {
+        color: var(--agricart-primary, #83b735);
+        outline: none;
     }
     .ag-store-header__search--live .ag-store-header__search-input {
-        padding-inline-end: 0.75rem;
+        padding-inline-end: 2.5rem;
+    }
+    .ag-store-header__search-icon {
+        display: block;
+        flex-shrink: 0;
     }
     .ag-store-search-suggestions {
         position: absolute;

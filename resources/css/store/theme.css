@@ -259,12 +259,9 @@
 }
 
 @media (max-width: 40rem) {
-    .ag-store-ticker {
-        min-height: 2rem;
-    }
-
     .ag-store-ticker__content {
         font-size: 0.75rem;
+        padding-block: 0.28rem;
         padding-inline: 0.75rem;
     }
 
@@ -277,7 +274,6 @@
 .ag-store-ticker {
     background: var(--agricart-store-ticker-bg);
     border-bottom: 1px solid var(--agricart-store-ticker-border);
-    min-height: 2.5rem;
 }
 
 .ag-store-ticker__viewport {
@@ -299,7 +295,9 @@
     display: flex;
     align-items: center;
     white-space: nowrap;
+    padding-block: 0.35rem;
     padding-inline: 2rem;
+    line-height: 1.25;
     font-size: 0.8125rem;
     font-weight: 600;
     color: var(--agricart-store-ticker-text);
@@ -1191,11 +1189,19 @@ body.ag-store-menu-open {
     height: 2.25rem;
     border: 0;
     border-radius: 999px;
-    background: rgb(255 255 255 / 0.92);
-    color: var(--agricart-text);
-    box-shadow: 0 0.15rem 0.75rem rgb(15 23 42 / 0.18);
+    background: rgb(255 255 255 / 0.22);
+    color: rgb(15 23 42 / 0.55);
+    box-shadow: none;
     transform: translateY(-50%);
     cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ag-store-hero-slider__nav:hover,
+.ag-store-hero-slider__nav:focus-visible {
+    background: rgb(255 255 255 / 0.42);
+    color: rgb(15 23 42 / 0.8);
+    outline: none;
 }
 
 .ag-store-hero-slider__nav--prev {
@@ -1209,7 +1215,7 @@ body.ag-store-menu-open {
 .ag-store-hero-slider__dots {
     position: absolute;
     inset-inline: 0;
-    bottom: 0.65rem;
+    bottom: 0.55rem;
     display: flex;
     justify-content: center;
     gap: 0.4rem;
@@ -1217,16 +1223,26 @@ body.ag-store-menu-open {
 }
 
 .ag-store-hero-slider__dot {
-    width: 0.55rem;
-    height: 0.55rem;
+    width: 0.5rem;
+    height: 0.5rem;
     border: 0;
     border-radius: 999px;
-    background: rgb(255 255 255 / 0.55);
+    background: rgb(255 255 255 / 0.22);
+    box-shadow: 0 0 0 1px rgb(15 23 42 / 0.08);
     cursor: pointer;
+    transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.ag-store-hero-slider__dot:hover,
+.ag-store-hero-slider__dot:focus-visible {
+    background: rgb(255 255 255 / 0.4);
+    outline: none;
 }
 
 .ag-store-hero-slider__dot.is-active {
-    background: var(--agricart-primary);
+    background: color-mix(in oklab, var(--agricart-primary) 70%, transparent);
+    box-shadow: none;
+    transform: scale(1.15);
 }
 
 @media (max-width: 42rem) {

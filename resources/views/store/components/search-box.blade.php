@@ -38,8 +38,12 @@
             data-store-search-input
             enterkeyhint="search"
         />
-        <button type="submit" class="ag-store-header__search-btn ag-store-header__search-btn--submit" title="{{ __('agricart.storefront.header.search') }}">
-            <span class="ag-store-header__search-btn-text">{{ __('agricart.storefront.header.search') }}</span>
+        <button type="submit" class="ag-store-header__search-btn ag-store-header__search-btn--submit" title="{{ __('agricart.storefront.header.search') }}" aria-label="{{ __('agricart.storefront.header.search') }}">
+            <svg class="ag-store-header__search-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"/>
+                <path d="M20 20l-3.5-3.5"/>
+            </svg>
+            <span class="ag-store-visually-hidden">{{ __('agricart.storefront.header.search') }}</span>
         </button>
     </form>
     <div id="{{ $suggestId }}" class="ag-store-search-suggestions" role="listbox" hidden data-store-search-list></div>
