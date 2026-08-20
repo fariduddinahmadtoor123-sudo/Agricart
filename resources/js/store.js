@@ -3,9 +3,6 @@ import './password-toggle.js';
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-store-ticker]').forEach((root) => {
         const track = root.querySelector('[data-store-ticker-track]');
-        const pauseBtn = root.querySelector('[data-store-ticker-pause]');
-        const slowerBtn = root.querySelector('[data-store-ticker-slower]');
-        const fasterBtn = root.querySelector('[data-store-ticker-faster]');
 
         if (! track) {
             return;
@@ -19,36 +16,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         speed = Math.min(100, Math.max(10, speed));
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const duration = Math.max(8, 120 - speed);
 
-        const applySpeed = () => {
-            const duration = Math.max(8, 120 - speed);
-            track.style.setProperty('--ag-store-ticker-duration', `${duration}s`);
-        };
+        track.style.setProperty('--ag-store-ticker-duration', `${duration}s`);
 
-        applySpeed();
         if (reducedMotion) {
             root.classList.add('is-paused');
-            pauseBtn?.setAttribute('aria-pressed', 'true');
-            if (pauseBtn) {
-                pauseBtn.textContent = '▶';
-            }
         }
-
-        pauseBtn?.addEventListener('click', () => {
-            const paused = root.classList.toggle('is-paused');
-            pauseBtn.setAttribute('aria-pressed', paused ? 'true' : 'false');
-            pauseBtn.textContent = paused ? '▶' : '⏸';
-        });
-
-        slowerBtn?.addEventListener('click', () => {
-            speed = Math.max(10, speed - 10);
-            applySpeed();
-        });
-
-        fasterBtn?.addEventListener('click', () => {
-            speed = Math.min(100, speed + 10);
-            applySpeed();
-        });
     });
 
     document.querySelectorAll('[data-store-product-gallery]').forEach((gallery) => {
@@ -78,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelectorAll('[data-store-menu-toggle]').forEach((button) => {
-        const drawer = button.closest('.ag-store-menu')?.querySelector('[data-store-menu-drawer]');
+        const drawer = document.querySelector('[data-store-menu-drawer]');
         const backdrop = drawer?.querySelector('[data-store-menu-backdrop]');
         const closeButtons = drawer?.querySelectorAll('[data-store-menu-close]') ?? [];
 
@@ -123,23 +97,42 @@ document.addEventListener('DOMContentLoaded', () => {
                 setOpen(false);
             }
         });
+
+        window.matchMedia('(min-width: 42.0625rem)').addEventListener('change', (event) => {
+            if (event.matches && drawer.classList.contains('is-open')) {
+                setOpen(false);
+            }
+        });
     });
 
     document.querySelectorAll('[data-store-hero-slider]').forEach((root) => {
+        const track = root.querySelector('[data-store-hero-track]');
         const slides = [...root.querySelectorAll('[data-store-hero-slide]')];
         const dots = [...root.querySelectorAll('[data-store-hero-dot]')];
         const prev = root.querySelector('[data-store-hero-prev]');
         const next = root.querySelector('[data-store-hero-next]');
 
-        if (slides.length <= 1) {
+        if (! track || slides.length === 0) {
             return;
         }
 
         let index = 0;
         let timer = null;
-        const intervalMs = Math.max(3000, Number.parseInt(root.dataset.interval ?? '5', 10) * 1000);
+        const intervalMs = Math.max(500, Number.parseInt(root.dataset.interval ?? '2000', 10));
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const isRtl = document.documentElement.dir === 'rtl';
         let touchStartX = null;
+
+        if (reducedMotion) {
+            track.classList.add('is-instant');
+        }
+
+        const updateTrack = () => {
+            const offset = index * 100;
+            track.style.transform = isRtl
+                ? `translateX(${offset}%)`
+                : `translateX(-${offset}%)`;
+        };
 
         const show = (nextIndex) => {
             index = (nextIndex + slides.length) % slides.length;
@@ -147,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
             slides.forEach((slide, slideIndex) => {
                 const active = slideIndex === index;
                 slide.classList.toggle('is-active', active);
-                slide.hidden = ! active;
+                slide.setAttribute('aria-hidden', active ? 'false' : 'true');
             });
 
             dots.forEach((dot, dotIndex) => {
@@ -155,6 +148,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 dot.classList.toggle('is-active', active);
                 dot.setAttribute('aria-selected', active ? 'true' : 'false');
             });
+
+            updateTrack();
         };
 
         const stop = () => {
@@ -167,7 +162,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const start = () => {
             stop();
 
-            if (reducedMotion) {
+            if (reducedMotion || slides.length <= 1) {
                 return;
             }
 
@@ -175,6 +170,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 show(index + 1);
             }, intervalMs);
         };
+
+        if (slides.length <= 1) {
+            show(0);
+            return;
+        }
 
         prev?.addEventListener('click', () => {
             show(index - 1);
@@ -201,7 +201,11 @@ document.addEventListener('DOMContentLoaded', () => {
         root.addEventListener('mouseleave', start);
         root.addEventListener('focusin', stop);
         root.addEventListener('focusout', () => {
-            window.setTimeout(start, 0);
+            window.setTimeout(() => {
+                if (! root.contains(document.activeElement)) {
+                    start();
+                }
+            }, 0);
         });
 
         root.addEventListener('touchstart', (event) => {
@@ -221,7 +225,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            show(delta < 0 ? index + 1 : index - 1);
+            const swipeNext = isRtl ? delta > 0 : delta < 0;
+            show(swipeNext ? index + 1 : index - 1);
             start();
         }, { passive: true });
 

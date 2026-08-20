@@ -1,7 +1,11 @@
 <header class="ag-store-header">
     <div class="ag-store__container">
         <div class="ag-store-header__inner">
-            <a href="{{ route('store.home') }}" class="ag-store-header__brand">
+            <div class="ag-store-header__brand">
+                @if ($settings->menu_enabled ?? false)
+                    @include('store.components.menu-toggle')
+                @endif
+                <a href="{{ route('store.home') }}" class="ag-store-header__brand-link">
                 @php
                     $brandLogoUrl = $settings->displayLogoUrl();
                     $siteName = $settings->localized('site_name') ?? config('app.name');
@@ -11,7 +15,8 @@
                 @else
                     <span class="ag-store-header__site-name ag-store-header__site-name--solo">{{ $siteName }}</span>
                 @endif
-            </a>
+                </a>
+            </div>
 
             @include('store.components.search-box', [
                 'value' => request('q'),

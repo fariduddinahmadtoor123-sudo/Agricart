@@ -52,6 +52,7 @@
         @livewireStyles
     @endif
     @vite(['resources/css/app.css', 'resources/css/store/theme.css', 'resources/js/store.js'])
+    @include('store.components.menu-hero-styles')
     @include('store.components.search-box-styles')
     @stack('styles')
 </head>

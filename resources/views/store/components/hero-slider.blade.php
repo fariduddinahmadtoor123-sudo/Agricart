@@ -1,5 +1,5 @@
 @php
-    $interval = app(\App\Services\Store\StoreHeroSliderService::class)->intervalSeconds();
+    $intervalMs = app(\App\Services\Store\StoreHeroSliderService::class)->intervalMilliseconds();
     $slideCount = $slides->count();
 @endphp
 
@@ -8,15 +8,16 @@
         class="ag-store-hero-slider"
         aria-label="{{ __('agricart.storefront.hero_slider.label') }}"
         data-store-hero-slider
-        data-interval="{{ $interval }}"
+        data-interval="{{ $intervalMs }}"
     >
-        <div class="ag-store-hero-slider__viewport">
+        <div class="ag-store__container">
+            <div class="ag-store-hero-slider__viewport">
             <div class="ag-store-hero-slider__track" data-store-hero-track>
                 @foreach ($slides as $index => $slide)
                     <div
                         class="ag-store-hero-slider__slide @if ($index === 0) is-active @endif"
                         data-store-hero-slide
-                        @if ($index !== 0) hidden @endif
+                        aria-hidden="{{ $index === 0 ? 'false' : 'true' }}"
                     >
                         @if (filled($slide->link))
                             <a href="{{ $slide->link }}" class="ag-store-hero-slider__link">
@@ -60,6 +61,7 @@
                     @endforeach
                 </div>
             @endif
+            </div>
         </div>
     </section>
 @endif

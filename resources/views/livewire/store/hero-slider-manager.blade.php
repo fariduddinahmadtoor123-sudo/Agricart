@@ -10,8 +10,12 @@
         </label>
 
         <div class="agricart-store-admin__field">
-            <label>{{ __('agricart.store.admin.hero_slider.interval') }} ({{ $hero_slider_interval }}s)</label>
-            <input type="range" wire:model="hero_slider_interval" min="3" max="30" step="1" class="agricart-store-admin__range" />
+            <label for="hero-slider-interval">{{ __('agricart.store.admin.hero_slider.interval') }}</label>
+            <select id="hero-slider-interval" wire:model="hero_slider_interval" class="agricart-store-admin__input">
+                @foreach ($intervalOptions as $step => $seconds)
+                    <option value="{{ $step }}">{{ $seconds }} {{ __('agricart.store.admin.hero_slider.seconds') }}</option>
+                @endforeach
+            </select>
             <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.hero_slider.interval_hint') }}</p>
         </div>
 
@@ -20,7 +24,7 @@
 
     <section class="agricart-store-admin__card">
         <h3 class="agricart-store-admin__title">{{ __('agricart.store.admin.hero_slider.slides') }}</h3>
-        <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.hero_slider.slides_hint') }}</p>
+        <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.hero_slider.slides_hint', ['size' => $recommendedSize]) }}</p>
 
         <form
             wire:submit="saveSlide"
@@ -31,7 +35,7 @@
             <div class="agricart-store-admin__field">
                 <label>{{ __('agricart.store.admin.hero_slider.image') }}</label>
                 <input type="file" wire:model="imageUpload" accept="image/jpeg,image/png,image/webp" class="agricart-store-admin__input" @if (! $editingId) required @endif />
-                <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.hero_slider.image_hint') }}</p>
+                <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.hero_slider.image_hint', ['size' => $recommendedSize]) }}</p>
                 @if ($imageUpload)
                     <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.header.uploading') }}</p>
                 @endif

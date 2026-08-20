@@ -16,7 +16,7 @@ class HeroSliderManager extends BaseStoreSettings
 
     public bool $hero_slider_enabled = true;
 
-    public int $hero_slider_interval = 5;
+    public int $hero_slider_interval = 4;
 
     public $imageUpload = null;
 
@@ -36,14 +36,15 @@ class HeroSliderManager extends BaseStoreSettings
 
         $settings = $this->settings();
         $this->hero_slider_enabled = $settings->hero_slider_enabled;
-        $this->hero_slider_interval = (int) ($settings->hero_slider_interval ?? 5);
+        $interval = (int) ($settings->hero_slider_interval ?? 4);
+        $this->hero_slider_interval = in_array($interval, StoreHeroSliderService::INTERVAL_STEPS, true) ? $interval : 4;
     }
 
     public function saveSettings(): void
     {
         $this->authorizeStoreSettings();
         $this->validate([
-            'hero_slider_interval' => ['required', 'integer', 'min:3', 'max:30'],
+            'hero_slider_interval' => ['required', 'integer', 'in:' . implode(',', StoreHeroSliderService::INTERVAL_STEPS)],
         ]);
 
         $settings = $this->settings();
@@ -186,6 +187,8 @@ class HeroSliderManager extends BaseStoreSettings
             'slides' => $this->canManageStoreSettings()
                 ? StoreHeroSlide::query()->orderBy('sort_order')->orderBy('id')->get()
                 : collect(),
+            'intervalOptions' => app(StoreHeroSliderService::class)->intervalOptions(),
+            'recommendedSize' => StoreHeroSliderService::IMAGE_WIDTH . ' × ' . StoreHeroSliderService::IMAGE_HEIGHT,
         ]);
     }
 
