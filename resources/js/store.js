@@ -116,45 +116,90 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        let index = 0;
-        let timer = null;
         const intervalMs = Math.max(500, Number.parseInt(root.dataset.interval ?? '2000', 10));
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const isRtl = document.documentElement.dir === 'rtl';
         let touchStartX = null;
+        let timer = null;
+        let position = 0;
+        let settling = false;
+
+        const realCount = slides.length;
+        const useLoop = ! reducedMotion && realCount > 1;
 
         if (reducedMotion) {
             track.classList.add('is-instant');
         }
 
-        const updateTrack = () => {
-            const offset = index * 100;
+        if (useLoop) {
+            const firstClone = slides[0].cloneNode(true);
+            const lastClone = slides[realCount - 1].cloneNode(true);
+
+            [firstClone, lastClone].forEach((clone) => {
+                clone.classList.remove('is-active');
+                clone.removeAttribute('data-store-hero-slide');
+                clone.setAttribute('aria-hidden', 'true');
+                clone.setAttribute('data-hero-clone', 'true');
+            });
+
+            track.insertBefore(lastClone, slides[0]);
+            track.appendChild(firstClone);
+            position = 1;
+        }
+
+        const applyTransform = (pos, instant = false) => {
+            if (instant) {
+                track.classList.add('is-instant');
+            } else {
+                track.classList.remove('is-instant');
+            }
+
+            const offset = pos * 100;
             track.style.transform = isRtl
                 ? `translateX(${offset}%)`
                 : `translateX(-${offset}%)`;
+
+            if (instant) {
+                void track.offsetHeight;
+                track.classList.remove('is-instant');
+            }
         };
 
-        const show = (nextIndex) => {
-            index = (nextIndex + slides.length) % slides.length;
+        const logicalFromPosition = (pos) => {
+            if (! useLoop) {
+                return pos;
+            }
+
+            if (pos <= 0) {
+                return realCount - 1;
+            }
+
+            if (pos >= realCount + 1) {
+                return 0;
+            }
+
+            return pos - 1;
+        };
+
+        const syncUi = () => {
+            const logical = logicalFromPosition(position);
 
             slides.forEach((slide, slideIndex) => {
-                const active = slideIndex === index;
+                const active = slideIndex === logical;
                 slide.classList.toggle('is-active', active);
                 slide.setAttribute('aria-hidden', active ? 'false' : 'true');
             });
 
             dots.forEach((dot, dotIndex) => {
-                const active = dotIndex === index;
+                const active = dotIndex === logical;
                 dot.classList.toggle('is-active', active);
                 dot.setAttribute('aria-selected', active ? 'true' : 'false');
             });
-
-            updateTrack();
         };
 
         const stop = () => {
             if (timer !== null) {
-                window.clearInterval(timer);
+                window.clearTimeout(timer);
                 timer = null;
             }
         };
@@ -162,27 +207,89 @@ document.addEventListener('DOMContentLoaded', () => {
         const start = () => {
             stop();
 
-            if (reducedMotion || slides.length <= 1) {
+            if (reducedMotion || realCount <= 1 || document.hidden) {
                 return;
             }
 
-            timer = window.setInterval(() => {
-                show(index + 1);
+            timer = window.setTimeout(() => {
+                step(1);
+                start();
             }, intervalMs);
         };
 
-        if (slides.length <= 1) {
-            show(0);
+        const step = (delta) => {
+            if (settling) {
+                return;
+            }
+
+            if (! useLoop) {
+                position = (position + delta + realCount) % realCount;
+                applyTransform(position, reducedMotion);
+                syncUi();
+                return;
+            }
+
+            position += delta;
+            applyTransform(position, false);
+            syncUi();
+        };
+
+        const goToLogical = (logical) => {
+            const target = ((logical % realCount) + realCount) % realCount;
+
+            if (! useLoop) {
+                position = target;
+                applyTransform(position, reducedMotion);
+                syncUi();
+                return;
+            }
+
+            const currentLogical = logicalFromPosition(position);
+
+            if (target === currentLogical && position >= 1 && position <= realCount) {
+                return;
+            }
+
+            position = target + 1;
+            applyTransform(position, false);
+            syncUi();
+        };
+
+        if (useLoop) {
+            track.addEventListener('transitionend', (event) => {
+                if (event.target !== track || event.propertyName !== 'transform') {
+                    return;
+                }
+
+                if (position === realCount + 1) {
+                    settling = true;
+                    position = 1;
+                    applyTransform(position, true);
+                    syncUi();
+                    settling = false;
+                } else if (position === 0) {
+                    settling = true;
+                    position = realCount;
+                    applyTransform(position, true);
+                    syncUi();
+                    settling = false;
+                }
+            });
+        }
+
+        if (realCount <= 1) {
+            applyTransform(0, true);
+            syncUi();
             return;
         }
 
         prev?.addEventListener('click', () => {
-            show(index - 1);
+            step(-1);
             start();
         });
 
         next?.addEventListener('click', () => {
-            show(index + 1);
+            step(1);
             start();
         });
 
@@ -191,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const target = Number.parseInt(dot.dataset.storeHeroDot ?? '0', 10);
 
                 if (! Number.isNaN(target)) {
-                    show(target);
+                    goToLogical(target);
                     start();
                 }
             });
@@ -206,6 +313,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     start();
                 }
             }, 0);
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stop();
+            } else {
+                start();
+            }
         });
 
         root.addEventListener('touchstart', (event) => {
@@ -226,11 +341,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const swipeNext = isRtl ? delta > 0 : delta < 0;
-            show(swipeNext ? index + 1 : index - 1);
+            step(swipeNext ? 1 : -1);
             start();
         }, { passive: true });
 
-        show(0);
+        applyTransform(position, true);
+        syncUi();
         start();
     });
 

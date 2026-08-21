@@ -106,4 +106,38 @@ class StoreHeroSliderTest extends TestCase
             ->assertSee('data-store-menu-close', false)
             ->assertSee('ag-store-header__menu-toggle', false);
     }
+
+    public function test_move_to_position_reorders_and_renumbers_slides(): void
+    {
+        $first = StoreHeroSlide::query()->create([
+            'image_path' => 'store/hero/a.webp',
+            'alt_en' => 'A',
+            'sort_order' => 1,
+            'is_active' => true,
+        ]);
+        $second = StoreHeroSlide::query()->create([
+            'image_path' => 'store/hero/b.webp',
+            'alt_en' => 'B',
+            'sort_order' => 2,
+            'is_active' => true,
+        ]);
+        $third = StoreHeroSlide::query()->create([
+            'image_path' => 'store/hero/c.webp',
+            'alt_en' => 'C',
+            'sort_order' => 3,
+            'is_active' => true,
+        ]);
+
+        $service = app(StoreHeroSliderService::class);
+        $service->moveToPosition($third->id, 1);
+
+        $this->assertSame(1, (int) $third->fresh()->sort_order);
+        $this->assertSame(2, (int) $first->fresh()->sort_order);
+        $this->assertSame(3, (int) $second->fresh()->sort_order);
+
+        $service->moveToPosition($third->id, 3);
+        $this->assertSame(1, (int) $first->fresh()->sort_order);
+        $this->assertSame(2, (int) $second->fresh()->sort_order);
+        $this->assertSame(3, (int) $third->fresh()->sort_order);
+    }
 }

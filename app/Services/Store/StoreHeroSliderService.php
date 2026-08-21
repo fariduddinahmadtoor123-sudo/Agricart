@@ -83,4 +83,53 @@ class StoreHeroSliderService
             10 => '5',
         ];
     }
+
+    /**
+     * Move a slide to a 1-based position; the displaced slides shift to fill the gap.
+     */
+    public function moveToPosition(int $slideId, int $position): void
+    {
+        $slides = StoreHeroSlide::query()->orderBy('sort_order')->orderBy('id')->get();
+
+        if ($slides->isEmpty()) {
+            return;
+        }
+
+        $moving = $slides->firstWhere('id', $slideId);
+
+        if ($moving === null) {
+            return;
+        }
+
+        $position = max(1, min($slides->count(), $position));
+        $ordered = $slides->reject(static fn (StoreHeroSlide $slide): bool => $slide->id === $slideId)->values();
+        $ordered->splice($position - 1, 0, [$moving]);
+
+        $this->writeSortOrders($ordered);
+        $this->clearCache();
+    }
+
+    /**
+     * Keep sort_order as contiguous 1…n after create/delete/reorder.
+     */
+    public function renumberSortOrders(): void
+    {
+        $slides = StoreHeroSlide::query()->orderBy('sort_order')->orderBy('id')->get();
+        $this->writeSortOrders($slides);
+        $this->clearCache();
+    }
+
+    /**
+     * @param  Collection<int, StoreHeroSlide>  $ordered
+     */
+    private function writeSortOrders(Collection $ordered): void
+    {
+        foreach ($ordered->values() as $index => $slide) {
+            $next = $index + 1;
+
+            if ((int) $slide->sort_order !== $next) {
+                $slide->update(['sort_order' => $next]);
+            }
+        }
+    }
 }

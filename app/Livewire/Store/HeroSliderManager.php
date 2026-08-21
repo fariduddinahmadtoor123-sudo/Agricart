@@ -99,6 +99,8 @@ class HeroSliderManager extends BaseStoreSettings
                 'sort_order' => $maxSort + 1,
                 'is_active' => true,
             ]);
+
+            app(StoreHeroSliderService::class)->renumberSortOrders();
         }
 
         $this->resetSlideForm();
@@ -131,7 +133,7 @@ class HeroSliderManager extends BaseStoreSettings
             $this->resetSlideForm();
         }
 
-        app(StoreHeroSliderService::class)->clearCache();
+        app(StoreHeroSliderService::class)->renumberSortOrders();
         $this->flashSaved();
     }
 
@@ -161,13 +163,21 @@ class HeroSliderManager extends BaseStoreSettings
             return;
         }
 
-        $current = $slides[$index];
-        $other = $slides[$swapIndex];
-        $currentOrder = (int) $current->sort_order;
-        $current->update(['sort_order' => (int) $other->sort_order]);
-        $other->update(['sort_order' => $currentOrder]);
+        app(StoreHeroSliderService::class)->moveToPosition($id, $swapIndex + 1);
+        $this->flashSaved();
+    }
 
-        app(StoreHeroSliderService::class)->clearCache();
+    public function setSlideNumber(int $id, $number): void
+    {
+        $this->authorizeStoreSettings();
+
+        $position = (int) $number;
+
+        if ($position < 1) {
+            return;
+        }
+
+        app(StoreHeroSliderService::class)->moveToPosition($id, $position);
         $this->flashSaved();
     }
 

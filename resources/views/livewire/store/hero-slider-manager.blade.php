@@ -23,8 +23,14 @@
     </form>
 
     <section class="agricart-store-admin__card">
-        <h3 class="agricart-store-admin__title">{{ __('agricart.store.admin.hero_slider.slides') }}</h3>
+        <h3 class="agricart-store-admin__title">
+            {{ __('agricart.store.admin.hero_slider.slides') }}
+            <span class="agricart-store-admin__hint" style="font-weight:600;margin-inline-start:0.5rem;">
+                {{ __('agricart.store.admin.hero_slider.slides_count', ['count' => $slides->count()]) }}
+            </span>
+        </h3>
         <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.hero_slider.slides_hint', ['size' => $recommendedSize]) }}</p>
+        <p class="agricart-store-admin__hint">{{ __('agricart.store.admin.hero_slider.order_hint') }}</p>
 
         <form
             wire:submit="saveSlide"
@@ -76,6 +82,7 @@
             <table class="agricart-store-admin__table">
                 <thead>
                     <tr>
+                        <th style="width:5rem;">{{ __('agricart.store.admin.hero_slider.number') }}</th>
                         <th>{{ __('agricart.store.admin.hero_slider.preview') }}</th>
                         <th>{{ __('agricart.store.admin.fields.status') }}</th>
                         <th></th>
@@ -84,6 +91,21 @@
                 <tbody>
                     @forelse ($slides as $slide)
                         <tr wire:key="hero-slide-{{ $slide->id }}">
+                            <td>
+                                <label class="agricart-store-admin__hint" style="display:flex;align-items:center;gap:0.35rem;margin:0;">
+                                    <span>#</span>
+                                    <input
+                                        type="number"
+                                        min="1"
+                                        max="{{ $slides->count() }}"
+                                        value="{{ $loop->iteration }}"
+                                        class="agricart-store-admin__input"
+                                        style="width:4rem;padding:0.25rem 0.35rem;"
+                                        wire:change="setSlideNumber({{ $slide->id }}, $event.target.value)"
+                                        title="{{ __('agricart.store.admin.hero_slider.number_hint') }}"
+                                    />
+                                </label>
+                            </td>
                             <td>
                                 <img src="{{ $slide->imageUrl() }}" alt="" style="max-width: 8rem; max-height: 4rem; object-fit: cover;" />
                                 @if (filled($slide->alt_en))
@@ -100,7 +122,7 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="3">{{ __('agricart.store.admin.hero_slider.empty') }}</td></tr>
+                        <tr><td colspan="4">{{ __('agricart.store.admin.hero_slider.empty') }}</td></tr>
                     @endforelse
                 </tbody>
             </table>
