@@ -119,10 +119,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const intervalMs = Math.max(500, Number.parseInt(root.dataset.interval ?? '2000', 10));
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const isRtl = document.documentElement.dir === 'rtl';
+        const transitionMs = (() => {
+            const raw = getComputedStyle(track).transitionDuration || '1.75s';
+            const first = raw.split(',')[0]?.trim() ?? '1.75s';
+
+            if (first.endsWith('ms')) {
+                return Math.max(0, Number.parseFloat(first) || 1750);
+            }
+
+            return Math.max(0, (Number.parseFloat(first) || 1.75) * 1000);
+        })();
+
         let touchStartX = null;
         let timer = null;
         let position = 0;
-        let settling = false;
+        let moving = false;
+        let pausedByHover = false;
+        let pausedByFocus = false;
 
         const realCount = slides.length;
         const useLoop = ! reducedMotion && realCount > 1;
@@ -197,6 +210,22 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         };
 
+        const normalizeLoopPosition = () => {
+            if (! useLoop) {
+                return;
+            }
+
+            if (position >= realCount + 1) {
+                position = 1;
+                applyTransform(position, true);
+                syncUi();
+            } else if (position <= 0) {
+                position = realCount;
+                applyTransform(position, true);
+                syncUi();
+            }
+        };
+
         const stop = () => {
             if (timer !== null) {
                 window.clearTimeout(timer);
@@ -204,78 +233,116 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
-        const start = () => {
+        const canAutoplay = () => ! reducedMotion
+            && realCount > 1
+            && ! document.hidden
+            && ! pausedByHover
+            && ! pausedByFocus
+            && ! moving;
+
+        const scheduleNext = () => {
             stop();
 
-            if (reducedMotion || realCount <= 1 || document.hidden) {
+            if (! canAutoplay()) {
                 return;
             }
 
             timer = window.setTimeout(() => {
-                step(1);
-                start();
+                advance(1).finally(() => {
+                    scheduleNext();
+                });
             }, intervalMs);
         };
 
-        const step = (delta) => {
-            if (settling) {
+        const waitForTransition = () => new Promise((resolve) => {
+            if (reducedMotion || transitionMs <= 0) {
+                resolve();
                 return;
             }
 
-            if (! useLoop) {
-                position = (position + delta + realCount) % realCount;
-                applyTransform(position, reducedMotion);
-                syncUi();
-                return;
-            }
-
-            position += delta;
-            applyTransform(position, false);
-            syncUi();
-        };
-
-        const goToLogical = (logical) => {
-            const target = ((logical % realCount) + realCount) % realCount;
-
-            if (! useLoop) {
-                position = target;
-                applyTransform(position, reducedMotion);
-                syncUi();
-                return;
-            }
-
-            const currentLogical = logicalFromPosition(position);
-
-            if (target === currentLogical && position >= 1 && position <= realCount) {
-                return;
-            }
-
-            position = target + 1;
-            applyTransform(position, false);
-            syncUi();
-        };
-
-        if (useLoop) {
-            track.addEventListener('transitionend', (event) => {
-                if (event.target !== track || event.propertyName !== 'transform') {
+            let done = false;
+            const finish = () => {
+                if (done) {
                     return;
                 }
 
-                if (position === realCount + 1) {
-                    settling = true;
-                    position = 1;
-                    applyTransform(position, true);
-                    syncUi();
-                    settling = false;
-                } else if (position === 0) {
-                    settling = true;
-                    position = realCount;
-                    applyTransform(position, true);
-                    syncUi();
-                    settling = false;
+                done = true;
+                track.removeEventListener('transitionend', onEnd);
+                window.clearTimeout(fallback);
+                resolve();
+            };
+
+            const onEnd = (event) => {
+                if (event.target === track && event.propertyName === 'transform') {
+                    finish();
                 }
-            });
-        }
+            };
+
+            track.addEventListener('transitionend', onEnd);
+            const fallback = window.setTimeout(finish, transitionMs + 120);
+        });
+
+        const advance = async (delta) => {
+            if (moving) {
+                return;
+            }
+
+            moving = true;
+            stop();
+            normalizeLoopPosition();
+
+            try {
+                if (! useLoop) {
+                    position = (position + delta + realCount) % realCount;
+                    applyTransform(position, reducedMotion);
+                    syncUi();
+                    return;
+                }
+
+                position += delta;
+                applyTransform(position, false);
+                syncUi();
+                await waitForTransition();
+                normalizeLoopPosition();
+            } finally {
+                moving = false;
+            }
+        };
+
+        const goToLogical = async (logical) => {
+            const target = ((logical % realCount) + realCount) % realCount;
+
+            if (moving) {
+                return;
+            }
+
+            normalizeLoopPosition();
+            const currentLogical = logicalFromPosition(position);
+
+            if (target === currentLogical && (! useLoop || (position >= 1 && position <= realCount))) {
+                return;
+            }
+
+            moving = true;
+            stop();
+
+            try {
+                if (! useLoop) {
+                    position = target;
+                    applyTransform(position, reducedMotion);
+                    syncUi();
+                    return;
+                }
+
+                position = target + 1;
+                applyTransform(position, false);
+                syncUi();
+                await waitForTransition();
+                normalizeLoopPosition();
+            } finally {
+                moving = false;
+            }
+        };
 
         if (realCount <= 1) {
             applyTransform(0, true);
@@ -284,13 +351,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         prev?.addEventListener('click', () => {
-            step(-1);
-            start();
+            advance(-1).finally(() => scheduleNext());
         });
 
         next?.addEventListener('click', () => {
-            step(1);
-            start();
+            advance(1).finally(() => scheduleNext());
         });
 
         dots.forEach((dot) => {
@@ -298,19 +363,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 const target = Number.parseInt(dot.dataset.storeHeroDot ?? '0', 10);
 
                 if (! Number.isNaN(target)) {
-                    goToLogical(target);
-                    start();
+                    goToLogical(target).finally(() => scheduleNext());
                 }
             });
         });
 
-        root.addEventListener('mouseenter', stop);
-        root.addEventListener('mouseleave', start);
-        root.addEventListener('focusin', stop);
+        root.addEventListener('mouseenter', () => {
+            pausedByHover = true;
+            stop();
+        });
+
+        root.addEventListener('mouseleave', () => {
+            pausedByHover = false;
+            scheduleNext();
+        });
+
+        root.addEventListener('focusin', () => {
+            pausedByFocus = true;
+            stop();
+        });
+
         root.addEventListener('focusout', () => {
             window.setTimeout(() => {
                 if (! root.contains(document.activeElement)) {
-                    start();
+                    pausedByFocus = false;
+                    scheduleNext();
                 }
             }, 0);
         });
@@ -318,9 +395,13 @@ document.addEventListener('DOMContentLoaded', () => {
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
                 stop();
-            } else {
-                start();
+                return;
             }
+
+            // Background tabs often skip transitionend — snap off clones, then resume.
+            normalizeLoopPosition();
+            moving = false;
+            scheduleNext();
         });
 
         root.addEventListener('touchstart', (event) => {
@@ -341,13 +422,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const swipeNext = isRtl ? delta > 0 : delta < 0;
-            step(swipeNext ? 1 : -1);
-            start();
+            advance(swipeNext ? 1 : -1).finally(() => scheduleNext());
         }, { passive: true });
 
         applyTransform(position, true);
         syncUi();
-        start();
+        scheduleNext();
     });
 
     document.querySelectorAll('[data-copy-value]').forEach((button) => {
