@@ -119,15 +119,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const intervalMs = Math.max(500, Number.parseInt(root.dataset.interval ?? '2000', 10));
         const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         const isRtl = document.documentElement.dir === 'rtl';
+        const viewport = root.querySelector('.ag-store-hero-slider__viewport') || track.parentElement;
         const transitionMs = (() => {
-            const raw = getComputedStyle(track).transitionDuration || '1.75s';
-            const first = raw.split(',')[0]?.trim() ?? '1.75s';
+            const raw = getComputedStyle(track).transitionDuration || '0.9s';
+            const first = raw.split(',')[0]?.trim() ?? '0.9s';
 
             if (first.endsWith('ms')) {
-                return Math.max(0, Number.parseFloat(first) || 1750);
+                return Math.max(0, Number.parseFloat(first) || 900);
             }
 
-            return Math.max(0, (Number.parseFloat(first) || 1.75) * 1000);
+            return Math.max(0, (Number.parseFloat(first) || 0.9) * 1000);
         })();
 
         let touchStartX = null;
@@ -160,6 +161,8 @@ document.addEventListener('DOMContentLoaded', () => {
             position = 1;
         }
 
+        const slideWidth = () => Math.max(1, Math.round(viewport?.clientWidth || root.clientWidth || 0));
+
         const applyTransform = (pos, instant = false) => {
             if (instant) {
                 track.classList.add('is-instant');
@@ -167,10 +170,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 track.classList.remove('is-instant');
             }
 
-            const offset = pos * 100;
+            // Pixel translate3d keeps both banners on the GPU and avoids %-jitter.
+            const x = pos * slideWidth();
             track.style.transform = isRtl
-                ? `translateX(${offset}%)`
-                : `translateX(-${offset}%)`;
+                ? `translate3d(${x}px, 0, 0)`
+                : `translate3d(${-x}px, 0, 0)`;
 
             if (instant) {
                 void track.offsetHeight;
@@ -427,6 +431,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         applyTransform(position, true);
         syncUi();
+
+        let resizeTimer = null;
+        window.addEventListener('resize', () => {
+            window.clearTimeout(resizeTimer);
+            resizeTimer = window.setTimeout(() => {
+                applyTransform(position, true);
+            }, 100);
+        }, { passive: true });
+
         scheduleNext();
     });
 

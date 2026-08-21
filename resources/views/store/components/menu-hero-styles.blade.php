@@ -106,29 +106,36 @@
 
     body.ag-store-menu-open { overflow: hidden; }
 
-    .ag-store-hero-slider { background: var(--agricart-surface); border-bottom: 1px solid var(--agricart-border); --ag-hero-slide-duration: 1.75s; }
+    .ag-store-hero-slider { background: var(--agricart-surface); border-bottom: 1px solid var(--agricart-border); --ag-hero-slide-duration: 0.9s; }
     .ag-store-hero-slider__viewport {
         position: relative;
         width: 100%;
         overflow: hidden;
         aspect-ratio: 3 / 1;
         background: color-mix(in oklab, var(--agricart-border) 35%, white);
+        isolation: isolate;
     }
     .ag-store-hero-slider__track {
         display: flex;
         width: 100%;
         height: 100%;
-        transition: transform var(--ag-hero-slide-duration, 1.75s) ease-in-out;
+        transform: translate3d(0, 0, 0);
+        transition: transform var(--ag-hero-slide-duration, 0.9s) cubic-bezier(0.22, 1, 0.36, 1);
         will-change: transform;
+        backface-visibility: hidden;
     }
     .ag-store-hero-slider__track.is-instant { transition: none; }
     .ag-store-hero-slider__slide {
         flex: 0 0 100%;
         width: 100%;
+        min-width: 100%;
+        max-width: 100%;
         height: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
+        transform: translateZ(0);
+        backface-visibility: hidden;
     }
     .ag-store-hero-slider__link {
         display: flex;
@@ -143,5 +150,10 @@
         height: 100%;
         object-fit: cover;
         object-position: center center;
+        transform: translateZ(0);
+        backface-visibility: hidden;
+        user-select: none;
+        -webkit-user-drag: none;
+        pointer-events: none;
     }
 </style>
