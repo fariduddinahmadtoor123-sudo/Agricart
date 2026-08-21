@@ -72,6 +72,7 @@ return [
         'products/gallery/originals' => 'gallery',
         'store' => 'logo',
         'store/hero' => 'hero',
+        'store/blog' => 'catalog',
         'store/about' => 'about',
         'store/watermarks' => 'logo',
         'customers/photos' => 'avatar',

@@ -236,6 +236,7 @@ class PermissionRegistry
                 'reviews' => ['label_en' => 'Reviews', 'label_ur' => 'ریویوز', 'actions' => $viewEdit],
                 'brand-reviews' => ['label_en' => 'Brand Reviews', 'label_ur' => 'برانڈ ریویوز', 'actions' => $viewEdit],
                 'testimonials' => ['label_en' => 'Testimonials', 'label_ur' => 'تعریفیں', 'actions' => $crud],
+                'blog' => ['label_en' => 'Blog', 'label_ur' => 'بلاگ', 'actions' => $crud],
                 'items' => ['label_en' => 'Store Items', 'label_ur' => 'اسٹور آئٹمز', 'actions' => $crud],
                 'visitor-analytics' => ['label_en' => 'Visitor Analytics', 'label_ur' => 'وزیٹر اینالیٹکس', 'actions' => $viewOnly],
                 'top-bar' => ['label_en' => 'Top Bar', 'label_ur' => 'ٹاپ بار', 'actions' => $viewEdit],

@@ -24,6 +24,12 @@
     </a>
 </li>
 
+<li>
+    <a href="{{ route('store.blog') }}" @class(['ag-store-menu__link', 'is-active' => $currentPath === 'blog' || str_starts_with($currentPath, 'blog/')]) @if ($currentPath === 'blog' || str_starts_with($currentPath, 'blog/')) aria-current="page" @endif @if ($menuLinkAttributes ?? false) data-store-menu-link @endif>
+        {{ __('agricart.storefront.blog.nav') }}
+    </a>
+</li>
+
 @foreach ($navEntries as $entry)
     @if ($entry['type'] === 'page')
         @php

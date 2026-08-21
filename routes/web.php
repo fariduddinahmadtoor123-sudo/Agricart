@@ -45,6 +45,7 @@ use App\Http\Controllers\Store\CustomerPasswordResetController;
 use App\Http\Controllers\Store\CustomerProductReviewController;
 use App\Http\Controllers\Store\CustomerProfileController;
 use App\Http\Controllers\Store\BrandController;
+use App\Http\Controllers\Store\BlogController;
 use App\Http\Controllers\Store\AboutController;
 use App\Http\Controllers\Store\HomeController;
 use App\Http\Controllers\Store\PageController;
@@ -164,6 +165,8 @@ Route::middleware([
         ->middleware('throttle:5,1')
         ->name('store.contact-message');
     Route::get('/reviews', [TestimonialsController::class, 'index'])->name('store.testimonials');
+    Route::get('/blog', [BlogController::class, 'index'])->name('store.blog');
+    Route::get('/blog/{slug}', [BlogController::class, 'show'])->name('store.blog.show');
     Route::get('/about', [AboutController::class, 'show'])->name('store.about');
     Route::get('/brands', [BrandController::class, 'index'])->name('store.brands');
     Route::get('/brand/{slug}', [BrandController::class, 'show'])->name('store.brand');
