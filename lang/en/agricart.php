@@ -2871,6 +2871,7 @@ return [
             'extra_permissions' => 'Extra permissions:',
             'super_admin_locked' => 'Super Admin has full access and cannot be edited. Re-seeding permissions refreshes this role automatically.',
             'select_all_module' => 'Select all for this module',
+            'check_all_hint' => 'Check All selects every permission below. You can still turn modules off afterward.',
         ],
         'actions' => [
             'add' => 'Add Role',
@@ -2878,6 +2879,8 @@ return [
             'edit_short' => 'Edit',
             'view' => 'View',
             'delete_short' => 'Delete',
+            'check_all' => 'Check All',
+            'uncheck_all' => 'Uncheck All',
         ],
         'messages' => [
             'created' => 'Role ":name" has been created.',

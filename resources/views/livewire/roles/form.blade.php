@@ -59,17 +59,44 @@
         <h3 class="agricart-form-panel__section-title">{{ __('agricart.roles.sections.permissions') }}</h3>
         <p class="agricart-form-panel__hint">{{ __('agricart.roles.hints.permissions') }}</p>
         <p class="agricart-role-form__legend">{{ __('agricart.roles.hints.permissions_legend') }}</p>
-        <label class="agricart-form-panel__label" for="agricart-role-permission-search">{{ __('agricart.roles.hints.search_permissions') }}</label>
-        <x-filament::input.wrapper class="agricart-role-form__search-wrap">
-            <input
-                id="agricart-role-permission-search"
-                type="search"
-                x-model="permissionQuery"
-                class="fi-input"
-                placeholder="{{ __('agricart.roles.hints.search_permissions_placeholder') }}"
-                autocomplete="off"
-            />
-        </x-filament::input.wrapper>
+        <div class="agricart-role-form__toolbar">
+            <div class="agricart-role-form__bulk-actions">
+                <x-filament::button
+                    type="button"
+                    color="primary"
+                    outlined
+                    size="sm"
+                    wire:click="selectAllPermissions"
+                    :disabled="$this->isReadonly()"
+                >
+                    {{ __('agricart.roles.actions.check_all') }}
+                </x-filament::button>
+                <x-filament::button
+                    type="button"
+                    color="gray"
+                    outlined
+                    size="sm"
+                    wire:click="deselectAllPermissions"
+                    :disabled="$this->isReadonly()"
+                >
+                    {{ __('agricart.roles.actions.uncheck_all') }}
+                </x-filament::button>
+            </div>
+            <p class="agricart-role-form__bulk-hint">{{ __('agricart.roles.hints.check_all_hint') }}</p>
+            <div class="agricart-role-form__search-field">
+                <label class="agricart-form-panel__label" for="agricart-role-permission-search">{{ __('agricart.roles.hints.search_permissions') }}</label>
+                <x-filament::input.wrapper class="agricart-role-form__search-wrap">
+                    <input
+                        id="agricart-role-permission-search"
+                        type="search"
+                        x-model="permissionQuery"
+                        class="fi-input"
+                        placeholder="{{ __('agricart.roles.hints.search_permissions_placeholder') }}"
+                        autocomplete="off"
+                    />
+                </x-filament::input.wrapper>
+            </div>
+        </div>
 
         <div class="agricart-role-form__permission-groups">
             @foreach ($permissionGroups as $groupKey => $group)

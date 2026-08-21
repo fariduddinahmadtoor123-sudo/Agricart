@@ -80,6 +80,28 @@ class Form extends Component
         }
     }
 
+    public function selectAllPermissions(): void
+    {
+        if ($this->isReadonly() || $this->isSystem) {
+            return;
+        }
+
+        $this->selectedPermissions = collect(PermissionRegistry::flatPermissions())
+            ->pluck('key')
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public function deselectAllPermissions(): void
+    {
+        if ($this->isReadonly() || $this->isSystem) {
+            return;
+        }
+
+        $this->selectedPermissions = [];
+    }
+
     public function saveAndClose(): void
     {
         if ($this->persist()) {
