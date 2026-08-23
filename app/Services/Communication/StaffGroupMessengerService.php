@@ -279,6 +279,42 @@ class StaffGroupMessengerService
             ->all();
     }
 
+    /**
+     * Other members' read watermarks for group "seen" ticks.
+     *
+     * @return array{others: list<array{id: int, name: string, last_read_message_id: ?int}>, others_count: int}
+     */
+    public function groupReceipts(Conversation $conversation, User $viewer): array
+    {
+        $others = $conversation->participants()
+            ->whereNull('left_at')
+            ->where('actor_type', 'user')
+            ->where('actor_id', '!=', $viewer->id)
+            ->get(['actor_id', 'last_read_message_id']);
+
+        $names = User::query()
+            ->whereIn('id', $others->pluck('actor_id'))
+            ->pluck('name', 'id');
+
+        $rows = $others
+            ->map(function ($participant) use ($names): array {
+                return [
+                    'id' => (int) $participant->actor_id,
+                    'name' => (string) ($names[(int) $participant->actor_id] ?? ''),
+                    'last_read_message_id' => $participant->last_read_message_id !== null
+                        ? (int) $participant->last_read_message_id
+                        : null,
+                ];
+            })
+            ->values()
+            ->all();
+
+        return [
+            'others' => $rows,
+            'others_count' => count($rows),
+        ];
+    }
+
     public function postMessage(User $user, Conversation $conversation, string $body): Message
     {
         $body = trim($body);

@@ -129,6 +129,9 @@ return [
         'group_open' => 'Open',
         'group_fallback' => 'Staff group',
         'staff' => 'Staff',
+        'sent' => 'Sent',
+        'seen' => 'Seen',
+        'seen_by' => 'Seen :count/:total',
         'errors' => [
             'self' => 'You cannot message yourself.',
             'body' => 'Enter a message (max 5000 characters).',

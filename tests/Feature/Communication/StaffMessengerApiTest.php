@@ -83,6 +83,42 @@ class StaffMessengerApiTest extends TestCase
             ]);
     }
 
+    public function test_dm_receipts_show_seen_when_peer_opens_thread(): void
+    {
+        $admin = $this->superAdmin();
+        $peer = User::factory()->create([
+            'role_id' => $admin->role_id,
+            'status' => User::STATUS_ACTIVE,
+            'name' => 'Seen Peer',
+            'email' => 'seen-peer@test.test',
+        ]);
+
+        $send = $this->actingAs($admin)
+            ->postJson(route('admin.messenger.send'), [
+                'peer_id' => $peer->id,
+                'body' => 'Did you see this?',
+            ])
+            ->assertOk()
+            ->assertJsonPath('receipts.peer_last_read_message_id', null);
+
+        $messageId = (int) $send->json('message.id');
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.messenger.messages', $peer))
+            ->assertOk()
+            ->assertJsonPath('receipts.peer_last_read_message_id', null);
+
+        $this->actingAs($peer)
+            ->getJson(route('admin.messenger.messages', $admin))
+            ->assertOk()
+            ->assertJsonFragment(['body' => 'Did you see this?']);
+
+        $this->actingAs($admin)
+            ->getJson(route('admin.messenger.messages', $peer))
+            ->assertOk()
+            ->assertJsonPath('receipts.peer_last_read_message_id', $messageId);
+    }
+
     public function test_messages_and_send_work_without_comms_permissions(): void
     {
         $role = Role::query()->create([

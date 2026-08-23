@@ -48,6 +48,7 @@ class StaffMessengerController extends Controller
         $messenger->ensureChannel();
         $existing = $messenger->findDm($messenger->pairKey($user->id, $peer->id));
         $rows = [];
+        $receipts = ['peer_last_read_message_id' => null];
 
         if ($existing !== null) {
             $rows = Message::query()
@@ -74,6 +75,8 @@ class StaffMessengerController extends Controller
             } catch (Throwable $exception) {
                 report($exception);
             }
+
+            $receipts = $messenger->dmReceipts($existing->fresh(), $user);
         }
 
         return response()->json([
@@ -84,6 +87,7 @@ class StaffMessengerController extends Controller
                 'online' => $messenger->onlineUserIds()->contains($peer->id),
             ],
             'messages' => $rows,
+            'receipts' => $receipts,
             'unread' => $messenger->totalUnread($user) + $groups->totalUnread($user),
         ]);
     }
@@ -125,6 +129,8 @@ class StaffMessengerController extends Controller
             ], 403);
         }
 
+        $conversation = $message->conversation ?? $messenger->findDm($messenger->pairKey($user->id, $peer->id));
+
         return response()->json([
             'message' => [
                 'id' => (int) $message->id,
@@ -133,6 +139,9 @@ class StaffMessengerController extends Controller
                 'sender' => null,
                 'time' => agricart_datetime($message->created_at, 'H:i', false),
             ],
+            'receipts' => $conversation !== null
+                ? $messenger->dmReceipts($conversation, $user)
+                : ['peer_last_read_message_id' => null],
         ]);
     }
 
@@ -194,6 +203,7 @@ class StaffMessengerController extends Controller
                 'members' => $groups->memberNames($model)->values()->all(),
             ],
             'messages' => $rows,
+            'receipts' => $groups->groupReceipts($model, $user),
             'unread' => $messenger->totalUnread($user) + $groups->totalUnread($user),
         ]);
     }
@@ -233,6 +243,7 @@ class StaffMessengerController extends Controller
                 'sender' => null,
                 'time' => agricart_datetime($message->created_at, 'H:i', false),
             ],
+            'receipts' => $groups->groupReceipts($model->fresh(), $user),
         ]);
     }
 

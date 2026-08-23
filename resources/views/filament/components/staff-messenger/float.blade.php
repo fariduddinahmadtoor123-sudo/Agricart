@@ -14,6 +14,11 @@
                         staff: [],
                         groups: [],
                         messages: [],
+                        receipts: {
+                            peer_last_read_message_id: null,
+                            others: [],
+                            others_count: 0,
+                        },
                         draft: '',
                         query: '',
                         error: '',
@@ -128,6 +133,7 @@
                             this.peer = null;
                             this.group = null;
                             this.messages = [];
+                            this.resetReceipts();
                             this.draft = '';
                             this.error = '';
                             this.creatingGroup = false;
@@ -247,6 +253,78 @@
                             return added;
                         },
 
+                        applyReceipts(payload) {
+                            if (! payload || typeof payload !== 'object') {
+                                return;
+                            }
+
+                            if (Object.prototype.hasOwnProperty.call(payload, 'peer_last_read_message_id')) {
+                                this.receipts.peer_last_read_message_id = payload.peer_last_read_message_id === null
+                                    ? null
+                                    : Number(payload.peer_last_read_message_id);
+                            }
+
+                            if (Array.isArray(payload.others)) {
+                                this.receipts.others = payload.others.map((row) => ({
+                                    id: Number(row.id),
+                                    name: row.name || '',
+                                    last_read_message_id: row.last_read_message_id === null || row.last_read_message_id === undefined
+                                        ? null
+                                        : Number(row.last_read_message_id),
+                                }));
+                                this.receipts.others_count = Number(payload.others_count || this.receipts.others.length);
+                            }
+                        },
+
+                        resetReceipts() {
+                            this.receipts = {
+                                peer_last_read_message_id: null,
+                                others: [],
+                                others_count: 0,
+                            };
+                        },
+
+                        messageReceipt(message) {
+                            if (! message || ! message.mine) {
+                                return { state: 'none', label: '' };
+                            }
+
+                            const id = Number(message.id);
+
+                            if (this.peer) {
+                                const peerRead = this.receipts.peer_last_read_message_id;
+                                if (peerRead !== null && peerRead >= id) {
+                                    return { state: 'seen', label: this.labels.seen || 'Seen' };
+                                }
+
+                                return { state: 'sent', label: this.labels.sent || 'Sent' };
+                            }
+
+                            const others = Array.isArray(this.receipts.others) ? this.receipts.others : [];
+                            const total = others.length || Number(this.receipts.others_count || 0);
+                            if (total === 0) {
+                                return { state: 'sent', label: this.labels.sent || 'Sent' };
+                            }
+
+                            const seenBy = others.filter((row) => {
+                                return row.last_read_message_id !== null && Number(row.last_read_message_id) >= id;
+                            }).length;
+
+                            if (seenBy >= total) {
+                                return { state: 'seen', label: this.labels.seen || 'Seen' };
+                            }
+
+                            if (seenBy > 0) {
+                                const label = String(this.labels.seenBy || 'Seen :count/:total')
+                                    .replace(':count', String(seenBy))
+                                    .replace(':total', String(total));
+
+                                return { state: 'partial', label };
+                            }
+
+                            return { state: 'sent', label: this.labels.sent || 'Sent' };
+                        },
+
                         async selectPeer(row) {
                             this.group = null;
                             this.creatingGroup = false;
@@ -257,6 +335,7 @@
                                 online: !! row.online,
                             };
                             this.messages = [];
+                            this.resetReceipts();
                             this.draft = '';
                             this.error = '';
                             this.$nextTick(() => this.$refs.compose?.focus());
@@ -281,6 +360,7 @@
                                     this.peer = data.peer;
                                 }
                                 this.messages = Array.isArray(data.messages) ? data.messages : [];
+                                this.applyReceipts(data.receipts);
                                 if (typeof data.unread !== 'undefined') {
                                     this.unread = Number(data.unread || 0);
                                 }
@@ -315,6 +395,7 @@
 
                                 const data = await response.json();
                                 this.mergeMessages(data.messages);
+                                this.applyReceipts(data.receipts);
                                 if (typeof data.unread !== 'undefined') {
                                     this.unread = Number(data.unread || 0);
                                 }
@@ -332,6 +413,7 @@
                                 members: Array.isArray(row.members) ? row.members : [],
                             };
                             this.messages = [];
+                            this.resetReceipts();
                             this.draft = '';
                             this.error = '';
                             this.$nextTick(() => this.$refs.compose?.focus());
@@ -356,6 +438,7 @@
                                     this.group = data.group;
                                 }
                                 this.messages = Array.isArray(data.messages) ? data.messages : [];
+                                this.applyReceipts(data.receipts);
                                 if (typeof data.unread !== 'undefined') {
                                     this.unread = Number(data.unread || 0);
                                 }
@@ -390,6 +473,7 @@
 
                                 const data = await response.json();
                                 this.mergeMessages(data.messages);
+                                this.applyReceipts(data.receipts);
                                 if (typeof data.unread !== 'undefined') {
                                     this.unread = Number(data.unread || 0);
                                 }
@@ -500,6 +584,7 @@
                                 if (data.message) {
                                     this.messages.push(data.message);
                                 }
+                                this.applyReceipts(data.receipts);
                                 this.draft = '';
                                 this.$nextTick(() => {
                                     this.scrollMessages();
@@ -564,6 +649,9 @@
                     groupOpen: @js(__('communication.messenger.group_open')),
                     groupError: @js(__('communication.messenger.errors.group')),
                     groupMembersError: @js(__('communication.messenger.errors.group_members')),
+                    sent: @js(__('communication.messenger.sent')),
+                    seen: @js(__('communication.messenger.seen')),
+                    seenBy: @js(__('communication.messenger.seen_by')),
                 }
             })"
         >
@@ -630,7 +718,19 @@
                                     x-text="message.sender"
                                 ></span>
                                 <p x-text="message.body"></p>
-                                <time x-text="message.time || ''"></time>
+                                <div class="agricart-staff-messenger__meta">
+                                    <time x-text="message.time || ''"></time>
+                                    <span
+                                        class="agricart-staff-messenger__receipt"
+                                        x-show="message.mine"
+                                        :class="{
+                                            'is-seen': messageReceipt(message).state === 'seen',
+                                            'is-partial': messageReceipt(message).state === 'partial',
+                                        }"
+                                        :title="messageReceipt(message).label"
+                                        x-text="messageReceipt(message).state === 'seen' ? '✓✓' : (messageReceipt(message).state === 'partial' ? '✓✓' : '✓')"
+                                    ></span>
+                                </div>
                             </li>
                         </template>
                         <li class="agricart-staff-messenger__empty" x-show="messages.length === 0" x-text="labels.emptyThread"></li>

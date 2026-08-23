@@ -228,6 +228,34 @@ class DirectStaffMessengerService
         $this->reads->markRead($conversation, ActorRef::user($user->id));
     }
 
+    /**
+     * Peer read watermark for 1:1 threads (WhatsApp-style "seen").
+     */
+    public function peerLastReadMessageId(Conversation $conversation, User $viewer): ?int
+    {
+        $peer = $conversation->participants()
+            ->whereNull('left_at')
+            ->where('actor_type', 'user')
+            ->where('actor_id', '!=', $viewer->id)
+            ->first();
+
+        if ($peer === null || $peer->last_read_message_id === null) {
+            return null;
+        }
+
+        return (int) $peer->last_read_message_id;
+    }
+
+    /**
+     * @return array{peer_last_read_message_id: ?int}
+     */
+    public function dmReceipts(Conversation $conversation, User $viewer): array
+    {
+        return [
+            'peer_last_read_message_id' => $this->peerLastReadMessageId($conversation, $viewer),
+        ];
+    }
+
     public function peerIdFromPair(string $pairKey, int $userId): ?int
     {
         $parts = explode(':', $pairKey);
