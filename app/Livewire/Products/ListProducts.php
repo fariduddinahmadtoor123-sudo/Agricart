@@ -24,7 +24,7 @@ class ListProducts extends Component
     use WithPagination;
 
     /** @var list<string> */
-    public array $visibleColumns = ['image', 'code', 'label_code', 'name_en', 'name_ur', 'status', 'created_at'];
+    public array $visibleColumns = ['image', 'code', 'label_code', 'name_en', 'name_ur', 'pack_unit', 'status', 'created_at'];
 
     public string $search = '';
 
@@ -274,7 +274,7 @@ class ListProducts extends Component
     public function render(): View
     {
         $products = Product::query()
-            ->with(['brand', 'category'])
+            ->with(['brand', 'category', 'packUnit'])
             ->when(filled($this->search), function ($query): void {
                 ProductSearchQuery::apply($query, trim($this->search));
             })

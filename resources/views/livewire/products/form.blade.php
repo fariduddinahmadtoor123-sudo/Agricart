@@ -590,6 +590,13 @@
         </div>
 
         <div class="agricart-form-panel__field agricart-product-form__qty-field agricart-product-form__qty-field--narrow">
+            <label class="agricart-form-panel__label">{{ __('agricart.products.fields.pack_qty') }}</label>
+            <x-filament::input.wrapper>
+                <input type="text" wire:model="pack_qty" class="fi-input" @disabled($readonly) />
+            </x-filament::input.wrapper>
+        </div>
+
+        <div class="agricart-form-panel__field agricart-product-form__qty-field agricart-product-form__qty-field--narrow">
             <label class="agricart-form-panel__label">{{ __('agricart.products.fields.required_qty') }}</label>
             <x-filament::input.wrapper>
                 <input type="text" wire:model="required_qty" class="fi-input" @disabled($readonly) />

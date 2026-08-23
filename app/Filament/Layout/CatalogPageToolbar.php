@@ -115,6 +115,7 @@ class CatalogPageToolbar extends ClusterPageToolbar
                     ['label' => __('agricart.products.list.col_label_code'), 'value' => 'label_code', 'visible' => true],
                     ['label' => __('agricart.products.list.col_name_en'), 'value' => 'name_en', 'visible' => true],
                     ['label' => __('agricart.products.list.col_name_ur'), 'value' => 'name_ur', 'visible' => false],
+                    ['label' => __('agricart.products.list.col_pack_unit'), 'value' => 'pack_unit', 'visible' => true],
                     ['label' => __('agricart.products.list.col_status'), 'value' => 'status', 'visible' => true],
                     ['label' => __('agricart.products.list.col_created'), 'value' => 'created_at', 'visible' => true],
                 ],

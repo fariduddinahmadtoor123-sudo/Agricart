@@ -161,28 +161,46 @@ class StorefrontProductPresenter
 
     public function unitPackSummary(Product $product): ?string
     {
-        $parts = [];
-
-        if ($product->unit) {
-            $unitName = app()->getLocale() === 'ur' && filled($product->unit->name_ur)
-                ? $product->unit->name_ur
-                : $product->unit->name_en;
-
-            if (filled($product->unit_qty)) {
-                $parts[] = trim($product->unit_qty . ' ' . $unitName);
-            } else {
-                $parts[] = $unitName;
-            }
-        }
-
-        if ($product->packUnit && filled($product->pack_qty)) {
-            $packName = app()->getLocale() === 'ur' && filled($product->packUnit->name_ur)
-                ? $product->packUnit->name_ur
-                : $product->packUnit->name_en;
-            $parts[] = trim($product->pack_qty . ' ' . $packName);
-        }
+        $parts = array_values(array_filter([
+            $this->unitSummary($product),
+            $this->packingUnitSummary($product),
+        ]));
 
         return $parts !== [] ? implode(' · ', $parts) : null;
+    }
+
+    public function unitSummary(Product $product): ?string
+    {
+        if (! $product->unit) {
+            return null;
+        }
+
+        $unitName = app()->getLocale() === 'ur' && filled($product->unit->name_ur)
+            ? $product->unit->name_ur
+            : $product->unit->name_en;
+
+        if (filled($product->unit_qty)) {
+            return trim($product->unit_qty.' '.$unitName);
+        }
+
+        return $unitName;
+    }
+
+    public function packingUnitSummary(Product $product): ?string
+    {
+        if (! $product->packUnit) {
+            return null;
+        }
+
+        $packName = app()->getLocale() === 'ur' && filled($product->packUnit->name_ur)
+            ? $product->packUnit->name_ur
+            : $product->packUnit->name_en;
+
+        if (filled($product->pack_qty)) {
+            return trim($product->pack_qty.' '.$packName);
+        }
+
+        return $packName;
     }
 
     /**
@@ -200,8 +218,16 @@ class StorefrontProductPresenter
             $facts[] = ['key' => 'code', 'label' => __('agricart.storefront.product.facts.code'), 'value' => $product->code];
         }
 
-        if ($pack = $this->unitPackSummary($product)) {
-            $facts[] = ['key' => 'unit', 'label' => __('agricart.storefront.product.facts.unit'), 'value' => $pack];
+        if ($unit = $this->unitSummary($product)) {
+            $facts[] = ['key' => 'unit', 'label' => __('agricart.storefront.product.facts.unit'), 'value' => $unit];
+        }
+
+        if ($packing = $this->packingUnitSummary($product)) {
+            $facts[] = [
+                'key' => 'packing_unit',
+                'label' => __('agricart.storefront.product.facts.packing_unit'),
+                'value' => $packing,
+            ];
         }
 
         return $facts;

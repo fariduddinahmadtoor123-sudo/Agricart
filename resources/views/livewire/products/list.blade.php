@@ -48,6 +48,9 @@
                         @if (in_array('name_ur', $visibleColumns, true))
                             <th>{{ __('agricart.products.list.col_name_ur') }}</th>
                         @endif
+                        @if (in_array('pack_unit', $visibleColumns, true))
+                            <th>{{ __('agricart.products.list.col_pack_unit') }}</th>
+                        @endif
                         @if (in_array('status', $visibleColumns, true))
                             <th>{{ __('agricart.products.list.col_status') }}</th>
                         @endif
@@ -80,6 +83,18 @@
                             @endif
                             @if (in_array('name_ur', $visibleColumns, true))
                                 <td dir="rtl">{{ $product->name_ur }}</td>
+                            @endif
+                            @if (in_array('pack_unit', $visibleColumns, true))
+                                <td>
+                                    @if ($product->packUnit)
+                                        {{ app()->getLocale() === 'ur' && filled($product->packUnit->name_ur) ? $product->packUnit->name_ur : $product->packUnit->name_en }}
+                                        @if (filled($product->pack_qty))
+                                            <span class="agricart-categories__meta">({{ $product->pack_qty }})</span>
+                                        @endif
+                                    @else
+                                        —
+                                    @endif
+                                </td>
                             @endif
                             @if (in_array('status', $visibleColumns, true))
                                 <td>{{ ucfirst($product->status) }}</td>
