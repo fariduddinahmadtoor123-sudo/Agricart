@@ -2,6 +2,7 @@
 
 namespace App\Livewire\QuantityControls;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\QuantityChannelTier;
 use App\Services\PricingControls\QuantityControlService;
 use App\Services\PricingControls\QuantityPricingEngine;
@@ -12,6 +13,8 @@ use Livewire\Component;
 
 class Form extends Component
 {
+    use AuthorizesSensitiveActions;
+
     public ?int $tierId = null;
 
     public string $mode = 'create';
@@ -35,6 +38,11 @@ class Form extends Component
     #[On('quantity-control-form-open')]
     public function openForm(?int $tierId = null, string $mode = 'create'): void
     {
+        $this->authorizeAny(
+            $mode === 'view'
+                ? ['marketplace.quantity-control.view', 'marketplace.quantity-control.edit']
+                : ($tierId ? 'marketplace.quantity-control.edit' : 'marketplace.quantity-control.create')
+        );
         $this->resetForm();
         $this->mode = $mode;
         $this->tierId = $tierId;
@@ -50,6 +58,8 @@ class Form extends Component
     #[On('quantity-control-form-action')]
     public function handlePanelAction(string $action): void
     {
+        $this->authorizeAny($this->tierId ? 'marketplace.quantity-control.edit' : 'marketplace.quantity-control.create');
+
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'save_next' => $this->saveAndAddNext(),
@@ -68,6 +78,8 @@ class Form extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeAny($this->tierId ? 'marketplace.quantity-control.edit' : 'marketplace.quantity-control.create');
+
         if ($this->persist()) {
             $this->dispatch('quantity-controls-saved');
             $this->dispatch('close-form-panel');
@@ -76,6 +88,8 @@ class Form extends Component
 
     public function saveAndAddNext(): void
     {
+        $this->authorizeAny($this->tierId ? 'marketplace.quantity-control.edit' : 'marketplace.quantity-control.create');
+
         if ($this->persist()) {
             $this->dispatch('quantity-controls-saved');
             $this->resetForm();
@@ -115,6 +129,8 @@ class Form extends Component
 
     private function persist(): bool
     {
+        $this->authorizeAny($this->tierId ? 'marketplace.quantity-control.edit' : 'marketplace.quantity-control.create');
+
         if ($this->isReadonly()) {
             return false;
         }

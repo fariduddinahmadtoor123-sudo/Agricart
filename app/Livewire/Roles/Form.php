@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Roles;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Services\Access\PermissionRegistry;
@@ -14,6 +15,8 @@ use Livewire\Component;
 
 class Form extends Component
 {
+    use AuthorizesSensitiveActions;
+
     public ?int $roleId = null;
 
     public string $mode = 'create';
@@ -36,6 +39,12 @@ class Form extends Component
     #[On('role-form-open')]
     public function openForm(?int $roleId = null, string $mode = 'create'): void
     {
+        $this->authorizeAny(
+            $mode === 'view'
+                ? ['settings.permission.view', 'settings.permission.edit']
+                : ($roleId ? 'settings.permission.edit' : 'settings.permission.create')
+        );
+
         PermissionRegistry::syncToDatabase();
 
         $this->resetForm();
@@ -50,6 +59,8 @@ class Form extends Component
     #[On('role-form-action')]
     public function handlePanelAction(string $action): void
     {
+        $this->authorizeAny($this->roleId ? 'settings.permission.edit' : 'settings.permission.create');
+
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'save_next' => $this->saveAndAddNext(),
@@ -59,6 +70,8 @@ class Form extends Component
 
     public function toggleGroup(string $groupKey, bool $checked): void
     {
+        $this->authorizeAny($this->roleId ? 'settings.permission.edit' : 'settings.permission.create');
+
         if ($this->isReadonly() || $this->isSystem) {
             return;
         }
@@ -82,6 +95,8 @@ class Form extends Component
 
     public function selectAllPermissions(): void
     {
+        $this->authorizeAny($this->roleId ? 'settings.permission.edit' : 'settings.permission.create');
+
         if ($this->isReadonly() || $this->isSystem) {
             return;
         }
@@ -95,6 +110,8 @@ class Form extends Component
 
     public function deselectAllPermissions(): void
     {
+        $this->authorizeAny($this->roleId ? 'settings.permission.edit' : 'settings.permission.create');
+
         if ($this->isReadonly() || $this->isSystem) {
             return;
         }
@@ -104,6 +121,8 @@ class Form extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeAny($this->roleId ? 'settings.permission.edit' : 'settings.permission.create');
+
         if ($this->persist()) {
             $this->dispatch('roles-saved');
             $this->dispatch('close-form-panel');
@@ -112,6 +131,8 @@ class Form extends Component
 
     public function saveAndAddNext(): void
     {
+        $this->authorizeAny($this->roleId ? 'settings.permission.edit' : 'settings.permission.create');
+
         if ($this->persist()) {
             $this->dispatch('roles-saved');
             $this->resetForm();
@@ -148,20 +169,14 @@ class Form extends Component
 
     private function persist(): bool
     {
+        $this->authorizeAny($this->roleId ? 'settings.permission.edit' : 'settings.permission.create');
+
         if ($this->isReadonly()) {
             return false;
         }
 
         $user = auth()->user();
-
-        if (! $user instanceof \App\Models\User || ! (
-            \App\Services\Access\ModulePageAccess::can($user, 'settings', 'permission', 'create')
-            || \App\Services\Access\ModulePageAccess::can($user, 'settings', 'permission', 'edit')
-        )) {
-            $this->setStatus(__('agricart.access.denied'), 'danger');
-
-            return false;
-        }
+        abort_unless($user instanceof \App\Models\User, 403);
 
         $this->saving = true;
         $this->statusMessage = null;

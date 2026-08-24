@@ -2,6 +2,7 @@
 
 namespace App\Livewire\OnlineSaleOrders;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\Customer;
 use App\Models\OnlineSaleOrder;
 use App\Models\OnlineSaleOrderSupplierAssignment;
@@ -15,13 +16,17 @@ use App\Services\Sales\SalesBankAccountService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
 class Form extends Component
 {
+    use AuthorizesSensitiveActions;
     use WithFileUploads;
+
+    #[Locked]
     public ?int $orderId = null;
 
     public string $mode = 'view';
@@ -131,6 +136,19 @@ class Form extends Component
     #[On('online-order-form-open')]
     public function openForm(?int $orderId = null, string $mode = 'view'): void
     {
+        $user = auth()->user();
+        abort_unless($user instanceof User, 403);
+
+        if ($mode === 'view') {
+            abort_unless(
+                OnlineSaleOrderPaymentAccess::canManageOrders($user, 'view')
+                    || OnlineSaleOrderPaymentAccess::canManageOrders($user, 'edit'),
+                403,
+            );
+        } else {
+            abort_unless(OnlineSaleOrderPaymentAccess::canManageOrders($user, 'edit'), 403);
+        }
+
         $this->formReady = false;
         $this->resetForm();
         $this->orderId = $orderId;
@@ -145,6 +163,9 @@ class Form extends Component
     #[On('online-order-form-action')]
     public function handlePanelAction(string $action): void
     {
+        $user = auth()->user();
+        abort_unless($user instanceof User && OnlineSaleOrderPaymentAccess::canManageOrders($user, 'edit'), 403);
+
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'print' => $this->saveAndPrint(),
@@ -504,6 +525,9 @@ class Form extends Component
 
     public function verifyCustomerPaymentProof(): void
     {
+        $user = auth()->user();
+        abort_unless($user instanceof User && OnlineSaleOrderPaymentAccess::canManageOrders($user, 'edit'), 403);
+
         if (! $this->canConfirmPayment() || ! $this->orderId) {
             return;
         }
@@ -604,6 +628,9 @@ class Form extends Component
 
     private function persistAdmin(): bool
     {
+        $user = auth()->user();
+        abort_unless($user instanceof User && OnlineSaleOrderPaymentAccess::canManageOrders($user, 'edit'), 403);
+
         if (! $this->orderId) {
             return false;
         }

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Purchases;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\CompanyProfile;
 use App\Models\Product;
 use App\Models\Purchase;
@@ -18,6 +19,7 @@ use Livewire\WithFileUploads;
 
 class Form extends Component
 {
+    use AuthorizesSensitiveActions;
     use WithFileUploads;
 
     public ?int $purchaseId = null;
@@ -78,6 +80,7 @@ class Form extends Component
     #[On('purchase-form-open')]
     public function openForm(?int $purchaseId = null, string $mode = 'create'): void
     {
+        $this->authorizeAny($mode === 'view' ? ['purchasing.purchases.view', 'purchasing.purchases.edit'] : ($purchaseId ? 'purchasing.purchases.edit' : 'purchasing.purchases.create'));
         $this->resetForm();
         $this->mode = $mode;
         $this->purchaseId = $purchaseId;
@@ -94,6 +97,8 @@ class Form extends Component
     #[On('purchase-form-action')]
     public function handlePanelAction(string $action): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'print' => $this->saveAndPrint(),
@@ -246,6 +251,8 @@ class Form extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeAny($this->purchaseId ? 'purchasing.purchases.edit' : 'purchasing.purchases.create');
+
         if ($this->persist()) {
             $this->dispatch('purchases-saved');
             $this->dispatch('close-form-panel');
@@ -254,6 +261,15 @@ class Form extends Component
 
     public function saveAndPrint(): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
+        if ($this->isReadonly() && $this->purchaseId) {
+            $url = route('admin.purchases.print', Purchase::query()->findOrFail($this->purchaseId));
+            $this->js('window.open(' . json_encode($url) . ", '_blank')");
+
+            return;
+        }
+
         $purchase = $this->persist();
 
         if (! $purchase instanceof Purchase) {
@@ -455,6 +471,7 @@ class Form extends Component
 
     private function loadPurchase(int $purchaseId): void
     {
+        $this->authorizeAny($this->mode === 'view' ? ['purchasing.purchases.view', 'purchasing.purchases.edit'] : 'purchasing.purchases.edit');
         $purchase = Purchase::query()->with('items')->find($purchaseId);
 
         if ($purchase === null) {
@@ -485,11 +502,9 @@ class Form extends Component
 
     private function persist(): ?Purchase
     {
-        if ($this->isReadonly()) {
-            return null;
-        }
+        $this->authorizeAny($this->purchaseId ? 'purchasing.purchases.edit' : 'purchasing.purchases.create');
 
-        if (! $this->userCan($this->purchaseId ? 'edit' : 'create')) {
+        if ($this->isReadonly()) {
             return null;
         }
 
@@ -640,19 +655,11 @@ class Form extends Component
         return false;
     }
 
-    private function userCan(string $action): bool
+    private function requiredActionPermission(): array|string
     {
-        $user = auth()->user();
-
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
-        return \App\Services\Access\ModulePageAccess::can($user, 'purchasing', 'purchases', $action);
+        return $this->isReadonly()
+            ? ['purchasing.purchases.view', 'purchasing.purchases.edit']
+            : ($this->purchaseId ? 'purchasing.purchases.edit' : 'purchasing.purchases.create');
     }
 
     private function setStatus(string $message, string $type): void

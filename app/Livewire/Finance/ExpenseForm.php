@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Finance;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\Expense;
 use App\Models\ExpenseCategory;
 use App\Models\User;
@@ -18,6 +19,7 @@ use Livewire\WithFileUploads;
 
 class ExpenseForm extends Component
 {
+    use AuthorizesSensitiveActions;
     use WithFileUploads;
 
     public string $mode = 'create';
@@ -72,9 +74,16 @@ class ExpenseForm extends Component
     #[On('finance-expense-form-open')]
     public function openForm(?int $expenseId = null, ?string $mode = null): void
     {
+        $resolvedMode = $mode ?? ($expenseId ? 'edit' : 'create');
+        $this->authorizeAny(
+            $resolvedMode === 'view'
+                ? ['finance.expenses.view', 'finance.expenses.edit']
+                : ($expenseId ? 'finance.expenses.edit' : 'finance.expenses.create')
+        );
+
         $this->resetValidation();
         $this->statusMessage = null;
-        $this->mode = $mode ?? ($expenseId ? 'edit' : 'create');
+        $this->mode = $resolvedMode;
         $this->expenseId = $expenseId;
 
         if ($this->expenseId !== null) {
@@ -88,6 +97,8 @@ class ExpenseForm extends Component
     #[On('finance-expense-form-action')]
     public function handlePanelAction(mixed $action = null): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
         match ($this->panelActionKey($action)) {
             'ai' => $this->enrichWithAi(),
             'save_close' => $this->saveAndClose(),
@@ -120,6 +131,8 @@ class ExpenseForm extends Component
 
     public function enrichWithAi(): void
     {
+        $this->authorizeAny($this->expenseId ? 'finance.expenses.edit' : 'finance.expenses.create');
+
         if ($this->enriching || $this->saving || ! $this->canEditFields()) {
             return;
         }
@@ -165,6 +178,8 @@ class ExpenseForm extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeAny($this->expenseId ? 'finance.expenses.edit' : 'finance.expenses.create');
+
         if ($this->persist()) {
             $this->dispatch('close-form-panel');
         }
@@ -172,6 +187,8 @@ class ExpenseForm extends Component
 
     public function saveAndAddNext(): void
     {
+        $this->authorizeAny($this->expenseId ? 'finance.expenses.edit' : 'finance.expenses.create');
+
         if ($this->persist()) {
             $this->mode = 'create';
             $this->expenseId = null;
@@ -188,6 +205,8 @@ class ExpenseForm extends Component
 
     public function markCycleDone(): void
     {
+        $this->authorizeAny('finance.expenses.edit');
+
         if ($this->expenseId === null || $this->mode === 'view' || ! $this->canEditFields()) {
             return;
         }
@@ -328,6 +347,8 @@ class ExpenseForm extends Component
 
     private function persist(): bool
     {
+        $this->authorizeAny($this->expenseId ? 'finance.expenses.edit' : 'finance.expenses.create');
+
         if ($this->saving) {
             return false;
         }
@@ -416,6 +437,7 @@ class ExpenseForm extends Component
 
     private function loadExpense(): void
     {
+        $this->authorizeAny($this->mode === 'view' ? ['finance.expenses.view', 'finance.expenses.edit'] : 'finance.expenses.edit');
         $expense = Expense::query()->findOrFail($this->expenseId);
         $this->expense_number = (string) $expense->expense_number;
         $this->name_en = (string) $expense->name_en;
@@ -461,15 +483,16 @@ class ExpenseForm extends Component
 
     private function canEditFields(): bool
     {
-        $user = auth()->user();
+        return $this->canAccessAny(
+            $this->expenseId ? 'finance.expenses.edit' : 'finance.expenses.create'
+        );
+    }
 
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        $permission = $this->mode === 'create' ? 'finance.expenses.create' : 'finance.expenses.edit';
-
-        return $user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::userHasKey($user, $permission);
+    private function requiredActionPermission(): array|string
+    {
+        return $this->isReadonly()
+            ? ['finance.expenses.view', 'finance.expenses.edit']
+            : ($this->expenseId ? 'finance.expenses.edit' : 'finance.expenses.create');
     }
 
     private function schedulePreviewExpense(): ?Expense

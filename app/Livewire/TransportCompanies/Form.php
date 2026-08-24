@@ -2,8 +2,8 @@
 
 namespace App\Livewire\TransportCompanies;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\TransportCompany;
-use App\Models\User;
 use App\Services\Contacts\TransportCompanyService;
 use App\Support\LivewireImagePreview;
 use App\Support\PakistaniBanks;
@@ -18,6 +18,7 @@ use Livewire\WithFileUploads;
 
 class Form extends Component
 {
+    use AuthorizesSensitiveActions;
     use WithFileUploads;
 
     public ?int $transportCompanyId = null;
@@ -153,6 +154,7 @@ class Form extends Component
     #[On('transport-company-form-open')]
     public function openForm(?int $transportCompanyId = null, string $mode = 'create'): void
     {
+        $this->authorizeAny($mode === 'view' ? ['contacts.transport-companies.view', 'contacts.transport-companies.edit'] : ($transportCompanyId ? 'contacts.transport-companies.edit' : 'contacts.transport-companies.create'));
         $this->resetForm();
         $this->mode = $mode;
         $this->transportCompanyId = $transportCompanyId;
@@ -165,6 +167,8 @@ class Form extends Component
     #[On('transport-company-form-action')]
     public function handlePanelAction(string $action): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'save_next' => $this->saveAndAddNext(),
@@ -175,6 +179,8 @@ class Form extends Component
 
     public function enrichWithAi(): void
     {
+        $this->authorizeAny($this->transportCompanyId ? 'contacts.transport-companies.edit' : 'contacts.transport-companies.create');
+
         if ($this->isReadonly()) {
             return;
         }
@@ -478,6 +484,8 @@ class Form extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeAny($this->transportCompanyId ? 'contacts.transport-companies.edit' : 'contacts.transport-companies.create');
+
         if ($this->persist()) {
             $this->dispatch('transport-companies-saved');
             $this->dispatch('close-form-panel');
@@ -486,6 +494,8 @@ class Form extends Component
 
     public function saveAndAddNext(): void
     {
+        $this->authorizeAny($this->transportCompanyId ? 'contacts.transport-companies.edit' : 'contacts.transport-companies.create');
+
         if ($this->persist()) {
             $this->dispatch('transport-companies-saved');
             $this->resetForm();
@@ -582,15 +592,9 @@ class Form extends Component
 
     private function persist(): bool
     {
+        $this->authorizeAny($this->transportCompanyId ? 'contacts.transport-companies.edit' : 'contacts.transport-companies.create');
+
         if ($this->isReadonly()) {
-            return false;
-        }
-
-        $permission = $this->transportCompanyId ? 'edit' : 'create';
-
-        if (! $this->userCan($permission)) {
-            $this->setStatus(__('agricart.access.denied'), 'danger');
-
             return false;
         }
 
@@ -637,6 +641,7 @@ class Form extends Component
 
     private function loadCompany(int $id): void
     {
+        $this->authorizeAny($this->mode === 'view' ? ['contacts.transport-companies.view', 'contacts.transport-companies.edit'] : 'contacts.transport-companies.edit');
         $company = TransportCompany::query()->findOrFail($id);
         $state = app(TransportCompanyService::class)->toFormState($company);
 
@@ -885,19 +890,11 @@ class Form extends Component
         $this->statusType = $type;
     }
 
-    private function userCan(string $action): bool
+    private function requiredActionPermission(): array|string
     {
-        $user = auth()->user();
-
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
-        return \App\Services\Access\ModulePageAccess::can($user, 'contacts', 'transport-companies', $action);
+        return $this->isReadonly()
+            ? ['contacts.transport-companies.view', 'contacts.transport-companies.edit']
+            : ($this->transportCompanyId ? 'contacts.transport-companies.edit' : 'contacts.transport-companies.create');
     }
 
     private function resetForm(): void

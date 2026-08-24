@@ -18,11 +18,13 @@ class CashBookTransaction extends Model
         'expense_payment_id',
         'sale_id',
         'sale_return_id',
+        'online_sale_order_id',
         'direction',
         'amount',
         'transaction_date',
         'description',
         'notes',
+        'source_key',
         'created_by',
     ];
 

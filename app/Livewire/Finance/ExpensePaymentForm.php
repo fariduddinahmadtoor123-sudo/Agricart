@@ -2,10 +2,10 @@
 
 namespace App\Livewire\Finance;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\BankAccount;
 use App\Models\Expense;
 use App\Models\ExpensePayment;
-use App\Models\User;
 use App\Services\Finance\ExpensePaymentService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -15,6 +15,8 @@ use Livewire\Component;
 
 class ExpensePaymentForm extends Component
 {
+    use AuthorizesSensitiveActions;
+
     public string $mode = 'create';
 
     public ?int $paymentId = null;
@@ -44,9 +46,16 @@ class ExpensePaymentForm extends Component
     #[On('finance-expense-payment-form-open')]
     public function openForm(?int $paymentId = null, ?string $mode = null): void
     {
+        $resolvedMode = $mode ?? ($paymentId ? 'edit' : 'create');
+        $this->authorizeAny(
+            $resolvedMode === 'view'
+                ? ['finance.expense-payments.view', 'finance.expense-payments.edit']
+                : ($paymentId ? 'finance.expense-payments.edit' : 'finance.expense-payments.create')
+        );
+
         $this->resetValidation();
         $this->statusMessage = null;
-        $this->mode = $mode ?? ($paymentId ? 'edit' : 'create');
+        $this->mode = $resolvedMode;
         $this->paymentId = $paymentId;
 
         if ($this->paymentId !== null) {
@@ -62,6 +71,8 @@ class ExpensePaymentForm extends Component
     #[On('finance-expense-payment-form-action')]
     public function handlePanelAction(string $action): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'save_next' => $this->saveAndAddNext(),
@@ -71,6 +82,8 @@ class ExpensePaymentForm extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeAny($this->paymentId ? 'finance.expense-payments.edit' : 'finance.expense-payments.create');
+
         if ($this->persist()) {
             $this->dispatch('close-form-panel');
         }
@@ -78,6 +91,8 @@ class ExpensePaymentForm extends Component
 
     public function saveAndAddNext(): void
     {
+        $this->authorizeAny($this->paymentId ? 'finance.expense-payments.edit' : 'finance.expense-payments.create');
+
         if ($this->persist()) {
             $this->mode = 'create';
             $this->paymentId = null;
@@ -132,6 +147,8 @@ class ExpensePaymentForm extends Component
 
     private function persist(): bool
     {
+        $this->authorizeAny($this->paymentId ? 'finance.expense-payments.edit' : 'finance.expense-payments.create');
+
         if ($this->saving || ! $this->canEditFields()) {
             return false;
         }
@@ -186,6 +203,7 @@ class ExpensePaymentForm extends Component
 
     private function loadPayment(): void
     {
+        $this->authorizeAny($this->mode === 'view' ? ['finance.expense-payments.view', 'finance.expense-payments.edit'] : 'finance.expense-payments.edit');
         $payment = ExpensePayment::query()->findOrFail($this->paymentId);
         $this->payment_number = (string) $payment->payment_number;
         $this->expense_id = $payment->expense_id;
@@ -211,15 +229,16 @@ class ExpensePaymentForm extends Component
 
     private function canEditFields(): bool
     {
-        $user = auth()->user();
+        return $this->canAccessAny(
+            $this->paymentId ? 'finance.expense-payments.edit' : 'finance.expense-payments.create'
+        );
+    }
 
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        $permission = $this->mode === 'create' ? 'finance.expense-payments.create' : 'finance.expense-payments.edit';
-
-        return $user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::userHasKey($user, $permission);
+    private function requiredActionPermission(): array|string
+    {
+        return $this->isReadonly()
+            ? ['finance.expense-payments.view', 'finance.expense-payments.edit']
+            : ($this->paymentId ? 'finance.expense-payments.edit' : 'finance.expense-payments.create');
     }
 
     private function setStatus(string $message, string $type): void

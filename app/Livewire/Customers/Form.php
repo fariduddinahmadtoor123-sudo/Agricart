@@ -3,8 +3,8 @@
 namespace App\Livewire\Customers;
 
 use App\Enums\CategoryAiStatus;
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\Customer;
-use App\Models\User;
 use App\Services\Contacts\CustomerEnrichmentService;
 use App\Services\Contacts\CustomerService;
 use App\Support\LivewireImagePreview;
@@ -19,6 +19,7 @@ use Livewire\WithFileUploads;
 
 class Form extends Component
 {
+    use AuthorizesSensitiveActions;
     use WithFileUploads;
 
     public ?int $customerId = null;
@@ -97,6 +98,7 @@ class Form extends Component
     #[On('customer-form-open')]
     public function openForm(?int $customerId = null, string $mode = 'create'): void
     {
+        $this->authorizeAny($mode === 'view' ? ['contacts.customers.view', 'contacts.customers.edit'] : ($customerId ? 'contacts.customers.edit' : 'contacts.customers.create'));
         $this->resetForm();
         $this->mode = $mode;
         $this->customerId = $customerId;
@@ -109,6 +111,8 @@ class Form extends Component
     #[On('customer-form-action')]
     public function handlePanelAction(string $action): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'save_next' => $this->saveAndAddNext(),
@@ -168,6 +172,8 @@ class Form extends Component
 
     public function enrichWithAi(): void
     {
+        $this->authorizeAny($this->customerId ? 'contacts.customers.edit' : 'contacts.customers.create');
+
         if ($this->isReadonly()) {
             return;
         }
@@ -201,6 +207,8 @@ class Form extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeAny($this->customerId ? 'contacts.customers.edit' : 'contacts.customers.create');
+
         if ($this->persist()) {
             $this->dispatch('customers-saved');
             $this->dispatch('close-form-panel');
@@ -209,6 +217,8 @@ class Form extends Component
 
     public function saveAndAddNext(): void
     {
+        $this->authorizeAny($this->customerId ? 'contacts.customers.edit' : 'contacts.customers.create');
+
         if ($this->persist()) {
             $this->dispatch('customers-saved');
             $this->resetForm();
@@ -262,11 +272,9 @@ class Form extends Component
 
     private function persist(): bool
     {
-        if ($this->isReadonly()) {
-            return false;
-        }
+        $this->authorizeAny($this->customerId ? 'contacts.customers.edit' : 'contacts.customers.create');
 
-        if (! $this->userCan($this->customerId ? 'edit' : 'create')) {
+        if ($this->isReadonly()) {
             return false;
         }
 
@@ -306,6 +314,7 @@ class Form extends Component
 
     private function loadCustomer(int $customerId): void
     {
+        $this->authorizeAny($this->mode === 'view' ? ['contacts.customers.view', 'contacts.customers.edit'] : 'contacts.customers.edit');
         $customer = Customer::query()->findOrFail($customerId);
         $state = app(CustomerService::class)->toFormState($customer);
 
@@ -445,18 +454,10 @@ class Form extends Component
         $this->dispatch('customer-form-busy', enriching: $this->enriching, saving: $this->saving);
     }
 
-    private function userCan(string $action): bool
+    private function requiredActionPermission(): array|string
     {
-        $user = auth()->user();
-
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
-        return \App\Services\Access\ModulePageAccess::can($user, 'contacts', 'customers', $action);
+        return $this->isReadonly()
+            ? ['contacts.customers.view', 'contacts.customers.edit']
+            : ($this->customerId ? 'contacts.customers.edit' : 'contacts.customers.create');
     }
 }

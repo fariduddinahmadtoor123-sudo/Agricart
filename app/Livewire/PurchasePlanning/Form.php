@@ -2,9 +2,9 @@
 
 namespace App\Livewire\PurchasePlanning;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\Product;
 use App\Models\PurchasePlanningSheet;
-use App\Models\User;
 use App\Services\Purchasing\PurchasePlanningService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Storage;
@@ -14,6 +14,8 @@ use Livewire\Component;
 
 class Form extends Component
 {
+    use AuthorizesSensitiveActions;
+
     public ?int $sheetId = null;
 
     public string $mode = 'create';
@@ -40,6 +42,7 @@ class Form extends Component
     #[On('purchase-planning-form-open')]
     public function openForm(?int $sheetId = null, string $mode = 'create'): void
     {
+        $this->authorizeAny($mode === 'view' ? ['purchasing.purchase-planning.view', 'purchasing.purchase-planning.edit'] : ($sheetId ? 'purchasing.purchase-planning.edit' : 'purchasing.purchase-planning.create'));
         $this->resetForm();
         $this->mode = $mode;
         $this->sheetId = $sheetId;
@@ -52,6 +55,8 @@ class Form extends Component
     #[On('purchase-planning-form-action')]
     public function handlePanelAction(string $action): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'print' => $this->saveAndPrint(),
@@ -124,6 +129,8 @@ class Form extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeAny($this->sheetId ? 'purchasing.purchase-planning.edit' : 'purchasing.purchase-planning.create');
+
         if ($this->persist()) {
             $this->dispatch('purchase-planning-saved');
             $this->dispatch('close-form-panel');
@@ -132,6 +139,15 @@ class Form extends Component
 
     public function saveAndPrint(): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
+        if ($this->isReadonly() && $this->sheetId) {
+            $url = route('admin.purchase-planning.print', PurchasePlanningSheet::query()->findOrFail($this->sheetId));
+            $this->js('window.open(' . json_encode($url) . ", '_blank')");
+
+            return;
+        }
+
         $sheet = $this->persist();
 
         if (! $sheet instanceof PurchasePlanningSheet) {
@@ -195,6 +211,7 @@ class Form extends Component
 
     private function loadSheet(int $sheetId): void
     {
+        $this->authorizeAny($this->mode === 'view' ? ['purchasing.purchase-planning.view', 'purchasing.purchase-planning.edit'] : 'purchasing.purchase-planning.edit');
         $sheet = PurchasePlanningSheet::query()->with('items')->find($sheetId);
 
         if ($sheet === null) {
@@ -211,11 +228,9 @@ class Form extends Component
 
     private function persist(): ?PurchasePlanningSheet
     {
-        if ($this->isReadonly()) {
-            return null;
-        }
+        $this->authorizeAny($this->sheetId ? 'purchasing.purchase-planning.edit' : 'purchasing.purchase-planning.create');
 
-        if (! $this->userCan($this->sheetId ? 'edit' : 'create')) {
+        if ($this->isReadonly()) {
             return null;
         }
 
@@ -279,19 +294,11 @@ class Form extends Component
         return app(PurchasePlanningService::class)->rowDisplayName($row, $this->locale);
     }
 
-    private function userCan(string $action): bool
+    private function requiredActionPermission(): array|string
     {
-        $user = auth()->user();
-
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
-        return \App\Services\Access\ModulePageAccess::can($user, 'purchasing', 'purchase-planning', $action);
+        return $this->isReadonly()
+            ? ['purchasing.purchase-planning.view', 'purchasing.purchase-planning.edit']
+            : ($this->sheetId ? 'purchasing.purchase-planning.edit' : 'purchasing.purchase-planning.create');
     }
 
     private function setStatus(string $message, string $type): void

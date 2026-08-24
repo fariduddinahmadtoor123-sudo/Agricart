@@ -2,11 +2,11 @@
 
 namespace App\Livewire\SaleQuotations;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\CatalogControl;
 use App\Models\Customer;
 use App\Models\Product;
 use App\Models\SaleQuotation;
-use App\Models\User;
 use App\Services\Contacts\CustomerService;
 use App\Services\PricingControls\ChannelPricingEngine;
 use App\Services\PricingControls\QuantityPricingEngine;
@@ -20,6 +20,8 @@ use Livewire\Component;
 
 class Form extends Component
 {
+    use AuthorizesSensitiveActions;
+
     public ?int $quotationId = null;
 
     public string $mode = 'create';
@@ -65,6 +67,7 @@ class Form extends Component
     #[On('sale-quotation-form-open')]
     public function openForm(?int $quotationId = null, string $mode = 'create'): void
     {
+        $this->authorizeAny($mode === 'view' ? ['sales.sales-quotations.view', 'sales.sales-quotations.edit'] : ($quotationId ? 'sales.sales-quotations.edit' : 'sales.sales-quotations.create'));
         $this->resetForm();
         $this->mode = $mode;
         $this->quotationId = $quotationId;
@@ -81,6 +84,8 @@ class Form extends Component
     #[On('sale-quotation-form-action')]
     public function handlePanelAction(string $action): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'print' => $this->saveAndPrint(),
@@ -254,6 +259,8 @@ class Form extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeAny($this->quotationId ? 'sales.sales-quotations.edit' : 'sales.sales-quotations.create');
+
         if ($this->persist(close: true)) {
             return;
         }
@@ -261,6 +268,8 @@ class Form extends Component
 
     public function saveAndPrint(): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
         if ($this->isReadonly()) {
             if ($this->quotationId) {
                 $this->openPrint((int) $this->quotationId);
@@ -371,11 +380,9 @@ class Form extends Component
 
     private function persist(bool $close): ?SaleQuotation
     {
-        if ($this->isReadonly()) {
-            return null;
-        }
+        $this->authorizeAny($this->quotationId ? 'sales.sales-quotations.edit' : 'sales.sales-quotations.create');
 
-        if (! $this->userCan($this->quotationId ? 'edit' : 'create')) {
+        if ($this->isReadonly()) {
             return null;
         }
 
@@ -441,6 +448,7 @@ class Form extends Component
 
     private function loadQuotation(int $quotationId): void
     {
+        $this->authorizeAny($this->mode === 'view' ? ['sales.sales-quotations.view', 'sales.sales-quotations.edit'] : 'sales.sales-quotations.edit');
         $quotation = SaleQuotation::query()->find($quotationId);
 
         if ($quotation === null) {
@@ -499,19 +507,11 @@ class Form extends Component
         $this->dispatch('sale-quotation-form-busy', saving: $this->saving);
     }
 
-    private function userCan(string $action): bool
+    private function requiredActionPermission(): array|string
     {
-        $user = auth()->user();
-
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
-        return \App\Services\Access\ModulePageAccess::can($user, 'sales', 'sales-quotations', $action);
+        return $this->isReadonly()
+            ? ['sales.sales-quotations.view', 'sales.sales-quotations.edit']
+            : ($this->quotationId ? 'sales.sales-quotations.edit' : 'sales.sales-quotations.create');
     }
 
     private function setStatus(string $message, string $type): void

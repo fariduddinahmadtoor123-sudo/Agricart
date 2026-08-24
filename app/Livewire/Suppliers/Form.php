@@ -4,8 +4,8 @@ namespace App\Livewire\Suppliers;
 
 use App\Enums\CategoryAiStatus;
 use App\Filament\Forms\CategoryForm;
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\Supplier;
-use App\Models\User;
 use App\Services\Contacts\SupplierEnrichmentService;
 use App\Services\Contacts\SupplierService;
 use App\Support\LivewireImagePreview;
@@ -22,6 +22,7 @@ use Livewire\WithFileUploads;
 
 class Form extends Component
 {
+    use AuthorizesSensitiveActions;
     use WithFileUploads;
 
     public ?int $supplierId = null;
@@ -115,6 +116,7 @@ class Form extends Component
     #[On('supplier-form-open')]
     public function openForm(?int $supplierId = null, string $mode = 'create'): void
     {
+        $this->authorizeAny($mode === 'view' ? ['contacts.suppliers.view', 'contacts.suppliers.edit'] : ($supplierId ? 'contacts.suppliers.edit' : 'contacts.suppliers.create'));
         $this->resetForm();
         $this->mode = $mode;
         $this->supplierId = $supplierId;
@@ -127,6 +129,8 @@ class Form extends Component
     #[On('supplier-form-action')]
     public function handlePanelAction(string $action): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'save_next' => $this->saveAndAddNext(),
@@ -325,6 +329,8 @@ class Form extends Component
 
     public function enrichWithAi(): void
     {
+        $this->authorizeAny($this->supplierId ? 'contacts.suppliers.edit' : 'contacts.suppliers.create');
+
         if ($this->isReadonly()) {
             return;
         }
@@ -359,6 +365,8 @@ class Form extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeAny($this->supplierId ? 'contacts.suppliers.edit' : 'contacts.suppliers.create');
+
         if ($this->persist()) {
             $this->dispatch('suppliers-saved');
             $this->dispatch('close-form-panel');
@@ -367,6 +375,8 @@ class Form extends Component
 
     public function saveAndAddNext(): void
     {
+        $this->authorizeAny($this->supplierId ? 'contacts.suppliers.edit' : 'contacts.suppliers.create');
+
         if ($this->persist()) {
             $this->dispatch('suppliers-saved');
             $this->resetForm();
@@ -508,15 +518,9 @@ class Form extends Component
 
     private function persist(): bool
     {
+        $this->authorizeAny($this->supplierId ? 'contacts.suppliers.edit' : 'contacts.suppliers.create');
+
         if ($this->isReadonly()) {
-            return false;
-        }
-
-        $permission = $this->supplierId ? 'edit' : 'create';
-
-        if (! $this->userCan($permission)) {
-            $this->setStatus(__('agricart.access.denied'), 'danger');
-
             return false;
         }
 
@@ -566,6 +570,7 @@ class Form extends Component
 
     private function loadSupplier(int $supplierId): void
     {
+        $this->authorizeAny($this->mode === 'view' ? ['contacts.suppliers.view', 'contacts.suppliers.edit'] : 'contacts.suppliers.edit');
         $supplier = Supplier::query()->with('categories')->findOrFail($supplierId);
         $state = app(SupplierService::class)->toFormState($supplier);
 
@@ -823,19 +828,11 @@ class Form extends Component
         $this->statusType = $type;
     }
 
-    private function userCan(string $action): bool
+    private function requiredActionPermission(): array|string
     {
-        $user = auth()->user();
-
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
-        return \App\Services\Access\ModulePageAccess::can($user, 'contacts', 'suppliers', $action);
+        return $this->isReadonly()
+            ? ['contacts.suppliers.view', 'contacts.suppliers.edit']
+            : ($this->supplierId ? 'contacts.suppliers.edit' : 'contacts.suppliers.create');
     }
 
     private function resetForm(): void

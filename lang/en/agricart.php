@@ -1126,6 +1126,7 @@ return [
             'ledger' => [
                 'sale_receipt' => 'Cash sale :number',
                 'sale_return_refund' => 'Cash refund :number',
+                'online_order_shipping' => 'Online order shipping — :number',
             ],
             'directions' => [
                 'in' => 'In',

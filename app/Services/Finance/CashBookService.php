@@ -3,6 +3,7 @@
 namespace App\Services\Finance;
 
 use App\Models\CashBookTransaction;
+use App\Models\OnlineSaleOrder;
 use App\Models\Sale;
 use App\Models\SaleReturn;
 use App\Models\User;
@@ -34,6 +35,8 @@ class CashBookService
         ?int $expensePaymentId = null,
         ?int $saleId = null,
         ?int $saleReturnId = null,
+        ?int $onlineSaleOrderId = null,
+        ?string $sourceKey = null,
     ): CashBookTransaction {
         $amount = round($amount, 2);
 
@@ -43,7 +46,7 @@ class CashBookService
             ]);
         }
 
-        return DB::transaction(function () use ($amount, $transactionDate, $description, $fundTransferId, $notes, $actor, $expenseId, $expensePaymentId, $saleId, $saleReturnId): CashBookTransaction {
+        return DB::transaction(function () use ($amount, $transactionDate, $description, $fundTransferId, $notes, $actor, $expenseId, $expensePaymentId, $saleId, $saleReturnId, $onlineSaleOrderId, $sourceKey): CashBookTransaction {
             $this->lockWallet();
             $this->assertSufficientBalance($amount);
 
@@ -53,11 +56,13 @@ class CashBookService
                 'expense_payment_id' => $expensePaymentId,
                 'sale_id' => $saleId,
                 'sale_return_id' => $saleReturnId,
+                'online_sale_order_id' => $onlineSaleOrderId,
                 'direction' => CashBookTransaction::DIRECTION_OUT,
                 'amount' => $amount,
                 'transaction_date' => $transactionDate,
                 'description' => $description,
                 'notes' => $notes,
+                'source_key' => $sourceKey,
                 'created_by' => $actor?->id,
             ]);
             $this->syncLockedBalance();
@@ -77,6 +82,8 @@ class CashBookService
         ?int $expensePaymentId = null,
         ?int $saleId = null,
         ?int $saleReturnId = null,
+        ?int $onlineSaleOrderId = null,
+        ?string $sourceKey = null,
     ): CashBookTransaction {
         $amount = round($amount, 2);
 
@@ -86,7 +93,7 @@ class CashBookService
             ]);
         }
 
-        return DB::transaction(function () use ($amount, $transactionDate, $description, $fundTransferId, $notes, $actor, $expenseId, $expensePaymentId, $saleId, $saleReturnId): CashBookTransaction {
+        return DB::transaction(function () use ($amount, $transactionDate, $description, $fundTransferId, $notes, $actor, $expenseId, $expensePaymentId, $saleId, $saleReturnId, $onlineSaleOrderId, $sourceKey): CashBookTransaction {
             $this->lockWallet();
             $transaction = CashBookTransaction::query()->create([
                 'fund_transfer_id' => $fundTransferId,
@@ -94,17 +101,54 @@ class CashBookService
                 'expense_payment_id' => $expensePaymentId,
                 'sale_id' => $saleId,
                 'sale_return_id' => $saleReturnId,
+                'online_sale_order_id' => $onlineSaleOrderId,
                 'direction' => CashBookTransaction::DIRECTION_IN,
                 'amount' => $amount,
                 'transaction_date' => $transactionDate,
                 'description' => $description,
                 'notes' => $notes,
+                'source_key' => $sourceKey,
                 'created_by' => $actor?->id,
             ]);
             $this->syncLockedBalance();
 
             return $transaction;
         });
+    }
+
+    /**
+     * POS sale cash book covers merchandise only. Post leftover paid shipping for cash online orders.
+     */
+    public function recordOnlineOrderShippingIfApplicable(OnlineSaleOrder $order, float $saleAmountPaid): void
+    {
+        $method = $order->payment_method ?: $order->customer_payment_method;
+
+        if ($method !== 'cash') {
+            return;
+        }
+
+        $shippingAmount = round((float) ($order->shipping_amount ?? 0), 2);
+        $orderPaid = round((float) $order->amount_paid, 2);
+        $shippingCash = round(min($shippingAmount, max(0, $orderPaid - round($saleAmountPaid, 2))), 2);
+
+        if ($shippingCash <= 0) {
+            return;
+        }
+
+        $sourceKey = 'online-sale-order-shipping:'.$order->id;
+
+        if (CashBookTransaction::query()->where('source_key', $sourceKey)->exists()) {
+            return;
+        }
+
+        $this->recordIn(
+            $shippingCash,
+            $order->order_date?->toDateString() ?? now()->toDateString(),
+            __('agricart.finance.cash_book.ledger.online_order_shipping', ['number' => $order->order_number]),
+            onlineSaleOrderId: $order->id,
+            sourceKey: $sourceKey,
+            actor: auth()->user() instanceof User ? auth()->user() : null,
+        );
     }
 
     public function recordSaleReceiptIfApplicable(Sale $sale): void

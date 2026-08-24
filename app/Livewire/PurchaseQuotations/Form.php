@@ -2,11 +2,11 @@
 
 namespace App\Livewire\PurchaseQuotations;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\CompanyProfile;
 use App\Models\Product;
 use App\Models\PurchaseQuotation;
 use App\Models\Supplier;
-use App\Models\User;
 use App\Services\Purchasing\PurchaseQuotationService;
 use App\Services\Purchasing\PurchaseService;
 use Illuminate\Contracts\View\View;
@@ -17,6 +17,8 @@ use Livewire\Component;
 
 class Form extends Component
 {
+    use AuthorizesSensitiveActions;
+
     public ?int $quotationId = null;
 
     public string $mode = 'create';
@@ -47,6 +49,7 @@ class Form extends Component
     #[On('purchase-quotation-form-open')]
     public function openForm(?int $quotationId = null, string $mode = 'create'): void
     {
+        $this->authorizeAny($mode === 'view' ? ['purchasing.purchase-quotations.view', 'purchasing.purchase-quotations.edit'] : ($quotationId ? 'purchasing.purchase-quotations.edit' : 'purchasing.purchase-quotations.create'));
         $this->resetForm();
         $this->mode = $mode;
         $this->quotationId = $quotationId;
@@ -61,6 +64,8 @@ class Form extends Component
     #[On('purchase-quotation-form-action')]
     public function handlePanelAction(string $action): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'print' => $this->saveAndPrint(),
@@ -153,6 +158,8 @@ class Form extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeAny($this->quotationId ? 'purchasing.purchase-quotations.edit' : 'purchasing.purchase-quotations.create');
+
         if ($this->persist()) {
             $this->dispatch('purchase-quotations-saved');
             $this->dispatch('close-form-panel');
@@ -161,6 +168,15 @@ class Form extends Component
 
     public function saveAndPrint(): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
+        if ($this->isReadonly() && $this->quotationId) {
+            $url = route('admin.purchase-quotations.print', PurchaseQuotation::query()->findOrFail($this->quotationId));
+            $this->js('window.open(' . json_encode($url) . ", '_blank')");
+
+            return;
+        }
+
         $quotation = $this->persist();
 
         if (! $quotation instanceof PurchaseQuotation) {
@@ -312,6 +328,7 @@ class Form extends Component
 
     private function loadQuotation(int $quotationId): void
     {
+        $this->authorizeAny($this->mode === 'view' ? ['purchasing.purchase-quotations.view', 'purchasing.purchase-quotations.edit'] : 'purchasing.purchase-quotations.edit');
         $quotation = PurchaseQuotation::query()->with('items')->find($quotationId);
 
         if ($quotation === null) {
@@ -329,11 +346,9 @@ class Form extends Component
 
     private function persist(): ?PurchaseQuotation
     {
-        if ($this->isReadonly()) {
-            return null;
-        }
+        $this->authorizeAny($this->quotationId ? 'purchasing.purchase-quotations.edit' : 'purchasing.purchase-quotations.create');
 
-        if (! $this->userCan($this->quotationId ? 'edit' : 'create')) {
+        if ($this->isReadonly()) {
             return null;
         }
 
@@ -388,19 +403,11 @@ class Form extends Component
         return false;
     }
 
-    private function userCan(string $action): bool
+    private function requiredActionPermission(): array|string
     {
-        $user = auth()->user();
-
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
-        return \App\Services\Access\ModulePageAccess::can($user, 'purchasing', 'purchase-quotations', $action);
+        return $this->isReadonly()
+            ? ['purchasing.purchase-quotations.view', 'purchasing.purchase-quotations.edit']
+            : ($this->quotationId ? 'purchasing.purchase-quotations.edit' : 'purchasing.purchase-quotations.create');
     }
 
     private function setStatus(string $message, string $type): void

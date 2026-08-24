@@ -2,8 +2,8 @@
 
 namespace App\Livewire\Finance;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\ExpenseCategory;
-use App\Models\User;
 use App\Services\Finance\ExpenseCategoryService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
@@ -12,6 +12,8 @@ use Livewire\Component;
 
 class ExpenseCategoryForm extends Component
 {
+    use AuthorizesSensitiveActions;
+
     public string $mode = 'create';
 
     public ?int $categoryId = null;
@@ -37,9 +39,16 @@ class ExpenseCategoryForm extends Component
     #[On('finance-expense-category-form-open')]
     public function openForm(?int $categoryId = null, ?string $mode = null): void
     {
+        $resolvedMode = $mode ?? ($categoryId ? 'edit' : 'create');
+        $this->authorizeAny(
+            $resolvedMode === 'view'
+                ? ['finance.expense-categories.view', 'finance.expense-categories.edit']
+                : ($categoryId ? 'finance.expense-categories.edit' : 'finance.expense-categories.create')
+        );
+
         $this->resetValidation();
         $this->statusMessage = null;
-        $this->mode = $mode ?? ($categoryId ? 'edit' : 'create');
+        $this->mode = $resolvedMode;
         $this->categoryId = $categoryId;
 
         if ($this->categoryId !== null) {
@@ -53,6 +62,8 @@ class ExpenseCategoryForm extends Component
     #[On('finance-expense-category-form-action')]
     public function handlePanelAction(string $action): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'save_next' => $this->saveAndAddNext(),
@@ -62,6 +73,8 @@ class ExpenseCategoryForm extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeAny($this->categoryId ? 'finance.expense-categories.edit' : 'finance.expense-categories.create');
+
         if ($this->persist()) {
             $this->dispatch('close-form-panel');
         }
@@ -69,6 +82,8 @@ class ExpenseCategoryForm extends Component
 
     public function saveAndAddNext(): void
     {
+        $this->authorizeAny($this->categoryId ? 'finance.expense-categories.edit' : 'finance.expense-categories.create');
+
         if ($this->persist()) {
             $this->mode = 'create';
             $this->categoryId = null;
@@ -90,6 +105,8 @@ class ExpenseCategoryForm extends Component
 
     private function persist(): bool
     {
+        $this->authorizeAny($this->categoryId ? 'finance.expense-categories.edit' : 'finance.expense-categories.create');
+
         if ($this->saving || $this->mode === 'view' || ! $this->canEditFields()) {
             return false;
         }
@@ -135,6 +152,7 @@ class ExpenseCategoryForm extends Component
 
     private function loadCategory(): void
     {
+        $this->authorizeAny($this->mode === 'view' ? ['finance.expense-categories.view', 'finance.expense-categories.edit'] : 'finance.expense-categories.edit');
         $category = ExpenseCategory::query()->findOrFail($this->categoryId);
         $this->code = (string) $category->code;
         $this->name_en = (string) $category->name_en;
@@ -156,15 +174,16 @@ class ExpenseCategoryForm extends Component
 
     private function canEditFields(): bool
     {
-        $user = auth()->user();
+        return $this->canAccessAny(
+            $this->categoryId ? 'finance.expense-categories.edit' : 'finance.expense-categories.create'
+        );
+    }
 
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        $permission = $this->mode === 'create' ? 'finance.expense-categories.create' : 'finance.expense-categories.edit';
-
-        return $user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::userHasKey($user, $permission);
+    private function requiredActionPermission(): array|string
+    {
+        return $this->isReadonly()
+            ? ['finance.expense-categories.view', 'finance.expense-categories.edit']
+            : ($this->categoryId ? 'finance.expense-categories.edit' : 'finance.expense-categories.create');
     }
 
     private function setStatus(string $message, string $type): void

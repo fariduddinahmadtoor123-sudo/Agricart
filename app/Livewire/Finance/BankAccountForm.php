@@ -2,9 +2,9 @@
 
 namespace App\Livewire\Finance;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\BankAccount;
 use App\Models\BankAccountTransaction;
-use App\Models\User;
 use App\Services\Finance\BankAccountService;
 use App\Support\PakistaniBanks;
 use Illuminate\Contracts\View\View;
@@ -15,6 +15,8 @@ use Livewire\Component;
 
 class BankAccountForm extends Component
 {
+    use AuthorizesSensitiveActions;
+
     public string $mode = 'create';
 
     public ?int $bankAccountId = null;
@@ -46,9 +48,15 @@ class BankAccountForm extends Component
     #[On('finance-bank-form-open')]
     public function openForm(?int $bankAccountId = null, ?string $mode = null): void
     {
+        $resolvedMode = $mode ?? ($bankAccountId ? 'edit' : 'create');
+        $this->authorizeAny(
+            in_array($resolvedMode, ['view', 'history'], true)
+                ? ['finance.bank-accounts.view', 'finance.bank-accounts.edit']
+                : ($bankAccountId ? 'finance.bank-accounts.edit' : 'finance.bank-accounts.create')
+        );
+
         $this->resetValidation();
         $this->statusMessage = null;
-        $resolvedMode = $mode ?? ($bankAccountId ? 'edit' : 'create');
 
         if (in_array($resolvedMode, ['manage', 'view'], true)) {
             $resolvedMode = 'edit';
@@ -70,6 +78,8 @@ class BankAccountForm extends Component
     #[On('finance-bank-form-action')]
     public function handlePanelAction(string $action): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'print' => $this->printHistory(),
@@ -81,6 +91,8 @@ class BankAccountForm extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeAny($this->bankAccountId ? 'finance.bank-accounts.edit' : 'finance.bank-accounts.create');
+
         if ($this->saving || ! $this->canEditFields()) {
             return;
         }
@@ -242,6 +254,11 @@ class BankAccountForm extends Component
 
     private function loadAccount(): void
     {
+        $this->authorizeAny(
+            $this->mode === 'history'
+                ? ['finance.bank-accounts.view', 'finance.bank-accounts.edit']
+                : 'finance.bank-accounts.edit'
+        );
         $account = BankAccount::query()->find($this->bankAccountId);
 
         if ($account === null) {
@@ -279,17 +296,15 @@ class BankAccountForm extends Component
             return false;
         }
 
-        $user = auth()->user();
+        return $this->canAccessAny(
+            $this->bankAccountId ? 'finance.bank-accounts.edit' : 'finance.bank-accounts.create'
+        );
+    }
 
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
-        return \App\Services\Access\ModulePageAccess::can($user, 'finance', 'bank-accounts', 'create')
-            || \App\Services\Access\ModulePageAccess::can($user, 'finance', 'bank-accounts', 'edit');
+    private function requiredActionPermission(): array|string
+    {
+        return $this->mode === 'history' || ! $this->canEditFields()
+            ? ['finance.bank-accounts.view', 'finance.bank-accounts.edit']
+            : ($this->bankAccountId ? 'finance.bank-accounts.edit' : 'finance.bank-accounts.create');
     }
 }

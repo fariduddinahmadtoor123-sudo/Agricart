@@ -2,8 +2,8 @@
 
 namespace App\Livewire\SalesChannels;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\SalesChannel;
-use App\Models\User;
 use App\Services\SalesChannels\FacebookCatalogFeedService;
 use App\Services\SalesChannels\SalesChannelCatalog;
 use App\Services\SalesChannels\SalesChannelService;
@@ -14,6 +14,8 @@ use Livewire\Component;
 
 class Form extends Component
 {
+    use AuthorizesSensitiveActions;
+
     public ?int $salesChannelId = null;
 
     public string $mode = 'create';
@@ -52,6 +54,7 @@ class Form extends Component
     #[On('sales-channel-form-open')]
     public function openForm(?int $salesChannelId = null, string $mode = 'create', ?string $channelSlug = null): void
     {
+        $this->authorizeAny($mode === 'view' ? ['marketplace.sales-channels.view', 'marketplace.sales-channels.edit'] : ($salesChannelId ? 'marketplace.sales-channels.edit' : 'marketplace.sales-channels.create'));
         $this->resetForm();
         $this->mode = $mode;
         $this->salesChannelId = $salesChannelId;
@@ -70,6 +73,8 @@ class Form extends Component
     #[On('sales-channel-form-action')]
     public function handlePanelAction(string $action): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
         match ($action) {
             'save_close' => $this->saveAndClose(),
             default => null,
@@ -85,7 +90,9 @@ class Form extends Component
 
     public function regenerateFacebookToken(): void
     {
-        if (! $this->userCanEdit() || $this->channel_slug !== SalesChannel::SLUG_FACEBOOK) {
+        $this->authorizeAny($this->salesChannelId ? 'marketplace.sales-channels.edit' : 'marketplace.sales-channels.create');
+
+        if ($this->isReadonly() || $this->channel_slug !== SalesChannel::SLUG_FACEBOOK) {
             return;
         }
 
@@ -95,25 +102,26 @@ class Form extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeAny($this->salesChannelId ? 'marketplace.sales-channels.edit' : 'marketplace.sales-channels.create');
+
         if ($this->persist()) {
             $this->dispatch('sales-channels-saved');
             $this->dispatch('close-form-panel');
         }
     }
 
+    public function isReadonly(): bool
+    {
+        return $this->mode === 'view';
+    }
+
     public function userCanEdit(): bool
     {
-        $user = auth()->user();
-
-        if (! $user instanceof User) {
+        if ($this->isReadonly()) {
             return false;
         }
 
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
-        return \App\Services\Access\ModulePageAccess::can($user, 'marketplace', 'sales-channels', 'edit');
+        return $this->canAccessAny($this->salesChannelId ? 'marketplace.sales-channels.edit' : 'marketplace.sales-channels.create');
     }
 
     public function render(): View
@@ -179,6 +187,7 @@ class Form extends Component
 
     private function loadRecord(int $recordId): void
     {
+        $this->authorizeAny($this->mode === 'view' ? ['marketplace.sales-channels.view', 'marketplace.sales-channels.edit'] : 'marketplace.sales-channels.edit');
         $channel = SalesChannel::query()->findOrFail($recordId);
 
         $this->channel_slug = $channel->slug;
@@ -199,9 +208,9 @@ class Form extends Component
 
     private function persist(): bool
     {
-        if (! $this->userCanEdit()) {
-            $this->setStatus(__('sales_channels.hints.no_edit_permission'), 'danger');
+        $this->authorizeAny($this->salesChannelId ? 'marketplace.sales-channels.edit' : 'marketplace.sales-channels.create');
 
+        if ($this->isReadonly()) {
             return false;
         }
 
@@ -307,5 +316,12 @@ class Form extends Component
     private function dispatchBusyState(): void
     {
         $this->dispatch('sales-channel-form-busy', saving: $this->saving);
+    }
+
+    private function requiredActionPermission(): array|string
+    {
+        return $this->isReadonly()
+            ? ['marketplace.sales-channels.view', 'marketplace.sales-channels.edit']
+            : ($this->salesChannelId ? 'marketplace.sales-channels.edit' : 'marketplace.sales-channels.create');
     }
 }

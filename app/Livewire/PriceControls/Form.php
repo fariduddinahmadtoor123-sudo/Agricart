@@ -2,6 +2,7 @@
 
 namespace App\Livewire\PriceControls;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\PriceChannelTier;
 use App\Services\PricingControls\ChannelPricingEngine;
 use App\Services\PricingControls\PriceControlService;
@@ -13,6 +14,8 @@ use Livewire\Component;
 
 class Form extends Component
 {
+    use AuthorizesSensitiveActions;
+
     public ?int $tierId = null;
 
     public string $mode = 'create';
@@ -38,6 +41,11 @@ class Form extends Component
     #[On('price-control-form-open')]
     public function openForm(?int $tierId = null, string $mode = 'create'): void
     {
+        $this->authorizeAny(
+            $mode === 'view'
+                ? ['marketplace.price-control.view', 'marketplace.price-control.edit']
+                : ($tierId ? 'marketplace.price-control.edit' : 'marketplace.price-control.create')
+        );
         $this->resetForm();
         $this->mode = $mode;
         $this->tierId = $tierId;
@@ -52,6 +60,8 @@ class Form extends Component
     #[On('price-control-form-action')]
     public function handlePanelAction(string $action): void
     {
+        $this->authorizeAny($this->tierId ? 'marketplace.price-control.edit' : 'marketplace.price-control.create');
+
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'save_next' => $this->saveAndAddNext(),
@@ -61,6 +71,8 @@ class Form extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeAny($this->tierId ? 'marketplace.price-control.edit' : 'marketplace.price-control.create');
+
         if ($this->persist()) {
             $this->dispatch('price-controls-saved');
             $this->dispatch('close-form-panel');
@@ -69,6 +81,8 @@ class Form extends Component
 
     public function saveAndAddNext(): void
     {
+        $this->authorizeAny($this->tierId ? 'marketplace.price-control.edit' : 'marketplace.price-control.create');
+
         if ($this->persist()) {
             $this->dispatch('price-controls-saved');
             $this->resetForm();
@@ -120,6 +134,8 @@ class Form extends Component
 
     private function persist(): bool
     {
+        $this->authorizeAny($this->tierId ? 'marketplace.price-control.edit' : 'marketplace.price-control.create');
+
         if ($this->isReadonly()) {
             return false;
         }

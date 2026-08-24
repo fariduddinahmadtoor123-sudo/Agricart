@@ -2,6 +2,7 @@
 
 namespace App\Livewire\PurchasePaymentSummaries;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\CompanyProfile;
 use App\Models\PurchasePaymentSummary;
 use App\Models\User;
@@ -14,6 +15,8 @@ use Livewire\Component;
 
 class Form extends Component
 {
+    use AuthorizesSensitiveActions;
+
     public ?int $summaryId = null;
 
     public string $mode = 'create';
@@ -47,6 +50,7 @@ class Form extends Component
     #[On('purchase-payment-summary-form-open')]
     public function openForm(?int $summaryId = null, string $mode = 'create'): void
     {
+        $this->authorizeAny($mode === 'view' ? ['purchasing.purchase-payment-summary.view', 'purchasing.purchase-payment-summary.edit'] : ($summaryId ? 'purchasing.purchase-payment-summary.edit' : 'purchasing.purchase-payment-summary.create'));
         $this->resetForm();
         $this->mode = $mode;
         $this->summaryId = $summaryId;
@@ -59,6 +63,8 @@ class Form extends Component
     #[On('purchase-payment-summary-form-action')]
     public function handlePanelAction(string $action): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'print' => $this->saveAndPrint(),
@@ -201,6 +207,8 @@ class Form extends Component
 
     public function saveAndClose(): void
     {
+        $this->authorizeAny($this->summaryId ? 'purchasing.purchase-payment-summary.edit' : 'purchasing.purchase-payment-summary.create');
+
         if ($this->persist()) {
             $this->dispatch('purchase-payment-summaries-saved');
             $this->dispatch('close-form-panel');
@@ -209,6 +217,15 @@ class Form extends Component
 
     public function saveAndPrint(): void
     {
+        $this->authorizeAny($this->requiredActionPermission());
+
+        if ($this->isReadonly() && $this->summaryId) {
+            $url = route('admin.purchase-payment-summaries.print', PurchasePaymentSummary::query()->findOrFail($this->summaryId));
+            $this->js('window.open(' . json_encode($url) . ", '_blank')");
+
+            return;
+        }
+
         $summary = $this->persist();
 
         if (! $summary instanceof PurchasePaymentSummary) {
@@ -336,6 +353,7 @@ class Form extends Component
 
     private function loadSummary(int $summaryId): void
     {
+        $this->authorizeAny($this->mode === 'view' ? ['purchasing.purchase-payment-summary.view', 'purchasing.purchase-payment-summary.edit'] : 'purchasing.purchase-payment-summary.edit');
         $summary = PurchasePaymentSummary::query()->with('items')->find($summaryId);
 
         if ($summary === null) {
@@ -355,11 +373,9 @@ class Form extends Component
 
     private function persist(): ?PurchasePaymentSummary
     {
-        if ($this->isReadonly()) {
-            return null;
-        }
+        $this->authorizeAny($this->summaryId ? 'purchasing.purchase-payment-summary.edit' : 'purchasing.purchase-payment-summary.create');
 
-        if (! $this->userCan($this->summaryId ? 'edit' : 'create')) {
+        if ($this->isReadonly()) {
             return null;
         }
 
@@ -433,18 +449,10 @@ class Form extends Component
         $this->dispatch('purchase-payment-summary-form-busy', saving: $this->saving);
     }
 
-    private function userCan(string $action): bool
+    private function requiredActionPermission(): array|string
     {
-        $user = auth()->user();
-
-        if (! $user instanceof User) {
-            return false;
-        }
-
-        if ($user->isSuperAdmin()) {
-            return true;
-        }
-
-        return \App\Services\Access\ModulePageAccess::can($user, 'purchasing', 'purchase-payment-summary', $action);
+        return $this->isReadonly()
+            ? ['purchasing.purchase-payment-summary.view', 'purchasing.purchase-payment-summary.edit']
+            : ($this->summaryId ? 'purchasing.purchase-payment-summary.edit' : 'purchasing.purchase-payment-summary.create');
     }
 }

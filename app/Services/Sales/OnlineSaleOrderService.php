@@ -254,6 +254,10 @@ class OnlineSaleOrderService
                 'online_sale_order_id' => $order->id,
             ]);
 
+            // Merchandise cash is on the POS sale; shipping cash must be booked separately.
+            app(\App\Services\Finance\CashBookService::class)
+                ->recordOnlineOrderShippingIfApplicable($order->fresh(), $saleAmountPaid);
+
             $order->forceFill([
                 'sale_id' => $sale->id,
                 'order_status' => OnlineSaleOrder::STATUS_CONVERTED,

@@ -1125,6 +1125,7 @@ return [
             'ledger' => [
                 'sale_receipt' => 'کیش سیل :number',
                 'sale_return_refund' => 'کیش ریفنڈ :number',
+                'online_order_shipping' => 'آن لائن آرڈر شپنگ — :number',
             ],
             'directions' => [
                 'in' => 'اندر',
