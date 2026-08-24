@@ -237,6 +237,18 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
+        const syncPauseFlags = () => {
+            // Re-read live pointer/focus state so a missed mouseleave or a stuck
+            // button focus cannot leave autoplay permanently stopped.
+            pausedByHover = root.matches(':hover');
+            const active = document.activeElement;
+            pausedByFocus = Boolean(
+                active instanceof Element
+                && root.contains(active)
+                && active.matches(':focus-visible'),
+            );
+        };
+
         const canAutoplay = () => ! reducedMotion
             && realCount > 1
             && ! document.hidden
@@ -246,6 +258,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const scheduleNext = () => {
             stop();
+            syncPauseFlags();
 
             if (! canAutoplay()) {
                 return;
@@ -372,27 +385,36 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        root.addEventListener('mouseenter', () => {
+        root.addEventListener('pointerenter', () => {
             pausedByHover = true;
             stop();
         });
 
-        root.addEventListener('mouseleave', () => {
-            pausedByHover = false;
+        root.addEventListener('pointerleave', () => {
+            // Blur slider controls so a prior mouse click cannot keep :focus and
+            // block autoplay after the pointer leaves.
+            const active = document.activeElement;
+            if (active instanceof HTMLElement && root.contains(active) && active.matches('button')) {
+                active.blur();
+            }
+
             scheduleNext();
         });
 
         root.addEventListener('focusin', () => {
-            pausedByFocus = true;
-            stop();
+            // Keyboard users only — mouse clicks on arrows/dots must not freeze autoplay.
+            window.requestAnimationFrame(() => {
+                syncPauseFlags();
+
+                if (pausedByFocus) {
+                    stop();
+                }
+            });
         });
 
         root.addEventListener('focusout', () => {
             window.setTimeout(() => {
-                if (! root.contains(document.activeElement)) {
-                    pausedByFocus = false;
-                    scheduleNext();
-                }
+                scheduleNext();
             }, 0);
         });
 
