@@ -14,7 +14,7 @@ Build Agricart Contacts → Overview as a simple landing page.
 
 Requirements:
 - Short intro text for the Contacts module
-- Cards/links to Customers, Suppliers, and Transport / Goods (with counts if available)
+- Cards/links to Customers, Suppliers, and Carriers (with counts if available)
 - No heavy charts or widgets
 - Route under /admin/contacts/overview
 - Permission: contacts.view
@@ -130,14 +130,14 @@ PROMPT,
 
     'transport-companies' => [
         'list' => [
-            'title' => 'Transport / Goods — List',
+            'title' => 'Carriers — List',
             'overview' => [],
             'prompt' => <<<'PROMPT'
-Build Agricart Contacts → Transport / Goods list page to match the live system.
+Build Agricart Contacts → Carriers list page to match the live system.
 
 UI:
 - Paginated list under /admin/contacts/transport-companies
-- Toolbar: search, filter, columns, Add Transport / Goods
+- Toolbar: search, filter, columns, Add Carriers
 - Row actions: View / Edit / Delete
 - Opens shared form panel (formKey: transport-companies)
 
@@ -150,10 +150,10 @@ PROMPT,
             'notes' => [],
         ],
         'form' => [
-            'title' => 'Transport / Goods — Add / Edit form',
+            'title' => 'Carriers — Add / Edit form',
             'overview' => [],
             'prompt' => <<<'PROMPT'
-Build Agricart Contacts → Transport / Goods Add/Edit form (shared form panel) to match the CURRENT live system.
+Build Agricart Contacts → Carriers Add/Edit form (shared form panel) to match the CURRENT live system.
 
 Context:
 - Not a supplier or customer — transport/courier/goods/freight master

@@ -8,7 +8,7 @@ return [
         'page' => [
             'title' => 'Contacts — Overview',
             'overview' => [
-                'This is the landing page for the Contacts module. It shows short cards with counts and links to Customers, Suppliers, and Transport / Goods.',
+                'This is the landing page for the Contacts module. It shows short cards with counts and links to Customers, Suppliers, and Carriers.',
                 'Use it to jump into the right master list. It is not a heavy dashboard — keep cards and links only.',
             ],
             'prompt' => <<<'PROMPT'
@@ -16,7 +16,7 @@ Build Agricart Contacts → Overview as a simple landing page.
 
 Requirements:
 - Short intro text for the Contacts module
-- Cards/links to Customers, Suppliers, and Transport / Goods (with counts if available)
+- Cards/links to Customers, Suppliers, and Carriers (with counts if available)
 - No heavy charts or widgets
 - Route under /admin/contacts/overview
 - Permission: contacts.view
@@ -150,17 +150,17 @@ PROMPT,
 
     'transport-companies' => [
         'list' => [
-            'title' => 'Transport / Goods — List',
+            'title' => 'Carriers — List',
             'overview' => [
                 'This page lists transport and goods companies (courier, goods company/adda, freight) used as contact masters — not suppliers or customers.',
-                'Open Contacts → Transport / Goods. Use search, filters, columns, and Add. Add / View / Edit open the shared form panel. Delete needs contacts.delete.',
+                'Open Contacts → Carriers. Use search, filters, columns, and Add. Add / View / Edit open the shared form panel. Delete needs contacts.delete.',
             ],
             'prompt' => <<<'PROMPT'
-Build Agricart Contacts → Transport / Goods list page to match the live system.
+Build Agricart Contacts → Carriers list page to match the live system.
 
 UI:
 - Paginated list under /admin/contacts/transport-companies
-- Toolbar: search, filter, columns, Add Transport / Goods
+- Toolbar: search, filter, columns, Add Carriers
 - Row actions: View / Edit / Delete
 - Opens shared form panel (formKey: transport-companies)
 
@@ -173,7 +173,7 @@ PROMPT,
             'notes' => [],
         ],
         'form' => [
-            'title' => 'Transport / Goods — Add / Edit form',
+            'title' => 'Carriers — Add / Edit form',
             'overview' => [
                 'This form stores a transport/goods company master: courier, goods company (adda), or freight. It is separate from Suppliers and Customers.',
                 'Meta: auto transport code, type (courier / goods_company / freight), status, optional credit limit and opening balance.',
@@ -182,7 +182,7 @@ PROMPT,
                 'AI reuses supplier-style enrichment for bilingual text fields only — never invent phones, banks, or balances. Routes UI is not shown; save routes as empty. Footer matches other contact forms (AI → Save & Add Next → Save & Close → Cancel).',
             ],
             'prompt' => <<<'PROMPT'
-Build Agricart Contacts → Transport / Goods Add/Edit form (shared form panel) to match the CURRENT live system.
+Build Agricart Contacts → Carriers Add/Edit form (shared form panel) to match the CURRENT live system.
 
 Context:
 - Not a supplier or customer — transport/courier/goods/freight master

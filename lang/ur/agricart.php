@@ -337,7 +337,7 @@ return [
     'pages' => [
         'dashboard' => ['overview' => 'جائزہ', 'summary' => 'خلاصہ', 'notes' => 'نوٹس'],
         'approvals' => ['overview' => 'جائزہ', 'staff' => 'عملہ', 'suppliers' => 'سپلائرز'],
-        'contacts' => ['overview' => 'جائزہ', 'customers' => 'گاہک', 'suppliers' => 'سپلائرز', 'transport-companies' => 'ٹرانسپورٹ / گڈز', 'message-templates' => 'میسج ٹیمپلیٹس'],
+        'contacts' => ['overview' => 'جائزہ', 'customers' => 'گاہک', 'suppliers' => 'سپلائرز', 'transport-companies' => 'کیریئر کمپنیاں', 'message-templates' => 'میسج ٹیمپلیٹس'],
         'catalog' => [
             'overview' => 'جائزہ', 'products' => 'مصنوعات', 'product-reviews' => 'پروڈکٹ ریویوز',
             'categories' => 'زمرے', 'brands' => 'برانڈز', 'units' => 'اکائیاں', 'packing_units' => 'پیکنگ اکائیاں', 'packing-units' => 'پیکنگ اکائیاں',
@@ -451,7 +451,7 @@ return [
             'controls' => 'کنٹرولز',
             'customers' => 'گاہک',
             'suppliers' => 'سپلائرز',
-            'transport_companies' => 'ٹرانسپورٹ / گڈز',
+            'transport_companies' => 'کیریئر کمپنیاں',
             'pos_sales' => 'POS سیلز',
             'sales_quotations' => 'سیلز کوٹیشن',
             'sales_returns' => 'سیلز ریٹرن',

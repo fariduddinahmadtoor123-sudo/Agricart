@@ -338,7 +338,7 @@ return [
     'pages' => [
         'dashboard' => ['overview' => 'Overview', 'summary' => 'Summary', 'notes' => 'Notes'],
         'approvals' => ['overview' => 'Overview', 'staff' => 'Staff', 'suppliers' => 'Suppliers'],
-        'contacts' => ['overview' => 'Overview', 'customers' => 'Customers', 'suppliers' => 'Suppliers', 'transport-companies' => 'Transport / Goods', 'message-templates' => 'Message Templates'],
+        'contacts' => ['overview' => 'Overview', 'customers' => 'Customers', 'suppliers' => 'Suppliers', 'transport-companies' => 'Carriers', 'message-templates' => 'Message Templates'],
         'catalog' => [
             'overview' => 'Overview', 'products' => 'Products', 'product-reviews' => 'Product Reviews',
             'categories' => 'Categories', 'brands' => 'Brands', 'units' => 'Units', 'packing_units' => 'Packing Units', 'packing-units' => 'Packing Units',
@@ -452,7 +452,7 @@ return [
             'controls' => 'Controls',
             'customers' => 'Customers',
             'suppliers' => 'Suppliers',
-            'transport_companies' => 'Transport / Goods',
+            'transport_companies' => 'Carriers',
             'pos_sales' => 'POS sales',
             'sales_quotations' => 'Sales quotations',
             'sales_returns' => 'Sales returns',

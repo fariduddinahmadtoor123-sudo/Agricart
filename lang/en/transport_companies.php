@@ -1,9 +1,9 @@
 <?php
 
 return [
-    'page_title' => 'Transport / Goods Companies',
-    'nav' => 'Transport / Goods',
-    'intro' => 'Save courier companies, goods companies (addas) and freight carriers. They are neither suppliers nor customers.',
+    'page_title' => 'Carriers',
+    'nav' => 'Carriers',
+    'intro' => 'Save courier, goods (adda), and cargo companies that move your shipments. They are neither suppliers nor customers.',
 
     'fields' => [
         'code' => 'Number',
@@ -69,7 +69,7 @@ return [
     ],
 
     'actions' => [
-        'add' => 'Add transport / goods',
+        'add' => 'Add carrier',
         'remove' => 'Remove',
         'add_branch' => 'Add branch',
         'remove_branch' => 'Remove branch',
@@ -79,12 +79,12 @@ return [
         'view_short' => 'View',
         'edit_short' => 'Edit',
         'delete_short' => 'Delete',
-        'delete_confirm' => 'Delete this transport / goods company?',
+        'delete_confirm' => 'Delete this carrier?',
     ],
 
     'list' => [
-        'search' => 'Search transport / goods companies',
-        'empty' => 'No transport / goods companies yet.',
+        'search' => 'Search carriers',
+        'empty' => 'No carriers yet.',
         'col_code' => 'Number',
         'col_business' => 'Business name',
         'col_contact' => 'Contact',

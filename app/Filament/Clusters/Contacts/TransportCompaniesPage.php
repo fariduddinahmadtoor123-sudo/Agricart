@@ -12,7 +12,7 @@ class TransportCompaniesPage extends BaseModulePage
 {
     protected static ?string $cluster = ContactsCluster::class;
 
-    protected static ?string $navigationLabel = 'Transport / Goods';
+    protected static ?string $navigationLabel = 'Carriers';
 
     protected static ?int $navigationSort = 4;
 
@@ -21,6 +21,11 @@ class TransportCompaniesPage extends BaseModulePage
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTruck;
 
     protected string $view = 'filament.pages.contacts.transport-companies';
+
+    public static function getNavigationLabel(): string
+    {
+        return __('agricart.pages.contacts.transport-companies');
+    }
 
     public function getHeading(): string|Htmlable|null
     {
