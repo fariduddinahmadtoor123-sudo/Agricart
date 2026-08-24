@@ -35,6 +35,7 @@
                                     {{ $role->is_system ? __('agricart.roles.actions.view') : __('agricart.roles.actions.edit_short') }}
                                 </button>
                                 @unless ($role->is_system)
+                                    @if ($canDeleteRoles)
                                     <button
                                         type="button"
                                         class="agricart-categories__action is-danger"
@@ -43,6 +44,7 @@
                                     >
                                         {{ __('agricart.roles.actions.delete_short') }}
                                     </button>
+                                    @endif
                                 @endunless
                             </td>
                         </tr>

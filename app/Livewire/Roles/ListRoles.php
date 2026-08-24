@@ -2,7 +2,9 @@
 
 namespace App\Livewire\Roles;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\Role;
+use App\Models\User;
 use App\Services\Access\RoleService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
@@ -12,7 +14,7 @@ use Livewire\WithPagination;
 
 class ListRoles extends Component
 {
-    use WithPagination;
+    use AuthorizesSensitiveActions, WithPagination;
 
     public string $search = '';
 
@@ -25,12 +27,14 @@ class ListRoles extends Component
     #[On('roles-search')]
     public function updateSearch(string $query): void
     {
+        $this->authorizeAny(['settings.permission.view', 'settings.permission.edit', 'settings.permission.delete']);
         $this->search = $query;
         $this->resetPage();
     }
 
     public function openCreate(): void
     {
+        $this->authorizeAny(['settings.permission.create', 'settings.permission.edit']);
         $this->dispatch(
             'open-form-panel',
             title: __('agricart.roles.actions.add'),
@@ -42,6 +46,7 @@ class ListRoles extends Component
 
     public function openEdit(int $roleId): void
     {
+        $this->authorizeAny(['settings.permission.view', 'settings.permission.edit']);
         $role = Role::query()->find($roleId);
 
         if ($role === null) {
@@ -60,6 +65,12 @@ class ListRoles extends Component
 
     public function deleteRole(int $roleId): void
     {
+        $user = auth()->user();
+
+        if (! $user instanceof User || ! $user->isSuperAdmin()) {
+            abort(403);
+        }
+
         $role = Role::query()->find($roleId);
 
         if ($role === null) {
@@ -67,7 +78,7 @@ class ListRoles extends Component
         }
 
         try {
-            app(RoleService::class)->delete($role);
+            app(RoleService::class)->delete($role, $user);
             $this->resetPage();
         } catch (ValidationException $exception) {
             session()->flash('role_error', collect($exception->errors())->flatten()->first());
@@ -76,10 +87,17 @@ class ListRoles extends Component
 
     public function render(): View
     {
+        if (! $this->canAccessAny(['settings.permission.view', 'settings.permission.edit', 'settings.permission.delete'])) {
+            return view('livewire.roles.list', [
+                'roles' => Role::query()->whereRaw('1 = 0')->paginate(15),
+                'canDeleteRoles' => false,
+            ]);
+        }
+
         $roles = Role::query()
             ->withCount('permissions')
             ->when(filled($this->search), function ($query): void {
-                $needle = '%' . $this->search . '%';
+                $needle = '%'.$this->search.'%';
                 $query->where(function ($inner) use ($needle): void {
                     $inner->where('name', 'like', $needle)
                         ->orWhere('description', 'like', $needle);
@@ -89,8 +107,11 @@ class ListRoles extends Component
             ->orderBy('name')
             ->paginate(15);
 
+        $user = auth()->user();
+
         return view('livewire.roles.list', [
             'roles' => $roles,
+            'canDeleteRoles' => $user instanceof User && $user->isSuperAdmin(),
         ]);
     }
 }

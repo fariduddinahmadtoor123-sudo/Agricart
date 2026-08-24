@@ -518,6 +518,25 @@ class Form extends Component
             return;
         }
 
+        $saleService = app(SaleService::class);
+        $received = $saleService->numeric($this->amount_paid !== '' ? $this->amount_paid : '0');
+        $total = $saleService->numeric($this->total_amount !== '' ? $this->total_amount : '0');
+
+        if ($received <= 0) {
+            $this->setStatus(__('online_sale_orders.validation.amount_received_required'), 'warning');
+
+            return;
+        }
+
+        if ($received > $total) {
+            $this->setStatus(__('online_sale_orders.validation.amount_paid_exceeds_total'), 'warning');
+
+            return;
+        }
+
+        $this->payment_status = $saleService->resolvePaymentStatus($total, $received);
+        $this->amount_paid = $saleService->formatMoney($received);
+
         $this->saving = true;
         $this->dispatchBusyState();
 
@@ -527,7 +546,11 @@ class Form extends Component
             }
 
             $order = OnlineSaleOrder::query()->findOrFail($this->orderId);
-            app(OnlineSaleOrderService::class)->verifyCustomerPaymentProof($order->fresh(), auth()->user());
+            app(OnlineSaleOrderService::class)->verifyCustomerPaymentProof(
+                $order->fresh(),
+                auth()->user(),
+                $received,
+            );
             $this->setStatus(__('online_sale_orders.messages.proof_verified'), 'success');
             $this->loadOrder($this->orderId);
             $this->dispatch('online-sale-orders-saved');

@@ -289,6 +289,17 @@
 
                 @if ($this->canConfirmPayment() && $customer_payment_proof_status === 'submitted')
                     <div class="agricart-online-order__proof-actions">
+                        <label class="agricart-form-panel__label" for="online-order-amount-received">
+                            {{ __('online_sale_orders.fields.amount_received') }}
+                        </label>
+                        <input
+                            id="online-order-amount-received"
+                            type="text"
+                            inputmode="decimal"
+                            class="agricart-purchase-form__input agricart-purchase-form__input--compact"
+                            wire:model.live="amount_paid"
+                            placeholder="{{ __('online_sale_orders.hints.amount_received') }}"
+                        />
                         <button type="button" class="agricart-categories__action is-primary" wire:click="verifyCustomerPaymentProof" wire:loading.attr="disabled">
                             {{ __('online_sale_orders.actions.verify_payment') }}
                         </button>

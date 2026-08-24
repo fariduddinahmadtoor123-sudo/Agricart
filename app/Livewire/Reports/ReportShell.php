@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Reports;
 
+use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Services\Reports\CashReportService;
 use App\Services\Reports\CustomerLedgerReportService;
 use App\Services\Reports\ExpenseReportService;
@@ -13,12 +14,16 @@ use App\Services\Reports\SeasonalSalesReportService;
 use App\Services\Reports\StockReportService;
 use App\Services\Reports\SupplierLedgerReportService;
 use Illuminate\Contracts\View\View;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ReportShell extends Component
 {
+    use AuthorizesSensitiveActions;
+
+    #[Locked]
     public string $reportKey = '';
 
     public string $search = '';
@@ -60,6 +65,7 @@ class ReportShell extends Component
     public function mount(string $reportKey): void
     {
         $this->reportKey = $reportKey;
+        $this->authorizeReportAccess('view');
         $definition = ReportCatalog::definition($reportKey);
         $this->visibleColumns = $definition['defaultVisibleColumns'] ?? ['product'];
 
@@ -68,9 +74,15 @@ class ReportShell extends Component
         }
     }
 
+    private function authorizeReportAccess(string $action = 'view'): void
+    {
+        $this->authorizeAny('reports.'.$this->reportKey.'.'.$action);
+    }
+
     #[On('updateSearch')]
     public function updateSearch(string $query): void
     {
+        $this->authorizeReportAccess('view');
         $this->search = $query;
 
         if ($this->isLiveReport()) {
@@ -230,6 +242,8 @@ class ReportShell extends Component
 
     public function openLedgerDetail(int $partyId): void
     {
+        $this->authorizeReportAccess('view');
+
         if ($this->isCustomerLedgerReport()) {
             $this->ledgerDetail = app(CustomerLedgerReportService::class)->history(
                 $partyId,
@@ -267,6 +281,8 @@ class ReportShell extends Component
 
     public function exportCsv(): ?StreamedResponse
     {
+        $this->authorizeReportAccess('print');
+
         if (! $this->isLiveReport()) {
             return null;
         }
@@ -556,6 +572,8 @@ class ReportShell extends Component
 
     protected function loadLiveReport(): void
     {
+        $this->authorizeReportAccess('view');
+
         if ($this->isStockReport()) {
             $this->loadStockReport();
 

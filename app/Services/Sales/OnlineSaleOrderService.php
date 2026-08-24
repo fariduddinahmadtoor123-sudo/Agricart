@@ -375,9 +375,9 @@ class OnlineSaleOrderService
         return $order->fresh();
     }
 
-    public function verifyCustomerPaymentProof(OnlineSaleOrder $order, User $reviewer): OnlineSaleOrder
+    public function verifyCustomerPaymentProof(OnlineSaleOrder $order, User $reviewer, float|string|null $amountReceived = null): OnlineSaleOrder
     {
-        return DB::transaction(function () use ($order, $reviewer): OnlineSaleOrder {
+        return DB::transaction(function () use ($order, $reviewer, $amountReceived): OnlineSaleOrder {
             $order = OnlineSaleOrder::query()->lockForUpdate()->findOrFail($order->id);
 
             if ($order->customer_payment_proof_status === OnlineSaleOrder::PROOF_VERIFIED) {
@@ -406,14 +406,31 @@ class OnlineSaleOrderService
                 ]);
             }
 
+            $orderTotal = round((float) $order->total_amount, 2);
+            $received = $amountReceived === null
+                ? $orderTotal
+                : $this->saleService->numeric((string) $amountReceived);
+
+            if ($received <= 0) {
+                throw ValidationException::withMessages([
+                    'amount_paid' => [__('online_sale_orders.validation.amount_received_required')],
+                ]);
+            }
+
+            if ($received > $orderTotal) {
+                throw ValidationException::withMessages([
+                    'amount_paid' => [__('online_sale_orders.validation.amount_paid_exceeds_total')],
+                ]);
+            }
+
             $order->customer_payment_proof_status = OnlineSaleOrder::PROOF_VERIFIED;
             $order->payment_proof_rejection_note = null;
             $order->payment_proof_reviewed_at = now();
             $order->payment_proof_reviewed_by_id = $reviewer->id;
-            $order->payment_status = 'paid';
-            $order->amount_paid = $order->total_amount;
+            $order->amount_paid = $received;
+            $order->payment_status = $this->saleService->resolvePaymentStatus($orderTotal, $received);
 
-            if ($order->order_status === OnlineSaleOrder::STATUS_PENDING) {
+            if ($order->order_status === OnlineSaleOrder::STATUS_PENDING && in_array($order->payment_status, ['paid', 'partial'], true)) {
                 $order->order_status = OnlineSaleOrder::STATUS_PAYMENT_RECEIVED;
             }
 

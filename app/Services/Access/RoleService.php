@@ -58,8 +58,9 @@ class RoleService
         ]);
     }
 
-    public function delete(Role $role): void
+    public function delete(Role $role, ?User $actor = null): void
     {
+        $this->assertCanManagePermissions($actor);
         $this->ensureEditable($role);
 
         if ($role->users()->exists()) {

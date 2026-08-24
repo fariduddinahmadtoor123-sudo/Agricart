@@ -295,6 +295,60 @@ class PhaseTwoTransactionIntegrityTest extends TestCase
         $this->assertSame(300.0, app(BankAccountService::class)->balance($bank->fresh()));
     }
 
+    public function test_partial_verify_then_top_up_posts_bank_delta_only(): void
+    {
+        $bank = $this->bank(0);
+        $customer = Customer::query()->create([
+            'customer_number' => 'CUS-PHASE2P',
+            'customer_channel' => Customer::CHANNEL_ONLINE,
+            'first_name' => 'Partial',
+            'last_name' => 'Pay',
+            'email' => 'phase2-partial@example.test',
+            'phone' => '03007654324',
+            'password' => bcrypt('password'),
+            'address_line1' => '1 Test Street',
+            'city' => 'Lahore',
+            'state' => 'Punjab',
+            'country' => 'Pakistan',
+            'is_active' => true,
+        ]);
+        $order = OnlineSaleOrder::query()->create([
+            'order_number' => 'WEB-PHASE2-PARTIAL',
+            'customer_id' => $customer->id,
+            'order_date' => today(),
+            'order_status' => OnlineSaleOrder::STATUS_PENDING,
+            'payment_status' => 'unpaid',
+            'customer_payment_method' => 'bank_transfer',
+            'customer_payment_proof_status' => OnlineSaleOrder::PROOF_SUBMITTED,
+            'payment_method' => 'bank_transfer',
+            'bank_account_id' => $bank->id,
+            'subtotal' => 300,
+            'total_amount' => 300,
+            'amount_paid' => 0,
+        ]);
+        $reviewer = User::factory()->create();
+        $service = app(OnlineSaleOrderService::class);
+
+        $service->verifyCustomerPaymentProof($order, $reviewer, 100);
+        $order->refresh();
+        $this->assertSame('partial', $order->payment_status);
+        $this->assertSame(100.0, (float) $order->amount_paid);
+        $this->assertSame(100.0, app(BankAccountService::class)->balance($bank->fresh()));
+
+        // Second top-up via admin paid amount + ledger sync (re-verify blocked once verified).
+        $order->forceFill([
+            'amount_paid' => 300,
+            'payment_status' => 'paid',
+        ])->save();
+        app(BankAccountService::class)->recordOnlineOrderReceiptIfApplicable($order->fresh());
+
+        $this->assertSame(300.0, app(BankAccountService::class)->balance($bank->fresh()));
+        $this->assertSame(2, BankAccountTransaction::query()
+            ->where('online_sale_order_id', $order->id)
+            ->where('type', BankAccountTransaction::TYPE_SALE_RECEIPT)
+            ->count());
+    }
+
     public function test_convert_unpaid_bank_transfer_does_not_invent_payment_or_bank_credit(): void
     {
         $bank = $this->bank(0);

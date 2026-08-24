@@ -406,13 +406,27 @@ class BankAccountService
             return;
         }
 
-        $paid = (float) $order->amount_paid;
+        $paid = round((float) $order->amount_paid, 2);
 
         if ($paid <= 0) {
             return;
         }
 
-        if ($this->onlineOrderReceiptExists((int) $order->id)) {
+        $alreadyPosted = round((float) BankAccountTransaction::query()
+            ->where('online_sale_order_id', $order->id)
+            ->where('type', BankAccountTransaction::TYPE_SALE_RECEIPT)
+            ->where('direction', BankAccountTransaction::DIRECTION_CREDIT)
+            ->sum('amount'), 2);
+
+        $delta = round($paid - $alreadyPosted, 2);
+
+        if ($delta <= 0) {
+            return;
+        }
+
+        $sourceKey = $this->onlineOrderReceiptSourceKeyForPaidAmount((int) $order->id, $paid);
+
+        if (BankAccountTransaction::query()->where('source_key', $sourceKey)->exists()) {
             return;
         }
 
@@ -426,12 +440,12 @@ class BankAccountService
             $account,
             BankAccountTransaction::TYPE_SALE_RECEIPT,
             BankAccountTransaction::DIRECTION_CREDIT,
-            $paid,
+            $delta,
             $order->order_date?->toDateString() ?? now()->toDateString(),
             __('agricart.finance.banks.ledger.online_order_receipt', ['number' => $order->order_number]),
             [
                 'online_sale_order_id' => $order->id,
-                'source_key' => $this->onlineOrderReceiptSourceKey((int) $order->id),
+                'source_key' => $sourceKey,
             ],
             null,
         );
@@ -529,12 +543,13 @@ class BankAccountService
 
     public function onlineOrderReceiptExists(int $onlineSaleOrderId): bool
     {
-        $sourceKey = $this->onlineOrderReceiptSourceKey($onlineSaleOrderId);
+        $legacySourceKey = $this->onlineOrderReceiptSourceKey($onlineSaleOrderId);
 
         return BankAccountTransaction::query()
-            ->where(function ($query) use ($onlineSaleOrderId, $sourceKey): void {
+            ->where(function ($query) use ($onlineSaleOrderId, $legacySourceKey): void {
                 $query->where('online_sale_order_id', $onlineSaleOrderId)
-                    ->orWhere('source_key', $sourceKey);
+                    ->orWhere('source_key', $legacySourceKey)
+                    ->orWhere('source_key', 'like', $legacySourceKey.':upto:%');
             })
             ->exists();
     }
@@ -542,6 +557,11 @@ class BankAccountService
     private function onlineOrderReceiptSourceKey(int $onlineSaleOrderId): string
     {
         return 'online-sale-order:'.$onlineSaleOrderId;
+    }
+
+    private function onlineOrderReceiptSourceKeyForPaidAmount(int $onlineSaleOrderId, float $paidAmount): string
+    {
+        return $this->onlineOrderReceiptSourceKey($onlineSaleOrderId).':upto:'.number_format($paidAmount, 2, '.', '');
     }
 
     public function recordSaleReturnRefundIfApplicable(SaleReturn $return): void

@@ -66,6 +66,7 @@ return [
         'admin_notes' => 'Admin notes',
         'subtotal' => 'Subtotal',
         'total_amount' => 'Total',
+        'amount_received' => 'Amount received',
         'balance_due' => 'Balance due',
     ],
 
@@ -113,6 +114,7 @@ return [
         'admin_payment' => 'Confirm how payment was received (method, status, and amount). Save when done.',
         'converted_locked' => 'This order is linked to a completed POS sale and cannot be edited here.',
         'reject_payment_note' => 'Reason for customer (optional)',
+        'amount_received' => 'Enter what actually landed in the bank (can be less than total)',
         'pending_payment' => 'Pending payment',
     ],
 
@@ -177,6 +179,7 @@ return [
         'queue_requires_invoice' => 'Only converted invoices can be sent to the dispatch queue.',
         'queue_document_invalid' => 'Choose Invoice or Packing List when sending to the queue.',
         'amount_paid_exceeds_total' => 'Paid amount cannot exceed the order total.',
+        'amount_received_required' => 'Enter the amount actually received before verifying the receipt.',
         'bank_account_required_to_verify' => 'Select the bank account that received this payment before verifying the receipt.',
     ],
 
