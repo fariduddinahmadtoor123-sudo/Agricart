@@ -1,4 +1,48 @@
 <div class="agricart-activity-logs">
+    <div class="agricart-activity-logs__toolbar">
+        <label class="agricart-activity-logs__user-label" for="activity-user-filter">
+            {{ __('agricart.activity.summary.select_user') }}
+        </label>
+        <select
+            id="activity-user-filter"
+            class="agricart-activity-logs__user-select"
+            wire:model.live="userFilter"
+        >
+            <option value="">{{ __('agricart.activity.summary.all_staff') }}</option>
+            @foreach ($userOptions as $id => $label)
+                <option value="{{ $id }}">{{ $label }}</option>
+            @endforeach
+        </select>
+        <p class="agricart-activity-logs__toolbar-hint">
+            {{ $selectedUser
+                ? __('agricart.activity.summary.showing_user', ['name' => $selectedUser->name])
+                : __('agricart.activity.summary.pick_user_hint') }}
+        </p>
+    </div>
+
+    @if ($summary)
+        <div class="agricart-activity-logs__summary" wire:key="activity-summary-{{ $selectedUser?->id }}">
+            @foreach (['today', 'yesterday', 'last_7_days'] as $periodKey)
+                @php $card = $summary[$periodKey]; @endphp
+                <section class="agricart-activity-logs__summary-card">
+                    <h3 class="agricart-activity-logs__summary-title">{{ $card['label'] }}</h3>
+                    @if ($card['lines'] === [])
+                        <p class="agricart-activity-logs__summary-empty">{{ __('agricart.activity.summary.empty_period') }}</p>
+                    @else
+                        <ul class="agricart-activity-logs__summary-list">
+                            @foreach ($card['lines'] as $line)
+                                <li>
+                                    <span>{{ $line['label'] }}</span>
+                                    <strong>{{ __('agricart.activity.summary.count_added', ['count' => $line['count']]) }}</strong>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </section>
+            @endforeach
+        </div>
+    @endif
+
     @if ($logs->isEmpty())
         <div class="agricart-activity-logs__empty">
             <p>{{ __('agricart.activity.empty') }}</p>

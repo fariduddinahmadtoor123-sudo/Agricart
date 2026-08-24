@@ -8,10 +8,18 @@ use App\Livewire\ActivityLogs\Detail;
 use App\Livewire\ActivityLogs\ListLogs;
 use App\Models\ActivityLog;
 use App\Models\Brand;
+use App\Models\Category;
+use App\Models\Expense;
+use App\Models\ExpenseCategory;
+use App\Models\ExpensePayment;
+use App\Models\FundTransfer;
 use App\Models\Permission;
+use App\Models\Product;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Activity\ActivityChangePresenter;
 use App\Services\Activity\ActivityLogger;
+use App\Services\Activity\ActivitySummaryService;
 use Filament\Facades\Filament;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Login;
@@ -195,6 +203,130 @@ class ActivityLogsTest extends TestCase
 
         $this->assertModelMissing($old);
         $this->assertModelExists($recent);
+    }
+
+    public function test_list_can_filter_activity_by_selected_user(): void
+    {
+        $role = $this->roleWithPermissions('Activity Viewer', [
+            'settings.view',
+            'settings.activity.view',
+        ]);
+        $viewer = User::factory()->create([
+            'role_id' => $role->id,
+            'status' => User::STATUS_ACTIVE,
+            'name' => 'Viewer',
+        ]);
+        $alice = User::factory()->create(['status' => User::STATUS_ACTIVE, 'name' => 'Alice']);
+        $bob = User::factory()->create(['status' => User::STATUS_ACTIVE, 'name' => 'Bob']);
+
+        ActivityLog::query()->create([
+            'user_id' => $alice->id,
+            'event' => ActivityEvent::Login,
+            'description' => 'Alice signed in',
+            'created_at' => now(),
+        ]);
+        ActivityLog::query()->create([
+            'user_id' => $bob->id,
+            'event' => ActivityEvent::Login,
+            'description' => 'Bob signed in',
+            'created_at' => now(),
+        ]);
+
+        $this->actingAs($viewer);
+
+        Livewire::test(ListLogs::class)
+            ->set('userFilter', (string) $alice->id)
+            ->assertSee('Alice signed in')
+            ->assertDontSee('Bob signed in');
+    }
+
+    public function test_summary_counts_creates_and_expense_payments_for_user(): void
+    {
+        $role = $this->roleWithPermissions('Catalog Finance Staff', [
+            'catalog.brands.view',
+            'catalog.products.view',
+            'finance.expense-payments.view',
+        ]);
+        $actor = User::factory()->create([
+            'role_id' => $role->id,
+            'status' => User::STATUS_ACTIVE,
+        ]);
+        $this->actingAs($actor);
+
+        ActivityLog::query()->create([
+            'user_id' => $actor->id,
+            'event' => ActivityEvent::Created,
+            'subject_type' => Brand::class,
+            'subject_id' => 1,
+            'description' => 'Created brand',
+            'created_at' => now(),
+        ]);
+        ActivityLog::query()->create([
+            'user_id' => $actor->id,
+            'event' => ActivityEvent::Created,
+            'subject_type' => Product::class,
+            'subject_id' => 1,
+            'description' => 'Created product',
+            'created_at' => now(),
+        ]);
+        ActivityLog::query()->create([
+            'user_id' => $actor->id,
+            'event' => ActivityEvent::Created,
+            'subject_type' => Category::class,
+            'subject_id' => 1,
+            'description' => 'Created category',
+            'created_at' => now(),
+        ]);
+
+        $category = ExpenseCategory::query()->create([
+            'code' => 'EXC-ACT1',
+            'name_en' => 'Utilities',
+            'status' => ExpenseCategory::STATUS_ACTIVE,
+            'kind' => ExpenseCategory::KIND_OPERATING,
+        ]);
+        $expense = Expense::query()->create([
+            'expense_number' => 'EXP-ACT01',
+            'expense_category_id' => $category->id,
+            'status' => Expense::STATUS_ACTIVE,
+            'name_en' => 'Office electricity',
+        ]);
+
+        ExpensePayment::query()->create([
+            'payment_number' => 'EXPAY-TEST1',
+            'expense_id' => $expense->id,
+            'amount' => 100,
+            'payment_date' => now()->toDateString(),
+            'payment_time' => '10:00',
+            'source_wallet' => ExpensePayment::WALLET_CASH,
+            'created_by' => $actor->id,
+        ]);
+
+        $summary = app(ActivitySummaryService::class)->forUser($actor);
+
+        $todayLabels = collect($summary['today']['lines'])->pluck('key')->all();
+        $this->assertContains('Brand', $todayLabels);
+        $this->assertContains('Product', $todayLabels);
+        $this->assertContains('ExpensePayment', $todayLabels);
+        $this->assertNotContains('Category', $todayLabels);
+    }
+
+    public function test_change_presenter_shows_plain_field_rows_instead_of_raw_json(): void
+    {
+        $log = ActivityLog::query()->create([
+            'event' => ActivityEvent::Updated,
+            'description' => 'Updated brand',
+            'properties' => [
+                'old' => ['name_en' => 'Old'],
+                'attributes' => ['name_en' => 'New'],
+            ],
+            'created_at' => now(),
+        ]);
+
+        $rows = app(ActivityChangePresenter::class)->rows($log);
+
+        $this->assertCount(1, $rows);
+        $this->assertSame('Old', $rows[0]['before']);
+        $this->assertSame('New', $rows[0]['after']);
     }
 
     /**

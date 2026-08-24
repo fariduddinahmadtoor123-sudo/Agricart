@@ -6,6 +6,8 @@ use App\Models\CatalogControl;
 use App\Models\Category;
 use App\Models\CompanyProfile;
 use App\Models\Customer;
+use App\Models\ExpensePayment;
+use App\Models\FundTransfer;
 use App\Models\PackingUnit;
 use App\Models\PrintProfile;
 use App\Models\Product;
@@ -39,6 +41,8 @@ return [
         CompanyProfile::class,
         StoreSetting::class,
         PrintProfile::class,
+        ExpensePayment::class,
+        FundTransfer::class,
     ],
 
     /*

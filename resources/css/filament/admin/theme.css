@@ -5625,6 +5625,127 @@ body.agricart-form-panel-open {
 
 .agricart-activity-logs {
     font-family: Arial, sans-serif !important;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.agricart-activity-logs__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    padding: 0.75rem 0.85rem;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-surface);
+}
+
+.agricart-activity-logs__user-label {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--agricart-text);
+}
+
+.agricart-activity-logs__user-select {
+    min-width: min(100%, 18rem);
+    max-width: 28rem;
+    flex: 1 1 14rem;
+    min-height: 2.35rem;
+    padding: 0.35rem 0.55rem;
+    border: 1px solid var(--agricart-border);
+    background: #fff;
+    font-size: 0.875rem;
+}
+
+.agricart-activity-logs__toolbar-hint {
+    flex: 1 1 100%;
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--agricart-muted);
+}
+
+.agricart-activity-logs__summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.65rem;
+}
+
+@media (max-width: 900px) {
+    .agricart-activity-logs__summary {
+        grid-template-columns: 1fr;
+    }
+}
+
+.agricart-activity-logs__summary-card {
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-surface);
+    padding: 0.75rem 0.85rem;
+}
+
+.agricart-activity-logs__summary-title {
+    margin: 0 0 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--agricart-text);
+}
+
+.agricart-activity-logs__summary-empty {
+    margin: 0;
+    font-size: 0.8125rem;
+    color: var(--agricart-muted);
+}
+
+.agricart-activity-logs__summary-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.agricart-activity-logs__summary-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--agricart-text);
+}
+
+.agricart-activity-logs__summary-list strong {
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.agricart-activity-log-detail__changes-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--agricart-border);
+}
+
+.agricart-activity-log-detail__changes {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.agricart-activity-log-detail__changes th,
+.agricart-activity-log-detail__changes td {
+    padding: 0.45rem 0.6rem;
+    text-align: left;
+    border-bottom: 1px solid var(--agricart-border);
+    vertical-align: top;
+}
+
+.agricart-activity-log-detail__changes th {
+    background: var(--agricart-background);
+    color: var(--agricart-muted);
+    font-weight: 600;
+}
+
+.agricart-activity-log-detail__text--muted {
+    color: var(--agricart-muted);
+    font-size: 0.8125rem;
+    word-break: break-word;
 }
 
 .agricart-activity-logs__table-wrap {

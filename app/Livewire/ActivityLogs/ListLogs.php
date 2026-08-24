@@ -5,8 +5,11 @@ namespace App\Livewire\ActivityLogs;
 use App\Enums\ActivityEvent;
 use App\Livewire\Concerns\AuthorizesSensitiveActions;
 use App\Models\ActivityLog;
+use App\Models\User;
+use App\Services\Activity\ActivitySummaryService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -30,6 +33,9 @@ class ListLogs extends Component
 
     public string $periodFilter = '';
 
+    /** Empty string = all staff; numeric string = user id. */
+    public string $userFilter = '';
+
     public function mount(): void
     {
         if (! $this->canAccessAny('settings.activity.view')) {
@@ -37,6 +43,12 @@ class ListLogs extends Component
         }
 
         $this->syncColumnCheckboxes();
+    }
+
+    public function updatedUserFilter(): void
+    {
+        $this->authorizeAny('settings.activity.view');
+        $this->resetPage();
     }
 
     #[On('activity-logs-search')]
@@ -75,6 +87,7 @@ class ListLogs extends Component
         $this->authorizeAny('settings.activity.view');
         $this->eventFilter = '';
         $this->periodFilter = '';
+        $this->userFilter = '';
         $this->resetPage();
     }
 
@@ -124,11 +137,20 @@ class ListLogs extends Component
         if (! $this->canAccessAny('settings.activity.view')) {
             return view('livewire.activity-logs.list', [
                 'logs' => new LengthAwarePaginator([], 0, 15),
+                'userOptions' => [],
+                'selectedUser' => null,
+                'summary' => null,
             ]);
         }
 
+        $userId = ctype_digit($this->userFilter) ? (int) $this->userFilter : null;
+        $selectedUser = $userId !== null
+            ? User::query()->find($userId)
+            : null;
+
         $logs = ActivityLog::query()
             ->with('user')
+            ->when($userId !== null, fn ($query) => $query->where('user_id', $userId))
             ->when(filled($this->search), function ($query): void {
                 $needle = '%'.$this->search.'%';
                 $query->where(function ($inner) use ($needle): void {
@@ -161,9 +183,41 @@ class ListLogs extends Component
             ->latest('id')
             ->paginate(15);
 
+        $summary = $selectedUser instanceof User
+            ? app(ActivitySummaryService::class)->forUser($selectedUser)
+            : null;
+
         return view('livewire.activity-logs.list', [
             'logs' => $logs,
+            'userOptions' => $this->userOptions(),
+            'selectedUser' => $selectedUser,
+            'summary' => $summary,
         ]);
+    }
+
+    /**
+     * @return Collection<int, string>
+     */
+    private function userOptions(): Collection
+    {
+        return User::query()
+            ->where('status', User::STATUS_ACTIVE)
+            ->orderBy('name')
+            ->get(['id', 'name', 'email'])
+            ->mapWithKeys(function (User $user): array {
+                $label = trim((string) $user->name);
+                $email = trim((string) ($user->email ?? ''));
+
+                if ($label !== '' && $email !== '') {
+                    $label .= ' — '.$email;
+                } elseif ($email !== '') {
+                    $label = $email;
+                } else {
+                    $label = '#'.$user->id;
+                }
+
+                return [$user->id => $label];
+            });
     }
 
     private function syncColumnCheckboxes(): void

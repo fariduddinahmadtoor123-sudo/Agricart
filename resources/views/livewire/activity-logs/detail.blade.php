@@ -1,3 +1,9 @@
+@php
+    $changeRows = $log
+        ? app(\App\Services\Activity\ActivityChangePresenter::class)->rows($log)
+        : [];
+@endphp
+
 <div class="agricart-activity-log-detail-wrap">
     @if ($log)
         <div class="agricart-activity-log-detail">
@@ -37,22 +43,43 @@
                 </div>
             </div>
 
-            @if (filled($log->user_agent))
-                <section class="agricart-activity-log-detail__section">
-                    <h3 class="agricart-activity-log-detail__section-title">{{ __('agricart.activity.detail.user_agent') }}</h3>
-                    <pre class="agricart-activity-log-detail__block">{{ $log->user_agent }}</pre>
-                </section>
-            @endif
-
             <section class="agricart-activity-log-detail__section">
                 <h3 class="agricart-activity-log-detail__section-title">{{ __('agricart.activity.detail.description') }}</h3>
                 <p class="agricart-activity-log-detail__text">{{ $log->description }}</p>
             </section>
 
-            @if (filled($log->properties))
+            @if ($changeRows !== [])
                 <section class="agricart-activity-log-detail__section">
-                    <h3 class="agricart-activity-log-detail__section-title">{{ __('agricart.activity.detail.properties') }}</h3>
-                    <pre class="agricart-activity-log-detail__block">{{ json_encode($log->properties, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+                    <h3 class="agricart-activity-log-detail__section-title">{{ __('agricart.activity.detail.changes') }}</h3>
+                    <div class="agricart-activity-log-detail__changes-wrap">
+                        <table class="agricart-activity-log-detail__changes">
+                            <thead>
+                                <tr>
+                                    <th>{{ __('agricart.activity.detail.field') }}</th>
+                                    <th>{{ __('agricart.activity.detail.before') }}</th>
+                                    <th>{{ __('agricart.activity.detail.after') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($changeRows as $row)
+                                    <tr>
+                                        <td>{{ $row['field'] }}</td>
+                                        <td>{{ $row['before'] }}</td>
+                                        <td>{{ $row['after'] }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            @endif
+
+            @if (filled($log->user_agent))
+                <section class="agricart-activity-log-detail__section">
+                    <h3 class="agricart-activity-log-detail__section-title">{{ __('agricart.activity.detail.device') }}</h3>
+                    <p class="agricart-activity-log-detail__text agricart-activity-log-detail__text--muted">
+                        {{ \Illuminate\Support\Str::limit($log->user_agent, 160) }}
+                    </p>
                 </section>
             @endif
         </div>
