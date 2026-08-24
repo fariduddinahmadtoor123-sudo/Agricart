@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Expense extends Model
 {
@@ -45,6 +46,7 @@ class Expense extends Model
         'detail_3',
         'detail_4',
         'estimated_cost',
+        'bill_image_path',
         'created_by',
     ];
 
@@ -71,6 +73,13 @@ class Expense extends Model
     public function isActive(): bool
     {
         return $this->status === self::STATUS_ACTIVE;
+    }
+
+    public function billImageUrl(): ?string
+    {
+        return filled($this->bill_image_path)
+            ? Storage::disk((string) config('media.disk', 'public'))->url($this->bill_image_path)
+            : null;
     }
 
     public function hasMonthlySchedule(): bool

@@ -12,6 +12,10 @@ class FundTransfer extends Model
 
     public const TYPE_WITHDRAWAL = 'withdrawal';
 
+    public const TYPE_EXTERNAL_DEPOSIT = 'external_deposit';
+
+    public const TYPE_EXTERNAL_WITHDRAWAL = 'external_withdrawal';
+
     public const TYPE_TRANSFER = 'transfer';
 
     public const TYPE_VENDOR_PAYMENT = 'vendor_payment';
@@ -42,6 +46,7 @@ class FundTransfer extends Model
         'transaction_date',
         'transaction_time',
         'notes',
+        'handled_by_name',
         'created_by',
     ];
 

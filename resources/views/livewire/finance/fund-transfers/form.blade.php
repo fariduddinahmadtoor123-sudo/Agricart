@@ -47,7 +47,11 @@
 
             <div style="flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:0.3rem;">
                 <span class="agricart-finance-bank-form__label">{{ $this->sourceWalletLabel() }}</span>
-                @if ($this->sourceIsLocked())
+                @if ($this->sourceIsExternal())
+                    <x-filament::input.wrapper>
+                        <input type="text" class="fi-input" readonly value="{{ __('agricart.finance.fund_transfers.source_wallets.external') }}" />
+                    </x-filament::input.wrapper>
+                @elseif ($this->sourceIsLocked())
                     <x-filament::input.wrapper>
                         <input type="text" class="fi-input" readonly value="{{ __('agricart.finance.fund_transfers.source_wallets.cash') }}" />
                     </x-filament::input.wrapper>
@@ -141,6 +145,10 @@
                     <x-filament::input.wrapper>
                         <input type="text" class="fi-input" readonly value="{{ __('agricart.finance.fund_transfers.source_wallets.cash') }}" />
                     </x-filament::input.wrapper>
+                @elseif ($this->destinationIsExternal())
+                    <x-filament::input.wrapper>
+                        <input type="text" class="fi-input" readonly value="{{ __('agricart.finance.fund_transfers.source_wallets.external') }}" />
+                    </x-filament::input.wrapper>
                 @endif
             </div>
         </div>
@@ -154,6 +162,15 @@
                 </x-filament::input.wrapper>
                 @error('amount') <p class="agricart-form-panel__error agricart-finance-bank-form__error">{{ $message }}</p> @enderror
             </div>
+            @if ($this->requiresHandledByName())
+                <div>
+                    <label class="agricart-finance-bank-form__label" for="fund-handled-by">{{ __('agricart.finance.fund_transfers.fields.handled_by_name') }} <span class="agricart-form-panel__required" aria-hidden="true">*</span></label>
+                    <x-filament::input.wrapper>
+                        <input id="fund-handled-by" type="text" class="fi-input" wire:model="handled_by_name" maxlength="120" placeholder="{{ __('agricart.finance.fund_transfers.placeholders.handled_by_name') }}" />
+                    </x-filament::input.wrapper>
+                    @error('handled_by_name') <p class="agricart-form-panel__error agricart-finance-bank-form__error">{{ $message }}</p> @enderror
+                </div>
+            @endif
             <div>
                 <label class="agricart-finance-bank-form__label" for="fund-notes">{{ __('agricart.finance.fund_transfers.fields.notes') }}</label>
                 <x-filament::input.wrapper>

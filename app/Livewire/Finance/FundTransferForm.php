@@ -23,6 +23,10 @@ class FundTransferForm extends Component
 
     public const TYPE_WITHDRAWAL = FundTransfer::TYPE_WITHDRAWAL;
 
+    public const TYPE_EXTERNAL_DEPOSIT = FundTransfer::TYPE_EXTERNAL_DEPOSIT;
+
+    public const TYPE_EXTERNAL_WITHDRAWAL = FundTransfer::TYPE_EXTERNAL_WITHDRAWAL;
+
     public const TYPE_TRANSFER = FundTransfer::TYPE_TRANSFER;
 
     public const TYPE_VENDOR_PAYMENT = FundTransfer::TYPE_VENDOR_PAYMENT;
@@ -67,6 +71,8 @@ class FundTransferForm extends Component
     public string $transaction_number = '';
 
     public string $notes = '';
+
+    public string $handled_by_name = '';
 
     public bool $saving = false;
 
@@ -158,6 +164,7 @@ class FundTransferForm extends Component
             'transaction_date' => $this->transaction_date,
             'transaction_time' => $this->transaction_time,
             'notes' => $this->notes,
+            'handled_by_name' => $this->handled_by_name,
         ];
     }
 
@@ -167,10 +174,11 @@ class FundTransferForm extends Component
     protected function rules(): array
     {
         $rules = [
-            'transaction_type' => ['required', 'in:deposit,withdrawal,transfer,vendor_payment,customer_receipt,expense_payment,purchaser_payment'],
+            'transaction_type' => ['required', 'in:deposit,withdrawal,external_deposit,external_withdrawal,transfer,vendor_payment,customer_receipt,expense_payment,purchaser_payment'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'transaction_date' => ['required', 'date'],
             'transaction_time' => ['required', 'date_format:H:i'],
+            'handled_by_name' => ['nullable', 'string', 'max:120'],
         ];
 
         if ($this->requiresSourceBank()) {
@@ -183,6 +191,10 @@ class FundTransferForm extends Component
                 $destRules[] = 'different:source_bank_account_id';
             }
             $rules['destination_bank_account_id'] = $destRules;
+        }
+
+        if ($this->requiresHandledByName()) {
+            $rules['handled_by_name'] = ['required', 'string', 'max:120'];
         }
 
         if (in_array($this->transaction_type, [self::TYPE_VENDOR_PAYMENT, self::TYPE_CUSTOMER_RECEIPT, self::TYPE_EXPENSE_PAYMENT, self::TYPE_PURCHASER_PAYMENT], true)) {
@@ -211,7 +223,7 @@ class FundTransferForm extends Component
     public function requiresSourceBank(): bool
     {
         return match ($this->transaction_type) {
-            self::TYPE_TRANSFER, self::TYPE_WITHDRAWAL => true,
+            self::TYPE_TRANSFER, self::TYPE_WITHDRAWAL, self::TYPE_EXTERNAL_WITHDRAWAL => true,
             self::TYPE_VENDOR_PAYMENT, self::TYPE_CUSTOMER_RECEIPT, self::TYPE_EXPENSE_PAYMENT, self::TYPE_PURCHASER_PAYMENT => $this->source_wallet === self::SOURCE_BANK,
             default => false,
         };
@@ -219,7 +231,12 @@ class FundTransferForm extends Component
 
     public function requiresDestinationBank(): bool
     {
-        return in_array($this->transaction_type, [self::TYPE_DEPOSIT, self::TYPE_TRANSFER], true);
+        return in_array($this->transaction_type, [self::TYPE_DEPOSIT, self::TYPE_EXTERNAL_DEPOSIT, self::TYPE_TRANSFER], true);
+    }
+
+    public function requiresHandledByName(): bool
+    {
+        return in_array($this->transaction_type, [self::TYPE_EXTERNAL_DEPOSIT, self::TYPE_EXTERNAL_WITHDRAWAL], true);
     }
 
     public function sourceIsLocked(): bool
@@ -227,9 +244,14 @@ class FundTransferForm extends Component
         return $this->transaction_type === self::TYPE_DEPOSIT;
     }
 
+    public function sourceIsExternal(): bool
+    {
+        return $this->transaction_type === self::TYPE_EXTERNAL_DEPOSIT;
+    }
+
     public function sourceIsBankLocked(): bool
     {
-        return in_array($this->transaction_type, [self::TYPE_WITHDRAWAL, self::TYPE_TRANSFER], true);
+        return in_array($this->transaction_type, [self::TYPE_WITHDRAWAL, self::TYPE_EXTERNAL_WITHDRAWAL, self::TYPE_TRANSFER], true);
     }
 
     public function destinationIsVendor(): bool
@@ -255,6 +277,11 @@ class FundTransferForm extends Component
     public function destinationIsCash(): bool
     {
         return $this->transaction_type === self::TYPE_WITHDRAWAL;
+    }
+
+    public function destinationIsExternal(): bool
+    {
+        return $this->transaction_type === self::TYPE_EXTERNAL_WITHDRAWAL;
     }
 
     public function sourceWalletLabel(): string
@@ -315,6 +342,7 @@ class FundTransferForm extends Component
         $this->destination_expense_id = null;
         $this->amount = '';
         $this->notes = '';
+        $this->handled_by_name = '';
         $this->transaction_number = '';
         $this->transaction_date = now()->format('Y-m-d');
         $this->transaction_time = now()->format('H:i');
@@ -323,7 +351,7 @@ class FundTransferForm extends Component
 
     private function applyTypeDefaults(): void
     {
-        $this->destination_bank_account_id = in_array($this->transaction_type, [self::TYPE_DEPOSIT, self::TYPE_TRANSFER], true)
+        $this->destination_bank_account_id = in_array($this->transaction_type, [self::TYPE_DEPOSIT, self::TYPE_EXTERNAL_DEPOSIT, self::TYPE_TRANSFER], true)
             ? $this->destination_bank_account_id
             : null;
         $this->destination_supplier_id = $this->transaction_type === self::TYPE_VENDOR_PAYMENT ? $this->destination_supplier_id : null;
@@ -331,12 +359,20 @@ class FundTransferForm extends Component
         $this->destination_purchaser_id = $this->transaction_type === self::TYPE_PURCHASER_PAYMENT ? $this->destination_purchaser_id : null;
         $this->destination_expense_id = $this->transaction_type === self::TYPE_EXPENSE_PAYMENT ? $this->destination_expense_id : null;
 
+        if (! $this->requiresHandledByName()) {
+            $this->handled_by_name = '';
+        }
+
         match ($this->transaction_type) {
             self::TYPE_DEPOSIT => (function (): void {
                 $this->source_wallet = self::SOURCE_CASH;
                 $this->source_bank_account_id = null;
             })(),
-            self::TYPE_WITHDRAWAL, self::TYPE_TRANSFER => (function (): void {
+            self::TYPE_EXTERNAL_DEPOSIT => (function (): void {
+                $this->source_wallet = self::SOURCE_CASH;
+                $this->source_bank_account_id = null;
+            })(),
+            self::TYPE_WITHDRAWAL, self::TYPE_EXTERNAL_WITHDRAWAL, self::TYPE_TRANSFER => (function (): void {
                 $this->source_wallet = self::SOURCE_BANK;
             })(),
             default => (function (): void {
@@ -354,7 +390,9 @@ class FundTransferForm extends Component
     {
         return [
             self::TYPE_DEPOSIT => __('agricart.finance.fund_transfers.types.deposit'),
+            self::TYPE_EXTERNAL_DEPOSIT => __('agricart.finance.fund_transfers.types.external_deposit'),
             self::TYPE_WITHDRAWAL => __('agricart.finance.fund_transfers.types.withdrawal'),
+            self::TYPE_EXTERNAL_WITHDRAWAL => __('agricart.finance.fund_transfers.types.external_withdrawal'),
             self::TYPE_TRANSFER => __('agricart.finance.fund_transfers.types.transfer'),
             self::TYPE_VENDOR_PAYMENT => __('agricart.finance.fund_transfers.types.vendor_payment'),
             self::TYPE_CUSTOMER_RECEIPT => __('agricart.finance.fund_transfers.types.customer_receipt'),

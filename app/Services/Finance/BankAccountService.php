@@ -262,6 +262,58 @@ class BankAccountService
         });
     }
 
+    public function recordOwnerDeposit(
+        BankAccount $account,
+        float $amount,
+        string $transactionDate,
+        ?string $description,
+        ?string $notes = null,
+        ?int $fundTransferId = null,
+        ?User $actor = null,
+    ): void {
+        $this->postTransaction(
+            $account,
+            BankAccountTransaction::TYPE_OWNER_DEPOSIT,
+            BankAccountTransaction::DIRECTION_CREDIT,
+            $amount,
+            $transactionDate,
+            $description,
+            [
+                'fund_transfer_id' => $fundTransferId,
+                'notes' => $notes,
+            ],
+            $actor,
+        );
+    }
+
+    public function recordOwnerWithdrawal(
+        BankAccount $account,
+        float $amount,
+        string $transactionDate,
+        ?string $description,
+        ?string $notes = null,
+        ?int $fundTransferId = null,
+        ?User $actor = null,
+    ): void {
+        DB::transaction(function () use ($account, $amount, $transactionDate, $description, $notes, $fundTransferId, $actor): void {
+            $locked = BankAccount::query()->lockForUpdate()->findOrFail($account->id);
+            $this->assertSufficientBalance($locked, $amount);
+            $this->postTransaction(
+                $locked,
+                BankAccountTransaction::TYPE_OWNER_WITHDRAWAL,
+                BankAccountTransaction::DIRECTION_DEBIT,
+                $amount,
+                $transactionDate,
+                $description,
+                [
+                    'fund_transfer_id' => $fundTransferId,
+                    'notes' => $notes,
+                ],
+                $actor,
+            );
+        });
+    }
+
     public function paySupplier(
         BankAccount $from,
         Supplier $supplier,

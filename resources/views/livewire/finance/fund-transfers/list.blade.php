@@ -13,6 +13,7 @@
                         <th>{{ __('agricart.finance.fund_transfers.list.col_type') }}</th>
                         <th>{{ __('agricart.finance.fund_transfers.sections.source') }}</th>
                         <th>{{ __('agricart.finance.fund_transfers.sections.destination') }}</th>
+                        <th>{{ __('agricart.finance.fund_transfers.list.col_handled_by') }}</th>
                         <th>{{ __('agricart.finance.fund_transfers.list.col_amount') }}</th>
                     </tr>
                 </thead>
@@ -24,6 +25,7 @@
                             <td>{{ $typeLabel($transfer) }}</td>
                             <td>{{ $sourceLabel($transfer) }}</td>
                             <td>{{ $destinationLabel($transfer) }}</td>
+                            <td>{{ $transfer->handled_by_name ?: '—' }}</td>
                             <td><strong>{{ $money((float) $transfer->amount) }}</strong></td>
                         </tr>
                     @endforeach

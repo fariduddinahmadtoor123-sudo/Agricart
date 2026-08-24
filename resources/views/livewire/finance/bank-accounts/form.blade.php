@@ -85,7 +85,7 @@
             </div>
             @error('account_title') <p class="agricart-form-panel__error agricart-finance-bank-form__error">{{ $message }}</p> @enderror
 
-            {{-- قطار 3: قسم + نمبر، اوپننگ بیلنس، سٹیٹس --}}
+            {{-- قطار 3: قسم + نمبر، سٹیٹس --}}
             <div class="agricart-finance-bank-form__row" style="display:flex;flex-wrap:nowrap;align-items:flex-end;gap:0.65rem;width:100%;">
                 <div style="flex:0 1 9.5rem;min-width:6.5rem;display:flex;flex-direction:column;gap:0.3rem;">
                     <label class="agricart-finance-bank-form__label" for="bank-identifier-type">{{ __('agricart.finance.banks.fields.identifier_type') }}</label>
@@ -103,16 +103,6 @@
                         <input id="bank-identifier-value" type="text" class="fi-input" wire:model="account_identifier" @disabled($readonly) />
                     </x-filament::input.wrapper>
                 </div>
-                <div style="flex:0 1 8rem;min-width:5.5rem;display:flex;flex-direction:column;gap:0.3rem;">
-                    <label class="agricart-finance-bank-form__label" for="bank-opening">{{ __('agricart.finance.banks.fields.opening_balance') }}</label>
-                    <x-filament::input.wrapper>
-                        @if ($account)
-                            <input id="bank-opening" type="text" class="fi-input" value="{{ number_format((float) ($account->opening_balance ?? 0), 2) }}" readonly @disabled($readonly) />
-                        @else
-                            <input id="bank-opening" type="number" step="0.01" min="0" class="fi-input" wire:model="opening_balance" @disabled($readonly) />
-                        @endif
-                    </x-filament::input.wrapper>
-                </div>
                 <div style="flex:0 1 7.5rem;min-width:5.5rem;display:flex;flex-direction:column;gap:0.3rem;">
                     <label class="agricart-finance-bank-form__label" for="bank-status">{{ __('agricart.finance.banks.fields.status') }}</label>
                     <x-filament::input.wrapper>
@@ -125,7 +115,6 @@
             </div>
             @error('account_identifier') <p class="agricart-form-panel__error agricart-finance-bank-form__error">{{ $message }}</p> @enderror
             @error('account_number') <p class="agricart-form-panel__error agricart-finance-bank-form__error">{{ $message }}</p> @enderror
-            @error('opening_balance') <p class="agricart-form-panel__error agricart-finance-bank-form__error">{{ $message }}</p> @enderror
         </div>
     @endif
 

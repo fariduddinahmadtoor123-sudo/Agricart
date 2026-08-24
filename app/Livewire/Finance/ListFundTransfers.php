@@ -55,6 +55,7 @@ class ListFundTransfers extends Component
                 $query->where(function ($inner) use ($needle): void {
                     $inner->where('transfer_number', 'like', $needle)
                         ->orWhere('notes', 'like', $needle)
+                        ->orWhere('handled_by_name', 'like', $needle)
                         ->orWhereHas('destinationExpense', function ($expense) use ($needle): void {
                             $expense->where('expense_number', 'like', $needle)
                                 ->orWhere('name_en', 'like', $needle)
@@ -80,6 +81,10 @@ class ListFundTransfers extends Component
 
     private function sourceLabel(FundTransfer $transfer): string
     {
+        if ($transfer->transaction_type === FundTransfer::TYPE_EXTERNAL_DEPOSIT) {
+            return __('agricart.finance.fund_transfers.source_wallets.external');
+        }
+
         if ($transfer->transaction_type === FundTransfer::TYPE_CUSTOMER_RECEIPT) {
             return $transfer->source_wallet === FundTransfer::WALLET_CASH
                 ? __('agricart.finance.fund_transfers.source_wallets.cash')
@@ -96,8 +101,9 @@ class ListFundTransfers extends Component
     private function destinationLabel(FundTransfer $transfer): string
     {
         return match ($transfer->transaction_type) {
-            FundTransfer::TYPE_DEPOSIT, FundTransfer::TYPE_TRANSFER => $transfer->destinationBankAccount?->displayName() ?? '—',
+            FundTransfer::TYPE_DEPOSIT, FundTransfer::TYPE_EXTERNAL_DEPOSIT, FundTransfer::TYPE_TRANSFER => $transfer->destinationBankAccount?->displayName() ?? '—',
             FundTransfer::TYPE_WITHDRAWAL => __('agricart.finance.fund_transfers.source_wallets.cash'),
+            FundTransfer::TYPE_EXTERNAL_WITHDRAWAL => __('agricart.finance.fund_transfers.source_wallets.external'),
             FundTransfer::TYPE_VENDOR_PAYMENT => $transfer->destinationSupplier?->displayBusinessName() ?? '—',
             FundTransfer::TYPE_CUSTOMER_RECEIPT => $transfer->destinationCustomer?->displayName() ?? '—',
             FundTransfer::TYPE_EXPENSE_PAYMENT => $transfer->destinationExpense?->displayName()

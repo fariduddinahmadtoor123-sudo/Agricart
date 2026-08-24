@@ -60,6 +60,13 @@ return [
             'quality' => null,
             'convert_webp' => false,
         ],
+        // Phone photos of A4 utility / vendor bills — readable but compact WebP.
+        'bill' => [
+            'max_width' => 2000,
+            'max_height' => 2800,
+            'quality' => 78,
+            'convert_webp' => true,
+        ],
     ],
 
     'directory_presets' => [
@@ -78,6 +85,8 @@ return [
         'customers/photos' => 'avatar',
         'suppliers/profile-photos' => 'avatar',
         'users/profile-photos' => 'avatar',
+        'expenses/bills' => 'bill',
+        'purchases/vendor-bills' => 'bill',
     ],
 
     /*

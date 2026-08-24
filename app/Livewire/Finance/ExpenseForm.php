@@ -13,9 +13,13 @@ use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\WithFileUploads;
 
 class ExpenseForm extends Component
 {
+    use WithFileUploads;
+
     public string $mode = 'create';
 
     public ?int $expenseId = null;
@@ -49,7 +53,13 @@ class ExpenseForm extends Component
 
     public string $status = Expense::STATUS_ACTIVE;
 
-    public string $enrichmentPrompt = '';
+    public ?TemporaryUploadedFile $billImageUpload = null;
+
+    public ?string $storedBillImagePath = null;
+
+    public ?string $billImagePreviewUrl = null;
+
+    public bool $remove_bill_image = false;
 
     public bool $saving = false;
 
@@ -86,6 +96,28 @@ class ExpenseForm extends Component
         };
     }
 
+    public function updatedBillImageUpload(): void
+    {
+        $this->validateOnly('billImageUpload', [
+            'billImageUpload' => ['nullable', 'image', 'max:12288'],
+        ]);
+
+        $this->billImagePreviewUrl = $this->billImageUpload?->temporaryUrl();
+        $this->remove_bill_image = false;
+    }
+
+    public function removeBillImage(): void
+    {
+        if ($this->isReadonly()) {
+            return;
+        }
+
+        $this->billImageUpload = null;
+        $this->billImagePreviewUrl = null;
+        $this->storedBillImagePath = null;
+        $this->remove_bill_image = true;
+    }
+
     public function enrichWithAi(): void
     {
         if ($this->enriching || $this->saving || ! $this->canEditFields()) {
@@ -102,10 +134,7 @@ class ExpenseForm extends Component
         $this->dispatchBusyState();
 
         try {
-            $result = app(ExpenseEnrichmentService::class)->enrich(
-                $this->name_en,
-                filled($this->enrichmentPrompt) ? $this->enrichmentPrompt : null,
-            );
+            $result = app(ExpenseEnrichmentService::class)->enrich($this->name_en, null);
 
             if (! $result['success']) {
                 $this->setStatus($result['message'], 'error');
@@ -313,17 +342,35 @@ class ExpenseForm extends Component
         $this->dispatchBusyState();
 
         try {
+            if ($this->billImageUpload !== null) {
+                $this->validate([
+                    'billImageUpload' => ['nullable', 'image', 'max:12288'],
+                ]);
+            }
+
             $service = app(ExpenseService::class);
 
             if ($this->mode === 'create') {
-                $expense = $service->create($this->payload());
+                $expense = $service->create($this->payload(), null, $this->billImageUpload);
                 $this->mode = 'edit';
                 $this->expenseId = $expense->id;
                 $this->expense_number = $expense->expense_number;
             } elseif ($this->expenseId !== null) {
                 $expense = Expense::query()->findOrFail($this->expenseId);
-                $service->update($expense, $this->payload());
+                $expense = $service->update(
+                    $expense,
+                    $this->payload(),
+                    $this->billImageUpload,
+                    $this->remove_bill_image,
+                );
+            } else {
+                return false;
             }
+
+            $this->billImageUpload = null;
+            $this->remove_bill_image = false;
+            $this->storedBillImagePath = $expense->bill_image_path;
+            $this->billImagePreviewUrl = $expense->billImageUrl();
 
             $this->dispatch('finance-expenses-saved');
             $this->setStatus(__('agricart.finance.expenses.messages.saved'), 'success');
@@ -385,6 +432,10 @@ class ExpenseForm extends Component
             ? number_format((float) $expense->estimated_cost, 2, '.', '')
             : '';
         $this->status = (string) $expense->status;
+        $this->billImageUpload = null;
+        $this->remove_bill_image = false;
+        $this->storedBillImagePath = $expense->bill_image_path;
+        $this->billImagePreviewUrl = $expense->billImageUrl();
     }
 
     private function resetFields(): void
@@ -402,7 +453,10 @@ class ExpenseForm extends Component
         $this->detail_4 = '';
         $this->estimated_cost = '';
         $this->status = Expense::STATUS_ACTIVE;
-        $this->enrichmentPrompt = '';
+        $this->billImageUpload = null;
+        $this->storedBillImagePath = null;
+        $this->billImagePreviewUrl = null;
+        $this->remove_bill_image = false;
     }
 
     private function canEditFields(): bool

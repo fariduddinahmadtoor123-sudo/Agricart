@@ -54,6 +54,81 @@ class FundTransferTypesTest extends TestCase
         $this->assertSame(3500.0, app(BankAccountService::class)->balance($bank));
     }
 
+    public function test_external_deposit_credits_bank_without_cash_book(): void
+    {
+        $bank = $this->makeBank(opening: 2000);
+        $cashBefore = app(CashBookService::class)->balance();
+
+        $transfer = app(FundTransferService::class)->record([
+            'transaction_type' => FundTransfer::TYPE_EXTERNAL_DEPOSIT,
+            'destination_bank_account_id' => $bank->id,
+            'amount' => 3000,
+            'handled_by_name' => 'Ahmed',
+            'transaction_date' => '2026-08-23',
+            'transaction_time' => '14:30',
+        ]);
+
+        $this->assertNull($transfer->source_wallet);
+        $this->assertSame('Ahmed', $transfer->handled_by_name);
+        $this->assertDatabaseHas('bank_account_transactions', [
+            'fund_transfer_id' => $transfer->id,
+            'bank_account_id' => $bank->id,
+            'type' => BankAccountTransaction::TYPE_OWNER_DEPOSIT,
+            'direction' => BankAccountTransaction::DIRECTION_CREDIT,
+            'amount' => 3000,
+        ]);
+        $this->assertDatabaseMissing('cash_book_transactions', [
+            'fund_transfer_id' => $transfer->id,
+        ]);
+        $this->assertSame($cashBefore, app(CashBookService::class)->balance());
+        $this->assertSame(5000.0, app(BankAccountService::class)->balance($bank));
+    }
+
+    public function test_external_withdrawal_debits_bank_without_cash_book(): void
+    {
+        $bank = $this->makeBank(opening: 8000);
+        $cashBefore = app(CashBookService::class)->balance();
+
+        $transfer = app(FundTransferService::class)->record([
+            'transaction_type' => FundTransfer::TYPE_EXTERNAL_WITHDRAWAL,
+            'source_bank_account_id' => $bank->id,
+            'amount' => 2500,
+            'handled_by_name' => 'Bilal',
+            'transaction_date' => '2026-08-23',
+            'transaction_time' => '15:00',
+        ]);
+
+        $this->assertSame(FundTransfer::WALLET_BANK, $transfer->source_wallet);
+        $this->assertSame('Bilal', $transfer->handled_by_name);
+        $this->assertDatabaseHas('bank_account_transactions', [
+            'fund_transfer_id' => $transfer->id,
+            'bank_account_id' => $bank->id,
+            'type' => BankAccountTransaction::TYPE_OWNER_WITHDRAWAL,
+            'direction' => BankAccountTransaction::DIRECTION_DEBIT,
+            'amount' => 2500,
+        ]);
+        $this->assertDatabaseMissing('cash_book_transactions', [
+            'fund_transfer_id' => $transfer->id,
+        ]);
+        $this->assertSame($cashBefore, app(CashBookService::class)->balance());
+        $this->assertSame(5500.0, app(BankAccountService::class)->balance($bank));
+    }
+
+    public function test_external_deposit_requires_handled_by_name(): void
+    {
+        $bank = $this->makeBank(opening: 1000);
+
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+
+        app(FundTransferService::class)->record([
+            'transaction_type' => FundTransfer::TYPE_EXTERNAL_DEPOSIT,
+            'destination_bank_account_id' => $bank->id,
+            'amount' => 500,
+            'transaction_date' => '2026-08-23',
+            'transaction_time' => '16:00',
+        ]);
+    }
+
     public function test_expense_payment_creates_expay_one_ledger_row_and_completes_bill_cycle(): void
     {
         Carbon::setTestNow('2026-08-12 10:00:00');

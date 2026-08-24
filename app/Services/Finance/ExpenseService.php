@@ -5,26 +5,41 @@ namespace App\Services\Finance;
 use App\Models\Expense;
 use App\Models\User;
 use App\Services\Identifiers\DocumentCounterService;
+use App\Services\Media\OptimizedImageStorage;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class ExpenseService
 {
+    public function __construct(
+        private OptimizedImageStorage $images,
+    ) {}
+
     /**
      * @param  array<string, mixed>  $data
      */
-    public function create(array $data, ?User $actor = null): Expense
-    {
+    public function create(
+        array $data,
+        ?User $actor = null,
+        TemporaryUploadedFile|UploadedFile|null $billImage = null,
+    ): Expense {
         $validated = $this->validate($data);
         $actor ??= auth()->user();
 
-        return DB::transaction(function () use ($validated, $actor): Expense {
+        return DB::transaction(function () use ($validated, $actor, $billImage): Expense {
             if (! filled($validated['expense_number'] ?? null)) {
                 $validated['expense_number'] = $this->nextExpenseNumber();
             }
 
             $validated['created_by'] = $actor?->id;
+
+            if ($billImage !== null) {
+                $validated['bill_image_path'] = $this->storeBillImage($billImage);
+            }
 
             return Expense::query()->create($validated)->fresh(['category']);
         });
@@ -33,13 +48,32 @@ class ExpenseService
     /**
      * @param  array<string, mixed>  $data
      */
-    public function update(Expense $expense, array $data): Expense
-    {
+    public function update(
+        Expense $expense,
+        array $data,
+        TemporaryUploadedFile|UploadedFile|null $billImage = null,
+        bool $removeBillImage = false,
+    ): Expense {
         $validated = $this->validate($data, $expense->id);
 
-        $expense->update($validated);
+        return DB::transaction(function () use ($expense, $validated, $billImage, $removeBillImage): Expense {
+            if ($removeBillImage && filled($expense->bill_image_path)) {
+                $this->deleteBillImage($expense->bill_image_path);
+                $validated['bill_image_path'] = null;
+            }
 
-        return $expense->fresh(['category']);
+            if ($billImage !== null) {
+                if (filled($expense->bill_image_path)) {
+                    $this->deleteBillImage($expense->bill_image_path);
+                }
+
+                $validated['bill_image_path'] = $this->storeBillImage($billImage);
+            }
+
+            $expense->update($validated);
+
+            return $expense->fresh(['category']);
+        });
     }
 
     public function delete(Expense $expense): void
@@ -48,6 +82,10 @@ class ExpenseService
             throw ValidationException::withMessages([
                 'expense' => [__('agricart.finance.expenses.messages.has_payments')],
             ]);
+        }
+
+        if (filled($expense->bill_image_path)) {
+            $this->deleteBillImage($expense->bill_image_path);
         }
 
         $expense->delete();
@@ -61,6 +99,21 @@ class ExpenseService
             5,
             fn (): int => DocumentCounterService::maximumSuffix('expenses', 'expense_number', 'EXP-'),
         );
+    }
+
+    private function storeBillImage(TemporaryUploadedFile|UploadedFile $file): string
+    {
+        return $this->images->store(
+            $file,
+            'expenses/bills',
+            'bill',
+            (string) config('media.disk', 'public'),
+        );
+    }
+
+    private function deleteBillImage(string $path): void
+    {
+        Storage::disk((string) config('media.disk', 'public'))->delete($path);
     }
 
     /**

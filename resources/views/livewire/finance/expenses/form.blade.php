@@ -10,105 +10,40 @@
     x-on:finance-expense-form-action.window="$wire.handlePanelAction($event.detail?.action ?? $event.detail?.[0]?.action ?? '')"
 >
     <style>
-        .agricart-form-panel__fields.agricart-finance-expense-form {
-            display: flex !important;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-
-        .agricart-finance-expense-form__row,
-        .agricart-finance-expense-form__notes,
-        .agricart-finance-expense-form__ai {
-            width: 100%;
-            min-width: 0;
-            grid-column: 1 / -1;
-        }
-
-        .agricart-finance-expense-form__row {
+        /* Keep meta row + selects correct even if cached Vite CSS is stale. */
+        .agricart-finance-expense-form__row.agricart-finance-expense-form__row--meta {
             display: grid !important;
-            gap: 0.65rem 0.7rem;
-            align-items: end;
-        }
-
-        .agricart-finance-expense-form__row--meta {
             grid-template-columns:
-                minmax(6.25rem, 0.85fr)
-                minmax(7.5rem, 1.35fr)
-                minmax(5.5rem, 0.65fr)
-                minmax(4.35rem, 0.42fr)
-                minmax(4.35rem, 0.42fr);
+                minmax(5.75rem, 0.95fr)
+                minmax(7.5rem, 1.45fr)
+                minmax(5.5rem, 0.85fr)
+                minmax(4.75rem, 0.55fr)
+                minmax(4.75rem, 0.55fr) !important;
+            align-items: end;
+            gap: 0.65rem;
+            width: 100%;
         }
 
-        .agricart-finance-expense-form__row--names {
-            grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.1fr) minmax(7.25rem, 0.7fr);
-        }
-
-        .agricart-finance-expense-form__row--details {
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-        }
-
-        .agricart-finance-expense-form__row--body {
-            grid-template-columns: minmax(0, 1fr);
-            align-items: stretch;
-        }
-
-        .agricart-finance-expense-form__row--body:has(.agricart-finance-expense-form__ai) {
-            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        }
-
-        .agricart-finance-expense-form__row--meta .fi-input-wrp,
-        .agricart-finance-expense-form__row--names .fi-input-wrp,
-        .agricart-finance-expense-form__row--details .fi-input-wrp {
-            min-height: 2.4rem;
-        }
-
-        .agricart-finance-expense-form__row--meta input.fi-input,
-        .agricart-finance-expense-form__row--meta select.fi-input,
-        .agricart-finance-expense-form__row--meta select.fi-select-input,
-        .agricart-finance-expense-form__row--names input.fi-input,
-        .agricart-finance-expense-form__row--details input.fi-input {
-            min-height: 2.4rem;
-            height: 2.4rem;
-            padding-block: 0.4rem;
-            padding-inline: 0.55rem;
-        }
-
-        .agricart-finance-expense-form__day .fi-select-input,
-        .agricart-finance-expense-form__day select.fi-input {
-            padding-inline: 0.4rem;
-            text-align: center;
-        }
-
-        .agricart-finance-expense-form__notes,
-        .agricart-finance-expense-form__ai {
+        .agricart-finance-expense-form__row--meta > .agricart-form-panel__field {
             display: flex;
             flex-direction: column;
             min-width: 0;
-            height: 100%;
-        }
-
-        .agricart-finance-expense-form__notes .fi-input-wrp,
-        .agricart-finance-expense-form__ai .fi-input-wrp {
-            display: flex;
             width: 100%;
-            flex: 1 1 auto;
         }
 
-        .agricart-finance-expense-form__notes textarea.fi-input,
-        .agricart-finance-expense-form__ai textarea.fi-input {
-            display: block;
+        .agricart-finance-expense-form__row--meta .fi-input-wrp {
+            display: flex !important;
             width: 100% !important;
-            max-width: 100%;
             min-width: 0;
-            min-height: 8.25rem;
-            height: 100%;
-            white-space: pre-wrap;
-            overflow-wrap: anywhere;
-            word-break: break-word;
-            direction: ltr;
-            text-align: start;
-            padding: 0.65rem 0.75rem;
-            resize: vertical;
+        }
+
+        .agricart-finance-expense-form__row--meta select.fi-input,
+        .agricart-finance-expense-form__row--meta select.fi-select-input {
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+            flex: 1 1 auto;
+            box-sizing: border-box;
         }
 
         .agricart-finance-expense-form__due-actions {
@@ -161,7 +96,7 @@
                 <span class="agricart-form-panel__required">*</span>
             </label>
             <x-filament::input.wrapper>
-                <select id="expense-category" wire:model="expense_category_id" class="fi-input" @disabled($readonly)>
+                <select id="expense-category" wire:model="expense_category_id" class="fi-select-input" @disabled($readonly)>
                     <option value="">{{ __('agricart.finance.expenses.fields.category_none') }}</option>
                     @foreach ($categories as $category)
                         <option value="{{ $category->id }}">{{ $category->displayName() }}</option>
@@ -174,7 +109,7 @@
         <div class="agricart-form-panel__field">
             <label class="agricart-form-panel__label" for="expense-status">{{ __('agricart.finance.expenses.fields.status') }}</label>
             <x-filament::input.wrapper>
-                <select id="expense-status" wire:model="status" class="fi-input" @disabled($readonly)>
+                <select id="expense-status" wire:model="status" class="fi-select-input" @disabled($readonly)>
                     <option value="active">{{ __('agricart.form_panel.statuses.active') }}</option>
                     <option value="inactive">{{ __('agricart.form_panel.statuses.inactive') }}</option>
                 </select>
@@ -185,7 +120,7 @@
         <div class="agricart-form-panel__field agricart-finance-expense-form__day">
             <label class="agricart-form-panel__label" for="expense-issue-day">{{ __('agricart.finance.expenses.fields.issue_day') }}</label>
             <x-filament::input.wrapper>
-                <select id="expense-issue-day" wire:model.live="issue_day" class="fi-input" @disabled($readonly)>
+                <select id="expense-issue-day" wire:model.live="issue_day" class="fi-select-input" @disabled($readonly)>
                     <option value="">{{ __('agricart.finance.expenses.fields.day_none') }}</option>
                     @for ($day = 1; $day <= 31; $day++)
                         <option value="{{ $day }}">{{ $day }}</option>
@@ -198,7 +133,7 @@
         <div class="agricart-form-panel__field agricart-finance-expense-form__day">
             <label class="agricart-form-panel__label" for="expense-due-day">{{ __('agricart.finance.expenses.fields.due_day') }}</label>
             <x-filament::input.wrapper>
-                <select id="expense-due-day" wire:model.live="due_day" class="fi-input" @disabled($readonly)>
+                <select id="expense-due-day" wire:model.live="due_day" class="fi-select-input" @disabled($readonly)>
                     <option value="">{{ __('agricart.finance.expenses.fields.day_none') }}</option>
                     @for ($day = 1; $day <= 31; $day++)
                         <option value="{{ $day }}">{{ $day }}</option>
@@ -280,14 +215,36 @@
             <p class="agricart-form-panel__hint">{{ __('agricart.finance.expenses.hints.information') }}</p>
         </div>
 
-        @if (! $readonly)
-            <div class="agricart-form-panel__field agricart-finance-expense-form__ai">
-                <label class="agricart-form-panel__label" for="expense-ai-prompt">{{ __('agricart.finance.expenses.ai.prompt_label') }}</label>
-                <x-filament::input.wrapper>
-                    <textarea id="expense-ai-prompt" wire:model="enrichmentPrompt" class="fi-input agricart-form-panel__textarea" rows="5" placeholder="{{ __('agricart.finance.expenses.ai.prompt_placeholder') }}"></textarea>
-                </x-filament::input.wrapper>
-                <p class="agricart-form-panel__hint">{{ __('agricart.finance.expenses.ai.hint') }}</p>
+        <div class="agricart-form-panel__field agricart-finance-expense-form__bill">
+            <span class="agricart-form-panel__label">{{ __('agricart.finance.expenses.fields.bill_image') }}</span>
+            <div class="agricart-purchase-form__bill-slot agricart-finance-expense-form__bill-slot">
+                @if ($billImagePreviewUrl)
+                    <div class="agricart-purchase-form__bill-upload is-filled">
+                        <img src="{{ $billImagePreviewUrl }}" alt="" class="agricart-purchase-form__bill-preview" />
+                        <div class="agricart-purchase-form__bill-overlay">
+                            <a href="{{ $billImagePreviewUrl }}" target="_blank" class="agricart-purchase-form__bill-overlay-btn" title="{{ __('agricart.finance.expenses.actions.view_bill') }}">
+                                <x-filament::icon :icon="\Filament\Support\Icons\Heroicon::OutlinedEye" class="agricart-purchase-form__bill-overlay-icon" />
+                            </a>
+                            @unless ($readonly)
+                                <button type="button" class="agricart-purchase-form__bill-overlay-btn is-danger" wire:click="removeBillImage" title="{{ __('agricart.finance.expenses.actions.remove_bill') }}">
+                                    <x-filament::icon :icon="\Filament\Support\Icons\Heroicon::OutlinedTrash" class="agricart-purchase-form__bill-overlay-icon" />
+                                </button>
+                            @endunless
+                        </div>
+                    </div>
+                @elseif (! $readonly)
+                    <label class="agricart-purchase-form__bill-upload" title="{{ __('agricart.finance.expenses.actions.bill_upload') }}">
+                        <x-filament::icon :icon="\Filament\Support\Icons\Heroicon::OutlinedDocumentText" class="agricart-purchase-form__bill-icon" />
+                        <span class="agricart-purchase-form__bill-label">{{ __('agricart.finance.expenses.actions.bill_upload') }}</span>
+                        <input type="file" accept="image/*" wire:model="billImageUpload" class="agricart-category-form__file-input" />
+                    </label>
+                    <div wire:loading wire:target="billImageUpload" class="agricart-purchase-form__bill-loading">{{ __('agricart.finance.expenses.actions.bill_uploading') }}</div>
+                @else
+                    <p class="agricart-form-panel__hint">{{ __('agricart.finance.expenses.hints.bill_image_empty') }}</p>
+                @endif
             </div>
-        @endif
+            @error('billImageUpload') <p class="agricart-form-panel__error">{{ $message }}</p> @enderror
+            <p class="agricart-form-panel__hint">{{ __('agricart.finance.expenses.hints.bill_image') }}</p>
+        </div>
     </div>
 </div>

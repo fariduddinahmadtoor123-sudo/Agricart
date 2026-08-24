@@ -46,12 +46,17 @@ class FundTransferService
                 'transaction_date' => $date,
                 'transaction_time' => $validated['transaction_time'],
                 'notes' => $notes,
+                'handled_by_name' => filled($validated['handled_by_name'] ?? null)
+                    ? trim((string) $validated['handled_by_name'])
+                    : null,
                 'created_by' => $actor?->id,
             ]);
 
             match ($type) {
                 FundTransfer::TYPE_DEPOSIT => $this->postDeposit($transfer, $actor),
                 FundTransfer::TYPE_WITHDRAWAL => $this->postWithdrawal($transfer, $actor),
+                FundTransfer::TYPE_EXTERNAL_DEPOSIT => $this->postExternalDeposit($transfer, $actor),
+                FundTransfer::TYPE_EXTERNAL_WITHDRAWAL => $this->postExternalWithdrawal($transfer, $actor),
                 FundTransfer::TYPE_TRANSFER => $this->postBankTransfer($transfer, $actor),
                 FundTransfer::TYPE_VENDOR_PAYMENT => $this->postVendorPayment($transfer, $actor),
                 FundTransfer::TYPE_CUSTOMER_RECEIPT => $this->postCustomerReceipt($transfer, $actor),
@@ -121,6 +126,44 @@ class FundTransferService
             $description,
             $transfer->id,
             $transfer->notes,
+            $actor,
+        );
+    }
+
+    private function postExternalDeposit(FundTransfer $transfer, ?User $actor): void
+    {
+        $bank = BankAccount::query()->findOrFail($transfer->destination_bank_account_id);
+        $description = __('agricart.finance.fund_transfers.ledger.external_deposit', [
+            'number' => $transfer->transfer_number,
+            'person' => $transfer->handled_by_name,
+        ]);
+
+        $this->bankAccountService->recordOwnerDeposit(
+            $bank,
+            (float) $transfer->amount,
+            $transfer->transaction_date->toDateString(),
+            $description,
+            $transfer->notes,
+            $transfer->id,
+            $actor,
+        );
+    }
+
+    private function postExternalWithdrawal(FundTransfer $transfer, ?User $actor): void
+    {
+        $bank = BankAccount::query()->findOrFail($transfer->source_bank_account_id);
+        $description = __('agricart.finance.fund_transfers.ledger.external_withdrawal', [
+            'number' => $transfer->transfer_number,
+            'person' => $transfer->handled_by_name,
+        ]);
+
+        $this->bankAccountService->recordOwnerWithdrawal(
+            $bank,
+            (float) $transfer->amount,
+            $transfer->transaction_date->toDateString(),
+            $description,
+            $transfer->notes,
+            $transfer->id,
             $actor,
         );
     }
@@ -282,11 +325,12 @@ class FundTransferService
     private function validate(array $data): array
     {
         $rules = [
-            'transaction_type' => ['required', 'in:deposit,withdrawal,transfer,vendor_payment,customer_receipt,expense_payment,purchaser_payment'],
+            'transaction_type' => ['required', 'in:deposit,withdrawal,external_deposit,external_withdrawal,transfer,vendor_payment,customer_receipt,expense_payment,purchaser_payment'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'transaction_date' => ['required', 'date'],
             'transaction_time' => ['required', 'date_format:H:i'],
             'notes' => ['nullable', 'string', 'max:2000'],
+            'handled_by_name' => ['nullable', 'string', 'max:120'],
         ];
 
         $type = (string) ($data['transaction_type'] ?? '');
@@ -295,6 +339,19 @@ class FundTransferService
             $data['source_wallet'] = FundTransfer::WALLET_CASH;
             $rules['source_wallet'] = ['required', 'in:cash,bank'];
             $rules['destination_bank_account_id'] = ['required', 'integer', 'exists:bank_accounts,id'];
+        }
+
+        if ($type === FundTransfer::TYPE_EXTERNAL_DEPOSIT) {
+            $data['source_wallet'] = null;
+            $rules['destination_bank_account_id'] = ['required', 'integer', 'exists:bank_accounts,id'];
+            $rules['handled_by_name'] = ['required', 'string', 'max:120'];
+        }
+
+        if ($type === FundTransfer::TYPE_EXTERNAL_WITHDRAWAL) {
+            $data['source_wallet'] = FundTransfer::WALLET_BANK;
+            $rules['source_wallet'] = ['required', 'in:cash,bank'];
+            $rules['source_bank_account_id'] = ['required', 'integer', 'exists:bank_accounts,id'];
+            $rules['handled_by_name'] = ['required', 'string', 'max:120'];
         }
 
         if ($type === FundTransfer::TYPE_TRANSFER) {

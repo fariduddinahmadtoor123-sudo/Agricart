@@ -31,8 +31,6 @@ class BankAccountForm extends Component
 
     public string $account_identifier = '';
 
-    public string $opening_balance = '';
-
     public string $status = BankAccount::STATUS_ACTIVE;
 
     public string $historyFrom = '';
@@ -65,7 +63,6 @@ class BankAccountForm extends Component
             $this->loadAccount();
         } else {
             $this->resetAccountFields();
-            $this->opening_balance = '0';
             $this->status = BankAccount::STATUS_ACTIVE;
         }
     }
@@ -237,7 +234,7 @@ class BankAccountForm extends Component
             'account_title' => $titleEn,
             'account_identifier_type' => $this->account_identifier_type,
             'account_identifier' => trim($this->account_identifier),
-            'opening_balance' => $this->mode === 'create' ? $this->opening_balance : 0,
+            'opening_balance' => 0,
             'status' => $this->status,
             'notes' => null,
         ];
@@ -274,7 +271,6 @@ class BankAccountForm extends Component
         $this->account_title_ur = '';
         $this->account_identifier_type = BankAccount::IDENTIFIER_ACCOUNT_NUMBER;
         $this->account_identifier = '';
-        $this->opening_balance = '';
     }
 
     private function canEditFields(): bool
