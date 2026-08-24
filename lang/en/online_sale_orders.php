@@ -177,6 +177,7 @@ return [
         'queue_requires_invoice' => 'Only converted invoices can be sent to the dispatch queue.',
         'queue_document_invalid' => 'Choose Invoice or Packing List when sending to the queue.',
         'amount_paid_exceeds_total' => 'Paid amount cannot exceed the order total.',
+        'bank_account_required_to_verify' => 'Select the bank account that received this payment before verifying the receipt.',
     ],
 
     'print' => [

@@ -213,6 +213,10 @@ class OnlineSaleOrderService
 
             $rows = $this->saleService->recalculateRows($rows);
             $saleTotal = $this->saleService->subtotalFromRows($rows);
+            $orderPaid = round((float) $order->amount_paid, 2);
+            // Never invent payment on convert — only what staff already verified / recorded.
+            $saleAmountPaid = $this->saleAmountPaidFromOnlineOrder($orderPaid, $orderTotal, $shippingAmount, $saleTotal);
+            $orderPaymentStatus = $this->saleService->resolvePaymentStatus($orderTotal, $orderPaid);
 
             $notes = 'Converted from online order '.$order->order_number;
             if ($shippingAmount > 0) {
@@ -224,16 +228,8 @@ class OnlineSaleOrderService
 
             $skipBankReceipt = false;
 
-            if ($paymentMethod === 'bank_transfer' && $order->bank_account_id) {
-                // Bank once on the online order (full total). Do not post again on the POS sale.
-                if ((float) $order->amount_paid <= 0) {
-                    $order->forceFill([
-                        'amount_paid' => $orderTotal,
-                        'payment_status' => 'paid',
-                        'payment_method' => $paymentMethod,
-                    ])->save();
-                }
-
+            // Bank ledger only when money was already marked received (e.g. proof verified).
+            if ($paymentMethod === 'bank_transfer' && $order->bank_account_id && $orderPaid > 0) {
                 app(BankAccountService::class)->recordOnlineOrderReceiptIfApplicable($order->fresh());
                 $skipBankReceipt = true;
             }
@@ -243,14 +239,14 @@ class OnlineSaleOrderService
                 'cashier_id' => $actor->id,
                 'sale_date' => now()->toDateString(),
                 'locale' => $order->locale,
-                'payment_status' => 'paid',
+                'payment_status' => $this->saleService->resolvePaymentStatus($saleTotal, $saleAmountPaid),
                 'payment_method' => $paymentMethod,
                 'bank_account_id' => $order->bank_account_id,
                 'price_display' => 'plain',
                 'discount_type' => null,
                 'discount_value' => 0,
                 // POS sale has no shipping line — never pass online grand total here.
-                'amount_paid' => $saleTotal,
+                'amount_paid' => $saleAmountPaid,
                 'print_controls' => false,
                 'notes' => $notes,
                 'rows' => $rows,
@@ -261,9 +257,9 @@ class OnlineSaleOrderService
             $order->forceFill([
                 'sale_id' => $sale->id,
                 'order_status' => OnlineSaleOrder::STATUS_CONVERTED,
-                'payment_status' => 'paid',
+                'payment_status' => $orderPaymentStatus,
                 'payment_method' => $paymentMethod,
-                'amount_paid' => $orderTotal,
+                'amount_paid' => $orderPaid,
                 'converted_at' => now(),
                 'converted_by_id' => $actor->id,
                 // Skip the old "Ready for Queue" holding step — invoices enter dispatch immediately.
@@ -394,16 +390,28 @@ class OnlineSaleOrderService
                 ]);
             }
 
+            if ($order->customer_payment_proof_status !== OnlineSaleOrder::PROOF_SUBMITTED) {
+                throw ValidationException::withMessages([
+                    'order' => [__('online_sale_orders.messages.proof_not_submitted')],
+                ]);
+            }
+
+            if ($order->payment_method === '' || $order->payment_method === null) {
+                $order->payment_method = $order->customer_payment_method ?: 'bank_transfer';
+            }
+
+            if ($order->payment_method === 'bank_transfer' && ! $order->bank_account_id) {
+                throw ValidationException::withMessages([
+                    'bank_account_id' => [__('online_sale_orders.validation.bank_account_required_to_verify')],
+                ]);
+            }
+
             $order->customer_payment_proof_status = OnlineSaleOrder::PROOF_VERIFIED;
             $order->payment_proof_rejection_note = null;
             $order->payment_proof_reviewed_at = now();
             $order->payment_proof_reviewed_by_id = $reviewer->id;
             $order->payment_status = 'paid';
             $order->amount_paid = $order->total_amount;
-
-            if ($order->payment_method === '' || $order->payment_method === null) {
-                $order->payment_method = $order->customer_payment_method ?: 'bank_transfer';
-            }
 
             if ($order->order_status === OnlineSaleOrder::STATUS_PENDING) {
                 $order->order_status = OnlineSaleOrder::STATUS_PAYMENT_RECEIVED;
@@ -422,22 +430,54 @@ class OnlineSaleOrderService
 
     public function rejectCustomerPaymentProof(OnlineSaleOrder $order, User $reviewer, ?string $note = null): OnlineSaleOrder
     {
-        if ($order->isLocked()) {
-            throw ValidationException::withMessages([
-                'order' => [__('online_sale_orders.validation.converted_locked')],
-            ]);
+        return DB::transaction(function () use ($order, $reviewer, $note): OnlineSaleOrder {
+            $order = OnlineSaleOrder::query()->lockForUpdate()->findOrFail($order->id);
+
+            if ($order->isLocked()) {
+                throw ValidationException::withMessages([
+                    'order' => [__('online_sale_orders.validation.converted_locked')],
+                ]);
+            }
+
+            if ($order->customer_payment_proof_status !== OnlineSaleOrder::PROOF_SUBMITTED) {
+                throw ValidationException::withMessages([
+                    'order' => [__('online_sale_orders.messages.proof_not_submitted')],
+                ]);
+            }
+
+            $order->customer_payment_proof_status = OnlineSaleOrder::PROOF_REJECTED;
+            $order->payment_proof_rejection_note = filled($note) ? trim($note) : null;
+            $order->payment_proof_reviewed_at = now();
+            $order->payment_proof_reviewed_by_id = $reviewer->id;
+            $order->save();
+
+            $fresh = $order->fresh(['paymentProofReviewedBy', 'customer']);
+            app(\App\Services\Store\AgricartInboxService::class)->notifyPaymentProofRejected($fresh);
+
+            return $fresh;
+        });
+    }
+
+    /**
+     * Map online-order paid amount onto the POS sale (items only; shipping stays on the order).
+     */
+    private function saleAmountPaidFromOnlineOrder(
+        float $orderPaid,
+        float $orderTotal,
+        float $shippingAmount,
+        float $saleTotal,
+    ): float {
+        if ($orderPaid <= 0 || $saleTotal <= 0) {
+            return 0.0;
         }
 
-        $order->customer_payment_proof_status = OnlineSaleOrder::PROOF_REJECTED;
-        $order->payment_proof_rejection_note = filled($note) ? trim($note) : null;
-        $order->payment_proof_reviewed_at = now();
-        $order->payment_proof_reviewed_by_id = $reviewer->id;
-        $order->save();
+        if ($orderPaid + 0.00001 >= $orderTotal) {
+            return round($saleTotal, 2);
+        }
 
-        $fresh = $order->fresh(['paymentProofReviewedBy', 'customer']);
-        app(\App\Services\Store\AgricartInboxService::class)->notifyPaymentProofRejected($fresh);
+        $towardItems = max(0.0, round($orderPaid - $shippingAmount, 2));
 
-        return $fresh;
+        return min($saleTotal, $towardItems);
     }
 
     /**

@@ -295,6 +295,127 @@ class PhaseTwoTransactionIntegrityTest extends TestCase
         $this->assertSame(300.0, app(BankAccountService::class)->balance($bank->fresh()));
     }
 
+    public function test_convert_unpaid_bank_transfer_does_not_invent_payment_or_bank_credit(): void
+    {
+        $bank = $this->bank(0);
+        $category = Category::query()->create([
+            'slug' => 'phase2-unpaid-cat',
+            'status' => 'active',
+            'name_en' => 'Phase2 Unpaid',
+            'name_ur' => 'Phase2 Unpaid',
+        ]);
+        $product = Product::query()->create([
+            'category_id' => $category->id,
+            'slug' => 'phase2-unpaid-product',
+            'code' => 'P2-UNPAID',
+            'status' => 'active',
+            'name_en' => 'Unpaid Item',
+            'name_ur' => 'Unpaid Item',
+            'stock_qty' => 20,
+            'retail_price' => 300,
+        ]);
+        $customer = Customer::query()->create([
+            'customer_number' => 'CUS-PHASE2U',
+            'customer_channel' => Customer::CHANNEL_ONLINE,
+            'first_name' => 'Unpaid',
+            'last_name' => 'Convert',
+            'email' => 'phase2-unpaid@example.test',
+            'phone' => '03007654322',
+            'password' => bcrypt('password'),
+            'address_line1' => '1 Test Street',
+            'city' => 'Lahore',
+            'state' => 'Punjab',
+            'country' => 'Pakistan',
+            'is_active' => true,
+        ]);
+        $order = OnlineSaleOrder::query()->create([
+            'order_number' => 'WEB-PHASE2-UNPAID',
+            'customer_id' => $customer->id,
+            'order_date' => today(),
+            'order_status' => OnlineSaleOrder::STATUS_PENDING,
+            'payment_status' => 'unpaid',
+            'customer_payment_method' => 'bank_transfer',
+            'customer_payment_proof_status' => OnlineSaleOrder::PROOF_SUBMITTED,
+            'payment_method' => 'bank_transfer',
+            'bank_account_id' => $bank->id,
+            'subtotal' => 300,
+            'total_amount' => 300,
+            'amount_paid' => 0,
+        ]);
+        $order->items()->create([
+            'product_id' => $product->id,
+            'sort_order' => 1,
+            'product_name_en' => 'Unpaid Item',
+            'quantity' => 1,
+            'unit_price' => 300,
+            'line_total' => 300,
+        ]);
+
+        $actor = User::factory()->create();
+        $sale = app(OnlineSaleOrderService::class)->convertToSale($order->fresh(['items']), $actor);
+
+        $order->refresh();
+        $this->assertSame(OnlineSaleOrder::STATUS_CONVERTED, $order->order_status);
+        $this->assertSame('unpaid', $order->payment_status);
+        $this->assertSame(0.0, (float) $order->amount_paid);
+        $this->assertSame(OnlineSaleOrder::PROOF_SUBMITTED, $order->customer_payment_proof_status);
+        $this->assertSame('unpaid', $sale->payment_status);
+        $this->assertSame(0.0, (float) $sale->amount_paid);
+        $this->assertSame(0, BankAccountTransaction::query()
+            ->where('type', BankAccountTransaction::TYPE_SALE_RECEIPT)
+            ->where(function ($query) use ($order, $sale): void {
+                $query->where('online_sale_order_id', $order->id)
+                    ->orWhere('sale_id', $sale->id);
+            })
+            ->count());
+        $this->assertSame(0.0, app(BankAccountService::class)->balance($bank->fresh()));
+    }
+
+    public function test_verify_payment_proof_requires_bank_account(): void
+    {
+        $customer = Customer::query()->create([
+            'customer_number' => 'CUS-PHASE2V',
+            'customer_channel' => Customer::CHANNEL_ONLINE,
+            'first_name' => 'Verify',
+            'last_name' => 'Bank',
+            'email' => 'phase2-verify-bank@example.test',
+            'phone' => '03007654323',
+            'password' => bcrypt('password'),
+            'address_line1' => '1 Test Street',
+            'city' => 'Lahore',
+            'state' => 'Punjab',
+            'country' => 'Pakistan',
+            'is_active' => true,
+        ]);
+        $order = OnlineSaleOrder::query()->create([
+            'order_number' => 'WEB-PHASE2-NOBANK',
+            'customer_id' => $customer->id,
+            'order_date' => today(),
+            'order_status' => OnlineSaleOrder::STATUS_PENDING,
+            'payment_status' => 'unpaid',
+            'customer_payment_method' => 'bank_transfer',
+            'customer_payment_proof_status' => OnlineSaleOrder::PROOF_SUBMITTED,
+            'payment_method' => 'bank_transfer',
+            'bank_account_id' => null,
+            'subtotal' => 150,
+            'total_amount' => 150,
+            'amount_paid' => 0,
+        ]);
+        $reviewer = User::factory()->create();
+
+        try {
+            app(OnlineSaleOrderService::class)->verifyCustomerPaymentProof($order, $reviewer);
+            $this->fail('Verify without bank account should fail.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('bank_account_id', $exception->errors());
+        }
+
+        $order->refresh();
+        $this->assertSame(OnlineSaleOrder::PROOF_SUBMITTED, $order->customer_payment_proof_status);
+        $this->assertSame('unpaid', $order->payment_status);
+        $this->assertSame(0.0, (float) $order->amount_paid);
+    }
+
     public function test_negative_and_nonnumeric_sale_and_purchase_inputs_are_rejected(): void
     {
         $product = $this->product('VALIDATION');

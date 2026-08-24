@@ -514,12 +514,20 @@ class Form extends Component
             return;
         }
 
+        if (! $this->validateStatuses()) {
+            return;
+        }
+
         $this->saving = true;
         $this->dispatchBusyState();
 
         try {
+            if (! $this->persistAdmin()) {
+                return;
+            }
+
             $order = OnlineSaleOrder::query()->findOrFail($this->orderId);
-            app(OnlineSaleOrderService::class)->verifyCustomerPaymentProof($order, auth()->user());
+            app(OnlineSaleOrderService::class)->verifyCustomerPaymentProof($order->fresh(), auth()->user());
             $this->setStatus(__('online_sale_orders.messages.proof_verified'), 'success');
             $this->loadOrder($this->orderId);
             $this->dispatch('online-sale-orders-saved');
