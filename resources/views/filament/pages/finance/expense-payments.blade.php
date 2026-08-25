@@ -8,6 +8,14 @@
                     input.checked = columns.includes(input.value);
                 });
             });
+
+            Livewire.on('finance-expense-payments-open-print', (payload) => {
+                const url = payload?.url ?? payload?.[0]?.url;
+
+                if (url) {
+                    window.open(url, '_blank');
+                }
+            });
         </script>
     @endscript
 

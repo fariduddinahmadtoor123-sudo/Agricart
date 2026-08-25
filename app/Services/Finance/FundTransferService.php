@@ -9,21 +9,29 @@ use App\Models\FundTransfer;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Services\Identifiers\DocumentCounterService;
+use App\Services\Media\OptimizedImageStorage;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class FundTransferService
 {
     public function __construct(
         private BankAccountService $bankAccountService,
         private CashBookService $cashBookService,
+        private OptimizedImageStorage $images,
     ) {}
 
     /**
      * @param  array<string, mixed>  $data
      */
-    public function record(array $data, ?User $actor = null): FundTransfer
-    {
+    public function record(
+        array $data,
+        ?User $actor = null,
+        TemporaryUploadedFile|UploadedFile|null $receipt = null,
+    ): FundTransfer {
         $actor ??= auth()->user();
         $validated = $this->validate($data);
         $amount = round((float) $validated['amount'], 2);
@@ -31,7 +39,7 @@ class FundTransferService
         $notes = filled($validated['notes'] ?? null) ? (string) $validated['notes'] : null;
         $type = (string) $validated['transaction_type'];
 
-        return DB::transaction(function () use ($validated, $amount, $date, $notes, $type, $actor): FundTransfer {
+        return DB::transaction(function () use ($validated, $amount, $date, $notes, $type, $actor, $receipt): FundTransfer {
             $transfer = FundTransfer::query()->create([
                 'transfer_number' => $this->nextTransferNumber(),
                 'transaction_type' => $type,
@@ -67,6 +75,46 @@ class FundTransferService
                 ]),
             };
 
+            if ($receipt !== null) {
+                $transfer->update([
+                    'bank_receipt_path' => $this->storeReceipt($receipt),
+                ]);
+            }
+
+            return $transfer->fresh();
+        });
+    }
+
+    public function updateMeta(
+        FundTransfer $transfer,
+        ?string $notes,
+        TemporaryUploadedFile|UploadedFile|null $receipt = null,
+        bool $removeReceipt = false,
+    ): FundTransfer {
+        $validated = validator(['notes' => $notes], [
+            'notes' => ['nullable', 'string', 'max:2000'],
+        ])->validate();
+
+        return DB::transaction(function () use ($transfer, $validated, $receipt, $removeReceipt): FundTransfer {
+            $payload = [
+                'notes' => $validated['notes'] ?? null,
+            ];
+
+            if ($removeReceipt && filled($transfer->bank_receipt_path)) {
+                $this->deleteReceipt($transfer->bank_receipt_path);
+                $payload['bank_receipt_path'] = null;
+            }
+
+            if ($receipt !== null) {
+                if (filled($transfer->bank_receipt_path)) {
+                    $this->deleteReceipt($transfer->bank_receipt_path);
+                }
+
+                $payload['bank_receipt_path'] = $this->storeReceipt($receipt);
+            }
+
+            $transfer->update($payload);
+
             return $transfer->fresh();
         });
     }
@@ -74,6 +122,21 @@ class FundTransferService
     public function formatMoney(float $amount): string
     {
         return $this->bankAccountService->formatMoney($amount);
+    }
+
+    private function storeReceipt(TemporaryUploadedFile|UploadedFile $file): string
+    {
+        return $this->images->store(
+            $file,
+            'finance/fund-transfers/receipts',
+            'bill',
+            (string) config('media.disk', 'public'),
+        );
+    }
+
+    private function deleteReceipt(string $path): void
+    {
+        Storage::disk((string) config('media.disk', 'public'))->delete($path);
     }
 
     private function postDeposit(FundTransfer $transfer, ?User $actor): void

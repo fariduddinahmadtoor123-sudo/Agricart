@@ -229,6 +229,38 @@
         @error('notes') <p class="agricart-form-panel__error">{{ $message }}</p> @enderror
     </div>
 
+    <div class="agricart-form-panel__field agricart-finance-expense-form__bill">
+        <span class="agricart-form-panel__label">{{ __('agricart.finance.expense_payments.fields.bank_receipt') }}</span>
+        <div class="agricart-purchase-form__bill-slot agricart-finance-expense-form__bill-slot">
+            @if ($bankReceiptPreviewUrl)
+                <div class="agricart-purchase-form__bill-upload is-filled">
+                    <img src="{{ $bankReceiptPreviewUrl }}" alt="" class="agricart-purchase-form__bill-preview" />
+                    <div class="agricart-purchase-form__bill-overlay">
+                        <a href="{{ $bankReceiptPreviewUrl }}" target="_blank" class="agricart-purchase-form__bill-overlay-btn" title="{{ __('agricart.finance.expense_payments.actions.view_receipt') }}">
+                            <x-filament::icon :icon="\Filament\Support\Icons\Heroicon::OutlinedEye" class="agricart-purchase-form__bill-overlay-icon" />
+                        </a>
+                        @unless ($readonly)
+                            <button type="button" class="agricart-purchase-form__bill-overlay-btn is-danger" wire:click="removeBankReceipt" title="{{ __('agricart.finance.expense_payments.actions.remove_receipt') }}">
+                                <x-filament::icon :icon="\Filament\Support\Icons\Heroicon::OutlinedTrash" class="agricart-purchase-form__bill-overlay-icon" />
+                            </button>
+                        @endunless
+                    </div>
+                </div>
+            @elseif (! $readonly)
+                <label class="agricart-purchase-form__bill-upload" title="{{ __('agricart.finance.expense_payments.actions.receipt_upload') }}">
+                    <x-filament::icon :icon="\Filament\Support\Icons\Heroicon::OutlinedDocumentText" class="agricart-purchase-form__bill-icon" />
+                    <span class="agricart-purchase-form__bill-label">{{ __('agricart.finance.expense_payments.actions.receipt_upload') }}</span>
+                    <input type="file" accept="image/*" wire:model="bankReceiptUpload" class="agricart-category-form__file-input" />
+                </label>
+                <div wire:loading wire:target="bankReceiptUpload" class="agricart-purchase-form__bill-loading">{{ __('agricart.finance.expense_payments.actions.receipt_uploading') }}</div>
+            @else
+                <p class="agricart-form-panel__hint">{{ __('agricart.finance.expense_payments.hints.bank_receipt_empty') }}</p>
+            @endif
+        </div>
+        @error('bankReceiptUpload') <p class="agricart-form-panel__error">{{ $message }}</p> @enderror
+        <p class="agricart-form-panel__hint">{{ __('agricart.finance.expense_payments.hints.bank_receipt') }}</p>
+    </div>
+
     @if ($paymentLocked)
         <p class="agricart-form-panel__hint agricart-finance-expense-payment-form__hint-box">{{ __('agricart.finance.expense_payments.hints.payment_locked') }}</p>
     @endif

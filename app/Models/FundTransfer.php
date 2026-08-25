@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class FundTransfer extends Model
 {
@@ -46,6 +47,7 @@ class FundTransfer extends Model
         'transaction_date',
         'transaction_time',
         'notes',
+        'bank_receipt_path',
         'handled_by_name',
         'created_by',
     ];
@@ -56,6 +58,13 @@ class FundTransfer extends Model
             'amount' => 'decimal:2',
             'transaction_date' => 'date',
         ];
+    }
+
+    public function bankReceiptUrl(): ?string
+    {
+        return filled($this->bank_receipt_path)
+            ? Storage::disk((string) config('media.disk', 'public'))->url($this->bank_receipt_path)
+            : null;
     }
 
     /**

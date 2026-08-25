@@ -14,10 +14,13 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\WithFileUploads;
 
 class FundTransferForm extends Component
 {
     use AuthorizesSensitiveActions;
+    use WithFileUploads;
 
     public const TYPE_DEPOSIT = FundTransfer::TYPE_DEPOSIT;
 
@@ -74,6 +77,14 @@ class FundTransferForm extends Component
 
     public string $handled_by_name = '';
 
+    public ?TemporaryUploadedFile $bankReceiptUpload = null;
+
+    public ?string $storedBankReceiptPath = null;
+
+    public ?string $bankReceiptPreviewUrl = null;
+
+    public bool $remove_bank_receipt = false;
+
     public bool $saving = false;
 
     public ?string $statusMessage = null;
@@ -83,67 +94,117 @@ class FundTransferForm extends Component
     #[On('finance-fund-transfer-form-open')]
     public function openForm(?int $transferId = null, ?string $mode = null): void
     {
-        $this->authorizeAny($transferId ? 'finance.cash-bank-transfers.edit' : ['finance.cash-bank-transfers.create', 'finance.cash-bank-transfers.edit']);
+        $resolvedMode = $mode ?? ($transferId ? 'edit' : 'create');
+        $this->authorizeAny(
+            $resolvedMode === 'view'
+                ? ['finance.cash-bank-transfers.view', 'finance.cash-bank-transfers.edit']
+                : ($transferId ? 'finance.cash-bank-transfers.edit' : ['finance.cash-bank-transfers.create', 'finance.cash-bank-transfers.edit'])
+        );
+
         $this->resetValidation();
         $this->statusMessage = null;
-        $this->mode = $mode ?? ($transferId ? 'edit' : 'create');
+        $this->mode = $resolvedMode;
         $this->transferId = $transferId;
-        $this->resetFormFields();
+
+        if ($this->transferId !== null) {
+            $this->loadTransfer();
+        } else {
+            $this->resetFormFields();
+        }
     }
 
     #[On('finance-fund-transfer-form-action')]
     public function handlePanelAction(string $action): void
     {
-        $this->authorizeAny($this->transferId ? 'finance.cash-bank-transfers.edit' : ['finance.cash-bank-transfers.create', 'finance.cash-bank-transfers.edit']);
+        $this->authorizeAny($this->requiredActionPermission());
 
-        if ($action === 'save_close') {
-            if ($this->saving) {
-                return;
-            }
-
-            $this->saveAndClose();
-        }
+        match ($action) {
+            'save_close' => $this->saveAndClose(),
+            'print' => $this->print(),
+            default => null,
+        };
     }
 
     public function updatedTransactionType(): void
     {
-        $this->authorizeAny($this->transferId ? 'finance.cash-bank-transfers.edit' : ['finance.cash-bank-transfers.create', 'finance.cash-bank-transfers.edit']);
+        if ($this->transferLocked() || $this->isReadonly()) {
+            return;
+        }
+
+        $this->authorizeAny(['finance.cash-bank-transfers.create', 'finance.cash-bank-transfers.edit']);
         $this->applyTypeDefaults();
     }
 
     public function updatedSourceWallet(): void
     {
-        $this->authorizeAny($this->transferId ? 'finance.cash-bank-transfers.edit' : ['finance.cash-bank-transfers.create', 'finance.cash-bank-transfers.edit']);
+        if ($this->transferLocked() || $this->isReadonly()) {
+            return;
+        }
+
+        $this->authorizeAny(['finance.cash-bank-transfers.create', 'finance.cash-bank-transfers.edit']);
 
         if ($this->source_wallet === self::SOURCE_CASH) {
             $this->source_bank_account_id = null;
         }
     }
 
-    public function saveAndClose(): void
+    public function updatedBankReceiptUpload(): void
     {
-        $this->authorizeAny($this->transferId ? 'finance.cash-bank-transfers.edit' : ['finance.cash-bank-transfers.create', 'finance.cash-bank-transfers.edit']);
-
-        if ($this->saving) {
+        if ($this->isReadonly()) {
             return;
         }
 
-        $this->validate($this->rules());
+        $this->validateOnly('bankReceiptUpload', [
+            'bankReceiptUpload' => ['nullable', 'image', 'max:12288'],
+        ]);
 
-        $this->saving = true;
-        $this->dispatch('finance-fund-transfer-form-busy', saving: true);
+        $this->bankReceiptPreviewUrl = $this->bankReceiptUpload?->temporaryUrl();
+        $this->remove_bank_receipt = false;
+    }
 
-        try {
-            $transfer = app(FundTransferService::class)->record($this->payload(), auth()->user());
-            $this->transaction_number = $transfer->transfer_number;
-            $this->dispatch('finance-fund-transfers-saved');
-            $this->dispatch('close-form-panel');
-        } catch (ValidationException $exception) {
-            $this->setErrorBag($exception->validator->getMessageBag());
-        } finally {
-            $this->saving = false;
-            $this->dispatch('finance-fund-transfer-form-busy', saving: false);
+    public function removeBankReceipt(): void
+    {
+        if ($this->isReadonly()) {
+            return;
         }
+
+        $this->bankReceiptUpload = null;
+        $this->bankReceiptPreviewUrl = null;
+        $this->storedBankReceiptPath = null;
+        $this->remove_bank_receipt = true;
+    }
+
+    public function saveAndClose(): void
+    {
+        if ($this->persist()) {
+            $this->dispatch('close-form-panel');
+        }
+    }
+
+    public function print(): void
+    {
+        $this->authorizeAny(['finance.cash-bank-transfers.view', 'finance.cash-bank-transfers.edit']);
+
+        if ($this->transferId === null) {
+            return;
+        }
+
+        $this->dispatch('finance-fund-transfers-open-print', url: route('admin.fund-transfers.print', [
+            'transfer' => $this->transferId,
+            'paper' => 'a4',
+            'locale' => app()->getLocale(),
+            'autoprint' => 1,
+        ]));
+    }
+
+    public function isReadonly(): bool
+    {
+        return $this->mode === 'view' || ! $this->canEditFields();
+    }
+
+    public function transferLocked(): bool
+    {
+        return $this->mode !== 'create';
     }
 
     /**
@@ -163,7 +224,7 @@ class FundTransferForm extends Component
             'amount' => $this->amount,
             'transaction_date' => $this->transaction_date,
             'transaction_time' => $this->transaction_time,
-            'notes' => $this->notes,
+            'notes' => $this->notes !== '' ? $this->notes : null,
             'handled_by_name' => $this->handled_by_name,
         ];
     }
@@ -173,12 +234,19 @@ class FundTransferForm extends Component
      */
     protected function rules(): array
     {
+        if ($this->transferLocked()) {
+            return [
+                'notes' => ['nullable', 'string', 'max:2000'],
+            ];
+        }
+
         $rules = [
             'transaction_type' => ['required', 'in:deposit,withdrawal,external_deposit,external_withdrawal,transfer,vendor_payment,customer_receipt,expense_payment,purchaser_payment'],
             'amount' => ['required', 'numeric', 'min:0.01'],
             'transaction_date' => ['required', 'date'],
             'transaction_time' => ['required', 'date_format:H:i'],
             'handled_by_name' => ['nullable', 'string', 'max:120'],
+            'notes' => ['nullable', 'string', 'max:2000'],
         ];
 
         if ($this->requiresSourceBank()) {
@@ -293,7 +361,7 @@ class FundTransferForm extends Component
 
     public function render(): View
     {
-        if (! $this->canAccessAny(['finance.cash-bank-transfers.create', 'finance.cash-bank-transfers.edit'])) {
+        if (! $this->canAccessAny(['finance.cash-bank-transfers.view', 'finance.cash-bank-transfers.create', 'finance.cash-bank-transfers.edit'])) {
             return view('livewire.finance.fund-transfers.form', [
                 'transactionTypeOptions' => [],
                 'sourceWalletOptions' => [],
@@ -330,6 +398,94 @@ class FundTransferForm extends Component
         ]);
     }
 
+    private function persist(): bool
+    {
+        $this->authorizeAny($this->transferId ? 'finance.cash-bank-transfers.edit' : ['finance.cash-bank-transfers.create', 'finance.cash-bank-transfers.edit']);
+
+        if ($this->saving || $this->mode === 'view' || ! $this->canEditFields()) {
+            return false;
+        }
+
+        $this->validate($this->rules());
+
+        if ($this->bankReceiptUpload !== null) {
+            $this->validate([
+                'bankReceiptUpload' => ['nullable', 'image', 'max:12288'],
+            ]);
+        }
+
+        $this->saving = true;
+        $this->dispatch('finance-fund-transfer-form-busy', saving: true);
+
+        try {
+            $service = app(FundTransferService::class);
+
+            if ($this->mode === 'create') {
+                $transfer = $service->record($this->payload(), auth()->user(), $this->bankReceiptUpload);
+                $this->mode = 'edit';
+                $this->transferId = $transfer->id;
+                $this->transaction_number = $transfer->transfer_number;
+                $this->storedBankReceiptPath = $transfer->bank_receipt_path;
+                $this->bankReceiptPreviewUrl = $transfer->bankReceiptUrl();
+            } elseif ($this->transferId !== null) {
+                $transfer = FundTransfer::query()->findOrFail($this->transferId);
+                $transfer = $service->updateMeta(
+                    $transfer,
+                    $this->notes !== '' ? $this->notes : null,
+                    $this->bankReceiptUpload,
+                    $this->remove_bank_receipt,
+                );
+                $this->storedBankReceiptPath = $transfer->bank_receipt_path;
+                $this->bankReceiptPreviewUrl = $transfer->bankReceiptUrl();
+            } else {
+                return false;
+            }
+
+            $this->bankReceiptUpload = null;
+            $this->remove_bank_receipt = false;
+            $this->dispatch('finance-fund-transfers-saved');
+            $this->setStatus(__('agricart.finance.fund_transfers.messages.saved'), 'success');
+
+            return true;
+        } catch (ValidationException $exception) {
+            $this->setErrorBag($exception->validator->getMessageBag());
+
+            return false;
+        } finally {
+            $this->saving = false;
+            $this->dispatch('finance-fund-transfer-form-busy', saving: false);
+        }
+    }
+
+    private function loadTransfer(): void
+    {
+        $this->authorizeAny(
+            $this->mode === 'view'
+                ? ['finance.cash-bank-transfers.view', 'finance.cash-bank-transfers.edit']
+                : 'finance.cash-bank-transfers.edit'
+        );
+
+        $transfer = FundTransfer::query()->findOrFail($this->transferId);
+        $this->transaction_type = (string) $transfer->transaction_type;
+        $this->source_wallet = (string) ($transfer->source_wallet ?: self::SOURCE_CASH);
+        $this->source_bank_account_id = $transfer->source_bank_account_id;
+        $this->destination_bank_account_id = $transfer->destination_bank_account_id;
+        $this->destination_supplier_id = $transfer->destination_supplier_id;
+        $this->destination_customer_id = $transfer->destination_customer_id;
+        $this->destination_purchaser_id = $transfer->destination_purchaser_id;
+        $this->destination_expense_id = $transfer->destination_expense_id;
+        $this->amount = (string) $transfer->amount;
+        $this->transaction_date = $transfer->transaction_date?->format('Y-m-d') ?? '';
+        $this->transaction_time = $transfer->transaction_time ? substr((string) $transfer->transaction_time, 0, 5) : '';
+        $this->transaction_number = (string) $transfer->transfer_number;
+        $this->notes = (string) ($transfer->notes ?? '');
+        $this->handled_by_name = (string) ($transfer->handled_by_name ?? '');
+        $this->bankReceiptUpload = null;
+        $this->remove_bank_receipt = false;
+        $this->storedBankReceiptPath = $transfer->bank_receipt_path;
+        $this->bankReceiptPreviewUrl = $transfer->bankReceiptUrl();
+    }
+
     private function resetFormFields(): void
     {
         $this->transaction_type = self::TYPE_DEPOSIT;
@@ -346,6 +502,10 @@ class FundTransferForm extends Component
         $this->transaction_number = '';
         $this->transaction_date = now()->format('Y-m-d');
         $this->transaction_time = now()->format('H:i');
+        $this->bankReceiptUpload = null;
+        $this->storedBankReceiptPath = null;
+        $this->bankReceiptPreviewUrl = null;
+        $this->remove_bank_receipt = false;
         $this->applyTypeDefaults();
     }
 
@@ -485,6 +645,26 @@ class FundTransferForm extends Component
     public function typeHint(): string
     {
         return __('agricart.finance.fund_transfers.hints.'.$this->transaction_type);
+    }
+
+    private function canEditFields(): bool
+    {
+        return $this->canAccessAny(
+            $this->transferId ? 'finance.cash-bank-transfers.edit' : ['finance.cash-bank-transfers.create', 'finance.cash-bank-transfers.edit']
+        );
+    }
+
+    private function requiredActionPermission(): array|string
+    {
+        return $this->isReadonly()
+            ? ['finance.cash-bank-transfers.view', 'finance.cash-bank-transfers.edit']
+            : ($this->transferId ? 'finance.cash-bank-transfers.edit' : ['finance.cash-bank-transfers.create', 'finance.cash-bank-transfers.edit']);
+    }
+
+    private function setStatus(string $message, string $type): void
+    {
+        $this->statusMessage = $message;
+        $this->statusType = $type;
     }
 
     private function formattedDateTime(): string

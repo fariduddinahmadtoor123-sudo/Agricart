@@ -12,10 +12,13 @@ use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\WithFileUploads;
 
 class ExpensePaymentForm extends Component
 {
     use AuthorizesSensitiveActions;
+    use WithFileUploads;
 
     public string $mode = 'create';
 
@@ -36,6 +39,14 @@ class ExpensePaymentForm extends Component
     public ?int $bank_account_id = null;
 
     public string $notes = '';
+
+    public ?TemporaryUploadedFile $bankReceiptUpload = null;
+
+    public ?string $storedBankReceiptPath = null;
+
+    public ?string $bankReceiptPreviewUrl = null;
+
+    public bool $remove_bank_receipt = false;
 
     public bool $saving = false;
 
@@ -76,8 +87,35 @@ class ExpensePaymentForm extends Component
         match ($action) {
             'save_close' => $this->saveAndClose(),
             'save_next' => $this->saveAndAddNext(),
+            'print' => $this->print(),
             default => null,
         };
+    }
+
+    public function updatedBankReceiptUpload(): void
+    {
+        if ($this->isReadonly()) {
+            return;
+        }
+
+        $this->validateOnly('bankReceiptUpload', [
+            'bankReceiptUpload' => ['nullable', 'image', 'max:12288'],
+        ]);
+
+        $this->bankReceiptPreviewUrl = $this->bankReceiptUpload?->temporaryUrl();
+        $this->remove_bank_receipt = false;
+    }
+
+    public function removeBankReceipt(): void
+    {
+        if ($this->isReadonly()) {
+            return;
+        }
+
+        $this->bankReceiptUpload = null;
+        $this->bankReceiptPreviewUrl = null;
+        $this->storedBankReceiptPath = null;
+        $this->remove_bank_receipt = true;
     }
 
     public function saveAndClose(): void
@@ -104,14 +142,30 @@ class ExpensePaymentForm extends Component
         }
     }
 
+    public function print(): void
+    {
+        $this->authorizeAny(['finance.expense-payments.view', 'finance.expense-payments.edit']);
+
+        if ($this->paymentId === null) {
+            return;
+        }
+
+        $this->dispatch('finance-expense-payments-open-print', url: route('admin.expense-payments.print', [
+            'payment' => $this->paymentId,
+            'paper' => 'a4',
+            'locale' => app()->getLocale(),
+            'autoprint' => 1,
+        ]));
+    }
+
     public function isReadonly(): bool
     {
-        return ! $this->canEditFields();
+        return $this->mode === 'view' || ! $this->canEditFields();
     }
 
     public function paymentLocked(): bool
     {
-        return $this->mode === 'edit';
+        return $this->mode !== 'create';
     }
 
     public function selectedExpense(): ?Expense
@@ -149,7 +203,7 @@ class ExpensePaymentForm extends Component
     {
         $this->authorizeAny($this->paymentId ? 'finance.expense-payments.edit' : 'finance.expense-payments.create');
 
-        if ($this->saving || ! $this->canEditFields()) {
+        if ($this->saving || $this->mode === 'view' || ! $this->canEditFields()) {
             return false;
         }
 
@@ -157,18 +211,35 @@ class ExpensePaymentForm extends Component
         $this->dispatch('finance-expense-payment-form-busy', saving: true);
 
         try {
+            if ($this->bankReceiptUpload !== null) {
+                $this->validate([
+                    'bankReceiptUpload' => ['nullable', 'image', 'max:12288'],
+                ]);
+            }
+
             $service = app(ExpensePaymentService::class);
 
             if ($this->mode === 'create') {
-                $payment = $service->create($this->payload());
+                $payment = $service->create($this->payload(), null, $this->bankReceiptUpload);
                 $this->mode = 'edit';
                 $this->paymentId = $payment->id;
                 $this->payment_number = $payment->payment_number;
+                $this->storedBankReceiptPath = $payment->bank_receipt_path;
+                $this->bankReceiptPreviewUrl = $payment->bankReceiptUrl();
             } elseif ($this->paymentId !== null) {
                 $payment = ExpensePayment::query()->findOrFail($this->paymentId);
-                $service->update($payment, ['notes' => $this->notes !== '' ? $this->notes : null]);
+                $payment = $service->update(
+                    $payment,
+                    ['notes' => $this->notes !== '' ? $this->notes : null],
+                    $this->bankReceiptUpload,
+                    $this->remove_bank_receipt,
+                );
+                $this->storedBankReceiptPath = $payment->bank_receipt_path;
+                $this->bankReceiptPreviewUrl = $payment->bankReceiptUrl();
             }
 
+            $this->bankReceiptUpload = null;
+            $this->remove_bank_receipt = false;
             $this->dispatch('finance-expense-payments-saved');
             $this->setStatus(__('agricart.finance.expense_payments.messages.saved'), 'success');
 
@@ -213,6 +284,10 @@ class ExpensePaymentForm extends Component
         $this->source_wallet = (string) $payment->source_wallet;
         $this->bank_account_id = $payment->bank_account_id;
         $this->notes = (string) ($payment->notes ?? '');
+        $this->bankReceiptUpload = null;
+        $this->remove_bank_receipt = false;
+        $this->storedBankReceiptPath = $payment->bank_receipt_path;
+        $this->bankReceiptPreviewUrl = $payment->bankReceiptUrl();
     }
 
     private function resetFields(): void
@@ -225,6 +300,10 @@ class ExpensePaymentForm extends Component
         $this->source_wallet = ExpensePayment::WALLET_CASH;
         $this->bank_account_id = null;
         $this->notes = '';
+        $this->bankReceiptUpload = null;
+        $this->storedBankReceiptPath = null;
+        $this->bankReceiptPreviewUrl = null;
+        $this->remove_bank_receipt = false;
     }
 
     private function canEditFields(): bool

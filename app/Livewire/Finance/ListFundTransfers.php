@@ -44,6 +44,54 @@ class ListFundTransfers extends Component
         );
     }
 
+    public function openView(int $transferId): void
+    {
+        if (! $this->userCan('view')) {
+            return;
+        }
+
+        $transfer = FundTransfer::query()->find($transferId);
+
+        if ($transfer === null) {
+            return;
+        }
+
+        $this->dispatch(
+            'open-form-panel',
+            title: __('agricart.finance.fund_transfers.actions.view', [
+                'number' => $transfer->transfer_number,
+            ]),
+            resource: __('agricart.nav.finance.cash-bank-transfers'),
+            formKey: 'finance-fund-transfer',
+            transferId: $transferId,
+            mode: 'view',
+        );
+    }
+
+    public function openEdit(int $transferId): void
+    {
+        if (! $this->userCan('edit')) {
+            return;
+        }
+
+        $transfer = FundTransfer::query()->find($transferId);
+
+        if ($transfer === null) {
+            return;
+        }
+
+        $this->dispatch(
+            'open-form-panel',
+            title: __('agricart.finance.fund_transfers.actions.edit', [
+                'number' => $transfer->transfer_number,
+            ]),
+            resource: __('agricart.nav.finance.cash-bank-transfers'),
+            formKey: 'finance-fund-transfer',
+            transferId: $transferId,
+            mode: 'edit',
+        );
+    }
+
     public function render(): View
     {
         $service = app(FundTransferService::class);
@@ -76,6 +124,8 @@ class ListFundTransfers extends Component
             'typeLabel' => fn (FundTransfer $transfer): string => (string) (__('agricart.finance.fund_transfers.types.' . $transfer->transaction_type) ?: $transfer->transaction_type),
             'sourceLabel' => fn (FundTransfer $transfer): string => $this->sourceLabel($transfer),
             'destinationLabel' => fn (FundTransfer $transfer): string => $this->destinationLabel($transfer),
+            'canView' => $this->userCan('view'),
+            'canEdit' => $this->userCan('edit'),
         ]);
     }
 

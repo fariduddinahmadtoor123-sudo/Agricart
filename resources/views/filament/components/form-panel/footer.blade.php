@@ -258,6 +258,21 @@
             tag="button"
             type="button"
             class="agricart-form-panel__action-btn"
+            x-show="(formKey === 'finance-fund-transfer' || formKey === 'finance-expense-payment') && formMode !== 'create'"
+            x-cloak
+            x-on:click="handleAction('print')"
+        >
+            <span x-show="formKey === 'finance-fund-transfer'">{{ __('agricart.finance.fund_transfers.actions.print') }}</span>
+            <span x-show="formKey === 'finance-expense-payment'">{{ __('agricart.finance.expense_payments.actions.print') }}</span>
+        </x-filament::button>
+
+        <x-filament::button
+            color="gray"
+            outlined
+            :icon="Heroicon::OutlinedPrinter"
+            tag="button"
+            type="button"
+            class="agricart-form-panel__action-btn"
             x-show="formKey === 'suppliers' && formMode !== 'create'"
             x-cloak
             x-on:click="handleAction('print')"

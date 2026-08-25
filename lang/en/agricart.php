@@ -1157,6 +1157,15 @@ return [
         'fund_transfers' => [
             'actions' => [
                 'add' => 'Record fund transfer',
+                'view' => 'View — :number',
+                'edit' => 'Edit — :number',
+                'view_short' => 'View',
+                'edit_short' => 'Edit',
+                'print' => 'Print',
+                'receipt_upload' => 'Upload receipt',
+                'receipt_uploading' => 'Uploading…',
+                'view_receipt' => 'View receipt',
+                'remove_receipt' => 'Remove receipt',
             ],
             'sections' => [
                 'source' => 'Source',
@@ -1177,6 +1186,7 @@ return [
                 'time' => 'Time',
                 'notes' => 'Reference / notes',
                 'handled_by_name' => 'Person who handled cash',
+                'bank_receipt' => 'Bank receipt',
             ],
             'types' => [
                 'deposit' => 'Deposit (cash → bank)',
@@ -1213,6 +1223,9 @@ return [
                 'customer_receipt' => 'Record a customer payment into cash or a bank account. This reduces receivables without editing an invoice.',
                 'expense_payment' => 'Pay an expense head from cash or a bank account. This posts an expense payment and completes the current bill cycle.',
                 'purchaser_payment' => 'Pay a purchaser or staff payee from cash or a bank account. This does not create an expense-head payment.',
+                'bank_receipt' => 'Attach a phone photo of the bank slip or transfer receipt. It is resized and saved as a compact WebP.',
+                'bank_receipt_empty' => 'No bank receipt attached.',
+                'transfer_locked' => 'Type, wallets, amount, and date are locked after save because the ledger was posted. You can still update notes and the bank receipt.',
             ],
             'list' => [
                 'empty' => 'No fund transfers recorded yet. Use Add to record a deposit, withdrawal, transfer, or payment.',
@@ -1221,6 +1234,10 @@ return [
                 'col_type' => 'Type',
                 'col_amount' => 'Amount',
                 'col_handled_by' => 'Handled by',
+                'col_actions' => 'Actions',
+            ],
+            'print' => [
+                'title' => 'Fund transfer',
             ],
             'ledger' => [
                 'cash_deposit' => 'Cash deposit — :number',
@@ -1378,7 +1395,13 @@ return [
                 'add' => 'Add payment',
                 'edit' => 'Edit — :name',
                 'view' => 'View — :name',
+                'view_short' => 'View',
                 'edit_short' => 'Edit',
+                'print' => 'Print',
+                'receipt_upload' => 'Upload receipt',
+                'receipt_uploading' => 'Uploading…',
+                'view_receipt' => 'View receipt',
+                'remove_receipt' => 'Remove receipt',
             ],
             'fields' => [
                 'payment_number' => 'Payment number',
@@ -1393,6 +1416,7 @@ return [
                 'bank_account_none' => 'Select bank account',
                 'notes' => 'Notes',
                 'notes_placeholder' => 'Optional payment reference or remark…',
+                'bank_receipt' => 'Bank receipt',
             ],
             'wallets' => [
                 'cash' => 'Cash book',
@@ -1408,11 +1432,17 @@ return [
                 'col_wallet' => 'Paid from',
                 'col_actions' => 'Actions',
             ],
+            'print' => [
+                'title' => 'Expense payment',
+                'handled_by' => 'Recorded by',
+            ],
             'ledger' => [
                 'posted' => 'Expense payment — :name (:number / :head)',
             ],
             'hints' => [
                 'payment_locked' => 'Amount, date, expense, and wallet are locked after save because the ledger was posted.',
+                'bank_receipt' => 'Attach a phone photo of the bank slip or transfer receipt. It is resized and saved as a compact WebP.',
+                'bank_receipt_empty' => 'No bank receipt attached.',
             ],
             'messages' => [
                 'saved' => 'Payment saved and ledger updated.',

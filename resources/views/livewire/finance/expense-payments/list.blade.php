@@ -51,9 +51,16 @@
                                 <td>{{ __('agricart.finance.expense_payments.wallets.'.$payment->source_wallet) }}</td>
                             @endif
                             <td class="agricart-categories__actions">
-                                <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $payment->id }})">
-                                    {{ __('agricart.finance.expense_payments.actions.edit_short') }}
-                                </button>
+                                @if ($canView)
+                                    <button type="button" class="agricart-categories__action" wire:click="openView({{ $payment->id }})">
+                                        {{ __('agricart.finance.expense_payments.actions.view_short') }}
+                                    </button>
+                                @endif
+                                @if ($canEdit)
+                                    <button type="button" class="agricart-categories__action" wire:click="openEdit({{ $payment->id }})">
+                                        {{ __('agricart.finance.expense_payments.actions.edit_short') }}
+                                    </button>
+                                @endif
                             </td>
                         </tr>
                     @endforeach

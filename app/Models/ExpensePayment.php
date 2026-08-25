@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class ExpensePayment extends Model
 {
@@ -28,6 +29,7 @@ class ExpensePayment extends Model
         'source_wallet',
         'bank_account_id',
         'notes',
+        'bank_receipt_path',
         'created_by',
         'fund_transfer_id',
     ];
@@ -38,6 +40,13 @@ class ExpensePayment extends Model
             'amount' => 'decimal:2',
             'payment_date' => 'date',
         ];
+    }
+
+    public function bankReceiptUrl(): ?string
+    {
+        return filled($this->bank_receipt_path)
+            ? Storage::disk((string) config('media.disk', 'public'))->url($this->bank_receipt_path)
+            : null;
     }
 
     /**

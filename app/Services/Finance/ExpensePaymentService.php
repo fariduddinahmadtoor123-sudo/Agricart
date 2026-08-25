@@ -7,23 +7,31 @@ use App\Models\Expense;
 use App\Models\ExpensePayment;
 use App\Models\User;
 use App\Services\Identifiers\DocumentCounterService;
+use App\Services\Media\OptimizedImageStorage;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 
 class ExpensePaymentService
 {
     public function __construct(
         private readonly CashBookService $cashBook,
         private readonly BankAccountService $banks,
+        private readonly OptimizedImageStorage $images,
     ) {}
 
     /**
      * @param  array<string, mixed>  $data
      */
-    public function create(array $data, ?User $actor = null): ExpensePayment
-    {
+    public function create(
+        array $data,
+        ?User $actor = null,
+        TemporaryUploadedFile|UploadedFile|null $receipt = null,
+    ): ExpensePayment {
         $validated = $this->validate($data);
         $actor ??= auth()->user();
 
@@ -32,13 +40,18 @@ class ExpensePaymentService
                 ? 'bank:'.($validated['bank_account_id'] ?? 'none')
                 : 'cash');
 
-        return Cache::lock($lockKey, 15)->block(10, function () use ($validated, $actor): ExpensePayment {
-            return DB::transaction(function () use ($validated, $actor): ExpensePayment {
+        return Cache::lock($lockKey, 15)->block(10, function () use ($validated, $actor, $receipt): ExpensePayment {
+            return DB::transaction(function () use ($validated, $actor, $receipt): ExpensePayment {
                 if (! filled($validated['payment_number'] ?? null)) {
                     $validated['payment_number'] = $this->nextPaymentNumber();
                 }
 
                 $validated['created_by'] = $actor?->id;
+
+                if ($receipt !== null) {
+                    $validated['bank_receipt_path'] = $this->storeReceipt($receipt);
+                }
+
                 $payment = ExpensePayment::query()->create($validated);
                 $this->postLedger($payment, $actor);
                 $payment->load(['expense', 'createdBy']);
@@ -50,21 +63,42 @@ class ExpensePaymentService
     }
 
     /**
-     * Master notes only — amount / wallet locked after create.
+     * Master notes + bank receipt only — amount / wallet locked after create.
      *
      * @param  array<string, mixed>  $data
      */
-    public function update(ExpensePayment $payment, array $data): ExpensePayment
-    {
+    public function update(
+        ExpensePayment $payment,
+        array $data,
+        TemporaryUploadedFile|UploadedFile|null $receipt = null,
+        bool $removeReceipt = false,
+    ): ExpensePayment {
         $validated = validator($data, [
             'notes' => ['nullable', 'string', 'max:2000'],
         ])->validate();
 
-        $payment->update([
-            'notes' => $validated['notes'] ?? null,
-        ]);
+        return DB::transaction(function () use ($payment, $validated, $receipt, $removeReceipt): ExpensePayment {
+            $payload = [
+                'notes' => $validated['notes'] ?? null,
+            ];
 
-        return $payment->fresh(['expense.category', 'bankAccount']);
+            if ($removeReceipt && filled($payment->bank_receipt_path)) {
+                $this->deleteReceipt($payment->bank_receipt_path);
+                $payload['bank_receipt_path'] = null;
+            }
+
+            if ($receipt !== null) {
+                if (filled($payment->bank_receipt_path)) {
+                    $this->deleteReceipt($payment->bank_receipt_path);
+                }
+
+                $payload['bank_receipt_path'] = $this->storeReceipt($receipt);
+            }
+
+            $payment->update($payload);
+
+            return $payment->fresh(['expense.category', 'bankAccount']);
+        });
     }
 
     public function delete(ExpensePayment $payment): void
@@ -80,6 +114,21 @@ class ExpensePaymentService
             'expense_payments.payment_number', 'EXPAY-', 5,
             fn (): int => DocumentCounterService::maximumSuffix('expense_payments', 'payment_number', 'EXPAY-'),
         );
+    }
+
+    private function storeReceipt(TemporaryUploadedFile|UploadedFile $file): string
+    {
+        return $this->images->store(
+            $file,
+            'finance/expense-payments/receipts',
+            'bill',
+            (string) config('media.disk', 'public'),
+        );
+    }
+
+    private function deleteReceipt(string $path): void
+    {
+        Storage::disk((string) config('media.disk', 'public'))->delete($path);
     }
 
     private function postLedger(ExpensePayment $payment, ?User $actor): void

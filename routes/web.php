@@ -5,6 +5,8 @@ use App\Http\Controllers\Admin\BackupDownloadController;
 use App\Http\Controllers\Admin\BackupUploadController;
 use App\Http\Controllers\Admin\BankAccountPrintController;
 use App\Http\Controllers\Admin\BrandAgricartReviewPrintController;
+use App\Http\Controllers\Admin\ExpensePaymentPrintController;
+use App\Http\Controllers\Admin\FundTransferPrintController;
 use App\Http\Controllers\Admin\LabelBatchPrintController;
 use App\Http\Controllers\Admin\LabelPrintController;
 use App\Http\Controllers\Admin\OnlineSaleOrderPackingSlipPrintController;
@@ -292,6 +294,10 @@ Route::middleware(['web', 'auth', AuthenticateSession::class, EnsureActiveAdminU
         ->name('admin.bank-accounts.print-summary');
     Route::get('/bank-accounts/{account}/history-print', [BankAccountPrintController::class, 'history'])
         ->name('admin.bank-accounts.history-print');
+    Route::get('/fund-transfers/{transfer}/print', [FundTransferPrintController::class, 'show'])
+        ->name('admin.fund-transfers.print');
+    Route::get('/expense-payments/{payment}/print', [ExpensePaymentPrintController::class, 'show'])
+        ->name('admin.expense-payments.print');
     Route::get('/online-sale-orders/{order}/packing-slip', [OnlineSaleOrderPackingSlipPrintController::class, 'show'])
         ->name('admin.online-sale-orders.packing-slip');
     Route::get('/online-sale-orders/{order}/payment-proof', [CustomerPaymentProofController::class, 'admin'])

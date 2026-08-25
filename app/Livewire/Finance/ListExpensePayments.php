@@ -96,8 +96,36 @@ class ListExpensePayments extends Component
         );
     }
 
+    public function openView(int $paymentId): void
+    {
+        if (! $this->userCan('view')) {
+            return;
+        }
+
+        $payment = ExpensePayment::query()->with('expense')->find($paymentId);
+
+        if ($payment === null) {
+            return;
+        }
+
+        $this->dispatch(
+            'open-form-panel',
+            title: __('agricart.finance.expense_payments.actions.view', [
+                'name' => $payment->expense?->displayName() ?? $payment->payment_number,
+            ]),
+            resource: __('agricart.nav.finance.expense-payments'),
+            formKey: 'finance-expense-payment',
+            paymentId: $paymentId,
+            mode: 'view',
+        );
+    }
+
     public function openEdit(int $paymentId): void
     {
+        if (! $this->userCan('edit')) {
+            return;
+        }
+
         $payment = ExpensePayment::query()->with('expense')->find($paymentId);
 
         if ($payment === null) {
@@ -140,6 +168,8 @@ class ListExpensePayments extends Component
         return view('livewire.finance.expense-payments.list', [
             'payments' => $payments,
             'money' => fn (float $value): string => number_format($value, 2, '.', ''),
+            'canView' => $this->userCan('view'),
+            'canEdit' => $this->userCan('edit'),
         ]);
     }
 
