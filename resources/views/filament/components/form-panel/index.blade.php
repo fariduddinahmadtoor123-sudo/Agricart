@@ -52,6 +52,7 @@
         categorySaving: false,
         brandAiEnriching: false,
         brandSaving: false,
+        packageSaving: false,
         productReviewAiEnriching: false,
         productReviewSaving: false,
         unitAiEnriching: false,
@@ -176,6 +177,16 @@
                 window.dispatchEvent(new CustomEvent('brand-form-open', {
                     detail: {
                         brandId: detail.brandId ?? null,
+                        mode: detail.mode ?? 'create',
+                    },
+                    bubbles: true,
+                }));
+            }
+
+            if (this.formKey === 'packages') {
+                window.dispatchEvent(new CustomEvent('packages-form-open', {
+                    detail: {
+                        packageId: detail.packageId ?? null,
                         mode: detail.mode ?? 'create',
                     },
                     bubbles: true,
@@ -630,6 +641,7 @@
             this.categorySaving = false;
             this.brandAiEnriching = false;
             this.brandSaving = false;
+            this.packageSaving = false;
             this.productReviewAiEnriching = false;
             this.productReviewSaving = false;
             this.unitAiEnriching = false;
@@ -793,6 +805,32 @@
                 }
 
                 window.dispatchEvent(new CustomEvent('brand-form-action', {
+                    detail: { action: key },
+                    bubbles: true,
+                }));
+
+                return;
+            }
+
+            if (this.formKey === 'packages') {
+                if (key === 'cancel') {
+                    this.close();
+                    return;
+                }
+
+                if (this.formMode === 'view') {
+                    return;
+                }
+
+                if ((key === 'save_close' || key === 'save_next') && this.packageSaving) {
+                    return;
+                }
+
+                if (key === 'save_close' || key === 'save_next') {
+                    this.packageSaving = true;
+                }
+
+                window.dispatchEvent(new CustomEvent('packages-form-action', {
                     detail: { action: key },
                     bubbles: true,
                 }));
@@ -1502,6 +1540,7 @@
                 'media-library',
                 'categories',
                 'brands',
+                'packages',
                 'product-reviews',
                 'units',
                 'packing-units',
@@ -1620,6 +1659,7 @@
     x-on:close-form-panel.window="close(false)"
     x-on:category-form-busy.window="categoryAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); categorySaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:brand-form-busy.window="brandAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); brandSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
+    x-on:packages-form-busy.window="packageSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:product-review-form-busy.window="productReviewAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); productReviewSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:unit-form-busy.window="unitAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); unitSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"
     x-on:packing-unit-form-busy.window="packingUnitAiEnriching = !!($event.detail?.enriching ?? $event.detail?.[0]?.enriching); packingUnitSaving = !!($event.detail?.saving ?? $event.detail?.[0]?.saving)"

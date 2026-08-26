@@ -69,6 +69,63 @@ class StoreCartService
         $this->persist($items);
     }
 
+    /**
+     * Add multiple package lines with optional locked unit prices (after package discount).
+     *
+     * @param  list<array{product_id: int, quantity: float|string, unit_price?: float|string|null}>  $lines
+     */
+    public function addLines(array $lines): void
+    {
+        $items = $this->rawItems();
+
+        foreach ($lines as $line) {
+            $productId = (int) ($line['product_id'] ?? 0);
+            $quantity = max(0, (float) ($line['quantity'] ?? 0));
+
+            if ($productId <= 0 || $quantity <= 0) {
+                continue;
+            }
+
+            $product = $this->findActiveProduct($productId);
+            $this->assertPurchasable($product);
+
+            $unitPrice = array_key_exists('unit_price', $line) && $line['unit_price'] !== null && $line['unit_price'] !== ''
+                ? $this->saleService->formatMoney($this->saleService->numeric((string) $line['unit_price']))
+                : null;
+
+            $found = false;
+
+            foreach ($items as &$item) {
+                if ((int) $item['product_id'] === $productId) {
+                    $item['quantity'] = $this->saleService->formatQty(
+                        $this->saleService->numeric((string) $item['quantity']) + $quantity,
+                    );
+                    if ($unitPrice !== null) {
+                        $item['unit_price'] = $unitPrice;
+                    }
+                    $found = true;
+                    break;
+                }
+            }
+            unset($item);
+
+            if (! $found) {
+                $row = [
+                    'product_id' => $productId,
+                    'quantity' => $this->saleService->formatQty($quantity),
+                ];
+                if ($unitPrice !== null) {
+                    $row['unit_price'] = $unitPrice;
+                }
+                $items[] = $row;
+            }
+
+            $this->assertStockForProduct($product, $this->quantityFromItems($items, $productId));
+        }
+
+        $this->persist($items);
+    }
+
     public function setQuantity(int $productId, float $quantity): void
     {
         if ($quantity <= 0) {
@@ -216,6 +273,11 @@ class StoreCartService
             $resolved = $this->quantityPricing->resolveForQuantity($product, $qty, forPos: false);
             $unitPrice = $resolved['price'] ?? $product->wholesale_price ?? $product->retail_price ?? '0';
             $tierKey = $resolved['tier']->tier_key ?? 'wholesale';
+
+            if (isset($item['unit_price']) && is_numeric($item['unit_price'])) {
+                $unitPrice = (string) $item['unit_price'];
+            }
+
             $unitNumeric = $this->saleService->numeric((string) $unitPrice);
             $lineTotal = $unitNumeric * $qty;
 
@@ -304,8 +366,8 @@ class StoreCartService
     }
 
     /**
-     * @param  list<array{product_id?: mixed, quantity?: mixed}>  $items
-     * @return list<array{product_id: int, quantity: string}>
+     * @param  list<array{product_id?: mixed, quantity?: mixed, unit_price?: mixed}>  $items
+     * @return list<array{product_id: int, quantity: string, unit_price?: string}>
      */
     private function normalizeRawItems(array $items): array
     {
@@ -316,10 +378,18 @@ class StoreCartService
                 continue;
             }
 
-            $normalized[] = [
+            $row = [
                 'product_id' => (int) $item['product_id'],
                 'quantity' => (string) ($item['quantity'] ?? '1'),
             ];
+
+            if (isset($item['unit_price']) && is_numeric($item['unit_price'])) {
+                $row['unit_price'] = $this->saleService->formatMoney(
+                    $this->saleService->numeric((string) $item['unit_price']),
+                );
+            }
+
+            $normalized[] = $row;
         }
 
         return $normalized;
@@ -398,10 +468,27 @@ class StoreCartService
                 $qty += $this->saleService->numeric((string) $byProduct[$productId]['quantity']);
             }
 
-            $byProduct[$productId] = [
+            $row = [
                 'product_id' => $productId,
                 'quantity' => $this->saleService->formatQty($qty),
             ];
+
+            $incomingPrice = isset($item['unit_price']) && is_numeric($item['unit_price'])
+                ? $this->saleService->formatMoney($this->saleService->numeric((string) $item['unit_price']))
+                : null;
+            $existingPrice = $byProduct[$productId]['unit_price'] ?? null;
+
+            if ($incomingPrice !== null && $existingPrice !== null) {
+                $row['unit_price'] = $this->saleService->numeric($incomingPrice) < $this->saleService->numeric($existingPrice)
+                    ? $incomingPrice
+                    : $existingPrice;
+            } elseif ($incomingPrice !== null) {
+                $row['unit_price'] = $incomingPrice;
+            } elseif ($existingPrice !== null) {
+                $row['unit_price'] = $existingPrice;
+            }
+
+            $byProduct[$productId] = $row;
         }
 
         return array_values($byProduct);

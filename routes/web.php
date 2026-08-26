@@ -50,6 +50,7 @@ use App\Http\Controllers\Store\BrandController;
 use App\Http\Controllers\Store\BlogController;
 use App\Http\Controllers\Store\AboutController;
 use App\Http\Controllers\Store\HomeController;
+use App\Http\Controllers\Store\PackageController;
 use App\Http\Controllers\Store\PageController;
 use App\Http\Controllers\Store\ProductController;
 use App\Http\Controllers\Store\RegisterController;
@@ -175,6 +176,8 @@ Route::middleware([
     Route::get('/page/{slug}', [PageController::class, 'show'])->name('store.page');
     Route::get('/products', [ProductController::class, 'index'])->name('store.products');
     Route::get('/category/{slug}', [CategoryController::class, 'show'])->name('store.category');
+    Route::get('/package/{slug}', [PackageController::class, 'show'])->name('store.package');
+    Route::post('/package/{slug}/add', [PackageController::class, 'addToCart'])->name('store.package.add');
     Route::get('/product/{slug}', [ProductController::class, 'show'])->name('store.product');
     Route::get('/cart', [CartController::class, 'index'])->name('store.cart');
     Route::get('/cart/print', [CartController::class, 'print'])->name('store.cart.print');

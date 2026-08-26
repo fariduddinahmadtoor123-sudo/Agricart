@@ -22,6 +22,7 @@ final class FormPanelRegistry
             'media-library' => ['component' => 'media.form', 'permission' => 'settings.media-library.view'],
             'categories' => ['component' => 'categories.form', 'permission' => 'catalog.categories.view'],
             'brands' => ['component' => 'brands.form', 'permission' => 'catalog.brands.view'],
+            'packages' => ['component' => 'packages.form', 'permission' => 'catalog.packages.view'],
             'units' => ['component' => 'units.form', 'permission' => 'catalog.units.view'],
             'packing-units' => ['component' => 'packing-units.form', 'permission' => 'catalog.packing-units.view'],
             'attributes' => ['component' => 'attributes.form', 'permission' => 'catalog.attributes.view'],

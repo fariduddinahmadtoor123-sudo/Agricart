@@ -172,6 +172,27 @@ class CatalogPageToolbar extends ClusterPageToolbar
                     ['label' => __('agricart.brands.list.col_created'), 'value' => 'created_at', 'visible' => true],
                 ],
             ],
+            'packages' => [
+                ...$config,
+                'livewirePrefix' => 'packages',
+                'livewireComponent' => 'packages.list-packages',
+                'columnDataAttr' => 'data-package-column',
+                'interactive' => true,
+                'filters' => [
+                    ['label' => __('agricart.form_panel.statuses.active'), 'value' => 'status:active'],
+                    ['label' => __('agricart.form_panel.statuses.inactive'), 'value' => 'status:inactive'],
+                ],
+                'columns' => [
+                    ['label' => __('agricart.packages.list.col_image'), 'value' => 'image', 'visible' => true],
+                    ['label' => __('agricart.packages.list.col_package_number'), 'value' => 'package_number', 'visible' => true],
+                    ['label' => __('agricart.packages.list.col_name_en'), 'value' => 'name_en', 'visible' => true],
+                    ['label' => __('agricart.packages.list.col_name_ur'), 'value' => 'name_ur', 'visible' => false],
+                    ['label' => __('agricart.packages.list.col_discount'), 'value' => 'discount_percent', 'visible' => true],
+                    ['label' => __('agricart.packages.list.col_status'), 'value' => 'status', 'visible' => true],
+                    ['label' => __('agricart.packages.list.col_sort_order'), 'value' => 'sort_order', 'visible' => false],
+                    ['label' => __('agricart.packages.list.col_created'), 'value' => 'created_at', 'visible' => true],
+                ],
+            ],
             'units' => [
                 ...$config,
                 'livewirePrefix' => 'units',

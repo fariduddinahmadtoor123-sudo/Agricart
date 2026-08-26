@@ -51,6 +51,13 @@
         ])
     @endif
 
+    @if (! $comingSoon && ($packages ?? collect())->isNotEmpty())
+        @include('store.components.package-grid', [
+            'packages' => $packages,
+            'packageService' => $packageService,
+        ])
+    @endif
+
     @if (! $comingSoon && $products->isNotEmpty())
         @include('store.components.product-grid', [
             'products' => $products,

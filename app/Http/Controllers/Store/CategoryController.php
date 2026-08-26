@@ -6,13 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Services\Analytics\AnalyticsContext;
 use App\Services\Store\StoreCategoryService;
 use App\Services\Store\StoreLayoutService;
+use App\Services\Store\StorePackageService;
 use App\Services\Store\StoreProductService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class CategoryController extends Controller
 {
-    public function show(string $slug, StoreLayoutService $layout, StoreCategoryService $categories, StoreProductService $products, AnalyticsContext $analytics): View
+    public function show(string $slug, StoreLayoutService $layout, StoreCategoryService $categories, StoreProductService $products, StorePackageService $packages, AnalyticsContext $analytics): View
     {
         $category = $categories->findStorefrontBySlug($slug);
 
@@ -22,6 +23,9 @@ class CategoryController extends Controller
 
         $comingSoon = $categories->isComingSoon($category);
         $childCategories = $categories->childCategories($category);
+        $categoryPackages = $comingSoon
+            ? collect()
+            : $packages->packagesForCategory($category);
         $categoryProducts = $comingSoon
             ? new LengthAwarePaginator([], 0, 36, 1, [
                 'path' => request()->url(),
@@ -42,11 +46,13 @@ class CategoryController extends Controller
             'category' => $category,
             'comingSoon' => $comingSoon,
             'childCategories' => $childCategories,
+            'packages' => $categoryPackages,
             'products' => $categoryProducts,
             'contentBlocks' => $categories->storefrontContentBlocks($category),
             'faqs' => $categories->localizedFaqs($category),
             'hasStorefrontContent' => $categories->hasStorefrontContent($category),
             'categoryService' => $categories,
+            'packageService' => $packages,
             'productService' => $products,
             'categoryProductCount' => (int) ($productCounts[$category->id] ?? 0),
             'productCounts' => $productCounts,

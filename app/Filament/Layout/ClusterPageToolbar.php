@@ -108,6 +108,7 @@ abstract class ClusterPageToolbar
             'ai-settings' => 'ai-settings',
             'categories' => 'categories',
             'brands' => 'brands',
+            'packages' => 'packages',
             'units' => 'units',
             'packing-units' => 'packing-units',
             'attributes' => 'attributes',

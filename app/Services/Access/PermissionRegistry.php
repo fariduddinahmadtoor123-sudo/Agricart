@@ -200,6 +200,7 @@ class PermissionRegistry
                 'products' => ['label_en' => 'Products', 'label_ur' => 'پروڈکٹس', 'actions' => $crud],
                 'brands' => ['label_en' => 'Brands', 'label_ur' => 'برانڈز', 'actions' => $crudPrint],
                 'categories' => ['label_en' => 'Categories', 'label_ur' => 'زمرے', 'actions' => $crud],
+                'packages' => ['label_en' => 'Packages', 'label_ur' => 'پیکجز', 'actions' => $crud],
                 'units' => ['label_en' => 'Units', 'label_ur' => 'یونٹس', 'actions' => $crud],
                 'packing-units' => ['label_en' => 'Packing Units', 'label_ur' => 'پیکنگ یونٹس', 'actions' => $crud],
                 'attributes' => ['label_en' => 'Attributes', 'label_ur' => 'خصوصیات', 'actions' => $crud],
