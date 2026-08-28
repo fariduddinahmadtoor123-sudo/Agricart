@@ -302,4 +302,36 @@ class StoreCategoryDisplayTest extends TestCase
             ->assertSee(route('store.category', $leaf->slug), false)
             ->assertSee('Desoldering Pump Tool', false);
     }
+
+    public function test_category_page_lists_all_products_without_pagination(): void
+    {
+        $category = Category::query()->create([
+            'slug' => 'bulk-tools',
+            'code' => 'CAT-BULK',
+            'status' => 'active',
+            'name_en' => 'Bulk Tools',
+            'name_ur' => 'بلک ٹولز',
+        ]);
+
+        for ($i = 1; $i <= 101; $i++) {
+            Product::query()->create([
+                'category_id' => $category->id,
+                'slug' => 'bulk-tool-'.$i,
+                'code' => 'PRD-BULK-'.$i,
+                'status' => 'active',
+                'name_en' => 'Bulk Tool '.$i,
+                'name_ur' => 'بلک ٹول '.$i,
+            ]);
+        }
+
+        $response = $this->get(route('store.category', $category->slug));
+
+        $response->assertOk();
+        $this->assertCount(101, $response->viewData('products'));
+        $response->assertDontSee('ag-store-pagination', false);
+
+        $this->get(route('store.category', ['slug' => $category->slug, 'page' => 2]))
+            ->assertOk()
+            ->assertViewHas('products', fn ($products) => count($products) === 101);
+    }
 }

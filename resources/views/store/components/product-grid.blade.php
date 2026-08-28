@@ -2,6 +2,7 @@
     $columns = min(6, max(3, (int) ($settings->category_grid_columns ?? 4)));
     $products = $products ?? collect();
     $sectionTitle = $sectionTitle ?? __('agricart.storefront.products.title');
+    $eagerImages = (bool) ($eagerImages ?? false);
 @endphp
 
 <section class="ag-store-product-section">
@@ -40,7 +41,14 @@
                                         width="{{ $mainImage['width'] ?? 320 }}"
                                         height="{{ $mainImage['height'] ?? 320 }}"
                                         decoding="async"
-                                        @if ($priority) loading="eager" fetchpriority="high" @else loading="lazy" @endif
+                                        @if ($eagerImages)
+                                            loading="eager"
+                                            @if ($priority) fetchpriority="high" @endif
+                                        @elseif ($priority)
+                                            loading="eager" fetchpriority="high"
+                                        @else
+                                            loading="lazy"
+                                        @endif
                                         onerror="this.classList.add('is-failed')"
                                     />
                                 @endif

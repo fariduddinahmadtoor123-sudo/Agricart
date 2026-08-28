@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Store;
 
+use App\Models\CompanyProfile;
 use App\Models\StoreAboutSetting;
 use App\Models\StorePage;
 use App\Services\Store\StoreAboutService;
@@ -125,5 +126,47 @@ class AboutPageTest extends TestCase
         ]);
 
         $this->assertSame(route('store.about'), $page->publicUrl());
+    }
+
+    public function test_about_page_shows_business_profile_contact_and_tax_details(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('company/tax-certificates/test.jpg', 'certificate');
+
+        CompanyProfile::current()->update([
+            'business_name_en' => 'Agricart',
+            'email' => 'hello@agricart.pk',
+            'whatsapp_number' => '923001234567',
+            'website' => 'agricart.pk',
+            'ntn' => '1234567-8',
+            'strn' => 'STRN-987654',
+            'tax_certificate_path' => 'company/tax-certificates/test.jpg',
+            'phones' => [[
+                'designation' => 'general',
+                'contact_person_en' => 'Sales Desk',
+                'contact_person_ur' => '',
+                'phone_number' => '0300 7654321',
+                'is_primary' => true,
+            ]],
+            'addresses' => [[
+                'address_en' => 'Main Bazaar, Gujranwala, Pakistan',
+                'address_ur' => '',
+                'postal_code' => '52250',
+                'is_primary' => true,
+            ]],
+        ]);
+
+        $response = $this->get(route('store.about'));
+
+        $response->assertOk()
+            ->assertViewHas('hasBusinessContact', true)
+            ->assertSee('Main Bazaar, Gujranwala, Pakistan', false)
+            ->assertSee('0300 7654321', false)
+            ->assertSee('hello@agricart.pk', false)
+            ->assertSee('1234567-8', false)
+            ->assertSee('STRN-987654', false)
+            ->assertSee('https://wa.me/923001234567', false)
+            ->assertSee('ag-store-about__business', false)
+            ->assertSee('ag-store-about__tax-certificate', false);
     }
 }

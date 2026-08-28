@@ -10,10 +10,13 @@ use App\Services\Settings\CompanyProfileService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Validation\ValidationException;
 use Livewire\Component;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
+use Livewire\WithFileUploads;
 
 class Form extends Component
 {
     use AuthorizesSensitiveActions;
+    use WithFileUploads;
 
     public string $business_name_en = '';
 
@@ -46,6 +49,10 @@ class Form extends Component
     public array $addressRows = [];
 
     public ?string $storeLogoPreviewUrl = null;
+
+    public ?string $taxCertificatePreviewUrl = null;
+
+    public ?TemporaryUploadedFile $taxCertificateUpload = null;
 
     public string $ai_status = 'none';
 
@@ -124,6 +131,21 @@ class Form extends Component
         $this->addressRows[0]['is_primary'] = true;
     }
 
+    public function removeTaxCertificate(): void
+    {
+        $this->authorizeAny('settings.store-profile.edit');
+
+        if ($this->taxCertificateUpload !== null) {
+            $this->taxCertificateUpload = null;
+
+            return;
+        }
+
+        app(CompanyProfileService::class)->removeTaxCertificate();
+        $this->taxCertificatePreviewUrl = null;
+        $this->setStatus(__('company_profile.summary.tax_certificate_removed'), 'success');
+    }
+
     public function enrichWithAi(): void
     {
         $this->authorizeAny('settings.store-profile.edit');
@@ -185,7 +207,9 @@ class Form extends Component
                 'phones' => $this->phoneRows,
                 'addresses' => $this->addressRows,
                 'ai_status' => $this->ai_status,
-            ]);
+            ], taxCertificateUpload: $this->taxCertificateUpload);
+
+            $this->taxCertificateUpload = null;
 
             $this->dispatch('company-profile-saved');
             $this->panelIsOpen = false;
@@ -238,6 +262,8 @@ class Form extends Component
         $this->addressRows = $state['addresses'];
         $this->ai_status = $state['ai_status'];
         $this->storeLogoPreviewUrl = $profile->displayLogoUrl();
+        $this->taxCertificatePreviewUrl = $profile->taxCertificateUrl();
+        $this->taxCertificateUpload = null;
     }
 
     /**
@@ -313,6 +339,7 @@ class Form extends Component
             'currency_code' => ['required', 'string', 'size:3'],
             'price_use_decimals' => ['boolean'],
             'price_decimal_places' => ['required', 'integer', 'min:0', 'max:4'],
+            'taxCertificateUpload' => ['nullable', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
         ];
     }
 

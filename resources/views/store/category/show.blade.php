@@ -62,13 +62,8 @@
         @include('store.components.product-grid', [
             'products' => $products,
             'sectionTitle' => __('agricart.storefront.products.title'),
+            'eagerImages' => true,
         ])
-
-        @if ($products->hasPages())
-            <div class="ag-store-pagination">
-                {{ $products->links() }}
-            </div>
-        @endif
     @elseif (! $comingSoon && $childCategories->isEmpty() && ! $hasStorefrontContent)
         <div class="ag-store-placeholder-note">
             {{ __('agricart.storefront.category.coming_soon') }}

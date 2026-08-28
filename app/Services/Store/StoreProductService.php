@@ -21,11 +21,39 @@ class StoreProductService
     private array $publicPathExists = [];
 
     /**
+     * All storefront products for a category on one page (no pagination).
+     *
+     * @return EloquentCollection<int, Product>
+     */
+    public function productsForCategory(Category $category): EloquentCollection
+    {
+        $products = $this->storefrontCategoryProductsQuery($category)->get();
+
+        $this->primeImageMetadata($products);
+
+        return $products;
+    }
+
+    /**
      * @return LengthAwarePaginator<int, Product>
      */
     public function paginatedProductsForCategory(Category $category, int $perPage = 36): LengthAwarePaginator
     {
-        $products = Product::query()
+        $products = $this->storefrontCategoryProductsQuery($category)
+            ->paginate($perPage)
+            ->withQueryString();
+
+        $this->primeImageMetadata($products->items());
+
+        return $products;
+    }
+
+    /**
+     * @return Builder<Product>
+     */
+    private function storefrontCategoryProductsQuery(Category $category): Builder
+    {
+        return Product::query()
             ->whereIn('status', ['active', 'inactive'])
             ->where(function ($query) use ($category): void {
                 $query->where('category_id', $category->id)
@@ -37,18 +65,10 @@ class StoreProductService
             })
             ->with(['brand', 'category:id,image_path'])
             ->orderBy('name_en')
-            ->orderBy('id')
-            ->paginate($perPage)
-            ->withQueryString();
-
-        $this->primeImageMetadata($products->items());
-
-        return $products;
+            ->orderBy('id');
     }
 
     /**
-     * All storefront products, ordered alphabetically by name, paginated.
-     *
      * @return LengthAwarePaginator<int, Product>
      */
     public function paginatedAllProducts(int $perPage = 36): LengthAwarePaginator

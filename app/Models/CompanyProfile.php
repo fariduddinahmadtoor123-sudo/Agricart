@@ -24,6 +24,7 @@ class CompanyProfile extends Model
         'website',
         'ntn',
         'strn',
+        'tax_certificate_path',
         'currency_code',
         'price_use_decimals',
         'price_decimal_places',
@@ -80,6 +81,45 @@ class CompanyProfile extends Model
         return filled($this->logo_path)
             ? Storage::disk('public')->url($this->logo_path)
             : null;
+    }
+
+    public function taxCertificateUrl(): ?string
+    {
+        return filled($this->tax_certificate_path)
+            ? Storage::disk('public')->url($this->tax_certificate_path)
+            : null;
+    }
+
+    public function whatsappChatUrl(?string $message = null): ?string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $this->whatsapp_number);
+
+        if (! is_string($digits) || $digits === '') {
+            return null;
+        }
+
+        $url = 'https://wa.me/'.$digits;
+
+        if ($message !== null && $message !== '') {
+            $url .= '?text='.rawurlencode($message);
+        }
+
+        return $url;
+    }
+
+    public function displayWhatsAppNumber(): ?string
+    {
+        $digits = preg_replace('/\D+/', '', (string) $this->whatsapp_number);
+
+        if (! is_string($digits) || $digits === '') {
+            return null;
+        }
+
+        if (str_starts_with($digits, '92') && strlen($digits) === 12) {
+            return '0'.substr($digits, 2, 3).' '.substr($digits, 5, 3).' '.substr($digits, 8);
+        }
+
+        return trim((string) $this->whatsapp_number);
     }
 
     public function displayLogoUrl(): ?string

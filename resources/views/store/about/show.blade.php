@@ -93,6 +93,8 @@
             </section>
         @endif
 
+        @include('store.components.about-business-contact')
+
         <section class="ag-store-about__section ag-store-about__cta" aria-labelledby="about-cta-heading">
             <h2 id="about-cta-heading" class="ag-store-about__heading">{{ __('agricart.storefront.about.cta_heading') }}</h2>
             <p class="ag-store-about__cta-lead">{{ __('agricart.storefront.about.cta_lead') }}</p>

@@ -9890,6 +9890,188 @@ html[dir='rtl'] .ag-store-testimonials-carousel__track {
     gap: 0.5rem;
 }
 
+.ag-store-about__business-lead {
+    margin: -0.35rem 0 1.25rem;
+    max-width: 40rem;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: var(--agricart-muted);
+}
+
+.ag-store-about__business-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.4fr) minmax(16rem, 0.9fr);
+    gap: 1.25rem;
+    align-items: start;
+}
+
+.ag-store-about__business-contact {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+    gap: 0.75rem;
+}
+
+.ag-store-about__business-card {
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--agricart-border);
+    background: color-mix(in oklab, var(--agricart-bg) 70%, white);
+}
+
+.ag-store-about__business-card.is-primary {
+    border-color: color-mix(in oklab, var(--agricart-primary) 35%, var(--agricart-border));
+    background: color-mix(in oklab, var(--agricart-primary) 8%, white);
+}
+
+.ag-store-about__business-card--whatsapp .ag-store-btn--whatsapp {
+    margin-top: 0.35rem;
+    display: inline-flex;
+}
+
+.ag-store-about__business-icon {
+    flex: 0 0 auto;
+    font-size: 1.125rem;
+    line-height: 1;
+}
+
+.ag-store-about__business-label {
+    margin: 0 0 0.35rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: var(--agricart-muted);
+}
+
+.ag-store-about__business-badge {
+    margin-inline-start: 0.35rem;
+    padding: 0.1rem 0.35rem;
+    border: 1px solid var(--agricart-border);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    text-transform: none;
+    letter-spacing: 0;
+    color: var(--agricart-primary);
+    background: white;
+}
+
+.ag-store-about__business-value,
+.ag-store-about__business-meta {
+    margin: 0;
+    font-size: 0.9375rem;
+    line-height: 1.55;
+    color: var(--agricart-text);
+}
+
+.ag-store-about__business-meta {
+    margin-bottom: 0.2rem;
+    font-size: 0.8125rem;
+    color: var(--agricart-muted);
+}
+
+.ag-store-about__business-link {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--agricart-primary);
+    text-decoration: none;
+}
+
+.ag-store-about__business-link:hover,
+.ag-store-about__business-link:focus-visible {
+    text-decoration: underline;
+}
+
+.ag-store-about__business-tax {
+    padding: 1rem;
+    border: 1px solid color-mix(in oklab, var(--agricart-primary) 25%, var(--agricart-border));
+    background:
+        linear-gradient(180deg, color-mix(in oklab, var(--agricart-primary) 8%, white) 0%, var(--agricart-surface) 100%);
+}
+
+.ag-store-about__business-tax-title {
+    margin: 0 0 0.85rem;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--agricart-text);
+}
+
+.ag-store-about__tax-row {
+    display: grid;
+    grid-template-columns: 5rem minmax(0, 1fr);
+    gap: 0.35rem 0.75rem;
+    margin: 0 0 0.65rem;
+}
+
+.ag-store-about__tax-row dt {
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--agricart-muted);
+}
+
+.ag-store-about__tax-row dd {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--agricart-text);
+    word-break: break-word;
+}
+
+.ag-store-about__tax-certificate {
+    margin: 0.85rem 0 0;
+}
+
+.ag-store-about__tax-certificate a {
+    display: block;
+    border: 1px solid var(--agricart-border);
+    background: white;
+    overflow: hidden;
+}
+
+.ag-store-about__tax-certificate img {
+    display: block;
+    width: 100%;
+    max-height: 18rem;
+    object-fit: contain;
+    background: #fff;
+}
+
+.ag-store-about__tax-certificate figcaption {
+    padding: 0.45rem 0.55rem;
+    font-size: 0.75rem;
+    line-height: 1.4;
+    color: var(--agricart-muted);
+}
+
+.agricart-company-profile-form__certificate-row {
+    margin-top: 1rem;
+}
+
+.agricart-company-profile-form__certificate-preview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 8rem;
+    margin: 0.5rem 0;
+    padding: 0.75rem;
+    border: 1px dashed var(--agricart-border);
+    background: var(--agricart-bg);
+}
+
+.agricart-company-profile-form__certificate-preview img {
+    display: block;
+    max-width: 100%;
+    max-height: 12rem;
+    object-fit: contain;
+}
+
+.agricart-company-profile-form__certificate-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
 .agricart-store-about-admin__gallery {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
@@ -9925,6 +10107,10 @@ html[dir='rtl'] .ag-store-testimonials-carousel__track {
 
     .ag-store-about__ceo-photo {
         max-width: 16rem;
+    }
+
+    .ag-store-about__business-grid {
+        grid-template-columns: 1fr;
     }
 }
 

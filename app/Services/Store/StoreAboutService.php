@@ -7,6 +7,7 @@ use App\Models\StoreAboutSetting;
 use App\Models\StorePage;
 use App\Models\StoreSetting;
 use App\Services\Media\OptimizedImageStorage;
+use App\Services\Settings\CompanyProfileService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -92,6 +93,7 @@ class StoreAboutService
 
         $office = $about->officeGallery();
         $team = $about->teamRoster();
+        $businessContact = $this->businessContactSection($company);
 
         return [
             'about' => $about,
@@ -112,6 +114,110 @@ class StoreAboutService
             'hasCeo' => $about->hasCeoSection(),
             'hasOffice' => $office !== [],
             'hasTeam' => $team !== [],
+            'businessContact' => $businessContact,
+            'hasBusinessContact' => $businessContact['hasContent'],
+        ];
+    }
+
+    /**
+     * @return array{
+     *     hasContent: bool,
+     *     addresses: list<array{text: string, is_primary: bool}>,
+     *     phones: list<array{label: string, person: ?string, number: string, tel: string, is_primary: bool}>,
+     *     email: ?string,
+     *     website: ?array{label: string, url: string},
+     *     whatsapp: ?array{display: string, url: string},
+     *     ntn: ?string,
+     *     strn: ?string,
+     *     taxCertificateUrl: ?string
+     * }
+     */
+    public function businessContactSection(?CompanyProfile $company = null): array
+    {
+        $company ??= CompanyProfile::current();
+        $locale = app()->getLocale();
+        $designations = collect(app(CompanyProfileService::class)->designationOptions())->keyBy('key');
+
+        $addresses = collect($company->savedAddresses())
+            ->map(function (array $row) use ($locale): ?array {
+                $text = $locale === 'ur'
+                    ? ($row['address_ur'] ?: $row['address_en'] ?? null)
+                    : ($row['address_en'] ?: $row['address_ur'] ?? null);
+
+                if (! filled($text)) {
+                    return null;
+                }
+
+                if (filled($row['postal_code'] ?? null)) {
+                    $text .= ' — '.$row['postal_code'];
+                }
+
+                return [
+                    'text' => (string) $text,
+                    'is_primary' => ! empty($row['is_primary']),
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+
+        $phones = collect($company->savedPhones())
+            ->map(function (array $row) use ($locale, $designations): array {
+                $designationKey = (string) ($row['designation'] ?? 'general');
+                $label = (string) ($designations->get($designationKey)['label'] ?? $designationKey);
+                $person = $locale === 'ur' && filled($row['contact_person_ur'] ?? null)
+                    ? (string) $row['contact_person_ur']
+                    : (filled($row['contact_person_en'] ?? null) ? (string) $row['contact_person_en'] : null);
+                $number = (string) $row['phone_number'];
+
+                return [
+                    'label' => $label,
+                    'person' => $person,
+                    'number' => $number,
+                    'tel' => preg_replace('/[^\d+]/', '', $number) ?? $number,
+                    'is_primary' => ! empty($row['is_primary']),
+                ];
+            })
+            ->values()
+            ->all();
+
+        $website = filled($company->website) ? trim((string) $company->website) : null;
+        $websiteUrl = $website;
+
+        if ($websiteUrl !== null && ! preg_match('/^https?:\/\//i', $websiteUrl)) {
+            $websiteUrl = 'https://'.$websiteUrl;
+        }
+
+        $whatsappUrl = $company->whatsappChatUrl();
+        $whatsappDisplay = $company->displayWhatsAppNumber() ?? $company->whatsapp_number;
+        $taxCertificateUrl = $company->taxCertificateUrl();
+        $email = filled($company->email) ? (string) $company->email : null;
+        $ntn = filled($company->ntn) ? (string) $company->ntn : null;
+        $strn = filled($company->strn) ? (string) $company->strn : null;
+
+        $hasContent = $addresses !== []
+            || $phones !== []
+            || $email !== null
+            || $website !== null
+            || $whatsappUrl !== null
+            || $ntn !== null
+            || $strn !== null
+            || $taxCertificateUrl !== null;
+
+        return [
+            'hasContent' => $hasContent,
+            'addresses' => $addresses,
+            'phones' => $phones,
+            'email' => $email,
+            'website' => $website !== null && $websiteUrl !== null
+                ? ['label' => $website, 'url' => $websiteUrl]
+                : null,
+            'whatsapp' => $whatsappUrl !== null && filled($whatsappDisplay)
+                ? ['display' => (string) $whatsappDisplay, 'url' => $whatsappUrl]
+                : null,
+            'ntn' => $ntn,
+            'strn' => $strn,
+            'taxCertificateUrl' => $taxCertificateUrl,
         ];
     }
 

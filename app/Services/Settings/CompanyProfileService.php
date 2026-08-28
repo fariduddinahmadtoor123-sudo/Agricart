@@ -27,7 +27,7 @@ class CompanyProfileService
     /**
      * @param  array<string, mixed>  $data
      */
-    public function save(array $data, TemporaryUploadedFile|UploadedFile|null $logoUpload = null): CompanyProfile
+    public function save(array $data, TemporaryUploadedFile|UploadedFile|null $logoUpload = null, TemporaryUploadedFile|UploadedFile|null $taxCertificateUpload = null): CompanyProfile
     {
         $profile = CompanyProfile::current();
 
@@ -35,6 +35,10 @@ class CompanyProfileService
             $path = app(OptimizedImageStorage::class)->store($logoUpload, 'store');
 
             $data['logo_path'] = $path;
+        }
+
+        if ($taxCertificateUpload !== null) {
+            $data['tax_certificate_path'] = $this->storeTaxCertificate($profile, $taxCertificateUpload);
         }
 
         if (array_key_exists('phones', $data)) {
@@ -66,6 +70,37 @@ class CompanyProfileService
         }
 
         return $profile->fresh() ?? $profile;
+    }
+
+    public function removeTaxCertificate(): CompanyProfile
+    {
+        $profile = CompanyProfile::current();
+
+        if (filled($profile->tax_certificate_path)) {
+            $this->deleteStoredPath($profile->tax_certificate_path);
+            $profile->update(['tax_certificate_path' => null]);
+        }
+
+        return $profile->fresh() ?? $profile;
+    }
+
+    private function storeTaxCertificate(CompanyProfile $profile, TemporaryUploadedFile|UploadedFile $upload): string
+    {
+        $path = app(OptimizedImageStorage::class)->store($upload, 'company/tax-certificates');
+        $old = $profile->tax_certificate_path;
+
+        if (filled($old) && $old !== $path) {
+            $this->deleteStoredPath($old);
+        }
+
+        return $path;
+    }
+
+    private function deleteStoredPath(string $path): void
+    {
+        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($path);
+        }
     }
 
     public function syncFromStorefront(): CompanyProfile

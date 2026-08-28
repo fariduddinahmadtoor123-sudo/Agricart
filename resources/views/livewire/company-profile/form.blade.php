@@ -168,12 +168,21 @@
     </section>
 
     <section class="agricart-company-profile-form__section">
+        <h3 class="agricart-form-panel__section-title">{{ __('company_profile.sections.contact_tax') }}</h3>
+
         <div class="agricart-packing-unit-form__grid">
             <div class="agricart-form-panel__field">
                 <label class="agricart-form-panel__label" for="cp-email">{{ __('company_profile.fields.email') }}</label>
                 <x-filament::input.wrapper>
                     <input id="cp-email" type="email" wire:model.live.debounce.300ms="email" class="fi-input" />
                 </x-filament::input.wrapper>
+            </div>
+            <div class="agricart-form-panel__field">
+                <label class="agricart-form-panel__label" for="cp-whatsapp">{{ __('company_profile.fields.whatsapp_number') }}</label>
+                <x-filament::input.wrapper>
+                    <input id="cp-whatsapp" type="text" wire:model.live.debounce.300ms="whatsapp_number" class="fi-input" inputmode="tel" />
+                </x-filament::input.wrapper>
+                <p class="agricart-form-panel__hint">{{ __('company_profile.hints.whatsapp_number') }}</p>
             </div>
             <div class="agricart-form-panel__field">
                 <label class="agricart-form-panel__label" for="cp-website">{{ __('company_profile.fields.website') }}</label>
@@ -192,6 +201,34 @@
                 <x-filament::input.wrapper>
                     <input id="cp-strn" type="text" wire:model.live.debounce.300ms="strn" class="fi-input" />
                 </x-filament::input.wrapper>
+            </div>
+        </div>
+
+        <div class="agricart-company-profile-form__certificate-row">
+            <div class="agricart-form-panel__field">
+                <label class="agricart-form-panel__label">{{ __('company_profile.fields.tax_certificate') }}</label>
+                <p class="agricart-form-panel__hint">{{ __('company_profile.hints.tax_certificate') }}</p>
+                <div class="agricart-company-profile-form__certificate-preview">
+                    @if ($taxCertificateUpload)
+                        <img src="{{ $taxCertificateUpload->temporaryUrl() }}" alt="" />
+                    @elseif ($taxCertificatePreviewUrl)
+                        <img src="{{ $taxCertificatePreviewUrl }}" alt="" />
+                    @else
+                        <span>{{ __('company_profile.hints.no_tax_certificate') }}</span>
+                    @endif
+                </div>
+                <div class="agricart-company-profile-form__certificate-actions">
+                    <label class="agricart-categories__action is-primary">
+                        {{ __('company_profile.actions.upload_tax_certificate') }}
+                        <input type="file" wire:model="taxCertificateUpload" accept="image/jpeg,image/png,image/webp" hidden />
+                    </label>
+                    @if ($taxCertificatePreviewUrl || $taxCertificateUpload)
+                        <button type="button" class="agricart-categories__action" wire:click="removeTaxCertificate">
+                            {{ __('company_profile.actions.remove_tax_certificate') }}
+                        </button>
+                    @endif
+                </div>
+                @error('taxCertificateUpload') <p class="agricart-form-panel__hint is-danger">{{ $message }}</p> @enderror
             </div>
         </div>
 
