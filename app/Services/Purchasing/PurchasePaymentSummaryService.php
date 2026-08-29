@@ -4,6 +4,7 @@ namespace App\Services\Purchasing;
 
 use App\Models\PurchasePaymentSummary;
 use App\Models\PurchasePaymentSummaryItem;
+use App\Models\SecretCodingProfile;
 use App\Models\Supplier;
 use App\Services\Identifiers\DocumentCounterService;
 use App\Services\PricingControls\SecretCodingEngine;
@@ -48,6 +49,7 @@ class PurchasePaymentSummaryService
 
             $validated['created_by'] = $validated['created_by'] ?? auth()->id();
             $validated['payment_sources'] = $this->normalizePaymentSources($paymentSources);
+            $validated['secret_coding_profile_id'] = $this->activeCodingProfile()?->id;
 
             $summary = PurchasePaymentSummary::query()->create($validated);
             $this->syncItems($summary, $items);
@@ -65,6 +67,11 @@ class PurchasePaymentSummaryService
 
         return DB::transaction(function () use ($summary, $validated, $items, $paymentSources): PurchasePaymentSummary {
             $validated['payment_sources'] = $this->normalizePaymentSources($paymentSources);
+
+            if ($this->summaryAmountsChanged($summary, $items, $validated['payment_sources'])) {
+                $validated['secret_coding_profile_id'] = $this->activeCodingProfile()?->id;
+            }
+
             $summary->update($validated);
             $this->syncItems($summary, $items);
 
@@ -178,9 +185,9 @@ class PurchasePaymentSummaryService
         return $supplier instanceof Supplier ? $this->rowFromSupplier($supplier) : null;
     }
 
-    public function numericAmount(?string $amount): float
+    public function numericAmount(?string $amount, ?SecretCodingProfile $profile = null): float
     {
-        $plain = $this->plainNumericString($amount);
+        $plain = $this->plainNumericString($amount, $profile);
 
         if ($plain === '') {
             return 0.0;
@@ -192,12 +199,12 @@ class PurchasePaymentSummaryService
     /**
      * @param  list<array<string, mixed>>  $rows
      */
-    public function totalSupplierPayments(array $rows): float
+    public function totalSupplierPayments(array $rows, ?SecretCodingProfile $profile = null): float
     {
         $total = 0.0;
 
         foreach ($rows as $row) {
-            $total += $this->numericAmount($row['payment_amount'] ?? null);
+            $total += $this->numericAmount($row['payment_amount'] ?? null, $profile);
         }
 
         return $total;
@@ -206,12 +213,12 @@ class PurchasePaymentSummaryService
     /**
      * @param  list<array{label: string, amount: string}>  $paymentSources
      */
-    public function totalSourcePayments(array $paymentSources): float
+    public function totalSourcePayments(array $paymentSources, ?SecretCodingProfile $profile = null): float
     {
         $total = 0.0;
 
         foreach ($paymentSources as $source) {
-            $total += $this->numericAmount($source['amount'] ?? null);
+            $total += $this->numericAmount($source['amount'] ?? null, $profile);
         }
 
         return $total;
@@ -222,7 +229,7 @@ class PurchasePaymentSummaryService
         return number_format($amount, 0, '.', ',');
     }
 
-    public function encodePaymentAmount(?string $value): string
+    public function encodePaymentAmount(?string $value, ?SecretCodingProfile $contextProfile = null): string
     {
         $value = trim((string) $value);
 
@@ -230,25 +237,35 @@ class PurchasePaymentSummaryService
             return '';
         }
 
-        $numeric = $this->plainNumericString($value);
+        $engine = app(SecretCodingEngine::class);
+        $contextProfile ??= $this->activeCodingProfile();
+
+        if ($contextProfile instanceof SecretCodingProfile && $engine->encodedValueMatchesProfile($value, $contextProfile)) {
+            return $value;
+        }
+
+        $numeric = $this->plainNumericString($value, $contextProfile);
 
         if ($numeric === '') {
             return $value;
         }
 
-        return app(SecretCodingEngine::class)->encodePrice($numeric);
+        return $engine->encodePrice($numeric, $this->activeCodingProfile());
     }
 
-    public function formatEncodedAmount(float $amount): string
+    public function formatEncodedAmount(float $amount, ?SecretCodingProfile $profile = null): string
     {
         if ($amount <= 0) {
             return '';
         }
 
-        return app(SecretCodingEngine::class)->encodePrice((string) (int) round($amount));
+        return app(SecretCodingEngine::class)->encodePrice(
+            (string) (int) round($amount),
+            $profile ?? $this->activeCodingProfile(),
+        );
     }
 
-    public function plainNumericString(?string $value): string
+    public function plainNumericString(?string $value, ?SecretCodingProfile $profile = null): string
     {
         $value = trim((string) $value);
 
@@ -262,10 +279,80 @@ class PurchasePaymentSummaryService
             return $stripped;
         }
 
-        $decoded = app(SecretCodingEngine::class)->decodePrice($value);
+        $decoded = app(SecretCodingEngine::class)->decodePrice($value, $profile ?? $this->activeCodingProfile());
         $stripped = str_replace([',', ' ', '.'], '', $decoded);
 
         return ($stripped !== '' && ctype_digit($stripped)) ? $stripped : '';
+    }
+
+    public function activeCodingProfile(): ?SecretCodingProfile
+    {
+        return app(SecretCodingEngine::class)->activeProfile();
+    }
+
+    public function resolveCodingProfile(PurchasePaymentSummary $summary): ?SecretCodingProfile
+    {
+        $summary->loadMissing(['items', 'secretCodingProfile']);
+
+        if ($summary->secretCodingProfile instanceof SecretCodingProfile) {
+            return $summary->secretCodingProfile;
+        }
+
+        $encodedValues = [];
+
+        foreach ($summary->items as $item) {
+            if (filled($item->payment_amount)) {
+                $encodedValues[] = (string) $item->payment_amount;
+            }
+        }
+
+        foreach ($summary->payment_sources ?? [] as $source) {
+            if (is_array($source) && filled($source['amount'] ?? null)) {
+                $encodedValues[] = (string) $source['amount'];
+            }
+        }
+
+        $profile = app(SecretCodingEngine::class)->profileMatchingEncodedValues($encodedValues);
+
+        if ($profile instanceof SecretCodingProfile && $summary->secret_coding_profile_id !== $profile->id) {
+            $summary->forceFill(['secret_coding_profile_id' => $profile->id])->saveQuietly();
+            $summary->setRelation('secretCodingProfile', $profile);
+        }
+
+        return $profile;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $items
+     * @param  list<array{label: string, amount: string}>  $paymentSources
+     */
+    private function summaryAmountsChanged(PurchasePaymentSummary $summary, array $items, array $paymentSources): bool
+    {
+        $summary->loadMissing('items');
+
+        $previousRows = $summary->items->map(fn (PurchasePaymentSummaryItem $item): array => [
+            'payment_amount' => (string) ($item->payment_amount ?? ''),
+        ])->values()->all();
+
+        $nextRows = collect($items)->map(fn (array $item): array => [
+            'payment_amount' => (string) ($item['payment_amount'] ?? ''),
+        ])->values()->all();
+
+        if ($previousRows !== $nextRows) {
+            return true;
+        }
+
+        $previousSources = collect($this->normalizePaymentSources($summary->payment_sources ?? []))
+            ->map(fn (array $source): array => ['amount' => (string) ($source['amount'] ?? '')])
+            ->values()
+            ->all();
+
+        $nextSources = collect($paymentSources)
+            ->map(fn (array $source): array => ['amount' => (string) ($source['amount'] ?? '')])
+            ->values()
+            ->all();
+
+        return $previousSources !== $nextSources;
     }
 
     /**

@@ -184,15 +184,15 @@
             <div class="totals">
                 <div>
                     <span>{{ __('purchase_payment_summary.print.total_payments') }}</span>
-                    <strong><x-secret-price :value="(string) (int) round($summary->totalPayments())" /></strong>
+                    <strong>{{ $totalPaymentsEncoded ?: '—' }}</strong>
                 </div>
                 <div>
                     <span>{{ __('purchase_payment_summary.print.total_sources') }}</span>
-                    <strong><x-secret-price :value="(string) (int) round($summary->totalSourcePayments())" /></strong>
+                    <strong>{{ $totalSourcesEncoded ?: '—' }}</strong>
                 </div>
                 <div>
                     <span>{{ __('purchase_payment_summary.print.balance') }}</span>
-                    <strong><x-secret-price :value="(string) (int) round(abs($summary->balanceRemaining()))" /></strong>
+                    <strong>{{ $balanceEncoded ?: '—' }}</strong>
                 </div>
             </div>
 

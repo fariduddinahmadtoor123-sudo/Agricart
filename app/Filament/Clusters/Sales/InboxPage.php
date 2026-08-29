@@ -27,7 +27,7 @@ class InboxPage extends BaseModulePage
 
     public static function registersInModuleChrome(): bool
     {
-        return false;
+        return true;
     }
 
     protected string $view = 'filament.pages.sales.inbox';

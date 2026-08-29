@@ -169,8 +169,10 @@ class Form extends Component
         }
 
         $service = app(PurchasePaymentSummaryService::class);
+        $profile = $this->codingProfileForForm();
         $this->rows[$index]['payment_amount'] = $service->encodePaymentAmount(
             (string) ($this->rows[$index]['payment_amount'] ?? ''),
+            $profile,
         );
     }
 
@@ -181,8 +183,10 @@ class Form extends Component
         }
 
         $service = app(PurchasePaymentSummaryService::class);
+        $profile = $this->codingProfileForForm();
         $this->paymentSources[$index]['amount'] = $service->encodePaymentAmount(
             (string) ($this->paymentSources[$index]['amount'] ?? ''),
+            $profile,
         );
     }
 
@@ -257,8 +261,9 @@ class Form extends Component
         app()->setLocale($previousLocale);
 
         $service = app(PurchasePaymentSummaryService::class);
-        $supplierTotal = $service->totalSupplierPayments($this->rows);
-        $sourceTotal = $service->totalSourcePayments($this->paymentSources);
+        $profile = $this->codingProfileForForm();
+        $supplierTotal = $service->totalSupplierPayments($this->rows, $profile);
+        $sourceTotal = $service->totalSourcePayments($this->paymentSources, $profile);
         $balanceTotal = $sourceTotal - $supplierTotal;
 
         return view('livewire.purchase-payment-summaries.form', [
@@ -269,9 +274,9 @@ class Form extends Component
             'storeAddress' => $storeAddress,
             'storePhone' => $storePhone,
             'formattedSummaryDate' => $this->formattedSummaryDate(),
-            'totalSupplierPayments' => $service->formatEncodedAmount($supplierTotal),
-            'totalSourcePayments' => $service->formatEncodedAmount($sourceTotal),
-            'balanceRemaining' => $service->formatEncodedAmount(abs($balanceTotal)),
+            'totalSupplierPayments' => $service->formatEncodedAmount($supplierTotal, $profile),
+            'totalSourcePayments' => $service->formatEncodedAmount($sourceTotal, $profile),
+            'balanceRemaining' => $service->formatEncodedAmount(abs($balanceTotal), $profile),
             'canAddPaymentSource' => count($this->paymentSources) < PurchasePaymentSummaryService::MAX_PAYMENT_SOURCES,
             'purchaserOptions' => $this->purchaserOptions(),
             'creatorName' => $this->creatorName(),
@@ -349,6 +354,19 @@ class Form extends Component
         $summary = PurchasePaymentSummary::query()->with('creator')->find($this->summaryId);
 
         return (string) ($summary?->creator?->name ?? '—');
+    }
+
+    private function codingProfileForForm(): ?\App\Models\SecretCodingProfile
+    {
+        if ($this->summaryId === null) {
+            return app(PurchasePaymentSummaryService::class)->activeCodingProfile();
+        }
+
+        $summary = PurchasePaymentSummary::query()->find($this->summaryId);
+
+        return $summary instanceof PurchasePaymentSummary
+            ? app(PurchasePaymentSummaryService::class)->resolveCodingProfile($summary)
+            : app(PurchasePaymentSummaryService::class)->activeCodingProfile();
     }
 
     private function loadSummary(int $summaryId): void

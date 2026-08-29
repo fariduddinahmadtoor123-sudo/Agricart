@@ -26,6 +26,9 @@
                         @if (in_array('wallet', $visibleColumns, true))
                             <th>{{ __('agricart.finance.expense_payments.list.col_wallet') }}</th>
                         @endif
+                        @if (in_array('receipt', $visibleColumns, true))
+                            <th>{{ __('agricart.finance.expense_payments.list.col_receipt') }}</th>
+                        @endif
                         <th>{{ __('agricart.finance.expense_payments.list.col_actions') }}</th>
                     </tr>
                 </thead>
@@ -49,6 +52,17 @@
                             @endif
                             @if (in_array('wallet', $visibleColumns, true))
                                 <td>{{ __('agricart.finance.expense_payments.wallets.'.$payment->source_wallet) }}</td>
+                            @endif
+                            @if (in_array('receipt', $visibleColumns, true))
+                                <td>
+                                    @if ($payment->hasReceipt())
+                                        <a href="{{ $payment->receiptUrl() }}" target="_blank" rel="noopener" class="agricart-categories__action">
+                                            {{ __('agricart.finance.expense_payments.actions.view_receipt') }}
+                                        </a>
+                                    @else
+                                        —
+                                    @endif
+                                </td>
                             @endif
                             <td class="agricart-categories__actions">
                                 @if ($canView)

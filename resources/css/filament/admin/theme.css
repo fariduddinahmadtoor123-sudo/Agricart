@@ -1566,6 +1566,38 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
     color: color-mix(in oklab, var(--agricart-primary) 55%, var(--agricart-muted));
 }
 
+.agricart-catalog-subnav__badge {
+    margin-inline-start: auto;
+    min-width: 1.25rem;
+    padding: 0.1rem 0.35rem;
+    border-radius: 999px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+    color: #fff;
+    background: var(--agricart-danger, #dc2626);
+    white-space: nowrap;
+}
+
+.agricart-catalog-subnav__item.is-active .agricart-catalog-subnav__badge {
+    background: color-mix(in oklab, var(--agricart-danger, #dc2626) 88%, #000);
+}
+
+.fi-sidebar-item.agricart-nav--has-badge .fi-sidebar-item-label::after {
+    content: attr(data-nav-badge);
+    margin-inline-start: 0.4rem;
+    min-width: 1.15rem;
+    padding: 0.05rem 0.35rem;
+    border-radius: 999px;
+    font-size: 0.625rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: #fff;
+    background: var(--agricart-danger, #dc2626);
+    vertical-align: middle;
+}
+
 .agricart-catalog-toolbar {
     display: flex;
     flex-direction: row;

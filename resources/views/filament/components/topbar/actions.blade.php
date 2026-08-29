@@ -59,6 +59,7 @@
             this.tick();
             window.setInterval(() => this.tick(), 1000);
             window.addEventListener('ai-settings-saved', () => this.refreshAiStatus());
+            document.addEventListener('livewire:navigated', () => this.refreshNotifications());
             this.refreshNotifications();
             this.notificationTimer = window.setInterval(() => this.refreshNotifications(), 30000);
         },
@@ -93,7 +94,10 @@
                     total: Number(data.total ?? 0),
                     items: Array.isArray(data.items) ? data.items : [],
                     inbox_unread: Number(data.inbox_unread ?? 0),
+                    nav_modules: data.nav_modules ?? {},
                 };
+
+                this.applyNavModuleBadges(this.notificationSummary.nav_modules);
             } catch (error) {
                 //
             } finally {
@@ -109,6 +113,38 @@
         },
         inboxUnread() {
             return Number(this.notificationSummary.inbox_unread ?? 0);
+        },
+        applyNavModuleBadges(modules) {
+            if (! modules || typeof modules !== 'object') {
+                return;
+            }
+
+            document.querySelectorAll('.fi-sidebar-item-btn[href]').forEach((link) => {
+                const item = link.closest('.fi-sidebar-item');
+                const label = link.querySelector('.fi-sidebar-item-label');
+                const href = link.getAttribute('href') ?? '';
+                let matchedKey = null;
+
+                Object.keys(modules).forEach((key) => {
+                    if (href.includes('/admin/' + key)) {
+                        matchedKey = key;
+                    }
+                });
+
+                if (! item || ! label) {
+                    return;
+                }
+
+                const count = matchedKey ? Number(modules[matchedKey] ?? 0) : 0;
+
+                if (count > 0) {
+                    item.classList.add('agricart-nav--has-badge');
+                    label.dataset.navBadge = count > 99 ? '99+' : String(count);
+                } else {
+                    item.classList.remove('agricart-nav--has-badge');
+                    delete label.dataset.navBadge;
+                }
+            });
         },
         async refreshAiStatus() {
             try {
@@ -462,8 +498,8 @@
             >
                 <div class="agricart-topbar-actions__notification-header">
                     <div>
-                        <strong>{{ __('agricart.topbar.pending_requests') }}</strong>
-                        <span x-text="@js(__('agricart.topbar.pending_total')).replace(':count', notificationSummary.total)"></span>
+                        <strong>{{ __('agricart.topbar.online_orders_pending') }}</strong>
+                        <span x-text="@js(__('agricart.topbar.online_orders_total')).replace(':count', notificationSummary.total)"></span>
                     </div>
                     <button
                         type="button"
@@ -498,7 +534,7 @@
                         x-show="! notificationsLoading && notificationSummary.items.length === 0"
                     >
                         <x-filament::icon :icon="Heroicon::OutlinedCheckCircle" />
-                        <span>{{ __('agricart.topbar.no_pending_requests') }}</span>
+                        <span>{{ __('agricart.topbar.no_online_orders_pending') }}</span>
                     </div>
 
                     <div

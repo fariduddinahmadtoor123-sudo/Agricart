@@ -119,6 +119,36 @@ class FinanceViewPrintReceiptTest extends TestCase
         }
     }
 
+    public function test_fund_transfer_expense_payment_stores_receipt_on_linked_payment(): void
+    {
+        Storage::fake((string) config('media.disk', 'public'));
+
+        app(CashBookService::class)->recordIn(
+            amount: 5000,
+            transactionDate: '2026-08-01',
+            description: 'Opening cash for fund transfer receipt test',
+        );
+
+        $expense = $this->makeExpense();
+        $upload = UploadedFile::fake()->image('expense-receipt.jpg', 700, 900);
+
+        $transfer = app(FundTransferService::class)->record([
+            'transaction_type' => FundTransfer::TYPE_EXPENSE_PAYMENT,
+            'destination_expense_id' => $expense->id,
+            'amount' => 400,
+            'transaction_date' => '2026-08-25',
+            'transaction_time' => '15:00',
+            'source_wallet' => ExpensePayment::WALLET_CASH,
+        ], null, $upload);
+
+        $payment = ExpensePayment::query()->findOrFail($transfer->expense_payment_id);
+
+        $this->assertNotNull($payment->bank_receipt_path);
+        $this->assertSame($payment->bank_receipt_path, $transfer->fresh()->bank_receipt_path);
+        $this->assertTrue($payment->hasReceipt());
+        Storage::disk((string) config('media.disk', 'public'))->assertExists($payment->bank_receipt_path);
+    }
+
     public function test_unauthorized_user_forbidden_on_open_view(): void
     {
         $user = User::factory()->create([

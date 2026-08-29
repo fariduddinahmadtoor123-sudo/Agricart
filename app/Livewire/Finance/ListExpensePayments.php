@@ -14,7 +14,7 @@ class ListExpensePayments extends Component
     use WithPagination;
 
     /** @var list<string> */
-    public array $visibleColumns = ['payment_number', 'date', 'expense', 'category', 'amount', 'wallet'];
+    public array $visibleColumns = ['payment_number', 'date', 'expense', 'category', 'amount', 'wallet', 'receipt'];
 
     public string $search = '';
 
@@ -147,7 +147,7 @@ class ListExpensePayments extends Component
     public function render(): View
     {
         $payments = ExpensePayment::query()
-            ->with(['expense.category', 'bankAccount'])
+            ->with(['expense.category', 'bankAccount', 'fundTransfer'])
             ->when(filled($this->search), function ($query): void {
                 $needle = '%'.$this->search.'%';
                 $query->where(function ($inner) use ($needle): void {

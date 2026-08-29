@@ -34,6 +34,9 @@ class PurchasePaymentSummaryPrintController extends Controller
         $receiptProfile = app(PrintProfileService::class)
             ->defaultForCategory(PrintProfile::CATEGORY_RECEIPT);
 
+        $service = app(PurchasePaymentSummaryService::class);
+        $codingProfile = $summary->codingProfile();
+
         return view('prints.purchase-payment-summary', [
             'summary' => $summary,
             'locale' => $locale,
@@ -43,6 +46,9 @@ class PurchasePaymentSummaryPrintController extends Controller
             'paperSize' => $paperSize,
             'receiptProfile' => $receiptProfile,
             'autoprint' => request()->query('autoprint', '1') !== '0',
+            'totalPaymentsEncoded' => $service->formatEncodedAmount($summary->totalPayments(), $codingProfile),
+            'totalSourcesEncoded' => $service->formatEncodedAmount($summary->totalSourcePayments(), $codingProfile),
+            'balanceEncoded' => $service->formatEncodedAmount(abs($summary->balanceRemaining()), $codingProfile),
         ]);
     }
 

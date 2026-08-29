@@ -21,8 +21,16 @@ final class ModulePageAccess
             return true;
         }
 
-        if ($user->hasPermission(self::key($module, $page, $action))) {
+        $key = self::key($module, $page, $action);
+
+        if ($user->hasPermission($key)) {
             return true;
+        }
+
+        foreach (PermissionRegistry::legacyFineGrainedExpansionMap() as $grant => $expandedKeys) {
+            if ($user->hasPermission($grant) && in_array($key, $expandedKeys, true)) {
+                return true;
+            }
         }
 
         // Legacy module-wide grant still covers every page for that action.

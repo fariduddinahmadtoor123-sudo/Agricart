@@ -21,6 +21,7 @@ class PurchasePaymentSummary extends Model
         'payment_sources',
         'created_by',
         'purchaser_id',
+        'secret_coding_profile_id',
     ];
 
     /**
@@ -49,6 +50,16 @@ class PurchasePaymentSummary extends Model
         return $this->belongsTo(User::class, 'purchaser_id');
     }
 
+    public function secretCodingProfile(): BelongsTo
+    {
+        return $this->belongsTo(SecretCodingProfile::class);
+    }
+
+    public function codingProfile(): ?SecretCodingProfile
+    {
+        return app(PurchasePaymentSummaryService::class)->resolveCodingProfile($this);
+    }
+
     public function purchaserName(): string
     {
         return (string) ($this->purchaser?->name ?? '—');
@@ -66,10 +77,12 @@ class PurchasePaymentSummary extends Model
 
     public function totalPayments(): float
     {
+        $profile = $this->codingProfile();
         $total = 0.0;
+        $service = app(PurchasePaymentSummaryService::class);
 
         foreach ($this->items as $item) {
-            $total += app(PurchasePaymentSummaryService::class)->numericAmount($item->payment_amount);
+            $total += $service->numericAmount($item->payment_amount, $profile);
         }
 
         return $total;
@@ -82,7 +95,9 @@ class PurchasePaymentSummary extends Model
 
     public function totalSourcePayments(): float
     {
+        $profile = $this->codingProfile();
         $total = 0.0;
+        $service = app(PurchasePaymentSummaryService::class);
 
         foreach ($this->payment_sources ?? [] as $source) {
             if (! is_array($source)) {
@@ -92,7 +107,7 @@ class PurchasePaymentSummary extends Model
             $amount = $source['amount'] ?? null;
 
             if (filled($amount)) {
-                $total += app(PurchasePaymentSummaryService::class)->numericAmount((string) $amount);
+                $total += $service->numericAmount((string) $amount, $profile);
             }
         }
 

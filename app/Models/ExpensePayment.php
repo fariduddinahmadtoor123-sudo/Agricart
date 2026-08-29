@@ -49,6 +49,20 @@ class ExpensePayment extends Model
             : null;
     }
 
+    public function receiptUrl(): ?string
+    {
+        if (filled($this->bank_receipt_path)) {
+            return $this->bankReceiptUrl();
+        }
+
+        return $this->fundTransfer?->bankReceiptUrl();
+    }
+
+    public function hasReceipt(): bool
+    {
+        return filled($this->receiptUrl());
+    }
+
     /**
      * @return BelongsTo<Expense, $this>
      */

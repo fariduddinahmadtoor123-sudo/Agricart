@@ -108,4 +108,65 @@ class SecretCodingEngine
 
         return $decoded;
     }
+
+    /**
+     * Pick the profile whose mapping round-trips every encoded amount.
+     *
+     * @param  list<string|null>  $encodedValues
+     */
+    public function profileMatchingEncodedValues(array $encodedValues): ?SecretCodingProfile
+    {
+        $encodedValues = array_values(array_filter(array_map(
+            static fn (mixed $value): string => trim((string) $value),
+            $encodedValues,
+        ), static fn (string $value): bool => $value !== ''));
+
+        if ($encodedValues === []) {
+            return $this->activeProfile();
+        }
+
+        $profiles = SecretCodingProfile::query()->orderByDesc('id')->get();
+
+        foreach ($profiles as $profile) {
+            $matches = true;
+
+            foreach ($encodedValues as $encoded) {
+                if (! $this->encodedValueMatchesProfile($encoded, $profile)) {
+                    $matches = false;
+
+                    break;
+                }
+            }
+
+            if ($matches) {
+                return $profile;
+            }
+        }
+
+        return $this->activeProfile();
+    }
+
+    public function encodedValueMatchesProfile(string $value, SecretCodingProfile $profile): bool
+    {
+        $value = trim($value);
+
+        if ($value === '') {
+            return true;
+        }
+
+        $stripped = str_replace([',', ' ', '.'], '', $value);
+
+        if ($stripped !== '' && ctype_digit($stripped)) {
+            return true;
+        }
+
+        $decoded = $this->decodePrice($value, $profile);
+        $strippedDecoded = str_replace([',', ' ', '.'], '', $decoded);
+
+        if ($strippedDecoded === '' || ! ctype_digit($strippedDecoded)) {
+            return false;
+        }
+
+        return $this->encodePrice($strippedDecoded, $profile) === $value;
+    }
 }

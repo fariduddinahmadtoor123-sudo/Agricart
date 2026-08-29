@@ -225,7 +225,7 @@ class ExpensePaymentForm extends Component
                 $this->paymentId = $payment->id;
                 $this->payment_number = $payment->payment_number;
                 $this->storedBankReceiptPath = $payment->bank_receipt_path;
-                $this->bankReceiptPreviewUrl = $payment->bankReceiptUrl();
+                $this->bankReceiptPreviewUrl = $payment->receiptUrl();
             } elseif ($this->paymentId !== null) {
                 $payment = ExpensePayment::query()->findOrFail($this->paymentId);
                 $payment = $service->update(
@@ -235,7 +235,7 @@ class ExpensePaymentForm extends Component
                     $this->remove_bank_receipt,
                 );
                 $this->storedBankReceiptPath = $payment->bank_receipt_path;
-                $this->bankReceiptPreviewUrl = $payment->bankReceiptUrl();
+                $this->bankReceiptPreviewUrl = $payment->receiptUrl();
             }
 
             $this->bankReceiptUpload = null;
@@ -287,7 +287,7 @@ class ExpensePaymentForm extends Component
         $this->bankReceiptUpload = null;
         $this->remove_bank_receipt = false;
         $this->storedBankReceiptPath = $payment->bank_receipt_path;
-        $this->bankReceiptPreviewUrl = $payment->bankReceiptUrl();
+        $this->bankReceiptPreviewUrl = $payment->receiptUrl();
     }
 
     private function resetFields(): void

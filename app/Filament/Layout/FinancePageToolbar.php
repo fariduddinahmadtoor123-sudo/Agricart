@@ -126,6 +126,7 @@ class FinancePageToolbar extends ClusterPageToolbar
                     ['label' => __('agricart.finance.expense_payments.list.col_category'), 'value' => 'category', 'visible' => true],
                     ['label' => __('agricart.finance.expense_payments.list.col_amount'), 'value' => 'amount', 'visible' => true],
                     ['label' => __('agricart.finance.expense_payments.list.col_wallet'), 'value' => 'wallet', 'visible' => true],
+                    ['label' => __('agricart.finance.expense_payments.list.col_receipt'), 'value' => 'receipt', 'visible' => true],
                 ],
             ],
             'cash-book' => [

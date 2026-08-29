@@ -60,8 +60,10 @@ class PurchasePaymentSummaryItem extends Model
 
     public function numericPaymentAmount(): float
     {
+        $this->loadMissing('summary');
+
         return app(\App\Services\Purchasing\PurchasePaymentSummaryService::class)
-            ->numericAmount($this->payment_amount);
+            ->numericAmount($this->payment_amount, $this->summary?->codingProfile());
     }
 
     public function lineStatusLabel(): string

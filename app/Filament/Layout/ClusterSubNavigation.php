@@ -129,12 +129,14 @@ abstract class ClusterSubNavigation
                 'active' => static::isActivePage($component),
                 'sort' => $component::getNavigationSort() ?? 0,
                 'comingSoon' => $isPlaceholder,
+                'pageClass' => $component,
             ];
         }
 
         usort($items, fn (array $a, array $b): int => $a['sort'] <=> $b['sort']);
 
         $comingSoonBadge = __('agricart.placeholder.sub_nav_badge');
+        $notifications = app(\App\Services\Notifications\ModuleNotificationService::class);
 
         return array_map(
             fn (array $item): array => [
@@ -144,6 +146,7 @@ abstract class ClusterSubNavigation
                 'active' => $item['active'],
                 'comingSoon' => $item['comingSoon'] ?? false,
                 'comingSoonBadge' => ($item['comingSoon'] ?? false) ? $comingSoonBadge : null,
+                'badgeCount' => $notifications->countForPage($item['pageClass']),
             ],
             $items,
         );

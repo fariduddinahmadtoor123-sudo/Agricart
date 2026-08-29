@@ -226,21 +226,17 @@ class SystemErrorInboxTest extends TestCase
         $this->assertModelMissing($oldResolved);
         $this->assertModelExists($openCritical);
 
-        $summary = app(TopbarNotificationService::class)->summary();
-        $item = collect($summary['items'])->firstWhere('key', 'system_errors');
+        $modules = app(\App\Services\Notifications\ModuleNotificationService::class);
 
-        $this->assertSame(1, $item['count'] ?? null);
+        $this->assertSame(1, $modules->count('system_errors'));
+        $this->assertSame(1, $modules->countsByModule()['settings'] ?? 0);
+        $this->assertNull(collect(app(TopbarNotificationService::class)->summary()['items'])->firstWhere('key', 'system_errors'));
 
         app(SystemErrorReadService::class)->markCurrentCriticalErrorsRead(auth()->user());
-        $readSummary = app(TopbarNotificationService::class)->summary();
-        $this->assertNull(collect($readSummary['items'])->firstWhere('key', 'system_errors'));
+        $this->assertSame(0, $modules->count('system_errors'));
 
         $openCritical->increment('occurrences');
-        $recurrenceSummary = app(TopbarNotificationService::class)->summary();
-        $this->assertSame(
-            1,
-            collect($recurrenceSummary['items'])->firstWhere('key', 'system_errors')['count'] ?? null,
-        );
+        $this->assertSame(1, $modules->count('system_errors'));
     }
 
     public function test_ignored_connection_errors_have_no_historical_reconciliation_branch(): void

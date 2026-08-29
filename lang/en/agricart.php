@@ -486,6 +486,9 @@ return [
         'ai_paused' => 'AI paused',
         'notifications' => 'Notifications',
         'pending_requests' => 'Pending requests',
+        'online_orders_pending' => 'Online orders',
+        'online_orders_total' => ':count awaiting review',
+        'no_online_orders_pending' => 'No online orders need review right now.',
         'pending_total' => ':count pending',
         'refresh_notifications' => 'Refresh notifications',
         'no_pending_requests' => 'No pending requests. You are all caught up.',
@@ -1417,20 +1420,21 @@ return [
                 'bank_account_none' => 'Select bank account',
                 'notes' => 'Notes',
                 'notes_placeholder' => 'Optional payment reference or remark…',
-                'bank_receipt' => 'Bank receipt',
+                'bank_receipt' => 'Payment receipt',
             ],
             'wallets' => [
                 'cash' => 'Cash book',
                 'bank' => 'Bank account',
             ],
             'list' => [
-                'empty' => 'No expense payments yet. Select an expense head and record cash or bank payment.',
+                'empty' => 'No expense payments yet. Select an expense head, record cash or bank payment, and attach a receipt photo if you have one.',
                 'col_number' => 'Number',
                 'col_date' => 'Date',
                 'col_expense' => 'Expense',
                 'col_category' => 'Category',
                 'col_amount' => 'Amount',
                 'col_wallet' => 'Paid from',
+                'col_receipt' => 'Receipt',
                 'col_actions' => 'Actions',
             ],
             'print' => [
@@ -1442,8 +1446,8 @@ return [
             ],
             'hints' => [
                 'payment_locked' => 'Amount, date, expense, and wallet are locked after save because the ledger was posted.',
-                'bank_receipt' => 'Attach a phone photo of the bank slip or transfer receipt. It is resized and saved as a compact WebP.',
-                'bank_receipt_empty' => 'No bank receipt attached.',
+                'bank_receipt' => 'Attach a phone photo of the payment receipt or bank slip. Cash and bank payments both support a receipt. Images are resized and saved as a compact WebP.',
+                'bank_receipt_empty' => 'No payment receipt attached.',
             ],
             'messages' => [
                 'saved' => 'Payment saved and ledger updated.',
@@ -1454,6 +1458,10 @@ return [
                 'delete_locked' => 'Posted payments cannot be deleted.',
             ],
         ],
+    ],
+
+    'nav' => [
+        'unread_count' => ':count unread',
     ],
 
     'catalog' => [

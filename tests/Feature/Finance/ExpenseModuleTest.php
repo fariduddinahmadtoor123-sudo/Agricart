@@ -158,9 +158,12 @@ class ExpenseModuleTest extends TestCase
             $this->assertSame(1, Expense::query()->awaitingPayment()->count());
 
             $summary = app(TopbarNotificationService::class)->summary();
-            $bills = collect($summary['items'])->firstWhere('key', 'expense_bills');
-            $this->assertNotNull($bills);
-            $this->assertSame(1, $bills['count']);
+            $this->assertSame(0, $summary['total']);
+            $this->assertNull(collect($summary['items'])->firstWhere('key', 'expense_bills'));
+
+            $modules = app(\App\Services\Notifications\ModuleNotificationService::class);
+            $this->assertSame(1, $modules->count('expense_bills'));
+            $this->assertSame(1, $modules->countsByModule()['finance'] ?? 0);
         } finally {
             Carbon::setTestNow();
         }

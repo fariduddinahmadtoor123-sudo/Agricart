@@ -13,6 +13,7 @@ use App\Models\Product;
 use App\Models\ProductReview;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\Notifications\ModuleNotificationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
@@ -21,7 +22,7 @@ class TopbarNotificationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_super_admin_receives_actionable_pending_request_counts(): void
+    public function test_bell_only_shows_online_orders_while_module_nav_carries_other_counts(): void
     {
         $this->actingAs($this->superAdmin());
 
@@ -39,15 +40,6 @@ class TopbarNotificationTest extends TestCase
             'sender_type' => AgricartMessage::SENDER_CUSTOMER,
             'body' => 'Please contact me.',
             'is_system' => false,
-        ]);
-        AgricartConversation::query()->create([
-            'subject' => 'Already read contact',
-            'topic' => AgricartConversation::TOPIC_CONTACT,
-            'status' => AgricartConversation::STATUS_OPEN,
-            'guest_name' => 'Read Customer',
-            'guest_phone' => '03007654321',
-            'last_message_at' => now()->subHour(),
-            'admin_last_read_at' => now(),
         ]);
         OnlineSaleOrder::query()->create([
             'order_number' => 'WEB-00001',
@@ -95,16 +87,19 @@ class TopbarNotificationTest extends TestCase
 
         $this->getJson(route('admin.notifications.summary'))
             ->assertOk()
-            ->assertJsonPath('total', 5)
+            ->assertJsonPath('total', 1)
             ->assertJsonPath('inbox_unread', 0)
-            ->assertJsonPath('items.0.key', 'staff_approvals')
-            ->assertJsonPath('items.0.count', 2)
-            ->assertJsonPath('items.1.key', 'customer_messages')
-            ->assertJsonPath('items.1.count', 1)
-            ->assertJsonPath('items.2.key', 'product_reviews')
-            ->assertJsonPath('items.2.count', 1)
-            ->assertJsonPath('items.3.key', 'online_orders')
-            ->assertJsonPath('items.3.count', 1);
+            ->assertJsonCount(1, 'items')
+            ->assertJsonPath('items.0.key', 'online_orders')
+            ->assertJsonPath('items.0.count', 1)
+            ->assertJsonPath('nav_modules.approvals', 2)
+            ->assertJsonPath('nav_modules.store', 2);
+
+        $modules = app(ModuleNotificationService::class);
+
+        $this->assertSame(2, $modules->count('staff_approvals'));
+        $this->assertSame(1, $modules->count('customer_messages'));
+        $this->assertSame(1, $modules->count('product_reviews'));
     }
 
     public function test_user_only_sees_notification_types_they_can_access(): void
@@ -143,9 +138,9 @@ class TopbarNotificationTest extends TestCase
         $this->assertSame(200, $notificationResponse->status(), 'Notification summary endpoint must be accessible.');
         $notificationResponse
             ->assertOk()
-            ->assertJsonPath('total', 1)
-            ->assertJsonCount(1, 'items')
-            ->assertJsonPath('items.0.key', 'staff_approvals');
+            ->assertJsonPath('total', 0)
+            ->assertJsonCount(0, 'items')
+            ->assertJsonPath('nav_modules.approvals', 1);
 
         $this->assertTrue(StaffPage::canAccess());
         $this->assertNotSame('', $viewer->defaultAdminHomeUrl());

@@ -68,14 +68,14 @@ class FundTransferService
                 FundTransfer::TYPE_TRANSFER => $this->postBankTransfer($transfer, $actor),
                 FundTransfer::TYPE_VENDOR_PAYMENT => $this->postVendorPayment($transfer, $actor),
                 FundTransfer::TYPE_CUSTOMER_RECEIPT => $this->postCustomerReceipt($transfer, $actor),
-                FundTransfer::TYPE_EXPENSE_PAYMENT => $this->postExpenseHeadPayment($transfer, $actor),
+                FundTransfer::TYPE_EXPENSE_PAYMENT => $this->postExpenseHeadPayment($transfer, $actor, $receipt),
                 FundTransfer::TYPE_PURCHASER_PAYMENT => $this->postPurchaserPayment($transfer, $actor),
                 default => throw ValidationException::withMessages([
                     'transaction_type' => [__('agricart.finance.fund_transfers.messages.invalid_type')],
                 ]),
             };
 
-            if ($receipt !== null) {
+            if ($receipt !== null && $type !== FundTransfer::TYPE_EXPENSE_PAYMENT) {
                 $transfer->update([
                     'bank_receipt_path' => $this->storeReceipt($receipt),
                 ]);
@@ -317,8 +317,11 @@ class FundTransferService
         }
     }
 
-    private function postExpenseHeadPayment(FundTransfer $transfer, ?User $actor): void
-    {
+    private function postExpenseHeadPayment(
+        FundTransfer $transfer,
+        ?User $actor,
+        TemporaryUploadedFile|UploadedFile|null $receipt = null,
+    ): void {
         $expense = Expense::query()->findOrFail($transfer->destination_expense_id);
 
         $payment = app(ExpensePaymentService::class)->create([
@@ -330,10 +333,11 @@ class FundTransferService
             'bank_account_id' => $transfer->source_bank_account_id,
             'notes' => $transfer->notes,
             'fund_transfer_id' => $transfer->id,
-        ], $actor);
+        ], $actor, $receipt);
 
         $transfer->update([
             'expense_payment_id' => $payment->id,
+            'bank_receipt_path' => $payment->bank_receipt_path,
         ]);
     }
 

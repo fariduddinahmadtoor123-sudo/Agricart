@@ -26,7 +26,7 @@ class ExpensePaymentPrintController extends Controller
             'bankLabel' => $payment->bankAccount?->displayName() ?? '—',
             'expenseLabel' => $payment->expense?->displayName() ?? '—',
             'money' => fn (float $amount): string => number_format($amount, 2, '.', ''),
-            'receiptUrl' => $payment->bankReceiptUrl(),
+            'receiptUrl' => $payment->receiptUrl(),
         ]));
     }
 

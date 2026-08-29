@@ -27,6 +27,10 @@
 
                         @if (! empty($item['comingSoon']))
                             <span class="agricart-catalog-subnav__coming-soon">{{ $item['comingSoonBadge'] }}</span>
+                        @elseif (! empty($item['badgeCount']))
+                            <span class="agricart-catalog-subnav__badge" aria-label="{{ __('agricart.nav.unread_count', ['count' => $item['badgeCount']]) }}">
+                                {{ $item['badgeCount'] > 99 ? '99+' : $item['badgeCount'] }}
+                            </span>
                         @endif
                     </a>
                 </li>
