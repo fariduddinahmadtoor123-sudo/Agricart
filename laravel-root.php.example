@@ -1,0 +1,9 @@
+<?php
+
+/**
+ * Copy this file to laravel-root.php (same folder as index.php on the server) when auto-detection
+ * cannot find the application — e.g. custom Hostinger folder layout.
+ *
+ * Do not commit laravel-root.php (gitignored). Safe to commit this example.
+ */
+return '/home/USERNAME/agricart';
