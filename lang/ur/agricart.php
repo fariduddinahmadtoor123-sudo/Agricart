@@ -332,6 +332,7 @@ return [
         'marketplace' => 'Marketplace',
         'settings' => 'ترتیبات',
         'docs' => 'دستاویزات',
+        'tools' => 'ایکسٹرنل ایپس',
     ],
 
     'pages' => [
@@ -406,6 +407,16 @@ return [
             'brand-review-messages' => 'ریویوز',
         ],
         'docs' => ['overview' => 'جائزہ', 'guide' => 'یوزر گائیڈ'],
+        'tools' => [
+            'overview' => 'جائزہ',
+            'overview_blurb' => 'آزاد ٹولز اور فری سافٹ ویئر — ایگری کارٹ کے بنیادی ماڈیولز کا حصہ نہیں۔',
+            'overview_hint' => 'نئے باہر کے پراجیکٹس یہاں آتے رہیں گے۔',
+            're-order' => 'ری آرڈر',
+            'purchase-payment-summary' => 'پرچیز پیمنٹ سمری',
+            'pending-payments' => 'پینڈنگ پیمنٹس',
+            'printing' => 'پرنٹنگ',
+            'home-expenses' => 'گھر کے اخراجات',
+        ],
     ],
 
     'toolbar' => [

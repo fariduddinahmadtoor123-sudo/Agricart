@@ -333,6 +333,7 @@ return [
         'marketplace' => 'Marketplace',
         'settings' => 'Settings',
         'docs' => 'Docs',
+        'tools' => 'External Apps',
     ],
 
     'pages' => [
@@ -407,6 +408,16 @@ return [
             'brand-review-messages' => 'Reviews',
         ],
         'docs' => ['overview' => 'Overview', 'guide' => 'User Guide'],
+        'tools' => [
+            'overview' => 'Overview',
+            'overview_blurb' => 'Independent tools and free softwares — not part of core Agricart modules.',
+            'overview_hint' => 'New outside projects will appear here as we build them.',
+            're-order' => 'Re Order',
+            'purchase-payment-summary' => 'Purchase Payment Summary',
+            'pending-payments' => 'Pending Payments',
+            'printing' => 'Printing',
+            'home-expenses' => 'Home Expenses',
+        ],
     ],
 
     'toolbar' => [

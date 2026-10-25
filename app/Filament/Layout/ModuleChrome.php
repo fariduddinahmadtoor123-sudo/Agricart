@@ -123,6 +123,13 @@ class ModuleChrome
                 'toolbar' => DocsPageToolbar::class,
                 'navLabel' => 'Docs',
             ],
+            [
+                'key' => 'tools',
+                'path' => 'admin/tools',
+                'subNavigation' => ToolsSubNavigation::class,
+                'toolbar' => ToolsPageToolbar::class,
+                'navLabel' => 'External Apps',
+            ],
         ];
 
         return array_map(

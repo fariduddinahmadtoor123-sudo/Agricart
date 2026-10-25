@@ -29,6 +29,7 @@ class PermissionRegistry
             'marketplace' => ['Channels Hub', 'چینلز حب'],
             'settings' => ['Settings', 'ترتیبات'],
             'docs' => ['Docs', 'دستاویزات'],
+            'tools' => ['External Apps', 'ایکسٹرنل ایپس'],
         ];
 
         $moduleHints = [
@@ -320,6 +321,14 @@ class PermissionRegistry
             'docs' => [
                 'overview' => ['label_en' => 'Overview', 'label_ur' => 'جائزہ', 'actions' => $viewOnly],
                 'guide' => ['label_en' => 'Guide', 'label_ur' => 'گائیڈ', 'actions' => $viewOnly],
+            ],
+            'tools' => [
+                'overview' => ['label_en' => 'Overview', 'label_ur' => 'جائزہ', 'actions' => $viewOnly],
+                're-order' => ['label_en' => 'Re Order', 'label_ur' => 'ری آرڈر', 'actions' => $viewOnly],
+                'purchase-payment-summary' => ['label_en' => 'Purchase Payment Summary', 'label_ur' => 'پرچیز پیمنٹ سمری', 'actions' => $viewOnly],
+                'pending-payments' => ['label_en' => 'Pending Payments', 'label_ur' => 'پینڈنگ پیمنٹس', 'actions' => $viewOnly],
+                'printing' => ['label_en' => 'Printing', 'label_ur' => 'پرنٹنگ', 'actions' => $viewOnly],
+                'home-expenses' => ['label_en' => 'Home Expenses', 'label_ur' => 'گھر کے اخراجات', 'actions' => $viewOnly],
             ],
         ];
     }
