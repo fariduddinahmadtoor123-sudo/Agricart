@@ -55,7 +55,12 @@ class HomeExpensesPage extends BaseModulePage
     public function mount(): void
     {
         $this->expenseDate = $this->defaultExpenseDate();
-        $this->ensureOpenSheet();
+        // Do not INSERT on GET — only bind an existing open sheet for faster loads.
+        $sheet = $this->findOpenSheet();
+        if ($sheet) {
+            $this->openSheetId = $sheet->id;
+            $this->requestActiveSheet = $sheet;
+        }
         $this->dispatchTotals();
     }
 
@@ -417,7 +422,11 @@ class HomeExpensesPage extends BaseModulePage
             return $this->folderPaidItems();
         }
 
-        $sheet = $this->ensureOpenSheet();
+        $sheet = $this->findOpenSheet();
+
+        if (! $sheet) {
+            return collect();
+        }
 
         $query = ToolsHomeExpenseItem::query()
             ->where('sheet_id', $sheet->id)
@@ -501,7 +510,11 @@ class HomeExpensesPage extends BaseModulePage
      */
     public function sheetItemsForTotals(): Collection
     {
-        $sheet = $this->activeSheet();
+        $sheet = $this->viewingFolderId ? $this->activeSheet() : $this->findOpenSheet();
+
+        if (! $sheet) {
+            return collect();
+        }
 
         return ToolsHomeExpenseItem::query()
             ->where('sheet_id', $sheet->id)
@@ -545,7 +558,13 @@ class HomeExpensesPage extends BaseModulePage
 
     public function activeSheetTitle(): string
     {
-        return (string) ($this->activeSheet()->title ?? '');
+        if ($this->viewingFolderId) {
+            return (string) ($this->activeSheet()->title ?? '');
+        }
+
+        $sheet = $this->findOpenSheet();
+
+        return (string) ($sheet?->title ?? now()->translatedFormat('F Y'));
     }
 
     protected function defaultExpenseDate(): string
@@ -588,7 +607,7 @@ class HomeExpensesPage extends BaseModulePage
         return $this->ensureOpenSheet();
     }
 
-    protected function ensureOpenSheet(): ToolsHomeExpenseSheet
+    protected function findOpenSheet(): ?ToolsHomeExpenseSheet
     {
         if (
             ! $this->viewingFolderId
@@ -617,11 +636,23 @@ class HomeExpensesPage extends BaseModulePage
                 ->first();
         }
 
-        if (! $sheet) {
-            $sheet = $this->createSheetForPeriod(now()->startOfMonth(), $userId);
+        if ($sheet) {
+            $this->openSheetId = $sheet->id;
+            $this->requestActiveSheet = $sheet;
         }
 
-        // No auto-close on the 1st — month stays open until Close list (after at least one pay).
+        return $sheet;
+    }
+
+    protected function ensureOpenSheet(): ToolsHomeExpenseSheet
+    {
+        $sheet = $this->findOpenSheet();
+
+        if ($sheet) {
+            return $sheet;
+        }
+
+        $sheet = $this->createSheetForPeriod(now()->startOfMonth());
 
         $this->openSheetId = $sheet->id;
         $this->requestActiveSheet = $sheet;

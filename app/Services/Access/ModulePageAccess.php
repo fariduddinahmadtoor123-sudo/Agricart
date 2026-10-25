@@ -27,8 +27,8 @@ final class ModulePageAccess
             return true;
         }
 
-        foreach (PermissionRegistry::legacyFineGrainedExpansionMap() as $grant => $expandedKeys) {
-            if ($user->hasPermission($grant) && in_array($key, $expandedKeys, true)) {
+        foreach (self::legacyGrantsForExpandedKey($key) as $grant) {
+            if ($user->hasPermission($grant)) {
                 return true;
             }
         }
@@ -91,5 +91,36 @@ final class ModulePageAccess
         }
 
         return false;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private static function legacyGrantsForExpandedKey(string $expandedKey): array
+    {
+        return self::invertedLegacyExpansionMap()[$expandedKey] ?? [];
+    }
+
+    /**
+     * @return array<string, list<string>>
+     */
+    private static function invertedLegacyExpansionMap(): array
+    {
+        /** @var array<string, list<string>>|null */
+        static $inverted = null;
+
+        if ($inverted !== null) {
+            return $inverted;
+        }
+
+        $inverted = [];
+
+        foreach (PermissionRegistry::legacyFineGrainedExpansionMap() as $grant => $expandedKeys) {
+            foreach ($expandedKeys as $expanded) {
+                $inverted[$expanded][] = $grant;
+            }
+        }
+
+        return $inverted;
     }
 }

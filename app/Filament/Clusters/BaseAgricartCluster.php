@@ -34,6 +34,16 @@ abstract class BaseAgricartCluster extends Cluster
         return static::$slug ?? '';
     }
 
+    /**
+     * Register the cluster without Filament's canAccessClusteredComponents() loop.
+     * That loop autoloads every clustered page class on every admin request — Tools
+     * alone is thousands of lines and made the whole panel feel slow.
+     */
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::$shouldRegisterNavigation && static::canAccess();
+    }
+
     public static function canAccess(): bool
     {
         $user = auth()->user();
@@ -106,16 +116,7 @@ abstract class BaseAgricartCluster extends Cluster
     {
         $overviewPage = static::resolveOverviewPageClass();
 
-        if ($overviewPage !== null && $overviewPage::canAccess()) {
-            return $overviewPage::getUrl();
-        }
-
-        foreach (static::getClusteredComponents() as $component) {
-            if (is_subclass_of($component, Page::class) && $component::canAccess()) {
-                return $component::getUrl();
-            }
-        }
-
+        // Prefer overview URL without scanning every clustered page (autoload cost).
         if ($overviewPage !== null) {
             return $overviewPage::getUrl();
         }

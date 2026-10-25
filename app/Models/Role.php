@@ -16,6 +16,13 @@ class Role extends Model
     private ?array $runtimePermissionKeys = null;
 
     /**
+     * Flipped key set for O(1) hasPermission lookups.
+     *
+     * @var array<string, true>|null
+     */
+    private ?array $runtimePermissionKeySet = null;
+
+    /**
      * @var list<string>
      */
     protected $fillable = [
@@ -62,6 +69,7 @@ class Role extends Model
     public function setPermissionKeys(array $keys): void
     {
         $this->runtimePermissionKeys = array_values($keys);
+        $this->runtimePermissionKeySet = array_fill_keys($this->runtimePermissionKeys, true);
     }
 
     /**
@@ -70,5 +78,13 @@ class Role extends Model
     public function permissionKeys(): ?array
     {
         return $this->runtimePermissionKeys;
+    }
+
+    /**
+     * @return array<string, true>|null
+     */
+    public function permissionKeySet(): ?array
+    {
+        return $this->runtimePermissionKeySet;
     }
 }

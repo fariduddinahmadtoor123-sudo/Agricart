@@ -89,6 +89,13 @@ abstract class ClusterSubNavigation
             return [];
         }
 
+        $cacheKey = 'agricart.subnav.items.'.static::class;
+        $cached = request()->attributes->get($cacheKey);
+
+        if (is_array($cached)) {
+            return $cached;
+        }
+
         $items = [];
 
         foreach (static::clusterClass()::getClusteredComponents() as $component) {
@@ -138,7 +145,7 @@ abstract class ClusterSubNavigation
         $comingSoonBadge = __('agricart.placeholder.sub_nav_badge');
         $notifications = app(\App\Services\Notifications\ModuleNotificationService::class);
 
-        return array_map(
+        $result = array_map(
             fn (array $item): array => [
                 'label' => $item['label'],
                 'url' => $item['url'],
@@ -150,6 +157,10 @@ abstract class ClusterSubNavigation
             ],
             $items,
         );
+
+        request()->attributes->set($cacheKey, $result);
+
+        return $result;
     }
 
     /**
@@ -157,11 +168,22 @@ abstract class ClusterSubNavigation
      */
     public static function resolveActivePageClass(): ?string
     {
+        $cacheKey = 'agricart.subnav.active.'.static::class;
+        $cached = request()->attributes->get($cacheKey);
+
+        if (is_string($cached) || $cached === false) {
+            return $cached === false ? null : $cached;
+        }
+
         foreach (static::clusterClass()::getClusteredComponents() as $component) {
             if (is_subclass_of($component, Page::class) && static::isActivePage($component)) {
+                request()->attributes->set($cacheKey, $component);
+
                 return $component;
             }
         }
+
+        request()->attributes->set($cacheKey, false);
 
         return null;
     }

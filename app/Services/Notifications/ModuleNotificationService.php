@@ -213,7 +213,7 @@ class ModuleNotificationService
     {
         $user = auth()->user();
 
-        if (! $user instanceof User || ! Schema::hasTable('staff_message_thread_participants')) {
+        if (! $user instanceof User || ! $this->tableExists('staff_message_thread_participants')) {
             return 0;
         }
 
@@ -222,7 +222,7 @@ class ModuleNotificationService
 
     private function pendingProductReviews(): int
     {
-        if (! Schema::hasTable('product_reviews')) {
+        if (! $this->tableExists('product_reviews')) {
             return 0;
         }
 
@@ -233,8 +233,8 @@ class ModuleNotificationService
 
     private function unreadAgricartInbox(): int
     {
-        if (! Schema::hasTable('agricart_conversations')) {
-            if (! Schema::hasTable('store_inquiries')) {
+        if (! $this->tableExists('agricart_conversations')) {
+            if (! $this->tableExists('store_inquiries')) {
                 return 0;
             }
 
@@ -269,7 +269,7 @@ class ModuleNotificationService
             ->where('status', SystemError::STATUS_OPEN)
             ->where('severity', SystemError::SEVERITY_CRITICAL);
 
-        if ($user instanceof User && Schema::hasTable('system_error_reads')) {
+        if ($user instanceof User && $this->tableExists('system_error_reads')) {
             $query->whereDoesntHave('reads', function ($reads) use ($user): void {
                 $reads
                     ->where('user_id', $user->id)
@@ -282,11 +282,28 @@ class ModuleNotificationService
 
     private function unpaidIssuedExpenseBills(): int
     {
-        if (! Schema::hasTable('expenses') || ! Schema::hasColumn('expenses', 'issue_day')) {
+        if (! $this->tableExists('expenses') || ! $this->columnExists('expenses', 'issue_day')) {
             return 0;
         }
 
         return app(ExpenseScheduleService::class)->openCycleCount();
+    }
+
+    private function tableExists(string $table): bool
+    {
+        /** @var array<string, bool> $cache */
+        static $cache = [];
+
+        return $cache[$table] ??= Schema::hasTable($table);
+    }
+
+    private function columnExists(string $table, string $column): bool
+    {
+        /** @var array<string, bool> $cache */
+        static $cache = [];
+        $key = "{$table}.{$column}";
+
+        return $cache[$key] ??= Schema::hasColumn($table, $column);
     }
 
     public static function invalidateSystemErrors(): void

@@ -118,6 +118,12 @@ class User extends Authenticatable implements FilamentUser, HasAvatar
             return false;
         }
 
+        $cachedSet = $role->permissionKeySet();
+
+        if (is_array($cachedSet)) {
+            return isset($cachedSet[$key]);
+        }
+
         $cachedKeys = $role->permissionKeys();
 
         if (is_array($cachedKeys)) {

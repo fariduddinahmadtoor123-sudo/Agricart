@@ -44,12 +44,6 @@
     x-init="$nextTick(() => syncModuleChrome())"
     x-on:livewire:navigated.window="$nextTick(() => syncModuleChrome())"
 >
-    @if ($activeModule)
-        @include('filament.components.module.chrome', [
-            'subNavigationClass' => $activeModule['subNavigation'],
-            'toolbarClass' => $activeModule['toolbar'],
-            'navLabel' => $activeModule['navLabel'],
-            'moduleKey' => $activeModule['key'],
-        ])
-    @endif
+    {{-- Chrome HTML lives only in #agricart-module-chrome-source (breadcrumbs-source).
+         Copying here once avoids rendering Tools/Catalog chrome twice per request. --}}
 </div>
