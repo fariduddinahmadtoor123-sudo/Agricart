@@ -210,7 +210,7 @@ class PermissionRegistry
                 'packing-units' => ['label_en' => 'Packing Units', 'label_ur' => 'پیکنگ یونٹس', 'actions' => $crud],
                 'attributes' => ['label_en' => 'Attributes', 'label_ur' => 'خصوصیات', 'actions' => $crud],
                 'controls' => ['label_en' => 'Controls', 'label_ur' => 'کنٹرولز', 'actions' => $crud],
-                'labels' => ['label_en' => 'Labels', 'label_ur' => 'لیبلز', 'actions' => ['view', 'create', 'print']],
+                'labels' => ['label_en' => 'Product Labels', 'label_ur' => 'پروڈکٹ لیبلز', 'actions' => ['view', 'create', 'print']],
                 'product-reviews' => ['label_en' => 'Product Reviews', 'label_ur' => 'پروڈکٹ ریویوز', 'actions' => $crud],
             ],
             'purchasing' => [
@@ -329,9 +329,10 @@ class PermissionRegistry
             'tools' => [
                 'overview' => ['label_en' => 'Overview', 'label_ur' => 'جائزہ', 'actions' => $viewOnly],
                 're-order' => ['label_en' => 'Re Order', 'label_ur' => 'ری آرڈر', 'actions' => $crudPrint],
-                'purchase-payment-summary' => ['label_en' => 'Purchase Payment Summary', 'label_ur' => 'پرچیز پیمنٹ سمری', 'actions' => $viewEdit],
-                'pending-payments' => ['label_en' => 'Pending Payments', 'label_ur' => 'پینڈنگ پیمنٹس', 'actions' => $viewEdit],
-                'printing' => ['label_en' => 'Printing', 'label_ur' => 'پرنٹنگ', 'actions' => $viewPrint],
+                'purchase-summary' => ['label_en' => 'Purchase Summary', 'label_ur' => 'پرچیز سمری', 'actions' => $crudPrint],
+                'pending-payments' => ['label_en' => 'Pending Payments', 'label_ur' => 'پینڈنگ پیمنٹس', 'actions' => $crudPrint],
+                'printing' => ['label_en' => 'Bill Printing', 'label_ur' => 'بل پرنٹنگ', 'actions' => $crudPrint],
+                'barcode-printing' => ['label_en' => 'Barcode Printing', 'label_ur' => 'بارکوڈ پرنٹنگ', 'actions' => $viewPrint],
                 'home-expenses' => ['label_en' => 'Home Expenses', 'label_ur' => 'ہوم ایکسپینس', 'actions' => $crudPrint],
             ],
         ];

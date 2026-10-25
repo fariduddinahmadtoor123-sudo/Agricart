@@ -239,4 +239,110 @@
         <p class="agricart-form-panel__hint">{{ __('agricart.pages.tools.re_order_rate_digit_hint') }}</p>
     </section>
 
+    <section class="agricart-form-panel__section agricart-tools-reorder-settings__section">
+        <h3 class="agricart-form-panel__section-title">{{ __('agricart.pages.tools.re_order_units') }}</h3>
+        <p class="agricart-form-panel__hint">{{ __('agricart.pages.tools.re_order_units_hint') }}</p>
+
+        <div class="agricart-tools-reorder-settings__grid-2">
+            <div class="agricart-form-panel__field">
+                <label class="agricart-form-panel__label">{{ __('agricart.pages.tools.re_order_unit_en') }}</label>
+                <x-filament::input.wrapper>
+                    <input type="text" wire:model.live="draftUnitEn" wire:keydown.enter.prevent="addUnit" class="fi-input" />
+                </x-filament::input.wrapper>
+            </div>
+            <div class="agricart-form-panel__field">
+                <label class="agricart-form-panel__label">{{ __('agricart.pages.tools.re_order_unit_ur') }}</label>
+                <x-filament::input.wrapper>
+                    <input type="text" wire:model.live="draftUnitUr" wire:keydown.enter.prevent="addUnit" class="fi-input" dir="rtl" />
+                </x-filament::input.wrapper>
+            </div>
+        </div>
+
+        <div class="agricart-tools-reorder-settings__add-row">
+            <x-filament::button color="primary" size="sm" tag="button" type="button" icon="heroicon-o-plus" wire:click="addUnit">
+                {{ __('agricart.pages.tools.re_order_add_unit') }}
+            </x-filament::button>
+        </div>
+
+        @if (count($units) > 0)
+            <div class="agricart-tools-reorder-settings__chips">
+                @foreach ($units as $index => $row)
+                    @php
+                        $labelEn = trim((string) ($row['nameEn'] ?? ''));
+                        $labelUr = trim((string) ($row['nameUr'] ?? ''));
+                    @endphp
+                    <div class="agricart-tools-reorder-settings__chip" wire:key="unit-chip-{{ $index }}">
+                        <div class="agricart-tools-reorder-settings__chip-body">
+                            <div class="agricart-tools-reorder-settings__chip-names">
+                                @if ($labelEn !== '')
+                                    <span dir="ltr">{{ $labelEn }}</span>
+                                @endif
+                                @if ($labelEn !== '' && $labelUr !== '')
+                                    <span class="agricart-tools-reorder-settings__dot">·</span>
+                                @endif
+                                @if ($labelUr !== '')
+                                    <span dir="rtl">{{ $labelUr }}</span>
+                                @endif
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            class="agricart-tools-reorder-settings__icon-btn"
+                            wire:click="removeUnit({{ $index }})"
+                            aria-label="{{ __('agricart.pages.tools.re_order_remove_unit') }}"
+                        >
+                            <x-filament::icon icon="heroicon-o-x-mark" class="h-3.5 w-3.5" />
+                        </button>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    </section>
+
+    <section class="agricart-form-panel__section agricart-tools-reorder-settings__section">
+        <h3 class="agricart-form-panel__section-title">{{ __('agricart.pages.tools.re_order_phrases') }}</h3>
+        <p class="agricart-form-panel__hint">{{ __('agricart.pages.tools.re_order_phrases_hint') }}</p>
+
+        <div class="agricart-form-panel__field">
+            <label class="agricart-form-panel__label">{{ __('agricart.pages.tools.re_order_phrase_add') }}</label>
+            <x-filament::input.wrapper>
+                <input
+                    type="text"
+                    wire:model.live="draftPhrase"
+                    wire:keydown.enter.prevent="addPhrase"
+                    class="fi-input"
+                    @if (app()->getLocale() === 'ur') dir="rtl" @endif
+                />
+            </x-filament::input.wrapper>
+        </div>
+
+        <div class="agricart-tools-reorder-settings__add-row">
+            <x-filament::button color="primary" size="sm" tag="button" type="button" icon="heroicon-o-plus" wire:click="addPhrase">
+                {{ __('agricart.pages.tools.re_order_add_phrase') }}
+            </x-filament::button>
+        </div>
+
+        @if (count($phrases) > 0)
+            <div class="agricart-tools-reorder-settings__chips">
+                @foreach ($phrases as $index => $phrase)
+                    <div class="agricart-tools-reorder-settings__chip" wire:key="phrase-chip-{{ $index }}">
+                        <div class="agricart-tools-reorder-settings__chip-body">
+                            <div class="agricart-tools-reorder-settings__chip-names">
+                                <span>{{ $phrase }}</span>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            class="agricart-tools-reorder-settings__icon-btn"
+                            wire:click="removePhrase({{ $index }})"
+                            aria-label="{{ __('agricart.pages.tools.re_order_remove_phrase') }}"
+                        >
+                            <x-filament::icon icon="heroicon-o-x-mark" class="h-3.5 w-3.5" />
+                        </button>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    </section>
+
 </div>

@@ -29,8 +29,78 @@
             'agricart-catalog-toolbar--segmented' => ! empty($toolbar['segments']),
             'agricart-catalog-toolbar--reorder' => ($toolbar['resourceSlug'] ?? '') === 're-order-center',
             'agricart-catalog-toolbar--expenses' => ($toolbar['resourceSlug'] ?? '') === 'expenses',
+            'agricart-catalog-toolbar--tools-reorder' => ! empty($toolbar['toolsReorderChrome']),
+            'agricart-catalog-toolbar--tools-ps' => ! empty($toolbar['toolsPurchaseSummaryChrome']),
+            'agricart-catalog-toolbar--tools-pp' => ! empty($toolbar['toolsPendingPaymentsChrome']),
+            'agricart-catalog-toolbar--tools-bp' => ! empty($toolbar['toolsBillPrintingChrome']),
+            'agricart-catalog-toolbar--tools-bc' => ! empty($toolbar['toolsBarcodePrintingChrome']),
+            'agricart-catalog-toolbar--tools-he' => ! empty($toolbar['toolsHomeExpensesChrome']),
         ])
-        @if (! empty($toolbar['segments']))
+        @if (! empty($toolbar['toolsReorderChrome']))
+            x-data="{
+                screen: 'list',
+                formMode: 'edit',
+                syncScreen(payload) {
+                    const data = Array.isArray(payload) ? (payload[0] ?? {}) : (payload ?? {});
+                    if (data.screen) {
+                        this.screen = data.screen;
+                    }
+                    if (data.formMode) {
+                        this.formMode = data.formMode;
+                    }
+                },
+            }"
+            x-on:tools-reorder-screen.window="syncScreen($event.detail)"
+            x-on:livewire:init="Livewire.on('tools-reorder-screen', (payload) => syncScreen(payload))"
+        @elseif (! empty($toolbar['toolsPurchaseSummaryChrome']))
+            x-data="{
+                screen: 'list',
+                formMode: 'edit',
+                syncScreen(payload) {
+                    const data = Array.isArray(payload) ? (payload[0] ?? {}) : (payload ?? {});
+                    if (data.screen) {
+                        this.screen = data.screen;
+                    }
+                    if (data.formMode) {
+                        this.formMode = data.formMode;
+                    }
+                },
+            }"
+            x-on:tools-purchase-summary-screen.window="syncScreen($event.detail)"
+            x-on:livewire:init="Livewire.on('tools-purchase-summary-screen', (payload) => syncScreen(payload))"
+        @elseif (! empty($toolbar['toolsPendingPaymentsChrome']))
+            x-data="{
+                screen: 'list',
+                formMode: 'edit',
+                syncScreen(payload) {
+                    const data = Array.isArray(payload) ? (payload[0] ?? {}) : (payload ?? {});
+                    if (data.screen) {
+                        this.screen = data.screen;
+                    }
+                    if (data.formMode) {
+                        this.formMode = data.formMode;
+                    }
+                },
+            }"
+            x-on:tools-pending-payments-screen.window="syncScreen($event.detail)"
+            x-on:livewire:init="Livewire.on('tools-pending-payments-screen', (payload) => syncScreen(payload))"
+        @elseif (! empty($toolbar['toolsBillPrintingChrome']))
+            x-data="{
+                screen: 'list',
+                formMode: 'edit',
+                syncScreen(payload) {
+                    const data = Array.isArray(payload) ? (payload[0] ?? {}) : (payload ?? {});
+                    if (data.screen) {
+                        this.screen = data.screen;
+                    }
+                    if (data.formMode) {
+                        this.formMode = data.formMode;
+                    }
+                },
+            }"
+            x-on:tools-bill-printing-screen.window="syncScreen($event.detail)"
+            x-on:livewire:init="Livewire.on('tools-bill-printing-screen', (payload) => syncScreen(payload))"
+        @elseif (! empty($toolbar['segments']))
             x-data="{
                 activeTab: @js($defaultTab),
                 queueCount: 0,
@@ -104,7 +174,174 @@
             </div>
         @endif
 
-        <div class="agricart-catalog-toolbar__actions">
+        @if (! empty($toolbar['toolsReorderChrome']))
+            <div
+                id="agricart-ro-toolbar-slot"
+                class="agricart-ro-toolbar-slot"
+                x-show="screen === 'form'"
+                x-cloak
+            ></div>
+        @endif
+
+        @if (! empty($toolbar['toolsPurchaseSummaryChrome']))
+            <div
+                id="agricart-ps-toolbar-slot"
+                class="agricart-ps-toolbar-slot"
+                x-show="screen === 'form'"
+                x-cloak
+            ></div>
+        @endif
+
+        @if (! empty($toolbar['toolsPendingPaymentsChrome']))
+            <div
+                id="agricart-pp-toolbar-slot"
+                class="agricart-pp-toolbar-slot"
+                x-show="screen === 'form'"
+                x-cloak
+            ></div>
+        @endif
+
+        @if (! empty($toolbar['toolsBillPrintingChrome']))
+            <div
+                id="agricart-bp-toolbar-slot"
+                class="agricart-bp-toolbar-slot"
+                x-show="screen === 'form' && formMode === 'edit'"
+                x-cloak
+            ></div>
+        @endif
+
+        @if (! empty($toolbar['toolsBarcodePrintingChrome']))
+            <div
+                class="agricart-bc-toolbar-slot"
+                x-data="{
+                    sizes: [],
+                    selected: '',
+                    pickLabel: @js(__('agricart.pages.tools.bc_pick_size')),
+                    emptyLabel: @js(__('agricart.pages.tools.bc_no_saved_sizes')),
+                    sync(detail) {
+                        const data = Array.isArray(detail) ? (detail[0] ?? {}) : (detail ?? {});
+                        this.sizes = Array.isArray(data.sizes) ? data.sizes : [];
+                        this.selected = data.selected ?? '';
+                        this.$nextTick(() => this.paint());
+                    },
+                    paint() {
+                        const sel = this.$refs.sizeSelect;
+                        if (! sel) return;
+                        const current = this.selected;
+                        sel.innerHTML = '';
+                        const placeholder = document.createElement('option');
+                        placeholder.value = '';
+                        placeholder.textContent = this.sizes.length ? this.pickLabel : this.emptyLabel;
+                        sel.appendChild(placeholder);
+                        this.sizes.forEach((size) => {
+                            const opt = document.createElement('option');
+                            opt.value = size.key;
+                            opt.textContent = size.label;
+                            sel.appendChild(opt);
+                        });
+                        sel.value = current && this.sizes.some((s) => s.key === current) ? current : '';
+                    },
+                    choose(value) {
+                        this.selected = value;
+                        window.Livewire.dispatch('tools-barcode-printing-select-size', { key: value });
+                    },
+                }"
+                x-on:tools-barcode-printing-chrome.window="sync($event.detail)"
+                x-on:livewire:init="Livewire.on('tools-barcode-printing-chrome', (payload) => sync(payload))"
+            >
+                <select
+                    class="agricart-bc__size-select"
+                    x-ref="sizeSelect"
+                    x-on:change="choose($event.target.value)"
+                >
+                    <option value="">{{ __('agricart.pages.tools.bc_no_saved_sizes') }}</option>
+                </select>
+            </div>
+        @endif
+
+        @if (! empty($toolbar['toolsHomeExpensesChrome']))
+            <div
+                id="agricart-he-toolbar-slot"
+                class="agricart-he-toolbar-slot"
+                x-data="{
+                    title: '',
+                    expected: 'Rs 0',
+                    paid: 'Rs 0',
+                    remaining: 'Rs 0',
+                    viewingClosed: false,
+                    paidLabel: @js(__('agricart.pages.tools.he_total_paid')),
+                    remainingLabel: @js(__('agricart.pages.tools.he_total_remaining')),
+                    normalize(detail) {
+                        if (detail == null) return {};
+                        if (Array.isArray(detail)) {
+                            const first = detail[0];
+                            if (first && typeof first === 'object' && ! Array.isArray(first)) {
+                                return first;
+                            }
+                            if (typeof first === 'string' || typeof first === 'number') {
+                                return {
+                                    title: detail[0] ?? '',
+                                    expected: detail[1] ?? 'Rs 0',
+                                    paid: detail[2] ?? 'Rs 0',
+                                    remaining: detail[3] ?? 'Rs 0',
+                                    viewingClosed: !! detail[4],
+                                };
+                            }
+                            return {};
+                        }
+                        if (typeof detail === 'object') return detail;
+                        return {};
+                    },
+                    sync(detail) {
+                        const data = this.normalize(detail);
+                        if (data.title != null && data.title !== '') this.title = data.title;
+                        if (data.expected != null) this.expected = data.expected;
+                        if (data.paid != null) this.paid = data.paid;
+                        if (data.remaining != null) this.remaining = data.remaining;
+                        if (typeof data.viewingClosed === 'boolean') {
+                            this.viewingClosed = data.viewingClosed;
+                            window.dispatchEvent(new CustomEvent('tools-home-expenses-viewing', { detail: { viewingClosed: data.viewingClosed } }));
+                        }
+                    },
+                    pullFromPage() {
+                        const el = document.getElementById('agricart-he-totals-data');
+                        if (! el) return;
+                        try {
+                            const raw = el.getAttribute('data-payload') || '{}';
+                            this.sync(JSON.parse(raw));
+                        } catch (e) {}
+                    },
+                    init() {
+                        this.pullFromPage();
+                        this.$nextTick(() => this.pullFromPage());
+                        queueMicrotask(() => this.pullFromPage());
+                        document.addEventListener('tools-home-expenses-totals', (e) => this.sync(e.detail));
+                        if (window.Livewire) {
+                            Livewire.hook('morph.updated', () => {
+                                queueMicrotask(() => this.pullFromPage());
+                            });
+                        }
+                    },
+                }"
+                x-on:tools-home-expenses-totals.window="sync($event.detail)"
+                x-on:livewire:init="Livewire.on('tools-home-expenses-totals', (payload) => sync(payload))"
+            >
+                <div class="agricart-he__totals">
+                    <span class="agricart-he__totals-muted" x-text="title"></span>
+                    <span x-text="paidLabel + ': ' + paid"></span>
+                    <span class="agricart-he__totals-remaining" x-text="remainingLabel + ': ' + remaining"></span>
+                </div>
+            </div>
+        @endif
+
+        <div
+            class="agricart-catalog-toolbar__actions"
+            @if (! empty($toolbar['toolsHomeExpensesChrome']))
+                x-data="{ viewingClosed: false }"
+                x-on:tools-home-expenses-viewing.window="viewingClosed = !!(Array.isArray($event.detail) ? $event.detail[0]?.viewingClosed : $event.detail?.viewingClosed)"
+                x-bind:style="viewingClosed ? 'display:none' : null"
+            @endif
+        >
             @if (empty($toolbar['hideFilters']) || ! empty($toolbar['filters']) || ! empty($toolbar['filterGroups']))
                 @include('filament.components.module.filter-dropdown', ['toolbar' => $toolbar, 'moduleKey' => $moduleKey])
             @endif

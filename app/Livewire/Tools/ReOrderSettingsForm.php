@@ -32,8 +32,20 @@ class ReOrderSettingsForm extends Component
     /** @var list<string> */
     public array $draftPurchaserPhones = [''];
 
+    /** @var list<array{nameEn: string, nameUr: string}> */
+    public array $units = [];
+
+    public string $draftUnitEn = '';
+
+    public string $draftUnitUr = '';
+
     /** @var array<string, string> */
     public array $digitSlots = [];
+
+    /** @var list<string> Auto-learned / manual detail phrases for autocomplete. */
+    public array $phrases = [];
+
+    public string $draftPhrase = '';
 
     public bool $saving = false;
 
@@ -169,6 +181,54 @@ class ReOrderSettingsForm extends Component
         $this->draftPurchaserPhones = [''];
     }
 
+    public function addUnit(): void
+    {
+        $this->authorizeAny(['tools.re-order.edit', 'tools.re-order.create']);
+
+        $nameEn = trim($this->draftUnitEn);
+        $nameUr = trim($this->draftUnitUr);
+
+        if ($nameEn === '' && $nameUr === '') {
+            return;
+        }
+
+        foreach ($this->units as $existing) {
+            $sameEn = $nameEn !== '' && mb_strtolower((string) ($existing['nameEn'] ?? '')) === mb_strtolower($nameEn);
+            $sameUr = $nameUr !== '' && mb_strtolower((string) ($existing['nameUr'] ?? '')) === mb_strtolower($nameUr);
+            if ($sameEn || $sameUr) {
+                $this->clearDraftUnit();
+
+                return;
+            }
+        }
+
+        $this->units[] = [
+            'nameEn' => $nameEn,
+            'nameUr' => $nameUr,
+        ];
+        $this->clearDraftUnit();
+        $this->persist();
+    }
+
+    public function removeUnit(int $index): void
+    {
+        $this->authorizeAny(['tools.re-order.edit', 'tools.re-order.create']);
+
+        if (! array_key_exists($index, $this->units)) {
+            return;
+        }
+
+        unset($this->units[$index]);
+        $this->units = array_values($this->units);
+        $this->persist();
+    }
+
+    protected function clearDraftUnit(): void
+    {
+        $this->draftUnitEn = '';
+        $this->draftUnitUr = '';
+    }
+
     public function updated(string $name, mixed $value): void
     {
         if (str_starts_with($name, 'phones.')) {
@@ -194,6 +254,14 @@ class ReOrderSettingsForm extends Component
 
         if (trim($this->draftPurchaserEn) !== '' || trim($this->draftPurchaserUr) !== '') {
             $this->addPurchaser();
+        }
+
+        if (trim($this->draftUnitEn) !== '' || trim($this->draftUnitUr) !== '') {
+            $this->addUnit();
+        }
+
+        if (trim($this->draftPhrase) !== '') {
+            $this->addPhrase();
         }
 
         if ($this->persist()) {
@@ -244,7 +312,25 @@ class ReOrderSettingsForm extends Component
                     ->filter()
                     ->values()
                     ->all(),
+                'units' => collect($this->units)
+                    ->map(function (array $row): ?array {
+                        $nameEn = trim((string) ($row['nameEn'] ?? ''));
+                        $nameUr = trim((string) ($row['nameUr'] ?? ''));
+
+                        if ($nameEn === '' && $nameUr === '') {
+                            return null;
+                        }
+
+                        return [
+                            'nameEn' => $nameEn,
+                            'nameUr' => $nameUr,
+                        ];
+                    })
+                    ->filter()
+                    ->values()
+                    ->all(),
                 'digitSlots' => $slots,
+                'phrases' => app(ReOrderSettingsService::class)->normalizePhrases($this->phrases),
             ];
 
             app(ReOrderSettingsService::class)->saveForUser($payload);
@@ -336,6 +422,75 @@ class ReOrderSettingsForm extends Component
             ];
         }
         $this->clearDraftPurchaser();
+
+        $unitRows = is_array($data['units'] ?? null) ? $data['units'] : [];
+        $this->units = [];
+        foreach ($unitRows as $row) {
+            if (is_string($row) || is_numeric($row)) {
+                $name = trim((string) $row);
+                if ($name === '') {
+                    continue;
+                }
+                $this->units[] = [
+                    'nameEn' => $name,
+                    'nameUr' => '',
+                ];
+                continue;
+            }
+            if (! is_array($row)) {
+                continue;
+            }
+            $nameEn = trim((string) ($row['nameEn'] ?? $row['name'] ?? ''));
+            $nameUr = trim((string) ($row['nameUr'] ?? ''));
+            if ($nameEn === '' && $nameUr === '') {
+                continue;
+            }
+            $this->units[] = [
+                'nameEn' => $nameEn,
+                'nameUr' => $nameUr,
+            ];
+        }
+        $this->clearDraftUnit();
+
+        $this->phrases = app(ReOrderSettingsService::class)->normalizePhrases($data['phrases'] ?? []);
+        $this->draftPhrase = '';
+    }
+
+    public function addPhrase(): void
+    {
+        $this->authorizeAny(['tools.re-order.edit', 'tools.re-order.create']);
+
+        $phrase = trim($this->draftPhrase);
+        if (mb_strlen($phrase) < 2) {
+            return;
+        }
+
+        $norm = mb_strtolower($phrase);
+        foreach ($this->phrases as $existing) {
+            if (mb_strtolower((string) $existing) === $norm) {
+                $this->draftPhrase = '';
+
+                return;
+            }
+        }
+
+        array_unshift($this->phrases, $phrase);
+        $this->phrases = array_slice($this->phrases, 0, 500);
+        $this->draftPhrase = '';
+        $this->persist();
+    }
+
+    public function removePhrase(int $index): void
+    {
+        $this->authorizeAny(['tools.re-order.edit', 'tools.re-order.create']);
+
+        if (! array_key_exists($index, $this->phrases)) {
+            return;
+        }
+
+        unset($this->phrases[$index]);
+        $this->phrases = array_values($this->phrases);
+        $this->persist();
     }
 
     protected function dispatchBusy(bool $saving): void

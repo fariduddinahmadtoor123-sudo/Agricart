@@ -26,7 +26,16 @@
                 . json_encode($action['value'])
                 . ' })';
         }
+
+        $clickHandler = ($action['value'] ?? '') === 'print'
+            ? 'window.print()'
+            : $dispatch;
+
+        if (filled($action['confirm'] ?? null)) {
+            $clickHandler = 'if (confirm('.json_encode((string) $action['confirm']).')) { '.$clickHandler.' }';
+        }
     @endphp
+
     @if (filled($action['tab'] ?? null))
         <x-filament::button
             :color="$action['color'] ?? 'gray'"
@@ -34,14 +43,50 @@
             :icon="$action['icon'] ?? null"
             tag="button"
             type="button"
-            x-show="activeTab === @js($action['tab'])"
             x-cloak
+            x-show="activeTab === @js($action['tab'])"
             @class([
                 'agricart-catalog-toolbar__action',
                 'agricart-catalog-toolbar__action--primary' => ($action['color'] ?? 'gray') === 'primary' && ($action['outlined'] ?? true) !== true,
                 'agricart-catalog-toolbar__action--compact-label' => ($action['compact'] ?? false) === true,
             ])
-            x-on:click="{{ $dispatch }}"
+            x-on:click="{{ $clickHandler }}"
+        >
+            {{ $action['label'] }}
+        </x-filament::button>
+    @elseif (filled($action['screen'] ?? null) && filled($action['formMode'] ?? null))
+        <x-filament::button
+            :color="$action['color'] ?? 'gray'"
+            :outlined="($action['outlined'] ?? true) === true"
+            :icon="$action['icon'] ?? null"
+            tag="button"
+            type="button"
+            x-cloak
+            x-show="screen === @js($action['screen']) && formMode === @js($action['formMode'])"
+            @class([
+                'agricart-catalog-toolbar__action',
+                'agricart-catalog-toolbar__action--primary' => ($action['color'] ?? 'gray') === 'primary' && ($action['outlined'] ?? true) !== true,
+                'agricart-catalog-toolbar__action--compact-label' => ($action['compact'] ?? false) === true,
+            ])
+            x-on:click="{{ $clickHandler }}"
+        >
+            {{ $action['label'] }}
+        </x-filament::button>
+    @elseif (filled($action['screen'] ?? null))
+        <x-filament::button
+            :color="$action['color'] ?? 'gray'"
+            :outlined="($action['outlined'] ?? true) === true"
+            :icon="$action['icon'] ?? null"
+            tag="button"
+            type="button"
+            x-cloak
+            x-show="screen === @js($action['screen'])"
+            @class([
+                'agricart-catalog-toolbar__action',
+                'agricart-catalog-toolbar__action--primary' => ($action['color'] ?? 'gray') === 'primary' && ($action['outlined'] ?? true) !== true,
+                'agricart-catalog-toolbar__action--compact-label' => ($action['compact'] ?? false) === true,
+            ])
+            x-on:click="{{ $clickHandler }}"
         >
             {{ $action['label'] }}
         </x-filament::button>
@@ -57,7 +102,7 @@
                 'agricart-catalog-toolbar__action--primary' => ($action['color'] ?? 'gray') === 'primary' && ($action['outlined'] ?? true) !== true,
                 'agricart-catalog-toolbar__action--compact-label' => ($action['compact'] ?? false) === true,
             ])
-            x-on:click="{{ $dispatch }}"
+            x-on:click="{{ $clickHandler }}"
         >
             {{ $action['label'] }}
         </x-filament::button>

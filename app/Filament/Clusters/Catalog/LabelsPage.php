@@ -13,7 +13,7 @@ class LabelsPage extends BaseModulePage
 
     protected static ?string $cluster = CatalogCluster::class;
 
-    protected static ?string $navigationLabel = 'Labels';
+    protected static ?string $navigationLabel = 'Product Labels';
 
     protected static ?int $navigationSort = 10;
 

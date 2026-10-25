@@ -170,7 +170,10 @@ class PrintLabelsForm extends Component
 
         abort_unless(
             $user instanceof User
-                && ($user->isSuperAdmin() || \App\Services\Access\ModulePageAccess::can($user, 'catalog', 'labels', 'view')),
+                && (
+                    $user->isSuperAdmin()
+                    || \App\Services\Access\ModulePageAccess::can($user, 'catalog', 'labels', 'view')
+                ),
             403,
         );
     }

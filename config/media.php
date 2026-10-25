@@ -67,6 +67,13 @@ return [
             'quality' => 78,
             'convert_webp' => true,
         ],
+        // Tools → Bill Printing batches: many pages per folder, keep files very small.
+        'bill_print' => [
+            'max_width' => 1280,
+            'max_height' => 1800,
+            'quality' => 60,
+            'convert_webp' => true,
+        ],
     ],
 
     'directory_presets' => [
@@ -87,6 +94,7 @@ return [
         'users/profile-photos' => 'avatar',
         'expenses/bills' => 'bill',
         'purchases/vendor-bills' => 'bill',
+        'tools/bill-printing' => 'bill_print',
     ],
 
     /*

@@ -59,14 +59,22 @@ class SecretCodingEngine
         $profile ??= $this->activeProfile();
 
         if ($profile === null) {
-            return preg_replace('/\D+/', '', (string) $value);
+            return preg_replace('/\D+/', '', (string) $value) ?? '';
         }
 
-        $map = SecretCodingService::normalizeDigitSlotsStatic($profile->digit_slots ?? []);
+        return $this->decodeWithSlots((string) $value, $profile->digit_slots ?? []);
+    }
+
+    /**
+     * @param  array<string, mixed>  $slots
+     */
+    public function decodeWithSlots(string $value, array $slots): string
+    {
+        $map = SecretCodingService::normalizeDigitSlotsStatic($slots);
         $tokens = array_values(array_filter($map, static fn (string $token): bool => filled($token)));
 
         if ($tokens === []) {
-            return preg_replace('/\D+/', '', (string) $value);
+            return preg_replace('/\D+/', '', $value) ?? '';
         }
 
         usort($tokens, static fn (string $a, string $b): int => mb_strlen($b) <=> mb_strlen($a));
@@ -75,12 +83,12 @@ class SecretCodingEngine
 
         foreach ($map as $digit => $token) {
             if (filled($token)) {
-                $reverse[$token] = $digit;
+                $reverse[$token] = (string) $digit;
             }
         }
 
         $decoded = '';
-        $remaining = (string) $value;
+        $remaining = $value;
 
         while ($remaining !== '') {
             $matched = false;
