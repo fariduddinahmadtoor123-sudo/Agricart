@@ -30,6 +30,7 @@ class PermissionRegistry
             'settings' => ['Settings', 'ترتیبات'],
             'docs' => ['Docs', 'دستاویزات'],
             'tools' => ['External Apps', 'بیرونی ایپس'],
+            'fx-learn' => ['FX Learn', 'FX Learn'],
         ];
 
         $moduleHints = [
@@ -96,6 +97,10 @@ class PermissionRegistry
             'tools' => [
                 'en' => 'External Apps are separate from Agricart core. Grant module/page access (e.g. open External Apps, only Re Order, create orders, edit settings).',
                 'ur' => 'بیرونی ایپس ایگری کارٹ کور سے الگ ہیں۔ ماڈیول/صفحہ اجازت دیں (مثلاً صرف External Apps کھولنا، صرف Re Order، آرڈر بنانا، سیٹنگز ترمیم)۔',
+            ],
+            'fx-learn' => [
+                'en' => 'Grant each FX Learn page separately (Trade Terminal, Economic Radar, Liquidity & Sessions, and the other learning tools).',
+                'ur' => 'FX Learn کا ہر صفحہ الگ دیں (ٹریڈ ٹرمینل، اکنامک ریڈار، لیکویڈیٹی اینڈ سیشنز، اور دیگر لرننگ ٹولز)۔',
             ],
         ];
 
@@ -334,6 +339,16 @@ class PermissionRegistry
                 'printing' => ['label_en' => 'Bill Printing', 'label_ur' => 'بل پرنٹنگ', 'actions' => $crudPrint],
                 'barcode-printing' => ['label_en' => 'Barcode Printing', 'label_ur' => 'بارکوڈ پرنٹنگ', 'actions' => $viewPrint],
                 'home-expenses' => ['label_en' => 'Home Expenses', 'label_ur' => 'ہوم ایکسپینس', 'actions' => $crudPrint],
+            ],
+            'fx-learn' => [
+                'trade-terminal' => ['label_en' => 'Trade Terminal', 'label_ur' => 'ٹریڈ ٹرمینل', 'actions' => $viewOnly],
+                'economic-radar' => ['label_en' => 'Economic Radar', 'label_ur' => 'اکنامک ریڈار', 'actions' => $viewOnly],
+                'liquidity-sessions' => ['label_en' => 'Liquidity & Sessions', 'label_ur' => 'لیکویڈیٹی اینڈ سیشنز', 'actions' => $viewOnly],
+                'market-sentiment' => ['label_en' => 'Market Sentiment', 'label_ur' => 'مارکیٹ سینٹیمنٹ', 'actions' => $viewOnly],
+                'market-screener' => ['label_en' => 'Market Screener', 'label_ur' => 'مارکیٹ اسکرینر', 'actions' => $viewOnly],
+                'smart-calculators' => ['label_en' => 'Smart Calculators', 'label_ur' => 'سمارٹ کیلکولیٹرز', 'actions' => $viewOnly],
+                'prop-challenge-rules' => ['label_en' => 'Prop Challenge & Rules', 'label_ur' => 'پراپ چیلنج اینڈ رولز', 'actions' => $viewOnly],
+                'academy-journal' => ['label_en' => 'Academy & Journal', 'label_ur' => 'اکیڈمی اینڈ جرنل', 'actions' => $viewOnly],
             ],
         ];
     }

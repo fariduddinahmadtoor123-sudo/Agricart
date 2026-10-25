@@ -130,6 +130,13 @@ class ModuleChrome
                 'toolbar' => ToolsPageToolbar::class,
                 'navLabel' => 'External Apps',
             ],
+            [
+                'key' => 'fx-learn',
+                'path' => 'admin/fx-learn',
+                'subNavigation' => FxLearnSubNavigation::class,
+                'toolbar' => FxLearnPageToolbar::class,
+                'navLabel' => 'FX Learn',
+            ],
         ];
 
         return array_map(
