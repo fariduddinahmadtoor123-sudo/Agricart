@@ -47,6 +47,9 @@ class HomeExpensesPage extends BaseModulePage
 
     public ?int $openSheetId = null;
 
+    /** When set, user is browsing a month folder (paid archive). */
+    public ?int $viewingFolderId = null;
+
     protected ?ToolsHomeExpenseSheet $requestActiveSheet = null;
 
     public function mount(): void
@@ -54,6 +57,11 @@ class HomeExpensesPage extends BaseModulePage
         $this->expenseDate = $this->defaultExpenseDate();
         $this->ensureOpenSheet();
         $this->dispatchTotals();
+    }
+
+    public function isViewingFolder(): bool
+    {
+        return $this->viewingFolderId !== null;
     }
 
     #[On('tools-home-expenses-search')]
@@ -65,6 +73,10 @@ class HomeExpensesPage extends BaseModulePage
     #[On('tools-home-expenses-action')]
     public function handleToolbarAction(string $action): void
     {
+        if ($this->isViewingFolder() && in_array($action, ['add-expense', 'close-sheet'], true)) {
+            return;
+        }
+
         match ($action) {
             'add-expense' => $this->openAddForm(),
             'close-sheet' => $this->closeOpenSheet(),
@@ -74,6 +86,10 @@ class HomeExpensesPage extends BaseModulePage
 
     public function openAddForm(): void
     {
+        if ($this->isViewingFolder()) {
+            return;
+        }
+
         $this->authorizeEdit();
         $this->ensureOpenSheet();
         $this->closePayForm();
@@ -94,6 +110,10 @@ class HomeExpensesPage extends BaseModulePage
 
     public function saveExpense(): void
     {
+        if ($this->isViewingFolder()) {
+            return;
+        }
+
         $this->authorizeEdit();
         $sheet = $this->ensureOpenSheet();
 
@@ -157,17 +177,18 @@ class HomeExpensesPage extends BaseModulePage
 
     public function openPayForm(int $itemId): void
     {
+        if ($this->isViewingFolder()) {
+            return;
+        }
+
         $this->authorizeEdit();
         $sheet = $this->ensureOpenSheet();
 
         $item = ToolsHomeExpenseItem::query()
             ->where('user_id', auth()->id())
             ->where('sheet_id', $sheet->id)
+            ->where('is_paid', false)
             ->findOrFail($itemId);
-
-        if ($item->is_paid) {
-            return;
-        }
 
         $this->showAddForm = false;
         $this->payingItemId = $item->id;
@@ -184,7 +205,7 @@ class HomeExpensesPage extends BaseModulePage
 
     public function confirmPay(): void
     {
-        if (! $this->payingItemId) {
+        if ($this->isViewingFolder() || ! $this->payingItemId) {
             return;
         }
 
@@ -223,12 +244,17 @@ class HomeExpensesPage extends BaseModulePage
 
         Notification::make()
             ->title(__('agricart.pages.tools.he_marked_paid'))
+            ->body(__('agricart.pages.tools.he_marked_paid_body'))
             ->success()
             ->send();
     }
 
     public function addAgain(int $itemId): void
     {
+        if ($this->isViewingFolder()) {
+            return;
+        }
+
         $this->authorizeEdit();
         $sheet = $this->ensureOpenSheet();
 
@@ -259,7 +285,12 @@ class HomeExpensesPage extends BaseModulePage
     public function unmarkPaid(int $itemId): void
     {
         $this->authorizeEdit();
-        $sheet = $this->ensureOpenSheet();
+
+        $sheet = $this->activeSheet();
+
+        if ($sheet->status === 'closed') {
+            return;
+        }
 
         $item = ToolsHomeExpenseItem::query()
             ->where('user_id', auth()->id())
@@ -279,6 +310,10 @@ class HomeExpensesPage extends BaseModulePage
 
     public function deleteExpense(int $itemId): void
     {
+        if ($this->isViewingFolder()) {
+            return;
+        }
+
         $this->authorizeEdit();
         $sheet = $this->ensureOpenSheet();
 
@@ -286,6 +321,7 @@ class HomeExpensesPage extends BaseModulePage
             ->where('user_id', auth()->id())
             ->where('sheet_id', $sheet->id)
             ->where('id', $itemId)
+            ->where('is_paid', false)
             ->delete();
 
         $this->dispatchTotals();
@@ -293,6 +329,10 @@ class HomeExpensesPage extends BaseModulePage
 
     public function closeOpenSheet(): void
     {
+        if ($this->isViewingFolder()) {
+            return;
+        }
+
         $this->authorizeEdit();
 
         $sheet = ToolsHomeExpenseSheet::query()
@@ -313,11 +353,22 @@ class HomeExpensesPage extends BaseModulePage
             return;
         }
 
+        // Keep current open month until there is something paid (saved into the folder).
+        if (! $sheet->items()->where('is_paid', true)->exists()) {
+            Notification::make()
+                ->title(__('agricart.pages.tools.he_close_need_paid'))
+                ->warning()
+                ->send();
+
+            return;
+        }
+
         $period = $this->sheetPeriodStart($sheet)->addMonthNoOverflow()->startOfMonth();
         $newSheet = $this->rollSheetForward($sheet, $period);
 
         $this->openSheetId = $newSheet->id;
         $this->requestActiveSheet = $newSheet;
+        $this->viewingFolderId = null;
         $this->expenseDate = $period->toDateString();
         $this->dispatchTotals();
 
@@ -330,18 +381,48 @@ class HomeExpensesPage extends BaseModulePage
             ->send();
     }
 
+    public function openFolder(int $id): void
+    {
+        $sheet = ToolsHomeExpenseSheet::query()
+            ->where('user_id', auth()->id())
+            ->whereKey($id)
+            ->firstOrFail();
+
+        $this->showAddForm = false;
+        $this->closePayForm();
+        $this->viewingFolderId = $sheet->id;
+        $this->requestActiveSheet = $sheet;
+        $this->search = '';
+        $this->dispatchTotals();
+    }
+
+    public function backToOpenList(): void
+    {
+        $this->viewingFolderId = null;
+        $this->requestActiveSheet = null;
+        $this->ensureOpenSheet();
+        $this->search = '';
+        $this->expenseDate = $this->defaultExpenseDate();
+        $this->dispatchTotals();
+    }
+
     /**
+     * Unpaid rows on the open month list (to pay).
+     *
      * @return Collection<int, ToolsHomeExpenseItem>
      */
     public function listedItems(): Collection
     {
+        if ($this->isViewingFolder()) {
+            return $this->folderPaidItems();
+        }
+
         $sheet = $this->ensureOpenSheet();
 
         $query = ToolsHomeExpenseItem::query()
             ->where('sheet_id', $sheet->id)
             ->where('user_id', auth()->id())
-            // Unpaid first (to pay); paid sink to the end.
-            ->orderBy('is_paid')
+            ->where('is_paid', false)
             ->orderByDesc('id');
 
         $search = trim($this->search);
@@ -354,13 +435,73 @@ class HomeExpensesPage extends BaseModulePage
     }
 
     /**
-     * Full-sheet rows for toolbar totals (ignore search filter).
+     * Paid entries inside the open folder being viewed.
      *
+     * @return Collection<int, ToolsHomeExpenseItem>
+     */
+    public function folderPaidItems(): Collection
+    {
+        $sheet = $this->activeSheet();
+
+        $query = ToolsHomeExpenseItem::query()
+            ->where('sheet_id', $sheet->id)
+            ->where('user_id', auth()->id())
+            ->where('is_paid', true)
+            ->orderByDesc('paid_at')
+            ->orderByDesc('id');
+
+        $search = trim($this->search);
+
+        if ($search !== '') {
+            $query->where('name', 'like', '%'.$search.'%');
+        }
+
+        return $query->limit(300)->get();
+    }
+
+    /**
+     * Month folders: current open (if any paid) + closed months.
+     *
+     * @return Collection<int, ToolsHomeExpenseSheet>
+     */
+    public function monthFolders(): Collection
+    {
+        $userId = (int) auth()->id();
+
+        $closed = ToolsHomeExpenseSheet::query()
+            ->where('user_id', $userId)
+            ->where('status', 'closed')
+            ->withCount([
+                'items as paid_count' => fn ($q) => $q->where('is_paid', true),
+            ])
+            ->latest('closed_at')
+            ->limit(36)
+            ->get();
+
+        $open = ToolsHomeExpenseSheet::query()
+            ->where('user_id', $userId)
+            ->where('status', 'open')
+            ->withCount([
+                'items as paid_count' => fn ($q) => $q->where('is_paid', true),
+            ])
+            ->latest('id')
+            ->first();
+
+        $folders = collect();
+
+        if ($open && (int) $open->paid_count > 0) {
+            $folders->push($open);
+        }
+
+        return $folders->concat($closed)->values();
+    }
+
+    /**
      * @return Collection<int, ToolsHomeExpenseItem>
      */
     public function sheetItemsForTotals(): Collection
     {
-        $sheet = $this->ensureOpenSheet();
+        $sheet = $this->activeSheet();
 
         return ToolsHomeExpenseItem::query()
             ->where('sheet_id', $sheet->id)
@@ -372,30 +513,11 @@ class HomeExpensesPage extends BaseModulePage
     }
 
     /**
-     * Paid rows for the summary strip above the list.
-     *
-     * @return Collection<int, ToolsHomeExpenseItem>
-     */
-    public function paidItems(): Collection
-    {
-        $sheet = $this->ensureOpenSheet();
-
-        return ToolsHomeExpenseItem::query()
-            ->where('sheet_id', $sheet->id)
-            ->where('user_id', auth()->id())
-            ->where('is_paid', true)
-            ->orderByDesc('paid_at')
-            ->orderByDesc('id')
-            ->limit(100)
-            ->get();
-    }
-
-    /**
      * @return array{expected: float, paid: float, unpaid: float, count: int, paid_count: int}
      */
     public function sheetTotals(?Collection $items = null): array
     {
-        $items ??= $this->listedItems();
+        $items ??= $this->sheetItemsForTotals();
 
         $expected = 0.0;
         $paid = 0.0;
@@ -423,7 +545,7 @@ class HomeExpensesPage extends BaseModulePage
 
     public function activeSheetTitle(): string
     {
-        return (string) ($this->ensureOpenSheet()->title ?? '');
+        return (string) ($this->activeSheet()->title ?? '');
     }
 
     protected function defaultExpenseDate(): string
@@ -443,12 +565,35 @@ class HomeExpensesPage extends BaseModulePage
         return Carbon::createFromFormat('Y-m', $ym)->startOfMonth();
     }
 
+    protected function activeSheet(): ToolsHomeExpenseSheet
+    {
+        if ($this->viewingFolderId) {
+            if (
+                $this->requestActiveSheet instanceof ToolsHomeExpenseSheet
+                && (int) $this->requestActiveSheet->id === (int) $this->viewingFolderId
+            ) {
+                return $this->requestActiveSheet;
+            }
+
+            $sheet = ToolsHomeExpenseSheet::query()
+                ->where('user_id', auth()->id())
+                ->whereKey($this->viewingFolderId)
+                ->firstOrFail();
+
+            $this->requestActiveSheet = $sheet;
+
+            return $sheet;
+        }
+
+        return $this->ensureOpenSheet();
+    }
+
     protected function ensureOpenSheet(): ToolsHomeExpenseSheet
     {
         if (
-            $this->requestActiveSheet instanceof ToolsHomeExpenseSheet
+            ! $this->viewingFolderId
+            && $this->requestActiveSheet instanceof ToolsHomeExpenseSheet
             && $this->requestActiveSheet->status === 'open'
-            && ($this->requestActiveSheet->period_ym ?: '') >= $this->currentPeriodYm()
         ) {
             return $this->requestActiveSheet;
         }
@@ -474,15 +619,9 @@ class HomeExpensesPage extends BaseModulePage
 
         if (! $sheet) {
             $sheet = $this->createSheetForPeriod(now()->startOfMonth(), $userId);
-        } else {
-            // Auto-save previous months and open a fresh unpaid list for the current month.
-            $guard = 0;
-            while (($sheet->period_ym ?: '') < $this->currentPeriodYm() && $guard < 24) {
-                $next = $this->sheetPeriodStart($sheet)->addMonthNoOverflow()->startOfMonth();
-                $sheet = $this->rollSheetForward($sheet, $next);
-                $guard++;
-            }
         }
+
+        // No auto-close on the 1st — month stays open until Close list (after at least one pay).
 
         $this->openSheetId = $sheet->id;
         $this->requestActiveSheet = $sheet;
@@ -504,7 +643,7 @@ class HomeExpensesPage extends BaseModulePage
     }
 
     /**
-     * Close $sheet (saved month) and seed next period with one unpaid row per expense name.
+     * Close $sheet (month folder saved) and seed next period unpaid templates.
      */
     protected function rollSheetForward(ToolsHomeExpenseSheet $sheet, Carbon $nextPeriod): ToolsHomeExpenseSheet
     {
@@ -531,7 +670,6 @@ class HomeExpensesPage extends BaseModulePage
                 ->orderBy('id')
                 ->get();
 
-            // One template per name (grocery ×3 → one next-month unpaid row).
             $seedItems = $items
                 ->reverse()
                 ->unique(fn (ToolsHomeExpenseItem $item) => mb_strtolower(trim((string) $item->name)))
@@ -572,7 +710,7 @@ class HomeExpensesPage extends BaseModulePage
             'expected' => $money($totals['expected']),
             'paid' => $money($totals['paid']),
             'remaining' => $money($totals['unpaid']),
-            'viewingClosed' => false,
+            'viewingClosed' => $this->isViewingFolder(),
         ];
 
         $this->dispatch(

@@ -30,28 +30,24 @@
         }
         .agricart-he__badge--paid{background:#dcfce7;color:#166534}
         .agricart-he__badge--unpaid{background:#fee2e2;color:#b91c1c}
-        .agricart-he__summary{display:flex;flex-direction:column;gap:.65rem}
-        .agricart-he__paid-box{
-            border-radius:.75rem;background:#f0fdf4;border:1px solid rgba(22,163,74,.18);
-            padding:.75rem .9rem;display:flex;flex-direction:column;gap:.45rem
-        }
+        .agricart-he__badge--open{background:#e0f2fe;color:#075985}
+        .agricart-he__badge--closed{background:#f1f5f9;color:#475569}
         .agricart-he__remain-box{
             border-radius:.75rem;background:#fef2f2;border:1px solid rgba(185,28,28,.18);
             padding:.75rem .9rem;display:flex;flex-direction:column;gap:.45rem
         }
-        .agricart-he__paid-title{margin:0;font-size:.8125rem;font-weight:800;color:#166534}
         .agricart-he__remain-title{margin:0;font-size:.8125rem;font-weight:800;color:#b91c1c}
         .agricart-he__paid-list{display:flex;flex-wrap:wrap;gap:.4rem .65rem;margin:0;padding:0;list-style:none}
-        .agricart-he__paid-list li{
-            font-size:.8125rem;font-weight:600;color:#14532d;
-            background:#fff;border:1px solid rgba(22,163,74,.2);border-radius:.45rem;padding:.25rem .55rem
-        }
         .agricart-he__remain-list li{
             font-size:.8125rem;font-weight:600;color:#7f1d1d;
             background:#fff;border:1px solid rgba(185,28,28,.2);border-radius:.45rem;padding:.25rem .55rem
         }
-        .agricart-he__paid-list li span,.agricart-he__remain-list li span{direction:ltr;font-weight:800}
+        .agricart-he__remain-list li span{direction:ltr;font-weight:800}
         .agricart-he__paid-empty{margin:0;font-size:.8125rem;color:#64748b}
+        .agricart-he__folders{display:flex;flex-direction:column;gap:.55rem}
+        .agricart-he__folders-title{margin:0;font-size:.875rem;font-weight:800;color:#0f172a}
+        .agricart-he__folder-ico{display:inline-flex;align-items:center;gap:.45rem}
+        .agricart-he__folder-ico svg{width:1.15rem;height:1.15rem;color:#ca8a04;flex:0 0 auto}
         .agricart-he__modal{
             position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem
         }
@@ -88,18 +84,19 @@
     </style>
 
     @php
+        $viewingFolder = $this->isViewingFolder();
         $items = $this->listedItems();
-        $paidItems = $this->paidItems();
         $totalsSource = $this->sheetItemsForTotals();
         $unpaidItems = $totalsSource->where('is_paid', false)->values();
         $totals = $this->sheetTotals($totalsSource);
+        $folders = $viewingFolder ? collect() : $this->monthFolders();
         $money = static fn ($n) => 'Rs '.number_format((float) $n, 0, '.', ',');
         $totalsPayload = [
             'title' => $this->activeSheetTitle(),
             'expected' => $money($totals['expected']),
             'paid' => $money($totals['paid']),
             'remaining' => $money($totals['unpaid']),
-            'viewingClosed' => false,
+            'viewingClosed' => $viewingFolder,
         ];
     @endphp
 
@@ -112,7 +109,7 @@
 
     <div
         class="agricart-he"
-        wire:key="he-page-{{ $openSheetId }}-{{ $showAddForm ? 'form' : ($payingItemId ? 'pay' : 'list') }}-{{ $totals['paid_count'] }}-{{ (int) $totals['unpaid'] }}"
+        wire:key="he-page-{{ $openSheetId }}-{{ $viewingFolderId ?? 0 }}-{{ $showAddForm ? 'form' : ($payingItemId ? 'pay' : 'list') }}-{{ $totals['paid_count'] }}"
         x-data
         x-init="
             const push = () => window.dispatchEvent(new CustomEvent('tools-home-expenses-totals', { detail: @js($totalsPayload) }));
@@ -122,30 +119,32 @@
     >
         <div class="agricart-ro-list">
             <div class="agricart-he__head">
-                <h2 class="agricart-he__sheet-title">{{ $this->activeSheetTitle() }}</h2>
-            </div>
-            <p class="agricart-he__hint">{{ __('agricart.pages.tools.he_list_hint') }}</p>
-
-            <div class="agricart-he__summary">
-                <div class="agricart-he__paid-box">
-                    <h3 class="agricart-he__paid-title">
-                        {{ __('agricart.pages.tools.he_paid_so_far') }}
-                        <span dir="ltr">— {{ $money($totals['paid']) }}</span>
-                    </h3>
-                    @if ($paidItems->isEmpty())
-                        <p class="agricart-he__paid-empty">{{ __('agricart.pages.tools.he_paid_so_far_empty') }}</p>
+                <h2 class="agricart-he__sheet-title">
+                    @if ($viewingFolder)
+                        <span class="agricart-he__folder-ico">
+                            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>
+                            {{ $this->activeSheetTitle() }}
+                        </span>
                     @else
-                        <ul class="agricart-he__paid-list">
-                            @foreach ($paidItems as $paid)
-                                <li wire:key="he-paid-chip-{{ $paid->id }}">
-                                    {{ $paid->name }}:
-                                    <span>{{ $money($paid->paid_amount ?? $paid->expected_amount) }}</span>
-                                </li>
-                            @endforeach
-                        </ul>
+                        {{ $this->activeSheetTitle() }}
                     @endif
-                </div>
+                </h2>
+                @if ($viewingFolder)
+                    <x-filament::button size="sm" color="primary" wire:click="backToOpenList">
+                        {{ __('agricart.pages.tools.he_back_list') }}
+                    </x-filament::button>
+                @endif
+            </div>
 
+            <p class="agricart-he__hint">
+                @if ($viewingFolder)
+                    {{ __('agricart.pages.tools.he_folder_hint') }}
+                @else
+                    {{ __('agricart.pages.tools.he_list_hint') }}
+                @endif
+            </p>
+
+            @unless ($viewingFolder)
                 <div class="agricart-he__remain-box">
                     <h3 class="agricart-he__remain-title">
                         {{ __('agricart.pages.tools.he_total_remaining') }}
@@ -164,11 +163,13 @@
                         </ul>
                     @endif
                 </div>
-            </div>
+            @endunless
 
             <div class="agricart-ro-list__table-wrap">
                 @if ($items->isEmpty())
-                    <div class="agricart-ro-list__empty">{{ __('agricart.pages.tools.he_list_empty') }}</div>
+                    <div class="agricart-ro-list__empty">
+                        {{ $viewingFolder ? __('agricart.pages.tools.he_folder_empty') : __('agricart.pages.tools.he_list_empty') }}
+                    </div>
                 @else
                     <table class="agricart-ro-list__table">
                         <thead>
@@ -176,8 +177,12 @@
                                 <th>{{ __('agricart.pages.tools.he_col_name') }}</th>
                                 <th>{{ __('agricart.pages.tools.he_col_date') }}</th>
                                 <th>{{ __('agricart.pages.tools.he_col_expected') }}</th>
-                                <th>{{ __('agricart.pages.tools.he_col_status') }}</th>
-                                <th>{{ __('agricart.pages.tools.he_col_paid') }}</th>
+                                @if ($viewingFolder)
+                                    <th>{{ __('agricart.pages.tools.he_col_paid') }}</th>
+                                    <th>{{ __('agricart.pages.tools.he_col_paid_at') }}</th>
+                                @else
+                                    <th>{{ __('agricart.pages.tools.he_col_status') }}</th>
+                                @endif
                                 <th></th>
                             </tr>
                         </thead>
@@ -187,30 +192,24 @@
                                     <td class="agricart-ro-list__order">{{ $item->name }}</td>
                                     <td dir="ltr">{{ $item->expense_date?->format('d-m-Y') ?: '—' }}</td>
                                     <td dir="ltr">{{ $money($item->expected_amount) }}</td>
-                                    <td>
-                                        @if ($item->is_paid)
-                                            <span class="agricart-he__badge agricart-he__badge--paid">{{ __('agricart.pages.tools.he_status_paid') }}</span>
-                                        @else
+                                    @if ($viewingFolder)
+                                        <td dir="ltr">{{ $money($item->paid_amount ?? $item->expected_amount) }}</td>
+                                        <td dir="ltr">{{ optional($item->paid_at)->timezone(config('app.display_timezone', config('app.timezone')))->format('d-m-Y H:i') ?: '—' }}</td>
+                                        <td>
+                                            @if ($this->activeSheet()->status === 'open')
+                                                <div class="agricart-ro-list__actions">
+                                                    <x-filament::button size="sm" color="gray" outlined wire:click="unmarkPaid({{ $item->id }})">
+                                                        {{ __('agricart.pages.tools.he_undo_pay') }}
+                                                    </x-filament::button>
+                                                </div>
+                                            @endif
+                                        </td>
+                                    @else
+                                        <td>
                                             <span class="agricart-he__badge agricart-he__badge--unpaid">{{ __('agricart.pages.tools.he_status_unpaid') }}</span>
-                                        @endif
-                                    </td>
-                                    <td dir="ltr">
-                                        @if ($item->is_paid)
-                                            {{ $money($item->paid_amount ?? $item->expected_amount) }}
-                                        @else
-                                            —
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <div class="agricart-ro-list__actions">
-                                            @if ($item->is_paid)
-                                                <x-filament::button size="sm" color="gray" outlined wire:click="addAgain({{ $item->id }})">
-                                                    {{ __('agricart.pages.tools.he_add_again') }}
-                                                </x-filament::button>
-                                                <x-filament::button size="sm" color="gray" outlined wire:click="unmarkPaid({{ $item->id }})">
-                                                    {{ __('agricart.pages.tools.he_undo_pay') }}
-                                                </x-filament::button>
-                                            @else
+                                        </td>
+                                        <td>
+                                            <div class="agricart-ro-list__actions">
                                                 <x-filament::button size="sm" color="primary" wire:click="openPayForm({{ $item->id }})">
                                                     {{ __('agricart.pages.tools.he_pay') }}
                                                 </x-filament::button>
@@ -220,9 +219,9 @@
                                                 <x-filament::button size="sm" color="danger" outlined wire:click="deleteExpense({{ $item->id }})" wire:confirm="{{ __('agricart.pages.tools.he_delete_confirm') }}">
                                                     {{ __('agricart.pages.tools.he_delete') }}
                                                 </x-filament::button>
-                                            @endif
-                                        </div>
-                                    </td>
+                                            </div>
+                                        </td>
+                                    @endif
                                 </tr>
                             @endforeach
                         </tbody>
@@ -230,9 +229,59 @@
                 @endif
             </div>
         </div>
+
+        @unless ($viewingFolder)
+            <div class="agricart-he__folders">
+                <h3 class="agricart-he__folders-title">{{ __('agricart.pages.tools.he_folders_title') }}</h3>
+                <p class="agricart-he__hint">{{ __('agricart.pages.tools.he_folders_hint') }}</p>
+                <div class="agricart-ro-list__table-wrap">
+                    @if ($folders->isEmpty())
+                        <div class="agricart-ro-list__empty">{{ __('agricart.pages.tools.he_folders_empty') }}</div>
+                    @else
+                        <table class="agricart-ro-list__table">
+                            <thead>
+                                <tr>
+                                    <th>{{ __('agricart.pages.tools.he_folder_col_month') }}</th>
+                                    <th>{{ __('agricart.pages.tools.he_folder_col_status') }}</th>
+                                    <th>{{ __('agricart.pages.tools.he_folder_col_paid') }}</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($folders as $folder)
+                                    <tr wire:key="he-folder-{{ $folder->id }}">
+                                        <td class="agricart-ro-list__order">
+                                            <span class="agricart-he__folder-ico">
+                                                <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2z"/></svg>
+                                                {{ $folder->title }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            @if ($folder->status === 'open')
+                                                <span class="agricart-he__badge agricart-he__badge--open">{{ __('agricart.pages.tools.he_folder_status_open') }}</span>
+                                            @else
+                                                <span class="agricart-he__badge agricart-he__badge--closed">{{ __('agricart.pages.tools.he_folder_status_closed') }}</span>
+                                            @endif
+                                        </td>
+                                        <td dir="ltr">{{ (int) ($folder->paid_count ?? 0) }}</td>
+                                        <td>
+                                            <div class="agricart-ro-list__actions">
+                                                <x-filament::button size="sm" color="gray" outlined wire:click="openFolder({{ $folder->id }})">
+                                                    {{ __('agricart.pages.tools.he_folder_open') }}
+                                                </x-filament::button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @endif
+                </div>
+            </div>
+        @endunless
     </div>
 
-    @if ($showAddForm)
+    @if ($showAddForm && ! $viewingFolder)
         <div
             class="agricart-he__modal"
             wire:key="he-add-modal"
@@ -242,19 +291,11 @@
             aria-modal="true"
             aria-labelledby="he-add-modal-title"
         >
-            <div
-                class="agricart-he__modal-backdrop"
-                x-on:click.prevent="$wire.closeAddForm()"
-            ></div>
+            <div class="agricart-he__modal-backdrop" x-on:click.prevent="$wire.closeAddForm()"></div>
             <div class="agricart-he__modal-card" x-on:click.stop>
                 <div class="agricart-he__modal-head">
                     <h3 id="he-add-modal-title" class="agricart-he__modal-title">{{ __('agricart.pages.tools.he_add_expense') }}</h3>
-                    <button
-                        type="button"
-                        class="agricart-he__modal-close"
-                        x-on:click.prevent="$wire.closeAddForm()"
-                        title="{{ __('agricart.pages.tools.he_close') }}"
-                    >×</button>
+                    <button type="button" class="agricart-he__modal-close" x-on:click.prevent="$wire.closeAddForm()" title="{{ __('agricart.pages.tools.he_close') }}">×</button>
                 </div>
                 <div class="agricart-he__modal-body">
                     <label class="agricart-he__field">
@@ -271,22 +312,14 @@
                     </label>
                 </div>
                 <div class="agricart-he__modal-foot">
-                    <button
-                        type="button"
-                        class="agricart-he__btn"
-                        x-on:click.prevent="$wire.closeAddForm()"
-                    >{{ __('agricart.pages.tools.he_close') }}</button>
-                    <button
-                        type="button"
-                        class="agricart-he__btn agricart-he__btn--primary"
-                        x-on:click.prevent="$wire.saveExpense()"
-                    >{{ __('agricart.pages.tools.he_save') }}</button>
+                    <button type="button" class="agricart-he__btn" x-on:click.prevent="$wire.closeAddForm()">{{ __('agricart.pages.tools.he_close') }}</button>
+                    <button type="button" class="agricart-he__btn agricart-he__btn--primary" x-on:click.prevent="$wire.saveExpense()">{{ __('agricart.pages.tools.he_save') }}</button>
                 </div>
             </div>
         </div>
     @endif
 
-    @if ($payingItemId)
+    @if ($payingItemId && ! $viewingFolder)
         <div
             class="agricart-he__modal"
             wire:key="he-pay-modal-{{ $payingItemId }}"
@@ -296,19 +329,11 @@
             aria-modal="true"
             aria-labelledby="he-pay-modal-title"
         >
-            <div
-                class="agricart-he__modal-backdrop"
-                x-on:click.prevent="$wire.closePayForm()"
-            ></div>
+            <div class="agricart-he__modal-backdrop" x-on:click.prevent="$wire.closePayForm()"></div>
             <div class="agricart-he__modal-card" x-on:click.stop>
                 <div class="agricart-he__modal-head">
                     <h3 id="he-pay-modal-title" class="agricart-he__modal-title">{{ __('agricart.pages.tools.he_pay_title') }}</h3>
-                    <button
-                        type="button"
-                        class="agricart-he__modal-close"
-                        x-on:click.prevent="$wire.closePayForm()"
-                        title="{{ __('agricart.pages.tools.he_close') }}"
-                    >×</button>
+                    <button type="button" class="agricart-he__modal-close" x-on:click.prevent="$wire.closePayForm()" title="{{ __('agricart.pages.tools.he_close') }}">×</button>
                 </div>
                 <div class="agricart-he__modal-body">
                     <p class="agricart-he__hint" style="margin:0">{{ $payingItemName }}</p>
@@ -318,16 +343,8 @@
                     </label>
                 </div>
                 <div class="agricart-he__modal-foot">
-                    <button
-                        type="button"
-                        class="agricart-he__btn"
-                        x-on:click.prevent="$wire.closePayForm()"
-                    >{{ __('agricart.pages.tools.he_close') }}</button>
-                    <button
-                        type="button"
-                        class="agricart-he__btn agricart-he__btn--primary"
-                        x-on:click.prevent="$wire.confirmPay()"
-                    >{{ __('agricart.pages.tools.he_confirm_pay') }}</button>
+                    <button type="button" class="agricart-he__btn" x-on:click.prevent="$wire.closePayForm()">{{ __('agricart.pages.tools.he_close') }}</button>
+                    <button type="button" class="agricart-he__btn agricart-he__btn--primary" x-on:click.prevent="$wire.confirmPay()">{{ __('agricart.pages.tools.he_confirm_pay') }}</button>
                 </div>
             </div>
         </div>
