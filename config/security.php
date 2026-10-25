@@ -29,7 +29,7 @@ return [
         ),
         'permissions_policy' => env(
             'SECURITY_PERMISSIONS_POLICY',
-            'camera=(), microphone=(), geolocation=(), payment=(), usb=()',
+            'camera=(), microphone=(self), geolocation=(), payment=(), usb=()',
         ),
         'hsts_max_age' => (int) env('SECURITY_HSTS_MAX_AGE', 31536000),
         'hsts_include_subdomains' => filter_var(env('SECURITY_HSTS_INCLUDE_SUBDOMAINS', true), FILTER_VALIDATE_BOOLEAN),

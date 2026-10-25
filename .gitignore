@@ -35,3 +35,7 @@ Thumbs.db
 /database/*.tar
 /database/*.tar.gz
 /database/*.7z
+
+# Local Hostinger system zip (do not commit)
+_public_html.zip
+

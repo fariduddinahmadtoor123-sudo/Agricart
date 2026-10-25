@@ -60,6 +60,7 @@ final class FormPanelRegistry
             'price-controls' => ['component' => 'price-controls.form', 'permission' => 'marketplace.price-control.view'],
             'quantity-controls' => ['component' => 'quantity-controls.form', 'permission' => 'marketplace.quantity-control.view'],
             'secret-coding' => ['component' => 'secret-codings.form', 'permission' => 'marketplace.secret-coding.view'],
+            'tools-reorder-settings' => ['component' => 'tools.re-order-settings-form', 'permission' => 'tools.re-order.view'],
             'sales-channel' => ['component' => 'sales-channels.form', 'permission' => 'marketplace.sales-channels.view'],
             'delivery-methods' => ['component' => 'delivery-methods.form', 'permission' => 'logistics.delivery-methods.view'],
             'logistics-ship' => ['component' => 'logistics.ship-form', 'permission' => 'logistics.shipments.view'],
@@ -93,6 +94,8 @@ final class FormPanelRegistry
         if ($formKey === 'contact-message-templates' && $mode === 'create') {
             $permission = 'contacts.message-templates.edit';
         }
+
+        // tools-reorder-settings: page is page-scoped; create/edit modes map via view→create/edit above.
 
         if ($formKey === 'online-orders') {
             $action = match ($mode) {

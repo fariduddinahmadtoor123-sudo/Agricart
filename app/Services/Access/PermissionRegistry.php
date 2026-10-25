@@ -29,7 +29,7 @@ class PermissionRegistry
             'marketplace' => ['Channels Hub', 'چینلز حب'],
             'settings' => ['Settings', 'ترتیبات'],
             'docs' => ['Docs', 'دستاویزات'],
-            'tools' => ['External Apps', 'ایکسٹرنل ایپس'],
+            'tools' => ['External Apps', 'بیرونی ایپس'],
         ];
 
         $moduleHints = [
@@ -92,6 +92,10 @@ class PermissionRegistry
             'docs' => [
                 'en' => 'Grant Docs pages separately. Inner guide sections still follow each module’s page View permission.',
                 'ur' => 'دستاویزات کے صفحات الگ دیں۔ اندرونی گائیڈ حصے پھر بھی ہر ماڈیول کی پیج دیکھیں اجازت کے مطابق فلٹر ہوتے ہیں۔',
+            ],
+            'tools' => [
+                'en' => 'External Apps are separate from Agricart core. Grant module/page access (e.g. open External Apps, only Re Order, create orders, edit settings).',
+                'ur' => 'بیرونی ایپس ایگری کارٹ کور سے الگ ہیں۔ ماڈیول/صفحہ اجازت دیں (مثلاً صرف External Apps کھولنا، صرف Re Order، آرڈر بنانا، سیٹنگز ترمیم)۔',
             ],
         ];
 
@@ -324,11 +328,11 @@ class PermissionRegistry
             ],
             'tools' => [
                 'overview' => ['label_en' => 'Overview', 'label_ur' => 'جائزہ', 'actions' => $viewOnly],
-                're-order' => ['label_en' => 'Re Order', 'label_ur' => 'ری آرڈر', 'actions' => $viewOnly],
-                'purchase-payment-summary' => ['label_en' => 'Purchase Payment Summary', 'label_ur' => 'پرچیز پیمنٹ سمری', 'actions' => $viewOnly],
-                'pending-payments' => ['label_en' => 'Pending Payments', 'label_ur' => 'پینڈنگ پیمنٹس', 'actions' => $viewOnly],
-                'printing' => ['label_en' => 'Printing', 'label_ur' => 'پرنٹنگ', 'actions' => $viewOnly],
-                'home-expenses' => ['label_en' => 'Home Expenses', 'label_ur' => 'گھر کے اخراجات', 'actions' => $viewOnly],
+                're-order' => ['label_en' => 'Re Order', 'label_ur' => 'ری آرڈر', 'actions' => $crudPrint],
+                'purchase-payment-summary' => ['label_en' => 'Purchase Payment Summary', 'label_ur' => 'پرچیز پیمنٹ سمری', 'actions' => $viewEdit],
+                'pending-payments' => ['label_en' => 'Pending Payments', 'label_ur' => 'پینڈنگ پیمنٹس', 'actions' => $viewEdit],
+                'printing' => ['label_en' => 'Printing', 'label_ur' => 'پرنٹنگ', 'actions' => $viewPrint],
+                'home-expenses' => ['label_en' => 'Home Expenses', 'label_ur' => 'ہوم ایکسپینس', 'actions' => $crudPrint],
             ],
         ];
     }
