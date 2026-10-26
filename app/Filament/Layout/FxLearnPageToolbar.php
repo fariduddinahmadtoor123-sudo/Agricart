@@ -47,7 +47,6 @@ class FxLearnPageToolbar extends ClusterPageToolbar
                 'hideSearchInput' => true,
                 'hideFilters' => true,
                 'hideColumns' => true,
-                'fxLearnEconRange' => true,
                 'fxLearnVisitLinks' => [
                     [
                         'key' => 'ff',

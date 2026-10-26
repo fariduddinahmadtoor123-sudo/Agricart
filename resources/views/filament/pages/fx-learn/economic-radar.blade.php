@@ -36,6 +36,39 @@
         </section>
 
         <section class="fx-radar__calendar" aria-label="{{ __('agricart.pages.fx-learn.economic-radar') }}">
+            <div class="fx-radar__filters" role="group" aria-label="{{ __('agricart.pages.fx-learn.econ_filters') }}">
+                <label class="fi-sr-only" for="fx-radar-tf">{{ __('agricart.pages.fx-learn.econ_tf') }}</label>
+                <select id="fx-radar-tf" class="fx-radar__select" wire:model.live="tf">
+                    <option value="today">{{ __('agricart.pages.fx-learn.econ_tf_today') }}</option>
+                    <option value="tomorrow">{{ __('agricart.pages.fx-learn.econ_tf_tomorrow') }}</option>
+                    <option value="week">{{ __('agricart.pages.fx-learn.econ_tf_week') }}</option>
+                </select>
+
+                <label class="fi-sr-only" for="fx-radar-impact">{{ __('agricart.pages.fx-learn.econ_impact') }}</label>
+                <select id="fx-radar-impact" class="fx-radar__select" wire:model.live="impact">
+                    <option value="all">{{ __('agricart.pages.fx-learn.econ_impact_opt_all') }}</option>
+                    <option value="low">{{ __('agricart.pages.fx-learn.econ_impact_opt_low') }}</option>
+                    <option value="med">{{ __('agricart.pages.fx-learn.econ_impact_opt_med') }}</option>
+                    <option value="high">{{ __('agricart.pages.fx-learn.econ_impact_opt_high') }}</option>
+                </select>
+
+                <label class="fi-sr-only" for="fx-radar-ccy">{{ __('agricart.pages.fx-learn.econ_ccy') }}</label>
+                <select id="fx-radar-ccy" class="fx-radar__select" wire:model.live="ccy">
+                    <option value="ALL">{{ __('agricart.pages.fx-learn.econ_ccy_opt_all') }}</option>
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                    <option value="JPY">JPY</option>
+                    <option value="AUD">AUD</option>
+                    <option value="CAD">CAD</option>
+                    <option value="CHF">CHF</option>
+                    <option value="NZD">NZD</option>
+                    <option value="CNY">CNY</option>
+                </select>
+
+                <span class="fx-radar__filter-count" dir="ltr">{{ __('agricart.pages.fx-learn.econ_count', ['count' => $total]) }}</span>
+            </div>
+
             <div class="fx-radar__table-wrap fx-radar__table-wrap--preview">
                 @include('filament.pages.fx-learn.partials.econ-events-table', [
                     'rows' => $preview,
@@ -49,27 +82,31 @@
     </div>
 
     @if ($this->showAllView)
+        @php
+            $viewRows = $this->filteredEvents();
+            $viewCount = $viewRows->count();
+        @endphp
         <div
             class="fx-radar__modal"
             role="dialog"
             aria-modal="true"
             aria-label="{{ __('agricart.pages.fx-learn.econ_view_all') }}"
             wire:keydown.escape.window="closeAllView"
-            wire:key="econ-modal-{{ $this->tf }}-{{ $this->impact }}-{{ $this->ccy }}-{{ $total }}"
+            wire:key="econ-modal-{{ $this->tf }}-{{ $this->impact }}-{{ $this->ccy }}-{{ $viewCount }}"
         >
             <button type="button" class="fx-radar__modal-backdrop" wire:click="closeAllView" aria-label="{{ __('agricart.pages.fx-learn.econ_view_close') }}"></button>
             <div class="fx-radar__modal-card">
                 <header class="fx-radar__modal-head">
                     <div>
-                        <h2 class="fx-radar__modal-title">{{ __('agricart.pages.fx-learn.econ_view_all') }}</h2>
-                        <p class="fx-radar__modal-sub" dir="ltr">{{ __('agricart.pages.fx-learn.econ_count', ['count' => $total]) }}</p>
+                        <h2 class="fx-radar__modal-title">{{ __('agricart.pages.fx-learn.econ_view_all') }} · {{ $this->rangeLabel() }}</h2>
+                        <p class="fx-radar__modal-sub" dir="ltr">{{ __('agricart.pages.fx-learn.econ_count', ['count' => $viewCount]) }}</p>
                     </div>
                     <button type="button" class="fx-radar__btn fx-radar__btn--refresh" wire:click="closeAllView">{{ __('agricart.pages.fx-learn.econ_view_close') }}</button>
                 </header>
                 <div class="fx-radar__modal-body">
-                    <div class="fx-radar__table-wrap">
+                    <div class="fx-radar__table-wrap fx-radar__table-wrap--modal" wire:key="econ-view-rows-{{ $viewCount }}-{{ $this->tf }}-{{ $this->impact }}-{{ $this->ccy }}">
                         @include('filament.pages.fx-learn.partials.econ-events-table', [
-                            'rows' => $this->filteredEvents(),
+                            'rows' => $viewRows,
                             'compact' => false,
                             'toolbar' => false,
                         ])

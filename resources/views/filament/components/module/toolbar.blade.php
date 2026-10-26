@@ -171,7 +171,7 @@
                             id="agricart-fx-econ-range"
                             class="agricart-fx-econ-range"
                             x-data
-                            x-on:change="window.Livewire.dispatch('fx-learn-econ-tf', { tf: $event.target.value })"
+                            x-on:change="window.Livewire?.dispatch('fx-learn-econ-tf', { tf: String($event.target.value || 'today') })"
                         >
                             <option value="today" selected>{{ __('agricart.pages.fx-learn.econ_tf_today') }}</option>
                             <option value="tomorrow">{{ __('agricart.pages.fx-learn.econ_tf_tomorrow') }}</option>

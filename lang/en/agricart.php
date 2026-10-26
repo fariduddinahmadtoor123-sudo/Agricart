@@ -471,6 +471,7 @@ return [
             'econ_col_event' => 'Event',
             'econ_col_status' => 'Status',
             'econ_actual' => 'Actual',
+            'econ_actual_pending' => 'Not in FF JSON yet — use Visit for the website figure',
             'econ_forecast' => 'Forecast',
             'econ_previous' => 'Previous',
             'econ_empty' => 'No events for these filters.',

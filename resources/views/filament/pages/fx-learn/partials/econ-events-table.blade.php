@@ -70,7 +70,13 @@
                 @if ($toolbar)
                     <td class="fx-radar__td-tools" aria-hidden="true"></td>
                 @endif
-                <td class="fx-radar__td-num" dir="ltr">{{ $ev['actual'] }}</td>
+                <td
+                    class="fx-radar__td-num"
+                    dir="ltr"
+                    @if ($status === 'done' && in_array(trim((string) ($ev['actual'] ?? '')), ['', '—'], true))
+                        title="{{ __('agricart.pages.fx-learn.econ_actual_pending') }}"
+                    @endif
+                >{{ $ev['actual'] }}</td>
                 <td class="fx-radar__td-num" dir="ltr">{{ $ev['forecast'] }}</td>
                 <td class="fx-radar__td-num" dir="ltr">{{ $ev['previous'] }}</td>
                 <td>

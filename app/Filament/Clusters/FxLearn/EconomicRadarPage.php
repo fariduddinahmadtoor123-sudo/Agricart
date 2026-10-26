@@ -26,7 +26,7 @@ class EconomicRadarPage extends BaseModulePage
 
     protected string $view = 'filament.pages.fx-learn.economic-radar';
 
-    public string $tf = 'today';
+    public string $tf = 'week';
 
     public string $impact = 'all';
 
@@ -45,7 +45,7 @@ class EconomicRadarPage extends BaseModulePage
 
     public function mount(EconomicCalendarService $calendar): void
     {
-        $this->tf = 'today';
+        $this->tf = 'week';
         $this->loadSnapshot($calendar);
     }
 
@@ -93,6 +93,20 @@ class EconomicRadarPage extends BaseModulePage
         $this->applySnapshot($calendar->snapshot());
     }
 
+    public function updatedTf(string $value): void
+    {
+        if (! in_array($value, ['today', 'tomorrow', 'week'], true)) {
+            $this->tf = 'week';
+        }
+    }
+
+    public function updatedImpact(string $value): void
+    {
+        if (! in_array($value, ['all', 'low', 'med', 'high'], true)) {
+            $this->impact = 'all';
+        }
+    }
+
     public function setTf(string $tf): void
     {
         if (! in_array($tf, ['today', 'tomorrow', 'week'], true)) {
@@ -121,6 +135,19 @@ class EconomicRadarPage extends BaseModulePage
         };
     }
 
+    public function updatedCcy(string $value): void
+    {
+        $ccy = strtoupper($value);
+
+        if (! in_array($ccy, ['ALL', 'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'NZD', 'CNY'], true)) {
+            $this->ccy = 'ALL';
+
+            return;
+        }
+
+        $this->ccy = $ccy;
+    }
+
     public function setCcy(string $ccy): void
     {
         $ccy = strtoupper($ccy);
@@ -130,6 +157,15 @@ class EconomicRadarPage extends BaseModulePage
         }
 
         $this->ccy = $ccy;
+    }
+
+    public function rangeLabel(): string
+    {
+        return match ($this->tf) {
+            'tomorrow' => __('agricart.pages.fx-learn.econ_tf_tomorrow'),
+            'today' => __('agricart.pages.fx-learn.econ_tf_today'),
+            default => __('agricart.pages.fx-learn.econ_tf_week'),
+        };
     }
 
     /**
@@ -162,7 +198,7 @@ class EconomicRadarPage extends BaseModulePage
     }
 
     /**
-     * Compact preview for the main screen (live/upcoming first).
+     * Compact preview: live/upcoming first, then most recent past (so Done rows stay visible).
      *
      * @return Collection<int, array<string, mixed>>
      */
@@ -176,13 +212,23 @@ class EconomicRadarPage extends BaseModulePage
 
         $nowMs = (int) CarbonImmutable::now('UTC')->getTimestampMs();
 
-        $liveOrUpcoming = $all
+        $upcoming = $all
             ->filter(fn (array $ev): bool => (int) ($ev['at'] ?? 0) >= $nowMs - 120_000)
+            ->sortBy('at')
             ->values();
 
-        $pick = $liveOrUpcoming->isNotEmpty() ? $liveOrUpcoming : $all;
+        $recentPast = $all
+            ->filter(fn (array $ev): bool => (int) ($ev['at'] ?? 0) < $nowMs - 120_000)
+            ->sortByDesc('at')
+            ->values();
 
-        return $pick->take(self::PREVIEW_LIMIT)->values();
+        $pick = $upcoming->take(self::PREVIEW_LIMIT);
+
+        if ($pick->count() < self::PREVIEW_LIMIT) {
+            $pick = $pick->concat($recentPast->take(self::PREVIEW_LIMIT - $pick->count()));
+        }
+
+        return $pick->sortBy('at')->values();
     }
 
     public function formatPkt(int $atMs): string

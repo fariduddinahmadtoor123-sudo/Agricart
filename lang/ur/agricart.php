@@ -470,6 +470,7 @@ return [
             'econ_col_event' => 'ایونٹ',
             'econ_col_status' => 'اسٹیٹس',
             'econ_actual' => 'اصل',
+            'econ_actual_pending' => 'FF JSON میں ابھی نہیں — ویب سائٹ کے لیے Visit دبائیں',
             'econ_forecast' => 'پیش گوئی',
             'econ_previous' => 'پچھلا',
             'econ_empty' => 'ان فلٹرز پر کوئی ایونٹ نہیں۔',
