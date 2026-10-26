@@ -37,6 +37,31 @@ class FxLearnPageToolbar extends ClusterPageToolbar
             return null;
         }
 
+        $slug = (string) ($config['resourceSlug'] ?? '');
+
+        if ($slug === 'economic-radar') {
+            return [
+                ...$config,
+                'addLabel' => null,
+                'hideSearch' => false,
+                'hideSearchInput' => true,
+                'hideFilters' => true,
+                'hideColumns' => true,
+                'fxLearnVisitLinks' => [
+                    [
+                        'key' => 'fc',
+                        'label' => __('agricart.pages.fx-learn.econ_visit_fc'),
+                        'url' => 'https://www.financecalendar.com/',
+                    ],
+                    [
+                        'key' => 'smt',
+                        'label' => __('agricart.pages.fx-learn.econ_visit_smt'),
+                        'url' => 'https://showmytrades.com/tools/economic-calendar',
+                    ],
+                ],
+            ];
+        }
+
         return [
             ...$config,
             'addLabel' => null,

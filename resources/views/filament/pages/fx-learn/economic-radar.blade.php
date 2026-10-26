@@ -4,16 +4,17 @@
 @endphp
 
 <x-filament-panels::page>
-    <div class="fx-econ">
+    <div class="fx-econ fx-econ--hud">
         <header class="fx-econ__head no-print">
             <div class="fx-econ__head-text">
+                <p class="fx-econ__kicker">{{ __('agricart.pages.fx-learn.econ_kicker') }}</p>
                 <h1 class="fx-econ__title">{{ __('agricart.pages.fx-learn.economic-radar') }}</h1>
                 <p class="fx-econ__intro">{{ __('agricart.pages.fx-learn.econ_page_intro') }}</p>
             </div>
             <div class="fx-econ__head-meta">
                 <span @class([
                     'fx-econ__badge',
-                    'fx-econ__badge--live' => in_array($this->feedSource, ['ff+fc', 'ff', 'fc'], true),
+                    'fx-econ__badge--live' => in_array($this->feedSource, ['fc+smt', 'fc', 'smt'], true),
                     'fx-econ__badge--backup' => $this->feedSource === 'backup',
                 ])>{{ $this->feedBadgeLabel() }}</span>
                 <span class="fx-econ__zone">{{ __('agricart.pages.fx-learn.econ_times_pkt') }}</span>
@@ -31,6 +32,27 @@
                 >{{ __('agricart.pages.fx-learn.econ_print') }}</button>
             </div>
         </header>
+
+        <div class="fx-econ__sources no-print" role="toolbar" aria-label="{{ __('agricart.pages.fx-learn.econ_sources') }}">
+            @foreach ([
+                'ag' => [__('agricart.pages.fx-learn.econ_src_ag'), $this->feedCounts['ag'] ?? 0],
+                'fc' => [__('agricart.pages.fx-learn.econ_src_fc'), $this->feedCounts['fc'] ?? 0],
+                'smt' => [__('agricart.pages.fx-learn.econ_src_smt'), $this->feedCounts['smt'] ?? 0],
+            ] as $id => [$label, $count])
+                <button
+                    type="button"
+                    wire:click="setFeedView('{{ $id }}')"
+                    @class([
+                        'fx-econ__src-btn',
+                        'fx-econ__src-btn--'.$id,
+                        'is-active' => $this->feedView === $id,
+                    ])
+                >
+                    <span class="fx-econ__src-label">{{ $label }}</span>
+                    <span class="fx-econ__src-count">{{ $count }}</span>
+                </button>
+            @endforeach
+        </div>
 
         <div class="fx-econ__filters no-print" role="toolbar" aria-label="{{ __('agricart.pages.fx-learn.econ_filters') }}">
             <div class="fx-econ__filter-row">
@@ -54,13 +76,14 @@
                 <span class="fx-econ__filter-label">{{ __('agricart.pages.fx-learn.econ_impact') }}</span>
                 <div class="fx-econ__chips">
                     <button type="button" wire:click="setImpact('all')" @class(['fx-econ__chip', 'is-active' => $this->impact === 'all'])>{{ __('agricart.pages.fx-learn.econ_impact_all') }}</button>
+                    <button type="button" wire:click="setImpact('med')" @class(['fx-econ__chip', 'is-active' => $this->impact === 'med'])>{{ __('agricart.pages.fx-learn.econ_impact_med_plus') }}</button>
                     <button type="button" wire:click="setImpact('high')" @class(['fx-econ__chip', 'is-active' => $this->impact === 'high'])>{{ __('agricart.pages.fx-learn.econ_impact_high') }}</button>
                 </div>
             </div>
             <div class="fx-econ__filter-row">
                 <span class="fx-econ__filter-label">{{ __('agricart.pages.fx-learn.econ_ccy') }}</span>
                 <div class="fx-econ__chips">
-                    @foreach (['ALL', 'USD', 'EUR', 'GBP', 'JPY'] as $code)
+                    @foreach (['ALL', 'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'NZD', 'CHF', 'CNY'] as $code)
                         <button
                             type="button"
                             wire:click="setCcy('{{ $code }}')"
@@ -74,13 +97,19 @@
         <div class="fx-econ__layout no-print">
             <section class="fx-econ__focus" aria-live="polite">
                 @if ($selected)
-                    @php $tone = $this->actualTone($selected); @endphp
+                    @php
+                        $tone = $this->actualTone($selected);
+                        $tags = $this->eventSourceTags($selected);
+                    @endphp
                     <div class="fx-econ__focus-card">
                         <div class="fx-econ__focus-top">
                             <span @class(['fx-econ__impact', 'fx-econ__impact--'.$selected['impact']])>
                                 {{ __('agricart.pages.fx-learn.econ_impact_'.$selected['impact']) }}
                             </span>
                             <span class="fx-econ__ccy-pill">{{ $selected['ccy'] }}</span>
+                            @foreach ($tags as $tag)
+                                <span class="fx-econ__src-tag fx-econ__src-tag--{{ $tag }}">{{ strtoupper($tag) }}</span>
+                            @endforeach
                             <span class="fx-econ__countdown">{{ $this->countdownLabel((int) $selected['at']) }}</span>
                         </div>
                         <h2 class="fx-econ__focus-title">{{ $selected['title'] }}</h2>
@@ -118,6 +147,7 @@
                 </div>
                 <div class="fx-econ__list" role="list">
                     @forelse ($visible as $ev)
+                        @php $rowTags = $this->eventSourceTags($ev); @endphp
                         <button
                             type="button"
                             role="listitem"
@@ -131,6 +161,9 @@
                                 <span @class(['fx-econ__dot', 'fx-econ__dot--'.$ev['impact']])></span>
                                 <span class="fx-econ__row-ccy">{{ $ev['ccy'] }}</span>
                                 <span class="fx-econ__row-title">{{ $ev['title'] }}</span>
+                                @if ($this->feedView === 'ag' && count($rowTags) > 1)
+                                    <span class="fx-econ__row-blend" title="{{ __('agricart.pages.fx-learn.econ_merged_hint') }}">×{{ count($rowTags) }}</span>
+                                @endif
                             </div>
                             <div class="fx-econ__row-side">
                                 <span class="fx-econ__row-time">{{ $this->formatPkt((int) $ev['at']) }}</span>
@@ -143,6 +176,13 @@
                 </div>
             </section>
         </div>
+
+        <footer class="fx-econ__credits no-print">
+            <span>{{ __('agricart.pages.fx-learn.econ_credit_prefix') }}</span>
+            <a href="https://www.financecalendar.com" target="_blank" rel="noopener noreferrer">Finance Calendar</a>
+            <span>·</span>
+            <a href="https://showmytrades.com/tools/economic-calendar" target="_blank" rel="noopener noreferrer">ShowMyTrades</a>
+        </footer>
 
         <div class="fx-econ__print-root" aria-hidden="true">
             <header class="fx-econ__print-head">

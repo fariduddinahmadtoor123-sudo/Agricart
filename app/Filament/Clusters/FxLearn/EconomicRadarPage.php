@@ -25,6 +25,9 @@ class EconomicRadarPage extends BaseModulePage
 
     protected string $view = 'filament.pages.fx-learn.economic-radar';
 
+    /** Agricart merged calendar, or a single upstream feed. */
+    public string $feedView = 'ag';
+
     public string $tf = 'today';
 
     public string $impact = 'all';
@@ -35,6 +38,19 @@ class EconomicRadarPage extends BaseModulePage
 
     /** @var list<array<string, mixed>> */
     public array $events = [];
+
+    /** @var array{fc: list<array<string, mixed>>, smt: list<array<string, mixed>>} */
+    public array $feeds = [
+        'fc' => [],
+        'smt' => [],
+    ];
+
+    /** @var array{ag: int, fc: int, smt: int} */
+    public array $feedCounts = [
+        'ag' => 0,
+        'fc' => 0,
+        'smt' => 0,
+    ];
 
     public string $feedSource = 'backup';
 
@@ -70,19 +86,38 @@ class EconomicRadarPage extends BaseModulePage
             default => __('agricart.pages.fx-learn.econ_tf_today'),
         };
 
-        $impact = $this->impact === 'high'
-            ? __('agricart.pages.fx-learn.econ_impact_high')
-            : __('agricart.pages.fx-learn.econ_impact_all');
+        $impact = match ($this->impact) {
+            'high' => __('agricart.pages.fx-learn.econ_impact_high'),
+            'med' => __('agricart.pages.fx-learn.econ_impact_med'),
+            default => __('agricart.pages.fx-learn.econ_impact_all'),
+        };
 
         $ccy = $this->ccy === 'ALL'
             ? __('agricart.pages.fx-learn.econ_ccy_all')
             : $this->ccy;
 
+        $src = match ($this->feedView) {
+            'fc' => __('agricart.pages.fx-learn.econ_src_fc'),
+            'smt' => __('agricart.pages.fx-learn.econ_src_smt'),
+            default => __('agricart.pages.fx-learn.econ_src_ag'),
+        };
+
         return __('agricart.pages.fx-learn.econ_print_filters', [
             'tf' => $tf,
             'impact' => $impact,
             'ccy' => $ccy,
+            'src' => $src,
         ]);
+    }
+
+    public function setFeedView(string $view): void
+    {
+        if (! in_array($view, ['ag', 'fc', 'smt'], true)) {
+            return;
+        }
+
+        $this->feedView = $view;
+        $this->ensureSelection(force: true);
     }
 
     public function setTf(string $tf): void
@@ -97,7 +132,7 @@ class EconomicRadarPage extends BaseModulePage
 
     public function setImpact(string $impact): void
     {
-        if (! in_array($impact, ['all', 'high'], true)) {
+        if (! in_array($impact, ['all', 'high', 'med'], true)) {
             return;
         }
 
@@ -109,7 +144,7 @@ class EconomicRadarPage extends BaseModulePage
     {
         $ccy = strtoupper($ccy);
 
-        if (! in_array($ccy, ['ALL', 'USD', 'EUR', 'GBP', 'JPY'], true)) {
+        if (! in_array($ccy, ['ALL', 'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'NZD', 'CHF', 'CNY'], true)) {
             return;
         }
 
@@ -127,11 +162,23 @@ class EconomicRadarPage extends BaseModulePage
     /**
      * @return Collection<int, array<string, mixed>>
      */
+    public function activeEvents(): Collection
+    {
+        return collect(match ($this->feedView) {
+            'fc' => $this->feeds['fc'] ?? [],
+            'smt' => $this->feeds['smt'] ?? [],
+            default => $this->events,
+        });
+    }
+
+    /**
+     * @return Collection<int, array<string, mixed>>
+     */
     public function filteredEvents(): Collection
     {
         $range = $this->timeRange();
 
-        return collect($this->events)
+        return $this->activeEvents()
             ->filter(function (array $ev) use ($range): bool {
                 $at = (int) ($ev['at'] ?? 0);
 
@@ -140,6 +187,10 @@ class EconomicRadarPage extends BaseModulePage
                 }
 
                 if ($this->impact === 'high' && ($ev['impact'] ?? '') !== 'high') {
+                    return false;
+                }
+
+                if ($this->impact === 'med' && ! in_array($ev['impact'] ?? '', ['high', 'med'], true)) {
                     return false;
                 }
 
@@ -240,10 +291,29 @@ class EconomicRadarPage extends BaseModulePage
     public function feedBadgeLabel(): string
     {
         return match ($this->feedSource) {
-            'ff+fc' => __('agricart.pages.fx-learn.econ_feed_live'),
-            'ff', 'fc' => __('agricart.pages.fx-learn.econ_feed_partial'),
+            'fc+smt' => __('agricart.pages.fx-learn.econ_feed_live'),
+            'fc', 'smt' => __('agricart.pages.fx-learn.econ_feed_partial'),
             default => __('agricart.pages.fx-learn.econ_feed_backup'),
         };
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function eventSourceTags(array $ev): array
+    {
+        $sources = $ev['sources'] ?? null;
+
+        if (is_array($sources) && $sources !== []) {
+            return array_values(array_filter(
+                array_map('strval', $sources),
+                static fn (string $s): bool => in_array($s, ['fc', 'smt'], true),
+            ));
+        }
+
+        $src = (string) ($ev['src'] ?? '');
+
+        return in_array($src, ['fc', 'smt'], true) ? [$src] : [];
     }
 
     public function getHeading(): string|Htmlable|null
@@ -272,11 +342,26 @@ class EconomicRadarPage extends BaseModulePage
     }
 
     /**
-     * @param  array{events: list<array<string, mixed>>, source: string, fetched_at: string}  $snapshot
+     * @param  array{
+     *     events: list<array<string, mixed>>,
+     *     feeds?: array{fc: list<array<string, mixed>>, smt: list<array<string, mixed>>},
+     *     counts?: array{ag: int, fc: int, smt: int},
+     *     source: string,
+     *     fetched_at: string
+     * }  $snapshot
      */
     private function applySnapshot(array $snapshot): void
     {
         $this->events = $snapshot['events'];
+        $this->feeds = [
+            'fc' => $snapshot['feeds']['fc'] ?? [],
+            'smt' => $snapshot['feeds']['smt'] ?? [],
+        ];
+        $this->feedCounts = [
+            'ag' => (int) ($snapshot['counts']['ag'] ?? count($this->events)),
+            'fc' => (int) ($snapshot['counts']['fc'] ?? count($this->feeds['fc'])),
+            'smt' => (int) ($snapshot['counts']['smt'] ?? count($this->feeds['smt'])),
+        ];
         $this->feedSource = $snapshot['source'];
         $this->fetchedAt = $snapshot['fetched_at'];
     }
@@ -358,7 +443,7 @@ class EconomicRadarPage extends BaseModulePage
             $mult = 1e3;
         }
 
-        $s = preg_replace('/[,%]/', '', $s) ?? $s;
+        $s = preg_replace('/[,%$]/', '', $s) ?? $s;
         $s = preg_replace('/[bmk]$/i', '', $s) ?? $s;
         $n = filter_var(trim($s), FILTER_VALIDATE_FLOAT);
 

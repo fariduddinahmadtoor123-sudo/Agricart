@@ -1910,6 +1910,77 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
     font-size: 0.8125rem;
 }
 
+.agricart-catalog-toolbar--fx-econ {
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+}
+
+.agricart-catalog-toolbar--fx-econ .agricart-catalog-toolbar__search {
+    flex: 1 1 auto;
+    min-width: 12rem;
+    display: flex;
+    align-items: center;
+}
+
+.agricart-fx-visit {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.5rem;
+    width: 100%;
+}
+
+.agricart-fx-visit__hint {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--agricart-muted);
+    margin-inline-end: 0.15rem;
+}
+
+.agricart-fx-visit__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.38rem 0.7rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-surface);
+    color: var(--agricart-text);
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-decoration: none;
+    line-height: 1.2;
+    transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+}
+
+.agricart-fx-visit__btn svg {
+    width: 0.85rem;
+    height: 0.85rem;
+    flex: 0 0 auto;
+    opacity: 0.75;
+}
+
+.agricart-fx-visit__btn:hover {
+    border-color: var(--agricart-primary);
+    color: #3f6212;
+    background: color-mix(in srgb, var(--agricart-primary) 14%, white);
+}
+
+html.dark .agricart-fx-visit__btn:hover {
+    color: #d9f99d;
+    background: color-mix(in srgb, var(--agricart-primary) 22%, #0f172a);
+}
+
+.agricart-fx-visit__btn--fc {
+    border-color: color-mix(in srgb, #0ea5e9 35%, var(--agricart-border));
+}
+
+.agricart-fx-visit__btn--smt {
+    border-color: color-mix(in srgb, var(--agricart-primary) 40%, var(--agricart-border));
+}
+
 .agricart-catalog-toolbar__actions {
     display: inline-flex;
     flex-direction: row;
@@ -2398,12 +2469,43 @@ html.dark .fx-learn-shell__badge {
     gap: 1rem;
 }
 
+.fx-econ--hud {
+    position: relative;
+    padding: 0.15rem;
+}
+
+.fx-econ--hud::before {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+    border-radius: 1rem;
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--agricart-primary) 14%, transparent), transparent 42%),
+        radial-gradient(ellipse at 100% 0%, color-mix(in srgb, #0ea5e9 12%, transparent), transparent 48%);
+    z-index: 0;
+}
+
+.fx-econ--hud > * {
+    position: relative;
+    z-index: 1;
+}
+
 .fx-econ__head {
     display: flex;
     flex-wrap: wrap;
     align-items: flex-start;
     justify-content: space-between;
     gap: 0.75rem 1rem;
+}
+
+.fx-econ__kicker {
+    margin: 0 0 0.2rem;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--agricart-primary) 80%, #0f172a);
 }
 
 .fx-econ__title,
@@ -2421,6 +2523,128 @@ html.dark .fx-learn-shell__badge {
     font-size: 0.875rem;
     line-height: 1.5;
     color: var(--agricart-muted);
+}
+
+.fx-econ__sources {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.55rem;
+}
+
+@media (max-width: 720px) {
+    .fx-econ__sources {
+        grid-template-columns: 1fr;
+    }
+}
+
+.fx-econ__src-btn {
+    appearance: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.7rem;
+    border: 1px solid var(--agricart-border);
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--agricart-surface) 92%, white), var(--agricart-surface));
+    color: var(--agricart-text);
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 color-mix(in srgb, white 55%, transparent);
+    transition: border-color 0.15s ease, transform 0.12s ease, background 0.15s ease;
+}
+
+.fx-econ__src-btn:hover {
+    border-color: color-mix(in srgb, var(--agricart-primary) 55%, var(--agricart-border));
+    transform: translateY(-1px);
+}
+
+.fx-econ__src-btn.is-active {
+    border-color: var(--agricart-primary);
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--agricart-primary) 22%, white), color-mix(in srgb, #0ea5e9 10%, white));
+    box-shadow:
+        0 0 0 1px color-mix(in srgb, var(--agricart-primary) 35%, transparent),
+        inset 0 1px 0 color-mix(in srgb, white 70%, transparent);
+}
+
+html.dark .fx-econ__src-btn.is-active {
+    background:
+        linear-gradient(135deg, color-mix(in srgb, var(--agricart-primary) 28%, #0f172a), color-mix(in srgb, #0ea5e9 16%, #0f172a));
+}
+
+.fx-econ__src-label {
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+}
+
+.fx-econ__src-count {
+    min-width: 2.1rem;
+    text-align: center;
+    font-size: 0.72rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    direction: ltr;
+    padding: 0.12rem 0.4rem;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--agricart-muted) 14%, transparent);
+    color: var(--agricart-muted);
+}
+
+.fx-econ__src-btn.is-active .fx-econ__src-count {
+    background: color-mix(in srgb, var(--agricart-primary) 22%, transparent);
+    color: #3f6212;
+}
+
+html.dark .fx-econ__src-btn.is-active .fx-econ__src-count {
+    color: #d9f99d;
+}
+
+.fx-econ__src-tag {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    padding: 0.12rem 0.35rem;
+    border-radius: 0.3rem;
+    direction: ltr;
+}
+
+.fx-econ__src-tag--fc {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.fx-econ__src-tag--smt {
+    background: #ecfccb;
+    color: #3f6212;
+}
+
+.fx-econ__row-blend {
+    flex: 0 0 auto;
+    font-size: 0.62rem;
+    font-weight: 800;
+    direction: ltr;
+    padding: 0.08rem 0.32rem;
+    border-radius: 0.28rem;
+    background: color-mix(in srgb, #0ea5e9 16%, transparent);
+    color: #0369a1;
+}
+
+.fx-econ__credits {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.45rem;
+    font-size: 0.72rem;
+    color: var(--agricart-muted);
+}
+
+.fx-econ__credits a {
+    color: color-mix(in srgb, var(--agricart-primary-hover) 90%, #0f172a);
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 2px;
 }
 
 .fx-econ__head-meta {
@@ -2661,6 +2885,22 @@ html.dark .fx-econ__chip.is-active {
     flex-direction: column;
     gap: 0.65rem;
     min-height: 12rem;
+    position: relative;
+    overflow: hidden;
+    background:
+        linear-gradient(160deg, color-mix(in srgb, var(--agricart-primary) 8%, var(--agricart-surface)), var(--agricart-surface) 55%),
+        var(--agricart-surface);
+}
+
+.fx-econ__focus-card::after {
+    content: "";
+    pointer-events: none;
+    position: absolute;
+    inset: auto -10% -35% auto;
+    width: 9rem;
+    height: 9rem;
+    border-radius: 999px;
+    background: radial-gradient(circle, color-mix(in srgb, #0ea5e9 22%, transparent), transparent 70%);
 }
 
 .fx-econ__focus-top {

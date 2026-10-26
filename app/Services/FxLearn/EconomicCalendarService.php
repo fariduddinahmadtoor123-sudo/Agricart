@@ -3,6 +3,8 @@
 namespace App\Services\FxLearn;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Http\Client\Pool;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -10,11 +12,11 @@ use Throwable;
 
 class EconomicCalendarService
 {
-    private const FF_URL = 'https://nfs.faireconomy.media/ff_calendar_thisweek.json';
-
     private const FC_BASE = 'https://www.financecalendar.com/wp-json/fc/v1/calendar';
 
-    private const CACHE_KEY = 'fxlearn.econ.events.v1';
+    private const SMT_URL = 'https://showmytrades.com/api/public/calendar/v1';
+
+    private const CACHE_KEY = 'fxlearn.econ.events.v2';
 
     private const CACHE_TTL_SECONDS = 900;
 
@@ -30,7 +32,8 @@ class EconomicCalendarService
         'CHF' => 'Switzerland',
         'CNY' => 'China',
         'CNH' => 'China',
-        'ALL' => 'Global',
+        'HKD' => 'Hong Kong',
+        'INR' => 'India',
     ];
 
     /** @var array<string, string> */
@@ -54,7 +57,13 @@ class EconomicCalendarService
     ];
 
     /**
-     * @return array{events: list<array<string, mixed>>, source: string, fetched_at: string}
+     * @return array{
+     *     events: list<array<string, mixed>>,
+     *     feeds: array{fc: list<array<string, mixed>>, smt: list<array<string, mixed>>},
+     *     counts: array{ag: int, fc: int, smt: int},
+     *     source: string,
+     *     fetched_at: string
+     * }
      */
     public function snapshot(): array
     {
@@ -63,6 +72,15 @@ class EconomicCalendarService
         });
     }
 
+    /**
+     * @return array{
+     *     events: list<array<string, mixed>>,
+     *     feeds: array{fc: list<array<string, mixed>>, smt: list<array<string, mixed>>},
+     *     counts: array{ag: int, fc: int, smt: int},
+     *     source: string,
+     *     fetched_at: string
+     * }
+     */
     public function refresh(): array
     {
         Cache::forget(self::CACHE_KEY);
@@ -71,28 +89,25 @@ class EconomicCalendarService
     }
 
     /**
-     * @return array{events: list<array<string, mixed>>, source: string, fetched_at: string}
+     * @return array{
+     *     events: list<array<string, mixed>>,
+     *     feeds: array{fc: list<array<string, mixed>>, smt: list<array<string, mixed>>},
+     *     counts: array{ag: int, fc: int, smt: int},
+     *     source: string,
+     *     fetched_at: string
+     * }
      */
     private function fetchFresh(): array
     {
         $tz = agricart_display_timezone();
         $now = CarbonImmutable::now($tz);
-        $ff = $this->fetchForexFactory();
-        $fc = $this->fetchFinanceCalendar(
-            $now->subDays(10)->toDateString(),
-            $now->addDays(16)->toDateString(),
-        );
+        $from = $now->subDays(10)->toDateString();
+        $to = $now->addDays(16)->toDateString();
 
-        $merged = $this->mergeEventLists($ff, $fc);
-        $source = 'backup';
+        [$fc, $smt] = $this->fetchFeedsParallel($from, $to);
 
-        if ($ff !== [] && $fc !== []) {
-            $source = 'ff+fc';
-        } elseif ($ff !== []) {
-            $source = 'ff';
-        } elseif ($fc !== []) {
-            $source = 'fc';
-        }
+        $merged = $this->mergeFeeds($fc, $smt);
+        $source = $this->resolveSourceLabel($fc, $smt);
 
         if ($merged === []) {
             $merged = $this->fallbackEvents($now);
@@ -101,39 +116,60 @@ class EconomicCalendarService
 
         return [
             'events' => $merged,
+            'feeds' => [
+                'fc' => $fc,
+                'smt' => $smt,
+            ],
+            'counts' => [
+                'ag' => count($merged),
+                'fc' => count($fc),
+                'smt' => count($smt),
+            ],
             'source' => $source,
             'fetched_at' => CarbonImmutable::now('UTC')->toIso8601String(),
         ];
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * @return array{0: list<array<string, mixed>>, 1: list<array<string, mixed>>}
      */
-    private function fetchForexFactory(): array
+    private function fetchFeedsParallel(string $from, string $to): array
     {
+        $fcUrl = self::FC_BASE.'?'.http_build_query([
+            'from' => $from,
+            'to' => $to,
+            'country' => 'US,GB,EU,DE,JP,CA,AU,CN,CH,NZ',
+            'impact' => 'high,medium,low',
+            'limit' => 500,
+        ]);
+
+        $smtUrl = self::SMT_URL.'?'.http_build_query([
+            'impact' => 'high,medium,low',
+            'days' => 30,
+        ]);
+
+        $headers = [
+            'User-Agent' => 'Agricart-FXLearn/1.0',
+            'Accept' => 'application/json',
+        ];
+
         try {
-            $response = Http::timeout(12)
-                ->withHeaders([
-                    'User-Agent' => 'Agricart-FXLearn/1.0',
-                    'Accept' => 'application/json',
-                ])
-                ->get(self::FF_URL);
+            $responses = Http::pool(fn (Pool $pool): array => [
+                $pool->as('fc')->timeout(14)->withHeaders($headers)->get($fcUrl),
+                $pool->as('smt')->timeout(14)->withHeaders($headers)->get($smtUrl),
+            ]);
 
-            if (! $response->successful()) {
-                return [];
-            }
+            $fc = $this->parseFcResponse($responses['fc'] ?? null);
+            $smt = $this->parseSmtResponse($responses['smt'] ?? null);
 
-            $data = $response->json();
-
-            if (! is_array($data)) {
-                return [];
-            }
-
-            return $this->parseFfPayload($data);
+            return [$fc, $smt];
         } catch (Throwable $e) {
-            Log::warning('FX Learn FF calendar fetch failed', ['error' => $e->getMessage()]);
+            Log::warning('FX Learn calendar pool failed', ['error' => $e->getMessage()]);
 
-            return [];
+            return [
+                $this->fetchFinanceCalendar($from, $to),
+                $this->fetchShowMyTrades(),
+            ];
         }
     }
 
@@ -151,20 +187,14 @@ class EconomicCalendarService
         ]);
 
         try {
-            $response = Http::timeout(12)
+            $response = Http::timeout(14)
                 ->withHeaders([
                     'User-Agent' => 'Agricart-FXLearn/1.0',
                     'Accept' => 'application/json',
                 ])
                 ->get($url);
 
-            if (! $response->successful()) {
-                return [];
-            }
-
-            $data = $response->json();
-
-            return $this->parseFcPayload(is_array($data) ? $data : []);
+            return $this->parseFcResponse($response);
         } catch (Throwable $e) {
             Log::warning('FX Learn FC calendar fetch failed', ['error' => $e->getMessage()]);
 
@@ -173,28 +203,65 @@ class EconomicCalendarService
     }
 
     /**
-     * @param  list<mixed>  $data
      * @return list<array<string, mixed>>
      */
-    private function parseFfPayload(array $data): array
+    private function fetchShowMyTrades(): array
     {
-        $out = [];
+        $url = self::SMT_URL.'?'.http_build_query([
+            'impact' => 'high,medium,low',
+            'days' => 30,
+        ]);
 
-        foreach (array_values($data) as $idx => $item) {
-            if (! is_array($item)) {
-                continue;
+        try {
+            $response = Http::timeout(14)
+                ->withHeaders([
+                    'User-Agent' => 'Agricart-FXLearn/1.0',
+                    'Accept' => 'application/json',
+                ])
+                ->get($url);
+
+            return $this->parseSmtResponse($response);
+        } catch (Throwable $e) {
+            Log::warning('FX Learn SMT calendar fetch failed', ['error' => $e->getMessage()]);
+
+            return [];
+        }
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function parseFcResponse(mixed $response): array
+    {
+        if (! $response instanceof Response || ! $response->successful()) {
+            if ($response instanceof Response) {
+                Log::warning('FX Learn FC calendar HTTP failed', ['status' => $response->status()]);
             }
 
-            $mapped = $this->mapFfItem($item, $idx);
-
-            if ($mapped !== null) {
-                $out[] = $mapped;
-            }
+            return [];
         }
 
-        usort($out, static fn (array $a, array $b): int => $a['at'] <=> $b['at']);
+        $data = $response->json();
 
-        return $out;
+        return $this->parseFcPayload(is_array($data) ? $data : []);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function parseSmtResponse(mixed $response): array
+    {
+        if (! $response instanceof Response || ! $response->successful()) {
+            if ($response instanceof Response) {
+                Log::warning('FX Learn SMT calendar HTTP failed', ['status' => $response->status()]);
+            }
+
+            return [];
+        }
+
+        $data = $response->json();
+
+        return $this->parseSmtPayload(is_array($data) ? $data : []);
     }
 
     /**
@@ -231,44 +298,34 @@ class EconomicCalendarService
     }
 
     /**
-     * @param  array<string, mixed>  $item
-     * @return array<string, mixed>|null
+     * @param  array<string, mixed>  $data
+     * @return list<array<string, mixed>>
      */
-    private function mapFfItem(array $item, int $idx): ?array
+    private function parseSmtPayload(array $data): array
     {
-        $impact = $this->mapImpact($item['impact'] ?? null);
+        $rows = [];
 
-        if ($impact === null) {
-            return null;
+        if (isset($data['events']) && is_array($data['events'])) {
+            $rows = $data['events'];
         }
 
-        $at = $this->parseInstant($item['date'] ?? null);
+        $out = [];
 
-        if ($at === null) {
-            return null;
+        foreach (array_values($rows) as $idx => $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $mapped = $this->mapSmtItem($item, $idx);
+
+            if ($mapped !== null) {
+                $out[] = $mapped;
+            }
         }
 
-        $ccy = strtoupper((string) ($item['country'] ?? 'USD'));
+        usort($out, static fn (array $a, array $b): int => $a['at'] <=> $b['at']);
 
-        if ($ccy === 'ALL') {
-            $ccy = 'USD';
-        }
-
-        $title = trim((string) ($item['title'] ?? 'Event')) ?: 'Event';
-        $impact = $this->normalizeMarketImpact($title, $impact);
-
-        return [
-            'id' => 'ff-'.$idx.'-'.$at,
-            'ccy' => $ccy,
-            'impact' => $impact,
-            'title' => $title,
-            'country' => self::CCY_COUNTRY[$ccy] ?? $ccy,
-            'at' => $at,
-            'forecast' => $this->dash($item['forecast'] ?? null),
-            'previous' => $this->dash($item['previous'] ?? null),
-            'actual' => $this->dash($item['actual'] ?? null),
-            'src' => 'ff',
-        ];
+        return $out;
     }
 
     /**
@@ -308,42 +365,125 @@ class EconomicCalendarService
         $title = trim((string) ($item['title'] ?? $item['name'] ?? $item['series_name'] ?? 'Event')) ?: 'Event';
         $impact = $this->normalizeMarketImpact($title, $impact);
 
+        return $this->eventRow(
+            id: 'fc-'.$idx.'-'.$at,
+            ccy: $ccy,
+            impact: $impact,
+            title: $title,
+            at: $at,
+            forecast: $this->dash($item['consensus'] ?? null),
+            previous: $this->dash($item['prior'] ?? null),
+            actual: $this->dash($item['actual'] ?? null),
+            src: 'fc',
+            sources: ['fc'],
+        );
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     * @return array<string, mixed>|null
+     */
+    private function mapSmtItem(array $item, int $idx): ?array
+    {
+        $impact = $this->mapImpact($item['impact'] ?? null);
+
+        if ($impact === null) {
+            return null;
+        }
+
+        $at = null;
+
+        if (isset($item['ts']) && is_numeric($item['ts'])) {
+            $at = ((int) $item['ts']) * 1000;
+        }
+
+        if ($at === null) {
+            $at = $this->parseInstant($item['time'] ?? null);
+        }
+
+        if ($at === null) {
+            return null;
+        }
+
+        $ccy = strtoupper((string) ($item['currency'] ?? ''));
+
+        if ($ccy === '' || ! isset(self::CCY_COUNTRY[$ccy])) {
+            return null;
+        }
+
+        $title = trim((string) ($item['title'] ?? 'Event')) ?: 'Event';
+        $impact = $this->normalizeMarketImpact($title, $impact);
+
+        return $this->eventRow(
+            id: 'smt-'.$idx.'-'.$at,
+            ccy: $ccy,
+            impact: $impact,
+            title: $title,
+            at: $at,
+            forecast: $this->dash($item['forecast'] ?? null),
+            previous: $this->dash($item['previous'] ?? null),
+            actual: $this->dash($item['actual'] ?? null),
+            src: 'smt',
+            sources: ['smt'],
+        );
+    }
+
+    /**
+     * @param  list<string>  $sources
+     * @return array<string, mixed>
+     */
+    private function eventRow(
+        string $id,
+        string $ccy,
+        string $impact,
+        string $title,
+        int $at,
+        string $forecast,
+        string $previous,
+        string $actual,
+        string $src,
+        array $sources,
+    ): array {
         return [
-            'id' => 'fc-'.$idx.'-'.$at,
+            'id' => $id,
             'ccy' => $ccy,
             'impact' => $impact,
             'title' => $title,
             'country' => self::CCY_COUNTRY[$ccy] ?? $ccy,
             'at' => $at,
-            'forecast' => $this->dash($item['consensus'] ?? null),
-            'previous' => $this->dash($item['prior'] ?? null),
-            'actual' => $this->dash($item['actual'] ?? null),
-            'src' => 'fc',
+            'forecast' => $forecast,
+            'previous' => $previous,
+            'actual' => $actual,
+            'src' => $src,
+            'sources' => array_values(array_unique($sources)),
         ];
     }
 
     /**
-     * @param  list<array<string, mixed>>  $primary  Preferred (FF)
-     * @param  list<array<string, mixed>>  $secondary
+     * @param  list<array<string, mixed>>  $fc
+     * @param  list<array<string, mixed>>  $smt
      * @return list<array<string, mixed>>
      */
-    private function mergeEventLists(array $primary, array $secondary): array
+    private function mergeFeeds(array $fc, array $smt): array
     {
         $map = [];
         $order = [];
 
-        foreach ([$secondary, $primary] as $listIndex => $list) {
-            $prefer = $listIndex === 1;
-
+        foreach ([$fc, $smt] as $list) {
             foreach ($list as $ev) {
                 $key = $this->dedupeKey($ev);
 
                 if (! isset($map[$key])) {
-                    $map[$key] = $ev;
+                    $row = $ev;
+                    $row['src'] = 'ag';
+                    $row['id'] = 'ag-'.substr(sha1($key), 0, 12).'-'.$ev['at'];
+                    $map[$key] = $row;
                     $order[] = $key;
-                } elseif ($prefer) {
-                    $map[$key] = $ev;
+
+                    continue;
                 }
+
+                $map[$key] = $this->blendEvents($map[$key], $ev);
             }
         }
 
@@ -354,16 +494,92 @@ class EconomicCalendarService
     }
 
     /**
+     * @param  array<string, mixed>  $base
+     * @param  array<string, mixed>  $incoming
+     * @return array<string, mixed>
+     */
+    private function blendEvents(array $base, array $incoming): array
+    {
+        $sources = array_values(array_unique(array_merge(
+            is_array($base['sources'] ?? null) ? $base['sources'] : [],
+            is_array($incoming['sources'] ?? null) ? $incoming['sources'] : [(string) ($incoming['src'] ?? '')],
+        )));
+        $sources = array_values(array_filter($sources, static fn (string $s): bool => $s !== '' && $s !== 'ag'));
+
+        $base['sources'] = $sources;
+        $base['src'] = 'ag';
+        $base['forecast'] = $this->preferValue($base['forecast'] ?? '—', $incoming['forecast'] ?? '—');
+        $base['previous'] = $this->preferValue($base['previous'] ?? '—', $incoming['previous'] ?? '—');
+        $base['actual'] = $this->preferValue($base['actual'] ?? '—', $incoming['actual'] ?? '—');
+        $base['impact'] = $this->preferImpact($base['impact'] ?? 'low', $incoming['impact'] ?? 'low');
+
+        if (strlen((string) ($incoming['title'] ?? '')) > strlen((string) ($base['title'] ?? ''))) {
+            $base['title'] = $incoming['title'];
+        }
+
+        return $base;
+    }
+
+    private function preferValue(string $a, string $b): string
+    {
+        $aEmpty = $a === '' || $a === '—';
+        $bEmpty = $b === '' || $b === '—';
+
+        if ($aEmpty && ! $bEmpty) {
+            return $b;
+        }
+
+        if (! $aEmpty && $bEmpty) {
+            return $a;
+        }
+
+        if (! $aEmpty && ! $bEmpty && $a !== $b) {
+            return strlen($b) > strlen($a) ? $b : $a;
+        }
+
+        return $aEmpty ? '—' : $a;
+    }
+
+    private function preferImpact(string $a, string $b): string
+    {
+        $rank = ['low' => 1, 'med' => 2, 'high' => 3];
+
+        return ($rank[$b] ?? 0) > ($rank[$a] ?? 0) ? $b : $a;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $fc
+     * @param  list<array<string, mixed>>  $smt
+     */
+    private function resolveSourceLabel(array $fc, array $smt): string
+    {
+        if ($fc !== [] && $smt !== []) {
+            return 'fc+smt';
+        }
+
+        if ($fc !== []) {
+            return 'fc';
+        }
+
+        if ($smt !== []) {
+            return 'smt';
+        }
+
+        return 'backup';
+    }
+
+    /**
      * @param  array<string, mixed>  $ev
      */
     private function dedupeKey(array $ev): string
     {
         $day = CarbonImmutable::createFromTimestampMs((int) $ev['at'], 'UTC')->toDateString();
+        $hour = CarbonImmutable::createFromTimestampMs((int) $ev['at'], 'UTC')->format('H');
         $title = strtolower((string) ($ev['title'] ?? ''));
         $title = preg_replace('/[^a-z0-9]+/', ' ', $title) ?? '';
         $title = trim(substr($title, 0, 48));
 
-        return $day.'|'.$ev['ccy'].'|'.$title;
+        return $day.'|'.$hour.'|'.$ev['ccy'].'|'.$title;
     }
 
     private function mapImpact(mixed $raw): ?string
@@ -450,18 +666,18 @@ class EconomicCalendarService
 
         foreach ($samples as $i => [$ccy, $impact, $title, $forecast, $previous, $actual, $offsetMin]) {
             $at = $base->addMinutes($offsetMin)->getTimestampMs();
-            $out[] = [
-                'id' => 'fb-'.$i.'-'.$at,
-                'ccy' => $ccy,
-                'impact' => $impact,
-                'title' => $title,
-                'country' => self::CCY_COUNTRY[$ccy] ?? $ccy,
-                'at' => $at,
-                'forecast' => $forecast,
-                'previous' => $previous,
-                'actual' => $actual,
-                'src' => 'backup',
-            ];
+            $out[] = $this->eventRow(
+                id: 'fb-'.$i.'-'.$at,
+                ccy: $ccy,
+                impact: $impact,
+                title: $title,
+                at: $at,
+                forecast: $forecast,
+                previous: $previous,
+                actual: $actual,
+                src: 'backup',
+                sources: ['backup'],
+            );
         }
 
         usort($out, static fn (array $a, array $b): int => $a['at'] <=> $b['at']);

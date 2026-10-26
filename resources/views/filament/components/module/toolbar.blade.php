@@ -35,6 +35,7 @@
             'agricart-catalog-toolbar--tools-bp' => ! empty($toolbar['toolsBillPrintingChrome']),
             'agricart-catalog-toolbar--tools-bc' => ! empty($toolbar['toolsBarcodePrintingChrome']),
             'agricart-catalog-toolbar--tools-he' => ! empty($toolbar['toolsHomeExpensesChrome']),
+            'agricart-catalog-toolbar--fx-econ' => ! empty($toolbar['fxLearnVisitLinks']),
         ])
         @if (! empty($toolbar['toolsReorderChrome']))
             x-data="{
@@ -161,6 +162,34 @@
                                 @endif
                         />
                     </x-filament::input.wrapper>
+                @endif
+
+                @if (! empty($toolbar['fxLearnVisitLinks']) && is_array($toolbar['fxLearnVisitLinks']))
+                    <div class="agricart-fx-visit" role="group" aria-label="{{ __('agricart.pages.fx-learn.econ_visit_group') }}">
+                        <span class="agricart-fx-visit__hint">{{ __('agricart.pages.fx-learn.econ_visit_hint') }}</span>
+                        @foreach ($toolbar['fxLearnVisitLinks'] as $link)
+                            @php
+                                $url = (string) ($link['url'] ?? '');
+                                $label = (string) ($link['label'] ?? '');
+                                $key = (string) ($link['key'] ?? '');
+                            @endphp
+                            @continue($url === '' || $label === '')
+                            <a
+                                href="{{ $url }}"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                @class([
+                                    'agricart-fx-visit__btn',
+                                    'agricart-fx-visit__btn--'.$key => $key !== '',
+                                ])
+                            >
+                                <span>{{ $label }}</span>
+                                <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path d="M5.22 14.78a.75.75 0 0 0 1.06 0l5.97-5.97v2.69a.75.75 0 0 0 1.5 0v-4.5a.75.75 0 0 0-.75-.75h-4.5a.75.75 0 0 0 0 1.5h2.69l-5.97 5.97a.75.75 0 0 0 0 1.06Z" />
+                                </svg>
+                            </a>
+                        @endforeach
+                    </div>
                 @endif
 
                 @if (($toolbar['resourceSlug'] ?? '') === 're-order-center')
