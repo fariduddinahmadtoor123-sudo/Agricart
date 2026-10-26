@@ -10,6 +10,7 @@ use Carbon\CarbonImmutable;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Collection;
+use Livewire\Attributes\On;
 
 class EconomicRadarPage extends BaseModulePage
 {
@@ -25,150 +26,110 @@ class EconomicRadarPage extends BaseModulePage
 
     protected string $view = 'filament.pages.fx-learn.economic-radar';
 
-    /** Agricart merged calendar, or a single upstream feed. */
-    public string $feedView = 'ag';
-
     public string $tf = 'today';
 
     public string $impact = 'all';
 
     public string $ccy = 'ALL';
 
-    public ?string $selectedId = null;
-
     /** @var list<array<string, mixed>> */
     public array $events = [];
-
-    /** @var array{fc: list<array<string, mixed>>, smt: list<array<string, mixed>>} */
-    public array $feeds = [
-        'fc' => [],
-        'smt' => [],
-    ];
-
-    /** @var array{ag: int, fc: int, smt: int} */
-    public array $feedCounts = [
-        'ag' => 0,
-        'fc' => 0,
-        'smt' => 0,
-    ];
 
     public string $feedSource = 'backup';
 
     public string $fetchedAt = '';
 
+    public bool $showAllView = false;
+
+    private const PREVIEW_LIMIT = 3;
+
     public function mount(EconomicCalendarService $calendar): void
     {
-        $dow = (int) CarbonImmutable::now(agricart_display_timezone())->dayOfWeek;
-        $this->tf = ($dow === 0 || $dow === 6) ? 'nextweek' : 'today';
-
+        $this->tf = 'today';
         $this->loadSnapshot($calendar);
-        $this->ensureSelection();
+    }
+
+    public function openAllView(): void
+    {
+        $this->showAllView = true;
+    }
+
+    public function closeAllView(): void
+    {
+        $this->showAllView = false;
     }
 
     public function refreshFeed(EconomicCalendarService $calendar): void
     {
-        $snapshot = $calendar->refresh();
-        $this->applySnapshot($snapshot);
-        $this->ensureSelection(force: true);
+        $this->applySnapshot($calendar->refresh());
     }
 
-    public function printFiltered(): void
+    #[On('fx-learn-econ-tf')]
+    public function onToolbarTf(mixed $tf = null): void
     {
-        $this->js('setTimeout(() => window.print(), 50)');
+        $value = is_array($tf) ? (string) ($tf['tf'] ?? '') : (string) $tf;
+        $this->setTf($value !== '' ? $value : 'today');
     }
 
-    public function filterSummary(): string
+    #[On('fx-learn-econ-impact')]
+    public function onToolbarImpact(mixed $impact = null): void
     {
-        $tf = match ($this->tf) {
-            'lastweek' => __('agricart.pages.fx-learn.econ_tf_last'),
-            'tomorrow' => __('agricart.pages.fx-learn.econ_tf_tomorrow'),
-            'nextweek' => __('agricart.pages.fx-learn.econ_tf_next'),
-            default => __('agricart.pages.fx-learn.econ_tf_today'),
-        };
-
-        $impact = match ($this->impact) {
-            'high' => __('agricart.pages.fx-learn.econ_impact_high'),
-            'med' => __('agricart.pages.fx-learn.econ_impact_med'),
-            default => __('agricart.pages.fx-learn.econ_impact_all'),
-        };
-
-        $ccy = $this->ccy === 'ALL'
-            ? __('agricart.pages.fx-learn.econ_ccy_all')
-            : $this->ccy;
-
-        $src = match ($this->feedView) {
-            'fc' => __('agricart.pages.fx-learn.econ_src_fc'),
-            'smt' => __('agricart.pages.fx-learn.econ_src_smt'),
-            default => __('agricart.pages.fx-learn.econ_src_ag'),
-        };
-
-        return __('agricart.pages.fx-learn.econ_print_filters', [
-            'tf' => $tf,
-            'impact' => $impact,
-            'ccy' => $ccy,
-            'src' => $src,
-        ]);
+        $value = is_array($impact) ? (string) ($impact['impact'] ?? '') : (string) $impact;
+        $this->setImpact($value !== '' ? $value : 'all');
     }
 
-    public function setFeedView(string $view): void
+    #[On('fx-learn-econ-ccy')]
+    public function onToolbarCcy(mixed $ccy = null): void
     {
-        if (! in_array($view, ['ag', 'fc', 'smt'], true)) {
-            return;
-        }
+        $value = is_array($ccy) ? (string) ($ccy['ccy'] ?? '') : (string) $ccy;
+        $this->setCcy($value !== '' ? $value : 'ALL');
+    }
 
-        $this->feedView = $view;
-        $this->ensureSelection(force: true);
+    /**
+     * Soft pull — uses smart Actual window refresh when needed (no forced bust).
+     */
+    public function softRefresh(EconomicCalendarService $calendar): void
+    {
+        $this->applySnapshot($calendar->snapshot());
     }
 
     public function setTf(string $tf): void
     {
-        if (! in_array($tf, ['lastweek', 'today', 'tomorrow', 'nextweek'], true)) {
+        if (! in_array($tf, ['today', 'tomorrow', 'week'], true)) {
             return;
         }
 
         $this->tf = $tf;
-        $this->ensureSelection(force: true);
     }
 
     public function setImpact(string $impact): void
     {
-        if (! in_array($impact, ['all', 'high', 'med'], true)) {
+        if (! in_array($impact, ['all', 'low', 'med', 'high'], true)) {
             return;
         }
 
         $this->impact = $impact;
-        $this->ensureSelection(force: true);
+    }
+
+    public function impactStars(string $impact): string
+    {
+        return match ($impact) {
+            'high' => '★★★',
+            'med' => '★★',
+            'low' => '★',
+            default => '',
+        };
     }
 
     public function setCcy(string $ccy): void
     {
         $ccy = strtoupper($ccy);
 
-        if (! in_array($ccy, ['ALL', 'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'NZD', 'CHF', 'CNY'], true)) {
+        if (! in_array($ccy, ['ALL', 'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'NZD', 'CNY'], true)) {
             return;
         }
 
         $this->ccy = $ccy;
-        $this->ensureSelection(force: true);
-    }
-
-    public function selectEvent(string $id): void
-    {
-        if ($this->filteredEvents()->contains(fn (array $ev): bool => $ev['id'] === $id)) {
-            $this->selectedId = $id;
-        }
-    }
-
-    /**
-     * @return Collection<int, array<string, mixed>>
-     */
-    public function activeEvents(): Collection
-    {
-        return collect(match ($this->feedView) {
-            'fc' => $this->feeds['fc'] ?? [],
-            'smt' => $this->feeds['smt'] ?? [],
-            default => $this->events,
-        });
     }
 
     /**
@@ -178,7 +139,7 @@ class EconomicRadarPage extends BaseModulePage
     {
         $range = $this->timeRange();
 
-        return $this->activeEvents()
+        return collect($this->events)
             ->filter(function (array $ev) use ($range): bool {
                 $at = (int) ($ev['at'] ?? 0);
 
@@ -186,11 +147,7 @@ class EconomicRadarPage extends BaseModulePage
                     return false;
                 }
 
-                if ($this->impact === 'high' && ($ev['impact'] ?? '') !== 'high') {
-                    return false;
-                }
-
-                if ($this->impact === 'med' && ! in_array($ev['impact'] ?? '', ['high', 'med'], true)) {
+                if ($this->impact !== 'all' && ($ev['impact'] ?? '') !== $this->impact) {
                     return false;
                 }
 
@@ -205,21 +162,27 @@ class EconomicRadarPage extends BaseModulePage
     }
 
     /**
-     * @return array<string, mixed>|null
+     * Compact preview for the main screen (live/upcoming first).
+     *
+     * @return Collection<int, array<string, mixed>>
      */
-    public function selectedEvent(): ?array
+    public function previewEvents(): Collection
     {
-        $visible = $this->filteredEvents();
+        $all = $this->filteredEvents();
 
-        if ($this->selectedId) {
-            $hit = $visible->firstWhere('id', $this->selectedId);
-
-            if (is_array($hit)) {
-                return $hit;
-            }
+        if ($all->isEmpty()) {
+            return $all;
         }
 
-        return $visible->first();
+        $nowMs = (int) CarbonImmutable::now('UTC')->getTimestampMs();
+
+        $liveOrUpcoming = $all
+            ->filter(fn (array $ev): bool => (int) ($ev['at'] ?? 0) >= $nowMs - 120_000)
+            ->values();
+
+        $pick = $liveOrUpcoming->isNotEmpty() ? $liveOrUpcoming : $all;
+
+        return $pick->take(self::PREVIEW_LIMIT)->values();
     }
 
     public function formatPkt(int $atMs): string
@@ -268,52 +231,64 @@ class EconomicRadarPage extends BaseModulePage
             : __('agricart.pages.fx-learn.econ_in', ['time' => $label]);
     }
 
-    public function actualTone(array $ev): string
+    /**
+     * upcoming | live | done
+     */
+    public function eventStatus(array $ev): string
     {
-        $a = $this->parseNumber($ev['actual'] ?? null);
-        $f = $this->parseNumber($ev['forecast'] ?? null);
+        $at = (int) ($ev['at'] ?? 0);
+        $nowMs = (int) CarbonImmutable::now('UTC')->getTimestampMs();
+        $actual = trim((string) ($ev['actual'] ?? ''));
+        $hasActual = $actual !== '' && $actual !== '—';
 
-        if ($a === null || $f === null) {
-            return '';
+        if ($hasActual) {
+            return 'done';
         }
 
-        if ($a > $f) {
-            return 'beat';
+        $delta = $at - $nowMs;
+
+        if ($delta > 90_000) {
+            return 'upcoming';
         }
 
-        if ($a < $f) {
-            return 'miss';
+        if ($delta >= -1_800_000) {
+            return 'live';
         }
 
-        return 'flat';
+        return 'done';
+    }
+
+    public function shouldPoll(): bool
+    {
+        $nowMs = (int) CarbonImmutable::now('UTC')->getTimestampMs();
+
+        foreach ($this->filteredEvents() as $ev) {
+            if (($ev['impact'] ?? '') !== 'high') {
+                continue;
+            }
+
+            $actual = trim((string) ($ev['actual'] ?? ''));
+
+            if ($actual !== '' && $actual !== '—') {
+                continue;
+            }
+
+            $at = (int) ($ev['at'] ?? 0);
+
+            if ($at >= $nowMs - 2_400_000 && $at <= $nowMs + 120_000) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function feedBadgeLabel(): string
     {
         return match ($this->feedSource) {
-            'fc+smt' => __('agricart.pages.fx-learn.econ_feed_live'),
-            'fc', 'smt' => __('agricart.pages.fx-learn.econ_feed_partial'),
+            'ff' => __('agricart.pages.fx-learn.econ_feed_live'),
             default => __('agricart.pages.fx-learn.econ_feed_backup'),
         };
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function eventSourceTags(array $ev): array
-    {
-        $sources = $ev['sources'] ?? null;
-
-        if (is_array($sources) && $sources !== []) {
-            return array_values(array_filter(
-                array_map('strval', $sources),
-                static fn (string $s): bool => in_array($s, ['fc', 'smt'], true),
-            ));
-        }
-
-        $src = (string) ($ev['src'] ?? '');
-
-        return in_array($src, ['fc', 'smt'], true) ? [$src] : [];
     }
 
     public function getHeading(): string|Htmlable|null
@@ -342,53 +317,13 @@ class EconomicRadarPage extends BaseModulePage
     }
 
     /**
-     * @param  array{
-     *     events: list<array<string, mixed>>,
-     *     feeds?: array{fc: list<array<string, mixed>>, smt: list<array<string, mixed>>},
-     *     counts?: array{ag: int, fc: int, smt: int},
-     *     source: string,
-     *     fetched_at: string
-     * }  $snapshot
+     * @param  array{events: list<array<string, mixed>>, source: string, fetched_at: string}  $snapshot
      */
     private function applySnapshot(array $snapshot): void
     {
         $this->events = $snapshot['events'];
-        $this->feeds = [
-            'fc' => $snapshot['feeds']['fc'] ?? [],
-            'smt' => $snapshot['feeds']['smt'] ?? [],
-        ];
-        $this->feedCounts = [
-            'ag' => (int) ($snapshot['counts']['ag'] ?? count($this->events)),
-            'fc' => (int) ($snapshot['counts']['fc'] ?? count($this->feeds['fc'])),
-            'smt' => (int) ($snapshot['counts']['smt'] ?? count($this->feeds['smt'])),
-        ];
         $this->feedSource = $snapshot['source'];
         $this->fetchedAt = $snapshot['fetched_at'];
-    }
-
-    private function ensureSelection(bool $force = false): void
-    {
-        $visible = $this->filteredEvents();
-
-        if ($visible->isEmpty()) {
-            $this->selectedId = null;
-
-            return;
-        }
-
-        if (! $force && $this->selectedId && $visible->contains(fn (array $ev): bool => $ev['id'] === $this->selectedId)) {
-            return;
-        }
-
-        $nowMs = (int) (CarbonImmutable::now('UTC')->getTimestampMs());
-        $upcoming = $visible->filter(fn (array $ev): bool => (int) $ev['at'] >= $nowMs - 120_000);
-
-        $pick = $upcoming->first(fn (array $ev): bool => ($ev['impact'] ?? '') === 'high')
-            ?? $upcoming->first(fn (array $ev): bool => ($ev['impact'] ?? '') === 'med')
-            ?? $upcoming->first()
-            ?? $visible->last();
-
-        $this->selectedId = is_array($pick) ? (string) $pick['id'] : null;
     }
 
     /**
@@ -406,47 +341,14 @@ class EconomicRadarPage extends BaseModulePage
                 'from' => (int) $today0->addDay()->getTimestampMs(),
                 'to' => (int) $today0->addDay()->endOfDay()->getTimestampMs(),
             ],
-            'lastweek' => [
-                'from' => (int) $week0->subWeek()->getTimestampMs(),
-                'to' => (int) $week0->subSecond()->getTimestampMs(),
-            ],
-            'nextweek' => [
-                'from' => (int) $week0->addWeek()->getTimestampMs(),
-                'to' => (int) $week0->addWeeks(2)->subSecond()->getTimestampMs(),
+            'week' => [
+                'from' => (int) $week0->getTimestampMs(),
+                'to' => (int) $week0->addWeek()->subSecond()->getTimestampMs(),
             ],
             default => [
                 'from' => (int) $today0->getTimestampMs(),
                 'to' => (int) $today0->endOfDay()->getTimestampMs(),
             ],
         };
-    }
-
-    private function parseNumber(mixed $raw): ?float
-    {
-        if ($raw === null) {
-            return null;
-        }
-
-        $s = trim((string) $raw);
-
-        if ($s === '' || $s === '—') {
-            return null;
-        }
-
-        $mult = 1.0;
-
-        if (preg_match('/b$/i', $s) === 1) {
-            $mult = 1e9;
-        } elseif (preg_match('/m$/i', $s) === 1) {
-            $mult = 1e6;
-        } elseif (preg_match('/k$/i', $s) === 1) {
-            $mult = 1e3;
-        }
-
-        $s = preg_replace('/[,%$]/', '', $s) ?? $s;
-        $s = preg_replace('/[bmk]$/i', '', $s) ?? $s;
-        $n = filter_var(trim($s), FILTER_VALIDATE_FLOAT);
-
-        return $n === false ? null : ((float) $n) * $mult;
     }
 }

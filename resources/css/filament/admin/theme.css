@@ -1930,55 +1930,94 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
     width: 100%;
 }
 
-.agricart-fx-visit__hint {
-    font-size: 0.68rem;
+.agricart-fx-econ-range {
+    appearance: none;
+    min-width: 8.5rem;
+    max-width: 11rem;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0.5rem;
+    background:
+        var(--agricart-surface)
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%2364748b'%3E%3Cpath fill-rule='evenodd' d='M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z' clip-rule='evenodd'/%3E%3C/svg%3E")
+        no-repeat right 0.55rem center / 0.9rem;
+    color: var(--agricart-text);
+    padding: 0.4rem 1.7rem 0.4rem 0.65rem;
+    font-size: 0.75rem;
     font-weight: 800;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--agricart-muted);
-    margin-inline-end: 0.15rem;
+    line-height: 1.2;
+    cursor: pointer;
+}
+
+.agricart-fx-econ-range:focus {
+    outline: 2px solid color-mix(in srgb, var(--agricart-primary) 45%, transparent);
+    outline-offset: 1px;
+}
+
+.agricart-fx-econ-impact {
+    min-width: 9.5rem;
+    color: #b91c1c;
+}
+
+.agricart-fx-econ-ccy {
+    min-width: 9.25rem;
+}
+
+.agricart-fx-econ-impact option {
+    color: #0f172a;
+}
+
+.agricart-fx-econ-impact option[value="low"],
+.agricart-fx-econ-impact option[value="med"],
+.agricart-fx-econ-impact option[value="high"] {
+    color: #b91c1c;
+    font-weight: 700;
 }
 
 .agricart-fx-visit__btn {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    padding: 0.38rem 0.7rem;
+    padding: 0.42rem 0.85rem;
     border-radius: 0.5rem;
-    border: 1px solid var(--agricart-border);
-    background: var(--agricart-surface);
-    color: var(--agricart-text);
+    border: 1px solid var(--agricart-primary);
+    background: var(--agricart-primary);
+    color: #ffffff;
     font-size: 0.75rem;
     font-weight: 800;
     text-decoration: none;
     line-height: 1.2;
-    transition: border-color 0.12s ease, background 0.12s ease, color 0.12s ease;
+    box-shadow: none;
+    transition: background 0.12s ease, border-color 0.12s ease;
+}
+
+.agricart-fx-visit__btn--end {
+    flex: 0 0 auto;
 }
 
 .agricart-fx-visit__btn svg {
     width: 0.85rem;
     height: 0.85rem;
     flex: 0 0 auto;
-    opacity: 0.75;
+    color: #ffffff;
+    opacity: 1;
 }
 
 .agricart-fx-visit__btn:hover {
+    background: var(--agricart-primary-hover);
+    border-color: var(--agricart-primary-hover);
+    color: #ffffff;
+}
+
+html.dark .agricart-fx-visit__btn {
+    background: var(--agricart-primary);
     border-color: var(--agricart-primary);
-    color: #3f6212;
-    background: color-mix(in srgb, var(--agricart-primary) 14%, white);
+    color: #ffffff;
 }
 
 html.dark .agricart-fx-visit__btn:hover {
-    color: #d9f99d;
-    background: color-mix(in srgb, var(--agricart-primary) 22%, #0f172a);
-}
-
-.agricart-fx-visit__btn--fc {
-    border-color: color-mix(in srgb, #0ea5e9 35%, var(--agricart-border));
-}
-
-.agricart-fx-visit__btn--smt {
-    border-color: color-mix(in srgb, var(--agricart-primary) 40%, var(--agricart-border));
+    background: var(--agricart-primary-hover);
+    border-color: var(--agricart-primary-hover);
+    color: #ffffff;
 }
 
 .agricart-catalog-toolbar__actions {
@@ -2463,6 +2502,759 @@ html.dark .fx-learn-shell__badge {
 }
 
 /* ── FX Learn · Economic Radar ── */
+/* ── FX Learn · Economic Radar (clean FF table) ── */
+.fx-radar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    min-height: calc(100dvh - 12.5rem);
+}
+
+.fx-radar__calendar {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+}
+
+.fx-radar__workspace {
+    flex: 1 1 auto;
+    min-height: 18rem;
+    display: grid;
+    grid-template-columns: minmax(10.5rem, 12.5rem) minmax(0, 1fr) minmax(10.5rem, 12.5rem);
+    gap: 0.85rem;
+    align-items: stretch;
+}
+
+.fx-radar__workspace-box {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 1.5rem 1rem;
+    min-height: 16rem;
+    border: 1px dashed color-mix(in srgb, var(--agricart-border) 90%, var(--agricart-primary));
+    border-radius: 1rem;
+    background: color-mix(in srgb, var(--agricart-muted) 5%, var(--agricart-surface));
+    text-align: center;
+}
+
+.fx-radar__workspace-title {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: var(--agricart-text);
+}
+
+.fx-radar__workspace-text {
+    margin: 0;
+    max-width: 28rem;
+    font-size: 0.8rem;
+    line-height: 1.45;
+    color: var(--agricart-muted);
+}
+
+.fx-radar__clocks {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 0.85rem;
+    min-width: 0;
+    height: 100%;
+}
+
+.fx-radar__clock {
+    --fx-clock-ink: var(--agricart-text);
+    --fx-clock-muted: var(--agricart-muted);
+    --fx-clock-sec: #c8102e;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 0 0 auto;
+    width: 100%;
+    max-width: 12.5rem;
+    margin-inline: auto;
+}
+
+.fx-radar__clock-case {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    flex: 0 0 auto;
+}
+
+.fx-radar__clock-bezel {
+    width: 100%;
+    height: 100%;
+    padding: 0.42rem;
+    border-radius: 1.15rem;
+    background:
+        linear-gradient(145deg, #f6e27a 0%, #d4af37 28%, #b8860b 58%, #f0d56a 78%, #a67c00 100%);
+    box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.55) inset,
+        0 -1px 0 rgba(120, 80, 0, 0.35) inset,
+        0 10px 22px -8px rgba(15, 23, 42, 0.4),
+        0 2px 6px rgba(15, 23, 42, 0.12);
+}
+
+.fx-radar__clock-face {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    border-radius: 0.85rem;
+    overflow: hidden;
+    background: #fbfbfb;
+    box-shadow:
+        inset 0 0 0 1px rgba(15, 23, 42, 0.06),
+        inset 0 8px 16px rgba(15, 23, 42, 0.06),
+        inset 0 -2px 6px rgba(255, 255, 255, 0.85);
+}
+
+.fx-radar__clock-flag {
+    position: absolute;
+    inset: 18%;
+    z-index: 0;
+    border-radius: 0.45rem;
+    opacity: 0.22;
+    filter: saturate(1.1);
+    pointer-events: none;
+}
+
+.fx-radar__clock-minutes {
+    position: absolute;
+    inset: 6%;
+    z-index: 1;
+    border-radius: 0.55rem;
+    background: repeating-conic-gradient(
+        from -0.4deg,
+        #111827 0 0.7deg,
+        transparent 0.7deg 6deg
+    );
+    -webkit-mask: radial-gradient(circle, transparent 78%, #000 79%);
+    mask: radial-gradient(circle, transparent 78%, #000 79%);
+    opacity: 0.55;
+}
+
+.fx-radar__clock-hours {
+    position: absolute;
+    inset: 9%;
+    z-index: 1;
+    border-radius: 0.45rem;
+    background: repeating-conic-gradient(
+        from -1deg,
+        #0f172a 0 2.2deg,
+        transparent 2.2deg 30deg
+    );
+    -webkit-mask: radial-gradient(circle, transparent 62%, #000 63% 78%, transparent 79%);
+    mask: radial-gradient(circle, transparent 62%, #000 63% 78%, transparent 79%);
+    opacity: 0.92;
+}
+
+.fx-radar__clock-hand {
+    position: absolute;
+    left: 50%;
+    bottom: 50%;
+    z-index: 3;
+    transform-origin: 50% 100%;
+    border-radius: 2px;
+    background: #0f172a;
+    box-shadow: 1px 2px 3px rgba(15, 23, 42, 0.28);
+}
+
+.fx-radar__clock-hand--hour {
+    width: 0.28rem;
+    height: 24%;
+    margin-left: -0.14rem;
+    background: #0f172a;
+}
+
+.fx-radar__clock-hand--min {
+    width: 0.2rem;
+    height: 34%;
+    margin-left: -0.1rem;
+    background: #111827;
+}
+
+.fx-radar__clock-hand--sec {
+    width: 0.1rem;
+    height: 38%;
+    margin-left: -0.05rem;
+    background: var(--fx-clock-sec);
+    box-shadow: 0 0 0 transparent;
+    z-index: 4;
+}
+
+.fx-radar__clock-hand--sec::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    width: 0.1rem;
+    height: 18%;
+    margin-left: -0.05rem;
+    background: var(--fx-clock-sec);
+    border-radius: 2px;
+}
+
+.fx-radar__clock-pivot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 5;
+    width: 0.55rem;
+    height: 0.55rem;
+    margin: -0.275rem 0 0 -0.275rem;
+    border-radius: 999px;
+    background:
+        radial-gradient(circle at 32% 28%, #fff4b8 0 22%, #e0b93a 45%, #a67c00 100%);
+    box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.55),
+        0 1px 3px rgba(15, 23, 42, 0.35);
+}
+
+.fx-radar__clock-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.05rem;
+    width: 100%;
+    min-width: 0;
+    text-align: center;
+}
+
+.fx-radar__clock-digital {
+    margin: 0;
+    font-size: 0.92rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    color: var(--fx-clock-ink);
+}
+
+.fx-radar__clock-sec {
+    font-weight: 700;
+    opacity: 0.55;
+    font-size: 0.82em;
+}
+
+.fx-radar__clock-city {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1.15;
+    color: var(--fx-clock-ink);
+}
+
+.fx-radar__clock-tz {
+    margin: 0;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--fx-clock-muted);
+}
+
+.fx-radar__clock--tokyo .fx-radar__clock-flag {
+    background:
+        radial-gradient(circle at 50% 50%, #bc002d 0 28%, transparent 29%),
+        #ffffff;
+    opacity: 0.28;
+}
+
+.fx-radar__clock--london .fx-radar__clock-flag {
+    background:
+        linear-gradient(90deg, transparent 44%, #fff 44%, #fff 56%, transparent 56%),
+        linear-gradient(#fff 44%, transparent 44%, transparent 56%, #fff 56%),
+        linear-gradient(90deg, transparent 46.5%, #c8102e 46.5%, #c8102e 53.5%, transparent 53.5%),
+        linear-gradient(#c8102e 46.5%, transparent 46.5%, transparent 53.5%, #c8102e 53.5%),
+        linear-gradient(to bottom right, transparent 47%, #fff 47%, #fff 53%, transparent 53%),
+        linear-gradient(to top right, transparent 47%, #fff 47%, #fff 53%, transparent 53%),
+        linear-gradient(to bottom right, transparent 48.5%, #c8102e 48.5%, #c8102e 51.5%, transparent 51.5%),
+        linear-gradient(to top right, transparent 48.5%, #c8102e 48.5%, #c8102e 51.5%, transparent 51.5%),
+        #012169;
+    opacity: 0.26;
+}
+
+.fx-radar__clock--pk .fx-radar__clock-flag {
+    background:
+        radial-gradient(circle at 58% 48%, transparent 0 0.55rem, #fff 0.56rem 0.72rem, transparent 0.73rem),
+        radial-gradient(circle at 54% 48%, #01411c 0 0.78rem, transparent 0.79rem),
+        linear-gradient(90deg, #fff 0 26%, #01411c 26%);
+    opacity: 0.3;
+}
+
+.fx-radar__clock--pk {
+    --fx-clock-sec: #016630;
+}
+
+.fx-radar__clock--ny .fx-radar__clock-flag {
+    background:
+        linear-gradient(#b22234 0 7.69%, #fff 7.69% 15.38%, #b22234 15.38% 23.07%, #fff 23.07% 30.76%, #b22234 30.76% 38.45%, #fff 38.45% 46.14%, #b22234 46.14% 53.83%, #fff 53.83% 61.52%, #b22234 61.52% 69.21%, #fff 69.21% 76.9%, #b22234 76.9% 84.59%, #fff 84.59% 92.28%, #b22234 92.28%),
+        linear-gradient(#3c3b6e, #3c3b6e);
+    background-size: 100% 100%, 42% 53.8%;
+    background-repeat: no-repeat, no-repeat;
+    background-position: 0 0, 0 0;
+    opacity: 0.26;
+}
+
+.fx-radar__clock--tokyo {
+    --fx-clock-sec: #bc002d;
+}
+
+.fx-radar__clock--ny {
+    --fx-clock-sec: #b22234;
+}
+
+.fx-radar__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+}
+
+.fx-radar__title {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--agricart-text);
+}
+
+.fx-radar__intro {
+    margin: 0.3rem 0 0;
+    max-width: 40rem;
+    font-size: 0.85rem;
+    line-height: 1.45;
+    color: var(--agricart-muted);
+}
+
+.fx-radar__live-dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 999px;
+    flex: 0 0 auto;
+    background: #94a3b8;
+    box-shadow: 0 0 0 0 transparent;
+}
+
+.fx-radar__live-dot.is-on {
+    background: #22c55e;
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55);
+    animation: fx-radar-live-pulse 1.6s ease-out infinite;
+}
+
+.fx-radar__live-dot.is-off {
+    background: #f59e0b;
+}
+
+@keyframes fx-radar-live-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55); }
+    70% { box-shadow: 0 0 0 0.45rem rgba(34, 197, 94, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+.fx-radar__th-tools {
+    padding: 0.35rem 0.45rem !important;
+    text-align: center;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.fx-radar__th-tools-inner {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.fx-radar__td-tools {
+    width: 1%;
+    padding: 0.35rem 0.45rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--agricart-border) 85%, transparent);
+}
+
+.fx-radar__table--toolbar {
+    min-width: 58rem;
+}
+
+.fx-radar__table--toolbar .fx-radar__td-event {
+    max-width: 14rem;
+}
+
+.fx-radar__th-tools .fx-radar__btn {
+    padding: 0.28rem 0.55rem;
+    font-size: 0.7rem;
+}
+
+.fx-radar__zone {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--agricart-muted);
+}
+
+.fx-radar__btn {
+    appearance: none;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-surface);
+    color: var(--agricart-text);
+    border-radius: 0.45rem;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.fx-radar__btn:hover {
+    border-color: var(--agricart-primary);
+}
+
+.fx-radar__btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.fx-radar__btn--view {
+    border-color: var(--agricart-primary);
+    background: var(--agricart-primary);
+    color: #fff;
+}
+
+.fx-radar__btn--view:hover {
+    background: var(--agricart-primary-hover);
+    border-color: var(--agricart-primary-hover);
+    color: #fff;
+}
+
+.fx-radar__btn--refresh {
+    border-color: color-mix(in srgb, var(--agricart-primary) 40%, var(--agricart-border));
+    background: color-mix(in srgb, var(--agricart-primary) 12%, white);
+    color: #3f6212;
+}
+
+.fx-radar__btn--refresh:hover {
+    border-color: var(--agricart-primary);
+    background: color-mix(in srgb, var(--agricart-primary) 22%, white);
+    color: #365314;
+}
+
+html.dark .fx-radar__btn--refresh {
+    background: color-mix(in srgb, var(--agricart-primary) 22%, #0f172a);
+    color: #d9f99d;
+}
+
+.fx-radar__count {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: var(--agricart-muted);
+}
+
+.fx-radar__filters {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem 0.9rem;
+    background: var(--agricart-surface);
+    border: 1px solid var(--agricart-border);
+    border-radius: 0.65rem;
+}
+
+.fx-radar__filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.7rem;
+}
+
+.fx-radar__label {
+    min-width: 4.25rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--agricart-muted);
+}
+
+.fx-radar__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
+
+.fx-radar__chip {
+    appearance: none;
+    border: 1px solid var(--agricart-border);
+    background: #fff;
+    color: #334155;
+    border-radius: 999px;
+    padding: 0.25rem 0.65rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+html.dark .fx-radar__chip {
+    background: var(--agricart-surface);
+    color: var(--agricart-text);
+}
+
+.fx-radar__chip.is-active {
+    border-color: var(--agricart-primary);
+    background: color-mix(in srgb, var(--agricart-primary) 18%, white);
+    color: #3f6212;
+}
+
+html.dark .fx-radar__chip.is-active {
+    background: color-mix(in srgb, var(--agricart-primary) 28%, #0f172a);
+    color: #d9f99d;
+}
+
+.fx-radar__table-wrap {
+    overflow: auto;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0.65rem;
+    background: var(--agricart-surface);
+    -webkit-overflow-scrolling: touch;
+}
+
+.fx-radar__table-wrap--preview {
+    max-height: min(28vh, 12.5rem);
+}
+
+@media (max-width: 720px) {
+    .fx-radar {
+        min-height: calc(100dvh - 10.5rem);
+        gap: 0.6rem;
+    }
+
+    .fx-radar__workspace {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        min-height: 0;
+    }
+
+    .fx-radar__clocks--left {
+        grid-column: 1;
+        grid-row: 1;
+        flex-direction: row;
+        align-items: flex-start;
+    }
+
+    .fx-radar__clocks--right {
+        grid-column: 2;
+        grid-row: 1;
+        flex-direction: row;
+        align-items: flex-start;
+    }
+
+    .fx-radar__workspace-box {
+        grid-column: 1 / -1;
+        grid-row: 2;
+        min-height: 10rem;
+        padding: 1rem 0.75rem;
+    }
+
+    .fx-radar__clock {
+        max-width: none;
+        min-width: 0;
+        flex: 1 1 0;
+    }
+
+    .fx-radar__clock-digital {
+        font-size: 0.8rem;
+    }
+
+    .fx-radar__table-wrap--preview {
+        max-height: min(26vh, 11rem);
+    }
+}
+
+.fx-radar__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+    min-width: 52rem;
+}
+
+.fx-radar__table th {
+    text-align: start;
+    padding: 0.65rem 0.7rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--agricart-muted);
+    background: color-mix(in srgb, var(--agricart-muted) 8%, var(--agricart-surface));
+    border-bottom: 1px solid var(--agricart-border);
+    white-space: nowrap;
+}
+
+.fx-radar__table td {
+    padding: 0.6rem 0.7rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--agricart-border) 85%, transparent);
+    vertical-align: middle;
+    color: var(--agricart-text);
+}
+
+.fx-radar__table tr.is-live {
+    background: color-mix(in srgb, var(--agricart-primary) 8%, transparent);
+}
+
+.fx-radar__td-time {
+    white-space: nowrap;
+}
+
+.fx-radar__td-time small {
+    display: block;
+    margin-top: 0.12rem;
+    font-size: 0.68rem;
+    font-weight: 650;
+    color: var(--agricart-muted);
+}
+
+.fx-radar__td-ccy {
+    font-weight: 800;
+}
+
+.fx-radar__td-event {
+    font-weight: 650;
+    max-width: 18rem;
+}
+
+.fx-radar__td-num {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.fx-radar__stars {
+    display: inline-flex;
+    letter-spacing: 0.05em;
+    font-size: 0.85rem;
+    font-weight: 800;
+    line-height: 1;
+    color: #dc2626;
+    direction: ltr;
+}
+
+.fx-radar__stars--high { color: #dc2626; }
+.fx-radar__stars--med { color: #ea580c; }
+.fx-radar__stars--low { color: #ca8a04; }
+
+.fx-radar__status {
+    display: inline-flex;
+    padding: 0.12rem 0.4rem;
+    border-radius: 0.3rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+}
+
+.fx-radar__status--upcoming {
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.fx-radar__status--live {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.fx-radar__status--done {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.fx-radar__empty {
+    text-align: center;
+    padding: 1.5rem !important;
+    color: var(--agricart-muted);
+}
+
+.fx-radar__modal {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    padding: 0.75rem;
+}
+
+.fx-radar__modal-backdrop {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: rgba(15, 23, 42, 0.48);
+    cursor: pointer;
+}
+
+.fx-radar__modal-card {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    width: min(100%, 72rem);
+    max-height: min(92dvh, 52rem);
+    margin: auto;
+    border-radius: 0.85rem;
+    background: var(--agricart-surface);
+    border: 1px solid var(--agricart-border);
+    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.28);
+    overflow: hidden;
+}
+
+.fx-radar__modal-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    padding: 0.85rem 1rem;
+    border-bottom: 1px solid var(--agricart-border);
+}
+
+.fx-radar__modal-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--agricart-text);
+}
+
+.fx-radar__modal-sub {
+    margin: 0.15rem 0 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--agricart-muted);
+}
+
+.fx-radar__modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.fx-radar__modal-body .fx-radar__table-wrap,
+.fx-radar__modal-body .fx-radar__table {
+    border: 0;
+    border-radius: 0;
+}
+
+.fx-radar__credit {
+    margin: 0;
+    font-size: 0.72rem;
+    color: var(--agricart-muted);
+    flex: 0 0 auto;
+}
+
+.fx-radar__credit a {
+    font-weight: 700;
+    color: color-mix(in srgb, var(--agricart-primary-hover) 90%, #0f172a);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
 .fx-econ {
     display: flex;
     flex-direction: column;
@@ -2527,11 +3319,17 @@ html.dark .fx-learn-shell__badge {
 
 .fx-econ__sources {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.55rem;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 1100px) {
+    .fx-econ__sources {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
     .fx-econ__sources {
         grid-template-columns: 1fr;
     }
@@ -2608,6 +3406,11 @@ html.dark .fx-econ__src-btn.is-active .fx-econ__src-count {
     padding: 0.12rem 0.35rem;
     border-radius: 0.3rem;
     direction: ltr;
+}
+
+.fx-econ__src-tag--ff {
+    background: #fef3c7;
+    color: #92400e;
 }
 
 .fx-econ__src-tag--fc {

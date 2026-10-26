@@ -47,16 +47,12 @@ class FxLearnPageToolbar extends ClusterPageToolbar
                 'hideSearchInput' => true,
                 'hideFilters' => true,
                 'hideColumns' => true,
+                'fxLearnEconRange' => true,
                 'fxLearnVisitLinks' => [
                     [
-                        'key' => 'fc',
-                        'label' => __('agricart.pages.fx-learn.econ_visit_fc'),
-                        'url' => 'https://www.financecalendar.com/',
-                    ],
-                    [
-                        'key' => 'smt',
-                        'label' => __('agricart.pages.fx-learn.econ_visit_smt'),
-                        'url' => 'https://showmytrades.com/tools/economic-calendar',
+                        'key' => 'ff',
+                        'label' => __('agricart.pages.fx-learn.econ_visit_ff'),
+                        'url' => 'https://www.forexfactory.com/calendar',
                     ],
                 ],
             ];
