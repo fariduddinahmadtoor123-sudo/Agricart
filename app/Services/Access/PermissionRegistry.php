@@ -341,7 +341,7 @@ class PermissionRegistry
                 'home-expenses' => ['label_en' => 'Home Expenses', 'label_ur' => 'ہوم ایکسپینس', 'actions' => $crudPrint],
             ],
             'fx-learn' => [
-                'trade-terminal' => ['label_en' => 'Trade Terminal', 'label_ur' => 'ٹریڈ ٹرمینل', 'actions' => $viewOnly],
+                'trade-terminal' => ['label_en' => 'Trade Terminal', 'label_ur' => 'ٹریڈ ٹرمینل', 'actions' => ['view', 'create', 'edit']],
                 'economic-radar' => ['label_en' => 'Economic Radar', 'label_ur' => 'اکنامک ریڈار', 'actions' => $viewOnly],
                 'liquidity-sessions' => ['label_en' => 'Liquidity & Sessions', 'label_ur' => 'لیکویڈیٹی اینڈ سیشنز', 'actions' => $viewOnly],
                 'market-sentiment' => ['label_en' => 'Market Sentiment', 'label_ur' => 'مارکیٹ سینٹیمنٹ', 'actions' => $viewOnly],

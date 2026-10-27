@@ -53,6 +53,11 @@ class FxLearnPageToolbar extends ClusterPageToolbar
                         'label' => __('agricart.pages.fx-learn.econ_visit_ff'),
                         'url' => 'https://www.forexfactory.com/calendar',
                     ],
+                    [
+                        'key' => 'inv',
+                        'label' => __('agricart.pages.fx-learn.econ_visit_inv'),
+                        'url' => 'https://www.investing.com/economic-calendar/',
+                    ],
                 ],
             ];
         }

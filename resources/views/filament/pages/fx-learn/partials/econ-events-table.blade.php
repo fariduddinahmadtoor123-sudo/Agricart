@@ -52,8 +52,20 @@
     </thead>
     <tbody>
         @forelse ($rows as $ev)
-            @php $status = $this->eventStatus($ev); @endphp
-            <tr @class(['is-live' => $status === 'live'])>
+            @php
+                $status = $this->eventStatus($ev);
+                $eventId = (string) ($ev['id'] ?? '');
+                $isSelected = $eventId !== '' && $this->selectedEventId === $eventId;
+            @endphp
+            <tr
+                @class(['is-live' => $status === 'live', 'is-selected' => $isSelected])
+                @if ($eventId !== '')
+                    wire:click="selectEvent(@js($eventId))"
+                    role="button"
+                    tabindex="0"
+                    title="{{ __('agricart.pages.fx-learn.econ_ai_select_row') }}"
+                @endif
+            >
                 <td class="fx-radar__td-time" dir="ltr">
                     <span>{{ $this->formatPkt((int) $ev['at']) }}</span>
                     <small>{{ $this->countdownLabel((int) $ev['at']) }}</small>

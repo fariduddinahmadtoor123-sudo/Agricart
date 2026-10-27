@@ -74,13 +74,14 @@ final class ModulePageAccess
             return true;
         }
 
-        if (preg_match('/^([a-z]+)\.([a-z0-9-]+)\.([a-z_]+)$/', $key, $matches) === 1) {
+        // Modules may include hyphens (e.g. fx-learn.economic-radar.view).
+        if (preg_match('/^([a-z0-9-]+)\.([a-z0-9-]+)\.([a-z_]+)$/', $key, $matches) === 1) {
             return $user->hasPermission("{$matches[1]}.{$matches[3]}");
         }
 
-        // Legacy module.action (e.g. sales.view) after page-scoped migration.
+        // Legacy module.action (e.g. sales.view / fx-learn.view) after page-scoped migration.
         if (
-            preg_match('/^([a-z]+)\.(view|create|edit|delete|print)$/', $key, $matches) === 1
+            preg_match('/^([a-z0-9-]+)\.(view|create|edit|delete|print)$/', $key, $matches) === 1
             && PermissionRegistry::moduleUsesPagePermissions($matches[1])
         ) {
             foreach (array_keys(PermissionRegistry::pagesFor($matches[1])) as $page) {

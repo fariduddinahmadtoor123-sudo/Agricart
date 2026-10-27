@@ -399,32 +399,29 @@ class EconomicCalendarService
         };
     }
 
+    /**
+     * Trust Forex Factory impact by default.
+     * Only gently down-rank noisy "High" rows (auctions / speaks / weekly energy).
+     * Never upgrade Low/Medium → High — that fought FF (e.g. BOJ Core CPI).
+     */
     private function normalizeMarketImpact(string $title, string $impact): string
     {
         $s = strtolower($title);
         $base = $impact;
 
-        if (preg_match('/auction|speaks|speech|testimony|minutes\b|leading index|steel import|petroleum|natural gas|eia weekly/', $s) === 1) {
-            if (str_contains($s, 'auction')) {
-                return 'low';
-            }
-
-            return match ($base) {
-                'high' => 'med',
-                'med' => 'low',
-                default => $base,
-            };
+        if (preg_match('/auction|speaks|speech|testimony|minutes\b|leading index|steel import|petroleum|natural gas|eia weekly/', $s) !== 1) {
+            return $base;
         }
 
-        if (preg_match('/fomc|federal funds|rate decision|interest rate|non-farm|nonfarm|\bnfp\b|payroll|\badp\b|cpi\b|core cpi|pce\b|core pce|gdp\b|jobless claims|consumer confidence|durable goods|press conference|monetary policy|\bism\b|\bjolts\b|michigan|ecb\b|boe\b|boc\b|rba\b|rbnz|boj\b/', $s) === 1) {
-            return 'high';
+        if (str_contains($s, 'auction')) {
+            return 'low';
         }
 
-        if (preg_match('/retail sales|flash pmi|pmi\b|ifo |zew |trade balance|housing starts|building permits/', $s) === 1) {
-            return $base === 'low' ? 'med' : $base;
-        }
-
-        return $base;
+        return match ($base) {
+            'high' => 'med',
+            'med' => 'low',
+            default => $base,
+        };
     }
 
     private function parseInstant(mixed $value): ?int

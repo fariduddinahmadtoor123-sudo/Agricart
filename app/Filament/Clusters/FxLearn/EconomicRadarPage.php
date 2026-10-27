@@ -5,12 +5,16 @@ namespace App\Filament\Clusters\FxLearn;
 use App\Filament\Clusters\FxLearnCluster;
 use App\Filament\Pages\BaseModulePage;
 use App\Services\FxLearn\EconomicCalendarService;
+use App\Services\FxLearn\EconomicNewsBiasAiService;
+use App\Support\FriendlyError;
 use BackedEnum;
 use Carbon\CarbonImmutable;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Livewire\Attributes\On;
+use Throwable;
 
 class EconomicRadarPage extends BaseModulePage
 {
@@ -41,6 +45,28 @@ class EconomicRadarPage extends BaseModulePage
 
     public bool $showAllView = false;
 
+    public ?string $selectedEventId = null;
+
+    public string $manualActual = '';
+
+    public bool $analyzing = false;
+
+    public ?string $aiBias = null;
+
+    public ?string $aiVerdict = null;
+
+    public ?string $aiSummaryEn = null;
+
+    public ?string $aiSummaryUr = null;
+
+    public ?string $aiDollarBias = null;
+
+    public ?string $aiInvertedNote = null;
+
+    public ?string $aiMessage = null;
+
+    public string $aiMessageTone = 'muted';
+
     private const PREVIEW_LIMIT = 3;
 
     public function mount(EconomicCalendarService $calendar): void
@@ -59,9 +85,203 @@ class EconomicRadarPage extends BaseModulePage
         $this->showAllView = false;
     }
 
+    public function selectEvent(string $eventId): void
+    {
+        $event = $this->findEvent($eventId);
+
+        if ($event === null) {
+            return;
+        }
+
+        $this->selectedEventId = $eventId;
+        $this->manualActual = '';
+        $this->clearAiResult();
+    }
+
+    public function updatedManualActual(string $value): void
+    {
+        $this->manualActual = trim($value);
+        $this->clearAiResult();
+    }
+
+    public function analyzeNews(EconomicNewsBiasAiService $ai): void
+    {
+        $event = $this->selectedEvent();
+
+        if ($event === null) {
+            $this->aiMessage = __('agricart.pages.fx-learn.econ_ai_pick_event');
+            $this->aiMessageTone = 'warning';
+
+            return;
+        }
+
+        $effective = $this->effectiveActual($event);
+
+        if ($effective === null) {
+            $this->aiMessage = __('agricart.pages.fx-learn.econ_ai_actual_required');
+            $this->aiMessageTone = 'warning';
+
+            return;
+        }
+
+        $lock = Cache::lock('fxlearn.econ.ai.'.(auth()->id() ?? 'guest'), 120);
+
+        if (! $lock->get()) {
+            $this->aiMessage = __('agricart.pages.fx-learn.econ_ai_busy');
+            $this->aiMessageTone = 'warning';
+
+            return;
+        }
+
+        $this->analyzing = true;
+        $this->aiMessage = null;
+        $this->aiMessageTone = 'muted';
+
+        try {
+            $result = $ai->analyze([
+                'title' => (string) ($event['title'] ?? ''),
+                'ccy' => (string) ($event['ccy'] ?? ''),
+                'impact' => (string) ($event['impact'] ?? 'med'),
+                'previous' => (string) ($event['previous'] ?? '—'),
+                'forecast' => (string) ($event['forecast'] ?? '—'),
+                'actual' => $effective,
+                'actual_source' => $this->isManualActual($event) ? 'manual' : 'feed',
+            ]);
+
+            if (! $result['success']) {
+                $this->clearAiResult();
+                $this->aiMessage = $result['message'];
+                $this->aiMessageTone = 'danger';
+
+                return;
+            }
+
+            $data = $result['data'] ?? [];
+            $this->aiBias = (string) ($data['bias'] ?? '');
+            $this->aiVerdict = (string) ($data['verdict'] ?? '');
+            $this->aiSummaryEn = (string) ($data['summary_en'] ?? '');
+            $this->aiSummaryUr = (string) ($data['summary_ur'] ?? '');
+            $this->aiDollarBias = isset($data['dollar_bias']) && is_string($data['dollar_bias'])
+                ? $data['dollar_bias']
+                : null;
+            $this->aiInvertedNote = isset($data['inverted_note']) && is_string($data['inverted_note'])
+                ? $data['inverted_note']
+                : null;
+            $this->aiMessage = $result['message'];
+            $this->aiMessageTone = 'success';
+        } catch (Throwable $e) {
+            $this->clearAiResult();
+            $this->aiMessage = FriendlyError::message($e);
+            $this->aiMessageTone = 'danger';
+        } finally {
+            $this->analyzing = false;
+            $lock->release();
+        }
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function selectedEvent(): ?array
+    {
+        if ($this->selectedEventId === null || $this->selectedEventId === '') {
+            return null;
+        }
+
+        return $this->findEvent($this->selectedEventId);
+    }
+
+    public function feedActual(?array $event = null): string
+    {
+        $event ??= $this->selectedEvent();
+
+        if ($event === null) {
+            return '—';
+        }
+
+        $actual = trim((string) ($event['actual'] ?? ''));
+
+        return $actual !== '' ? $actual : '—';
+    }
+
+    public function effectiveActual(?array $event = null): ?string
+    {
+        $event ??= $this->selectedEvent();
+
+        if ($event === null) {
+            return null;
+        }
+
+        $feed = $this->feedActual($event);
+
+        if ($feed !== '—') {
+            return $feed;
+        }
+
+        $manual = trim($this->manualActual);
+
+        if ($manual === '' || $manual === '—') {
+            return null;
+        }
+
+        return $manual;
+    }
+
+    public function isManualActual(?array $event = null): bool
+    {
+        $event ??= $this->selectedEvent();
+
+        if ($event === null) {
+            return false;
+        }
+
+        if ($this->feedActual($event) !== '—') {
+            return false;
+        }
+
+        $manual = trim($this->manualActual);
+
+        return $manual !== '' && $manual !== '—';
+    }
+
+    public function needsManualActual(?array $event = null): bool
+    {
+        $event ??= $this->selectedEvent();
+
+        if ($event === null) {
+            return false;
+        }
+
+        return $this->feedActual($event) === '—';
+    }
+
     public function refreshFeed(EconomicCalendarService $calendar): void
     {
         $this->applySnapshot($calendar->refresh());
+    }
+
+    private function clearAiResult(): void
+    {
+        $this->aiBias = null;
+        $this->aiVerdict = null;
+        $this->aiSummaryEn = null;
+        $this->aiSummaryUr = null;
+        $this->aiDollarBias = null;
+        $this->aiInvertedNote = null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function findEvent(string $eventId): ?array
+    {
+        foreach ($this->events as $event) {
+            if ((string) ($event['id'] ?? '') === $eventId) {
+                return $event;
+            }
+        }
+
+        return null;
     }
 
     #[On('fx-learn-econ-tf')]

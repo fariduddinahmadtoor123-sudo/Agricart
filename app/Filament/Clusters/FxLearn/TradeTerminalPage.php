@@ -6,6 +6,7 @@ use App\Filament\Clusters\FxLearnCluster;
 use App\Filament\Pages\BaseModulePage;
 use App\Models\FxLearnDemoAccount;
 use App\Models\User;
+use App\Services\Access\ModulePageAccess;
 use App\Services\FxLearn\DemoQuoteService;
 use App\Services\FxLearn\DemoSymbolCatalog;
 use App\Services\FxLearn\DemoTerminalService;
@@ -125,6 +126,10 @@ class TradeTerminalPage extends BaseModulePage
 
     public function openTrade(DemoTerminalService $terminal): void
     {
+        if (! $this->userCanTerminal('create')) {
+            return;
+        }
+
         try {
             $account = $terminal->accountFor($this->authUser());
             $result = $terminal->openTrade(
@@ -154,6 +159,10 @@ class TradeTerminalPage extends BaseModulePage
 
     public function closeTrade(int $id, DemoTerminalService $terminal): void
     {
+        if (! $this->userCanTerminal('edit')) {
+            return;
+        }
+
         try {
             $account = $terminal->accountFor($this->authUser());
             $terminal->closeTrade($account, $id, 'manual');
@@ -180,6 +189,10 @@ class TradeTerminalPage extends BaseModulePage
 
     private function persistSettings(DemoTerminalService $terminal, bool $resetBalance): void
     {
+        if (! $this->userCanTerminal('edit')) {
+            return;
+        }
+
         $account = $terminal->accountFor($this->authUser());
         $account = $terminal->updateRules($account, [
             'starting_balance' => (float) $this->startingBalance,
@@ -301,6 +314,22 @@ class TradeTerminalPage extends BaseModulePage
         }
 
         return $user;
+    }
+
+    private function userCanTerminal(string $action): bool
+    {
+        $user = $this->authUser();
+
+        if ($user->isSuperAdmin() || ModulePageAccess::can($user, 'fx-learn', 'trade-terminal', $action)) {
+            return true;
+        }
+
+        Notification::make()
+            ->title(__('agricart.access.denied'))
+            ->danger()
+            ->send();
+
+        return false;
     }
 
     private function syncSettingsFromAccount(FxLearnDemoAccount $account): void

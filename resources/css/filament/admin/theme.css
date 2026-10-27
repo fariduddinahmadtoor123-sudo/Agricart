@@ -2530,30 +2530,252 @@ html.dark .fx-learn-shell__badge {
     flex: 1 1 auto;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.35rem;
-    padding: 1.5rem 1rem;
+    min-width: 0;
     min-height: 16rem;
-    border: 1px dashed color-mix(in srgb, var(--agricart-border) 90%, var(--agricart-primary));
+    padding: 0.85rem 0.9rem;
+    border: 1px solid var(--agricart-border);
     border-radius: 1rem;
-    background: color-mix(in srgb, var(--agricart-muted) 5%, var(--agricart-surface));
-    text-align: center;
+    background: color-mix(in srgb, var(--agricart-muted) 4%, var(--agricart-surface));
+    overflow: auto;
 }
 
-.fx-radar__workspace-title {
+.fx-radar__ai {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    height: 100%;
+    text-align: start;
+}
+
+.fx-radar__ai-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.6rem;
+}
+
+.fx-radar__ai-kicker {
     margin: 0;
-    font-size: 0.9rem;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--agricart-muted);
+}
+
+.fx-radar__ai-title {
+    margin: 0.1rem 0 0;
+    font-size: 0.95rem;
     font-weight: 800;
     color: var(--agricart-text);
 }
 
-.fx-radar__workspace-text {
-    margin: 0;
-    max-width: 28rem;
+.fx-radar__ai-chip {
+    flex: 0 0 auto;
+    padding: 0.2rem 0.45rem;
+    border-radius: 999px;
+    border: 1px solid var(--agricart-border);
+    font-size: 0.68rem;
+    font-weight: 800;
+    color: var(--agricart-text);
+    background: var(--agricart-surface);
+}
+
+.fx-radar__ai-empty {
+    margin: auto 0;
+    text-align: center;
     font-size: 0.8rem;
     line-height: 1.45;
     color: var(--agricart-muted);
+}
+
+.fx-radar__ai-event-title {
+    margin: 0;
+    font-size: 0.84rem;
+    font-weight: 750;
+    color: var(--agricart-text);
+}
+
+.fx-radar__ai-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.4rem;
+    margin: 0.45rem 0 0;
+}
+
+.fx-radar__ai-metrics > div {
+    padding: 0.35rem 0.4rem;
+    border-radius: 0.45rem;
+    background: color-mix(in srgb, var(--agricart-surface) 88%, var(--agricart-muted));
+    border: 1px solid color-mix(in srgb, var(--agricart-border) 85%, transparent);
+}
+
+.fx-radar__ai-metrics dt {
+    margin: 0;
+    font-size: 0.58rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--agricart-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.fx-radar__ai-metrics dd {
+    margin: 0.15rem 0 0;
+    font-size: 0.82rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--agricart-text);
+}
+
+.fx-radar__ai-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.05rem 0.32rem;
+    border-radius: 999px;
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.fx-radar__ai-badge--feed {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.fx-radar__ai-manual {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--agricart-muted);
+}
+
+.fx-radar__ai-input {
+    appearance: none;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0.45rem;
+    background: var(--agricart-surface);
+    color: var(--agricart-text);
+    padding: 0.4rem 0.55rem;
+    font-size: 0.84rem;
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+}
+
+.fx-radar__ai-input:focus {
+    outline: 2px solid color-mix(in srgb, var(--agricart-primary) 45%, transparent);
+    outline-offset: 1px;
+}
+
+.fx-radar__ai-manual-hint {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.7rem;
+    color: var(--agricart-muted);
+}
+
+.fx-radar__ai-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.fx-radar__ai-msg {
+    margin: 0;
+    font-size: 0.74rem;
+    font-weight: 650;
+    color: var(--agricart-muted);
+}
+
+.fx-radar__ai-msg.is-success { color: #166534; }
+.fx-radar__ai-msg.is-warning { color: #92400e; }
+.fx-radar__ai-msg.is-danger { color: #b91c1c; }
+
+.fx-radar__ai-result {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    padding: 0.55rem 0.6rem;
+    border-radius: 0.65rem;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-surface);
+}
+
+.fx-radar__ai-result-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+}
+
+.fx-radar__ai-label {
+    margin: 0;
+    font-size: 0.62rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--agricart-muted);
+}
+
+.fx-radar__ai-bias,
+.fx-radar__ai-verdict {
+    margin: 0.15rem 0 0;
+    font-size: 0.86rem;
+    font-weight: 800;
+    color: var(--agricart-text);
+}
+
+.fx-radar__ai-bias.is-bullish { color: #15803d; }
+.fx-radar__ai-bias.is-bearish { color: #b91c1c; }
+.fx-radar__ai-bias.is-neutral { color: #475569; }
+
+.fx-radar__ai-summary {
+    margin: 0;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    color: var(--agricart-text);
+}
+
+.fx-radar__ai-summary--ur {
+    color: color-mix(in srgb, var(--agricart-text) 88%, var(--agricart-muted));
+}
+
+.fx-radar__ai-invert {
+    padding-top: 0.35rem;
+    border-top: 1px dashed var(--agricart-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.fx-radar__ai-disclaimer {
+    margin: auto 0 0;
+    padding-top: 0.45rem;
+    border-top: 1px solid color-mix(in srgb, var(--agricart-border) 80%, transparent);
+    font-size: 0.68rem;
+    line-height: 1.4;
+    color: var(--agricart-muted);
+}
+
+.fx-radar__table tr[role="button"] {
+    cursor: pointer;
+}
+
+.fx-radar__table tr.is-selected {
+    background: color-mix(in srgb, var(--agricart-primary) 14%, transparent);
+}
+
+.fx-radar__table tr.is-selected td {
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--agricart-primary) 35%, transparent);
 }
 
 .fx-radar__clocks {

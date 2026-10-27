@@ -25,8 +25,7 @@
             </aside>
 
             <div class="fx-radar__workspace-box">
-                <p class="fx-radar__workspace-title">{{ __('agricart.pages.fx-learn.econ_workspace_title') }}</p>
-                <p class="fx-radar__workspace-text">{{ __('agricart.pages.fx-learn.econ_workspace_hint') }}</p>
+                @include('filament.pages.fx-learn.partials.econ-ai-widget')
             </div>
 
             <aside class="fx-radar__clocks fx-radar__clocks--right" aria-label="{{ __('agricart.pages.fx-learn.econ_clocks') }}">

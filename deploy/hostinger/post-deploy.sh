@@ -33,6 +33,7 @@ php artisan down --retry=60
 MAINTENANCE=1
 
 php artisan migrate --force
+php artisan access:sync-permissions
 php artisan hostinger:sync-public --clean
 php artisan storage:link
 php artisan hostinger:sync-storage --replace-link --dry-run --delete-stale
