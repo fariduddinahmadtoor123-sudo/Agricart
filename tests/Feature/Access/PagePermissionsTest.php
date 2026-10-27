@@ -38,14 +38,9 @@ class PagePermissionsTest extends TestCase
         $this->assertContains('staff.attendance.view', $keys);
         $this->assertContains('staff.view_self', $keys);
         $this->assertContains('logistics.delivered.view', $keys);
-        $this->assertContains('fx-learn.economic-radar.view', $keys);
-        $this->assertContains('fx-learn.trade-terminal.create', $keys);
-        $this->assertContains('fx-learn.trade-terminal.edit', $keys);
-        $this->assertContains('fx-learn.academy-journal.view', $keys);
         $this->assertNotContains('catalog.view', $keys);
         $this->assertNotContains('settings.users.manage', $keys);
         $this->assertTrue(PermissionRegistry::moduleUsesPagePermissions('catalog'));
-        $this->assertTrue(PermissionRegistry::moduleUsesPagePermissions('fx-learn'));
         $this->assertFalse(PermissionRegistry::moduleUsesPagePermissions('comms'));
     }
 
@@ -55,9 +50,6 @@ class PagePermissionsTest extends TestCase
 
         $this->assertArrayHasKey('resources', $form['catalog']);
         $this->assertArrayHasKey('resources', $form['sales']);
-        $this->assertArrayHasKey('resources', $form['fx-learn']);
-        $this->assertContains('economic-radar', collect($form['fx-learn']['resources'])->pluck('slug')->all());
-        $this->assertContains('trade-terminal', collect($form['fx-learn']['resources'])->pluck('slug')->all());
         $this->assertArrayHasKey('extras', $form['staff']);
         $this->assertContains('products', collect($form['catalog']['resources'])->pluck('slug')->all());
         $this->assertContains('store.messages.view', collect(PermissionRegistry::flatPermissions())->pluck('key')->all());

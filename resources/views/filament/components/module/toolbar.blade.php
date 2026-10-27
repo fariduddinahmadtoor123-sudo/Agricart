@@ -35,7 +35,6 @@
             'agricart-catalog-toolbar--tools-bp' => ! empty($toolbar['toolsBillPrintingChrome']),
             'agricart-catalog-toolbar--tools-bc' => ! empty($toolbar['toolsBarcodePrintingChrome']),
             'agricart-catalog-toolbar--tools-he' => ! empty($toolbar['toolsHomeExpensesChrome']),
-            'agricart-catalog-toolbar--fx-econ' => ! empty($toolbar['fxLearnEconRange']) || ! empty($toolbar['fxLearnVisitLinks']),
         ])
         @if (! empty($toolbar['toolsReorderChrome']))
             x-data="{
@@ -162,54 +161,6 @@
                                 @endif
                         />
                     </x-filament::input.wrapper>
-                @endif
-
-                @if (! empty($toolbar['fxLearnEconRange']))
-                    <div class="agricart-fx-visit" role="group" aria-label="{{ __('agricart.pages.fx-learn.econ_filters') }}">
-                        <label class="fi-sr-only" for="agricart-fx-econ-range">{{ __('agricart.pages.fx-learn.econ_tf') }}</label>
-                        <select
-                            id="agricart-fx-econ-range"
-                            class="agricart-fx-econ-range"
-                            x-data
-                            x-on:change="window.Livewire?.dispatch('fx-learn-econ-tf', { tf: String($event.target.value || 'today') })"
-                        >
-                            <option value="today" selected>{{ __('agricart.pages.fx-learn.econ_tf_today') }}</option>
-                            <option value="tomorrow">{{ __('agricart.pages.fx-learn.econ_tf_tomorrow') }}</option>
-                            <option value="week">{{ __('agricart.pages.fx-learn.econ_tf_week') }}</option>
-                        </select>
-
-                        <label class="fi-sr-only" for="agricart-fx-econ-impact">{{ __('agricart.pages.fx-learn.econ_impact') }}</label>
-                        <select
-                            id="agricart-fx-econ-impact"
-                            class="agricart-fx-econ-range agricart-fx-econ-impact"
-                            x-data
-                            x-on:change="window.Livewire.dispatch('fx-learn-econ-impact', { impact: $event.target.value })"
-                        >
-                            <option value="all" selected>{{ __('agricart.pages.fx-learn.econ_impact_opt_all') }}</option>
-                            <option value="low">{{ __('agricart.pages.fx-learn.econ_impact_opt_low') }}</option>
-                            <option value="med">{{ __('agricart.pages.fx-learn.econ_impact_opt_med') }}</option>
-                            <option value="high">{{ __('agricart.pages.fx-learn.econ_impact_opt_high') }}</option>
-                        </select>
-
-                        <label class="fi-sr-only" for="agricart-fx-econ-ccy">{{ __('agricart.pages.fx-learn.econ_ccy') }}</label>
-                        <select
-                            id="agricart-fx-econ-ccy"
-                            class="agricart-fx-econ-range agricart-fx-econ-ccy"
-                            x-data
-                            x-on:change="window.Livewire.dispatch('fx-learn-econ-ccy', { ccy: $event.target.value })"
-                        >
-                            <option value="ALL" selected>{{ __('agricart.pages.fx-learn.econ_ccy_opt_all') }}</option>
-                            <option value="USD">USD</option>
-                            <option value="EUR">EUR</option>
-                            <option value="GBP">GBP</option>
-                            <option value="JPY">JPY</option>
-                            <option value="AUD">AUD</option>
-                            <option value="CAD">CAD</option>
-                            <option value="CHF">CHF</option>
-                            <option value="NZD">NZD</option>
-                            <option value="CNY">CNY</option>
-                        </select>
-                    </div>
                 @endif
 
                 @if (($toolbar['resourceSlug'] ?? '') === 're-order-center')
@@ -400,32 +351,6 @@
 
             @if (! empty($toolbar['toolbarActions']))
                 @include('filament.components.module.toolbar-actions', ['toolbar' => $toolbar])
-            @endif
-
-            @if (! empty($toolbar['fxLearnVisitLinks']) && is_array($toolbar['fxLearnVisitLinks']))
-                @foreach ($toolbar['fxLearnVisitLinks'] as $link)
-                    @php
-                        $url = (string) ($link['url'] ?? '');
-                        $label = (string) ($link['label'] ?? '');
-                        $key = (string) ($link['key'] ?? '');
-                    @endphp
-                    @continue($url === '' || $label === '')
-                    <a
-                        href="{{ $url }}"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        @class([
-                            'agricart-fx-visit__btn',
-                            'agricart-fx-visit__btn--end',
-                            'agricart-fx-visit__btn--'.$key => $key !== '',
-                        ])
-                    >
-                        <span>{{ $label }}</span>
-                        <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                            <path d="M5.22 14.78a.75.75 0 0 0 1.06 0l5.97-5.97v2.69a.75.75 0 0 0 1.5 0v-4.5a.75.75 0 0 0-.75-.75h-4.5a.75.75 0 0 0 0 1.5h2.69l-5.97 5.97a.75.75 0 0 0 0 1.06Z" />
-                        </svg>
-                    </a>
-                @endforeach
             @endif
 
             @if (filled($toolbar['addLabel']))
