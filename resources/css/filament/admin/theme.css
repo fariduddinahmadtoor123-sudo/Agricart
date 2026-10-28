@@ -1910,9 +1910,705 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
     font-size: 0.8125rem;
 }
 
+/* ── FX Learn Economic Radar ── */
+.agricart-catalog-toolbar--fx-radar {
+    flex-wrap: wrap;
+    gap: 0.45rem 0.65rem;
+}
 
+.agricart-fxr-filters {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+}
 
-/* â”€â”€ Placeholder pages â”€â”€ */
+.agricart-fxr-filters__btn,
+.agricart-fxr-visit,
+.agricart-fxr-settings {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0.45rem;
+    background: var(--agricart-surface);
+    color: var(--agricart-text);
+    font-size: 0.72rem;
+    font-weight: 750;
+    padding: 0.32rem 0.55rem;
+    text-decoration: none;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease, color .15s ease;
+}
+
+.agricart-fxr-filters__btn:hover,
+.agricart-fxr-visit:hover,
+.agricart-fxr-settings:hover {
+    border-color: color-mix(in srgb, var(--agricart-primary) 55%, var(--agricart-border));
+    color: var(--agricart-primary-hover);
+}
+
+.agricart-fxr-visit svg {
+    width: 0.85rem;
+    height: 0.85rem;
+    opacity: 0.75;
+}
+
+.fxr {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.fxr__deck {
+    display: grid;
+    grid-template-columns: minmax(10.5rem, 13.5rem) minmax(0, 1fr) minmax(10.5rem, 13.5rem);
+    gap: 0.75rem;
+    align-items: stretch;
+}
+
+.fxr__clocks {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.fxr__clocks--left,
+.fxr__clocks--right {
+    min-width: 0;
+}
+
+@media (max-width: 960px) {
+    .fxr__deck {
+        grid-template-columns: 1fr;
+    }
+
+    .fxr__clocks--left,
+    .fxr__clocks--right {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .fxr__radar {
+        order: -1;
+    }
+}
+
+.fxr__banner {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    border-radius: 0.85rem;
+    border: 1px solid color-mix(in srgb, #f59e0b 40%, var(--agricart-border));
+    background: color-mix(in srgb, #fef3c7 70%, var(--agricart-surface));
+}
+
+.fxr__banner.is-error {
+    border-color: color-mix(in srgb, #ef4444 40%, var(--agricart-border));
+    background: color-mix(in srgb, #fee2e2 65%, var(--agricart-surface));
+}
+
+.fxr__banner.is-demo {
+    border-color: color-mix(in srgb, #0ea5e9 35%, var(--agricart-border));
+    background: color-mix(in srgb, #e0f2fe 70%, var(--agricart-surface));
+}
+
+.fxr__banner-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    min-width: 0;
+    font-size: 0.85rem;
+    color: var(--agricart-text);
+}
+
+.fxr__banner-meta {
+    font-size: 0.72rem;
+    color: var(--agricart-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.fxr__clock {
+    display: flex;
+    gap: 0.65rem;
+    align-items: center;
+    padding: 0.75rem 0.85rem;
+    border-radius: 0.85rem;
+    border: 1px solid var(--agricart-border);
+    background:
+        linear-gradient(145deg, color-mix(in srgb, var(--agricart-surface) 88%, #fff), var(--agricart-surface));
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / .35);
+}
+
+.fxr__clock.is-open {
+    border-color: color-mix(in srgb, #16a34a 42%, var(--agricart-border));
+}
+
+.fxr__clock.is-closed {
+    opacity: 0.78;
+}
+
+.fxr__flag {
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 0.65rem;
+    display: grid;
+    place-items: center;
+    font-size: 1.45rem;
+    background: color-mix(in srgb, var(--agricart-bg, #f1f5f9) 70%, var(--agricart-surface));
+    box-shadow:
+        0 8px 16px rgb(15 23 42 / .08),
+        inset 0 1px 0 rgb(255 255 255 / .5);
+}
+
+.fxr__flag--inline {
+    width: auto;
+    height: auto;
+    display: inline;
+    background: none;
+    box-shadow: none;
+    font-size: 1rem;
+    margin-inline-end: 0.2rem;
+}
+
+.fxr__clock-city {
+    margin: 0;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--agricart-muted);
+}
+
+.fxr__clock-time {
+    margin: 0.1rem 0 0.25rem;
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.fxr__clock-hm {
+    font-size: 1.35rem;
+    font-weight: 850;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    letter-spacing: 0.02em;
+    color: var(--agricart-text);
+}
+
+.fxr__clock.is-open .fxr__clock-hm {
+    color: #15803d;
+}
+
+.fxr__clock-sec {
+    font-size: 0.78rem;
+    font-weight: 700;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--agricart-muted);
+}
+
+.fxr__session-pill {
+    display: inline-flex;
+    padding: 0.08rem 0.4rem;
+    border-radius: 999px;
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.fxr__session-pill.is-on {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.fxr__clock-until {
+    margin: 0.28rem 0 0;
+    font-size: 0.68rem;
+    font-weight: 750;
+    color: var(--agricart-text);
+    font-variant-numeric: tabular-nums;
+}
+
+.fxr__clock-hours {
+    margin: 0.1rem 0 0;
+    font-size: 0.62rem;
+    font-weight: 650;
+    color: var(--agricart-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.fxr__radar {
+    border-radius: 1rem;
+    border: 1px solid var(--agricart-border);
+    background:
+        radial-gradient(ellipse at 20% 0%, color-mix(in srgb, var(--agricart-primary) 16%, transparent), transparent 55%),
+        linear-gradient(160deg, color-mix(in srgb, var(--agricart-surface) 92%, #e2e8f0), var(--agricart-surface));
+    padding: 0.9rem 1rem;
+    min-height: 100%;
+}
+
+.fxr__radar-inner {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.85rem;
+    align-items: center;
+}
+
+.fxr__gauge {
+    position: relative;
+    width: 7.5rem;
+    height: 7.5rem;
+}
+
+.fxr__gauge-svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.fxr__gauge-track {
+    fill: none;
+    stroke: color-mix(in srgb, var(--agricart-border) 80%, #cbd5e1);
+    stroke-width: 8;
+}
+
+.fxr__gauge-arc {
+    fill: none;
+    stroke: var(--agricart-primary);
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dasharray .25s ease;
+}
+
+.fxr__gauge-needle {
+    stroke: var(--agricart-text);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+    transform-origin: 60px 60px;
+    transition: transform .25s ease;
+}
+
+.fxr__gauge-hub {
+    fill: var(--agricart-primary-hover);
+}
+
+.fxr__gauge-count {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-weight: 850;
+    font-size: 0.92rem;
+    color: var(--agricart-text);
+    pointer-events: none;
+}
+
+.fxr__gauge-live {
+    color: #b91c1c;
+    animation: fxr-pulse 1s ease-in-out infinite;
+}
+
+.fxr__radar-kicker {
+    margin: 0;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--agricart-muted);
+}
+
+.fxr__radar-title {
+    margin: 0.2rem 0 0.55rem;
+    font-size: 1.05rem;
+    font-weight: 850;
+    line-height: 1.25;
+    color: var(--agricart-text);
+}
+
+.fxr__radar-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem;
+    margin: 0;
+}
+
+.fxr__radar-metrics dt {
+    margin: 0;
+    font-size: 0.58rem;
+    font-weight: 750;
+    color: var(--agricart-muted);
+    text-transform: uppercase;
+}
+
+.fxr__radar-metrics dd {
+    margin: 0.1rem 0 0;
+    font-size: 0.88rem;
+    font-weight: 850;
+    font-variant-numeric: tabular-nums;
+}
+
+.fxr__radar-empty {
+    display: grid;
+    place-items: center;
+    min-height: 8rem;
+    color: var(--agricart-muted);
+    font-size: 0.85rem;
+    font-weight: 650;
+}
+
+.fxr__sheet {
+    border: 1px solid var(--agricart-border);
+    border-radius: 0.9rem;
+    background: var(--agricart-surface);
+    overflow: hidden;
+}
+
+.fxr__sheet-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 0.95rem;
+    border-bottom: 1px solid var(--agricart-border);
+}
+
+.fxr__sheet-title {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 850;
+}
+
+.fxr__sheet-sub {
+    margin: 0.15rem 0 0;
+    font-size: 0.72rem;
+    color: var(--agricart-muted);
+}
+
+.fxr__feed.is-live {
+    color: #15803d;
+    font-weight: 800;
+}
+
+.fxr__feed.is-demo {
+    color: #0369a1;
+    font-weight: 800;
+}
+
+.fxr__tv {
+    border-radius: 1rem;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-surface);
+    padding: 0.85rem 1rem 1rem;
+}
+
+.fxr__tv-frame {
+    margin-top: 0.65rem;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    border: 1px solid var(--agricart-border);
+    min-height: 420px;
+    background: #fff;
+}
+
+.fxr__btn {
+    appearance: none;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0.45rem;
+    background: color-mix(in srgb, var(--agricart-surface) 90%, #e2e8f0);
+    color: var(--agricart-text);
+    font-size: 0.72rem;
+    font-weight: 750;
+    padding: 0.35rem 0.65rem;
+    cursor: pointer;
+}
+
+.fxr__btn--primary {
+    background: var(--agricart-primary);
+    border-color: var(--agricart-primary-hover);
+    color: #fff;
+}
+
+.fxr__btn--ai {
+    background: color-mix(in srgb, var(--agricart-primary) 14%, var(--agricart-surface));
+    border-color: color-mix(in srgb, var(--agricart-primary) 40%, var(--agricart-border));
+    color: var(--agricart-primary-hover);
+}
+
+.fxr__table-wrap {
+    overflow: auto;
+    max-height: min(58vh, 36rem);
+}
+
+.fxr__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+
+.fxr__table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    text-align: start;
+    padding: 0.55rem 0.7rem;
+    background: color-mix(in srgb, var(--agricart-surface) 88%, #e2e8f0);
+    color: var(--agricart-muted);
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--agricart-border);
+}
+
+.fxr__table td {
+    padding: 0.55rem 0.7rem;
+    border-bottom: 1px solid color-mix(in srgb, var(--agricart-border) 70%, transparent);
+    vertical-align: middle;
+}
+
+.fxr__row.is-high {
+    background: color-mix(in srgb, var(--agricart-primary) 5%, transparent);
+}
+
+.fxr__td-time {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+}
+
+.fxr__td-ccy {
+    white-space: nowrap;
+    font-weight: 750;
+}
+
+.fxr__impact {
+    display: inline-flex;
+    margin-inline-start: 0.3rem;
+    padding: 0.05rem 0.28rem;
+    border-radius: 999px;
+    font-size: 0.55rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.fxr__impact.is-high { background: #fee2e2; color: #b91c1c; }
+.fxr__impact.is-med { background: #ffedd5; color: #c2410c; }
+.fxr__impact.is-low { background: #e2e8f0; color: #64748b; }
+
+.fxr__td-num {
+    font-variant-numeric: tabular-nums;
+    font-weight: 750;
+}
+
+.fxr__actual {
+    display: inline-flex;
+    min-width: 2.5rem;
+    justify-content: center;
+    padding: 0.12rem 0.4rem;
+    border-radius: 999px;
+    font-weight: 800;
+}
+
+.fxr__actual.is-pending {
+    background: #fef3c7;
+    color: #92400e;
+    animation: fxr-pulse 1.4s ease-in-out infinite;
+}
+
+.fxr__actual.is-up { background: #dcfce7; color: #166534; }
+.fxr__actual.is-down { background: #fee2e2; color: #b91c1c; }
+.fxr__actual.is-flat,
+.fxr__actual.is-filled { background: #e2e8f0; color: #334155; }
+
+.fxr__empty {
+    text-align: center;
+    color: var(--agricart-muted);
+    padding: 1.4rem !important;
+}
+
+.fxr__modal {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.fxr__modal-backdrop {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: rgb(15 23 42 / .45);
+    cursor: pointer;
+}
+
+.fxr__modal-card {
+    position: relative;
+    width: min(32rem, 96vw);
+    max-height: min(88vh, 40rem);
+    overflow: auto;
+    border-radius: 0.9rem;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-surface);
+    padding: 1rem;
+    box-shadow: 0 24px 48px rgb(15 23 42 / .18);
+}
+
+.fxr__modal-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    align-items: start;
+}
+
+.fxr__modal-title {
+    margin: 0.15rem 0 0;
+    font-size: 1rem;
+    font-weight: 850;
+}
+
+.fxr__radar-metrics--modal {
+    margin-top: 0.85rem;
+}
+
+.fxr__modal-actions {
+    margin-top: 0.85rem;
+}
+
+.fxr__modal-actions--wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+}
+
+.fxr__modal-card--settings {
+    max-width: 28rem;
+}
+
+.fxr__settings-status {
+    margin: 0.75rem 0 0.5rem;
+    padding: 0.65rem 0.75rem;
+    border-radius: 0.65rem;
+    border: 1px solid var(--agricart-border);
+    background: color-mix(in srgb, var(--agricart-bg, #f1f5f9) 55%, var(--agricart-surface));
+    font-size: 0.8rem;
+}
+
+.fxr__settings-status p {
+    margin: 0;
+}
+
+.fxr__settings-hint {
+    margin-top: 0.25rem !important;
+    color: var(--agricart-muted);
+    font-size: 0.72rem;
+}
+
+.fxr__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.28rem;
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--agricart-muted);
+}
+
+.fxr__field input {
+    appearance: none;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0.5rem;
+    background: var(--agricart-surface);
+    color: var(--agricart-text);
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.55rem 0.7rem;
+}
+
+.fxr__btn--danger {
+    border-color: color-mix(in srgb, #ef4444 45%, var(--agricart-border));
+    color: #b91c1c;
+}
+
+.fxr__msg {
+    margin: 0.65rem 0 0;
+    font-size: 0.8rem;
+    font-weight: 650;
+}
+
+.fxr__msg.is-success { color: #15803d; }
+.fxr__msg.is-danger { color: #b91c1c; }
+.fxr__msg.is-warning { color: #b45309; }
+
+.fxr__ai-result {
+    margin-top: 0.75rem;
+    padding: 0.7rem 0.8rem;
+    border-radius: 0.65rem;
+    border: 1px solid var(--agricart-border);
+    background: color-mix(in srgb, var(--agricart-primary) 6%, var(--agricart-surface));
+    font-size: 0.84rem;
+    line-height: 1.45;
+}
+
+.fxr__disclaimer {
+    margin: 0.75rem 0 0;
+    font-size: 0.68rem;
+    color: var(--agricart-muted);
+    line-height: 1.4;
+}
+
+@keyframes fxr-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+}
+
+html.dark .fxr__clock {
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / .04);
+}
+
+html.dark .fxr__clock.is-open .fxr__clock-hm {
+    color: #86efac;
+}
+
+html.dark .fxr__session-pill.is-on {
+    background: color-mix(in srgb, #16a34a 28%, var(--agricart-surface));
+    color: #86efac;
+}
+
+@media (max-width: 960px) {
+    .fxr__deck {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .fxr__clocks {
+        grid-template-columns: 1fr;
+    }
+
+    .fxr__radar-inner {
+        grid-template-columns: 1fr;
+        justify-items: center;
+        text-align: center;
+    }
+
+    .fxr__radar-metrics {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ── Placeholder pages ── */
 .agricart-placeholder {
     display: flex;
     align-items: center;

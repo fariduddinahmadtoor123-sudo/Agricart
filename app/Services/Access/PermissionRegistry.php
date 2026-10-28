@@ -30,6 +30,7 @@ class PermissionRegistry
             'settings' => ['Settings', 'ترتیبات'],
             'docs' => ['Docs', 'دستاویزات'],
             'tools' => ['External Apps', 'بیرونی ایپس'],
+            'fx-learn' => ['FX Learn', 'FX Learn'],
         ];
 
         $moduleHints = [
@@ -96,6 +97,10 @@ class PermissionRegistry
             'tools' => [
                 'en' => 'External Apps are separate from Agricart core. Grant module/page access (e.g. open External Apps, only Re Order, create orders, edit settings).',
                 'ur' => 'بیرونی ایپس ایگری کارٹ کور سے الگ ہیں۔ ماڈیول/صفحہ اجازت دیں (مثلاً صرف External Apps کھولنا، صرف Re Order، آرڈر بنانا، سیٹنگز ترمیم)۔',
+            ],
+            'fx-learn' => [
+                'en' => 'Grant each FX Learn page separately (Economic Radar and future learning tools).',
+                'ur' => 'FX Learn کا ہر صفحہ الگ دیں (اکنامک ریڈار اور آئندہ لرننگ ٹولز)۔',
             ],
         ];
 
@@ -334,6 +339,9 @@ class PermissionRegistry
                 'printing' => ['label_en' => 'Bill Printing', 'label_ur' => 'بل پرنٹنگ', 'actions' => $crudPrint],
                 'barcode-printing' => ['label_en' => 'Barcode Printing', 'label_ur' => 'بارکوڈ پرنٹنگ', 'actions' => $viewPrint],
                 'home-expenses' => ['label_en' => 'Home Expenses', 'label_ur' => 'ہوم ایکسپینس', 'actions' => $crudPrint],
+            ],
+            'fx-learn' => [
+                'economic-radar' => ['label_en' => 'Economic Radar', 'label_ur' => 'اکنامک ریڈار', 'actions' => $viewOnly],
             ],
         ];
     }

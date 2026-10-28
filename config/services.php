@@ -35,4 +35,15 @@ return [
         ],
     ],
 
+    'finnhub' => [
+        'key' => env('FINNHUB_API_KEY'),
+        'timeout' => (int) env('FINNHUB_TIMEOUT', 25),
+        'retry' => (int) env('FINNHUB_RETRY', 2),
+        'cache_ttl' => (int) env('FINNHUB_CALENDAR_CACHE_TTL', 3600),
+    ],
+
+    'fx_learn' => [
+        'calendar_cache_ttl' => (int) env('FX_LEARN_CALENDAR_CACHE_TTL', 900),
+    ],
+
 ];

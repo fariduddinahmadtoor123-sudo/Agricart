@@ -21,6 +21,7 @@ enum AiLogType: string
     case CustomerEnrichment = 'customer_enrichment';
     case UserEnrichment = 'user_enrichment';
     case ExpenseEnrichment = 'expense_enrichment';
+    case EconomicNewsBias = 'economic_news_bias';
 
     public function label(): string
     {
@@ -42,6 +43,7 @@ enum AiLogType: string
             self::CustomerEnrichment => __('agricart.ai.logs.types.customer_enrichment'),
             self::UserEnrichment => __('agricart.ai.logs.types.user_enrichment'),
             self::ExpenseEnrichment => __('agricart.ai.logs.types.expense_enrichment'),
+            self::EconomicNewsBias => __('agricart.ai.logs.types.economic_news_bias'),
         };
     }
 }

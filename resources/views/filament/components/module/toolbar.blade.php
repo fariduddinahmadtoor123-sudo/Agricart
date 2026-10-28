@@ -35,6 +35,7 @@
             'agricart-catalog-toolbar--tools-bp' => ! empty($toolbar['toolsBillPrintingChrome']),
             'agricart-catalog-toolbar--tools-bc' => ! empty($toolbar['toolsBarcodePrintingChrome']),
             'agricart-catalog-toolbar--tools-he' => ! empty($toolbar['toolsHomeExpensesChrome']),
+            'agricart-catalog-toolbar--fx-radar' => ! empty($toolbar['fxLearnRadarChrome']),
         ])
         @if (! empty($toolbar['toolsReorderChrome']))
             x-data="{
@@ -351,6 +352,68 @@
 
             @if (! empty($toolbar['toolbarActions']))
                 @include('filament.components.module.toolbar-actions', ['toolbar' => $toolbar])
+            @endif
+
+            @if (! empty($toolbar['fxLearnQuickFilters']) && is_array($toolbar['fxLearnQuickFilters']))
+                <div class="agricart-fxr-filters" role="group" aria-label="{{ __('agricart.pages.fx-learn.filters_label') }}">
+                    @foreach ($toolbar['fxLearnQuickFilters'] as $filter)
+                        @php
+                            $fkey = (string) ($filter['key'] ?? '');
+                            $flabel = (string) ($filter['label'] ?? '');
+                        @endphp
+                        @continue($fkey === '' || $flabel === '')
+                        <button
+                            type="button"
+                            class="agricart-fxr-filters__btn"
+                            x-data
+                            x-on:click="window.Livewire?.dispatch('fx-learn-radar-filter', { filter: @js($fkey) })"
+                        >{{ $flabel }}</button>
+                    @endforeach
+                </div>
+            @endif
+
+            @if (! empty($toolbar['fxLearnSettings']) && is_array($toolbar['fxLearnSettings']))
+                @php
+                    $settingsLabel = (string) ($toolbar['fxLearnSettings']['label'] ?? __('agricart.pages.fx-learn.settings'));
+                    $settingsEvent = (string) ($toolbar['fxLearnSettings']['event'] ?? 'fx-learn-radar-settings');
+                @endphp
+                <button
+                    type="button"
+                    class="agricart-fxr-settings"
+                    title="{{ $settingsLabel }}"
+                    x-data
+                    x-on:click="window.Livewire?.dispatch(@js($settingsEvent))"
+                >
+                    <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true" width="16" height="16">
+                        <path fill-rule="evenodd" d="M7.84 1.804A1 1 0 0 1 8.82 1h2.36a1 1 0 0 1 .98.804l.331 1.652a6.993 6.993 0 0 1 1.929.923l1.548-.34a1 1 0 0 1 1.145.67l.8 2.498a1 1 0 0 1-.355 1.13l-1.27.96a7.05 7.05 0 0 1 0 1.846l1.27.96a1 1 0 0 1 .355 1.13l-.8 2.498a1 1 0 0 1-1.145.67l-1.548-.34a6.993 6.993 0 0 1-1.929.923l-.331 1.652a1 1 0 0 1-.98.804H8.82a1 1 0 0 1-.98-.804l-.331-1.652a6.993 6.993 0 0 1-1.929-.923l-1.548.34a1 1 0 0 1-1.145-.67l-.8-2.498a1 1 0 0 1 .355-1.13l1.27-.96a7.05 7.05 0 0 1 0-1.846l-1.27-.96a1 1 0 0 1-.355-1.13l.8-2.498a1 1 0 0 1 1.145-.67l1.548.34a6.993 6.993 0 0 1 1.929-.923l.331-1.652ZM10 13a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" clip-rule="evenodd" />
+                    </svg>
+                    <span>{{ $settingsLabel }}</span>
+                </button>
+            @endif
+
+            @if (! empty($toolbar['fxLearnVisitLinks']) && is_array($toolbar['fxLearnVisitLinks']))
+                @foreach ($toolbar['fxLearnVisitLinks'] as $link)
+                    @php
+                        $url = (string) ($link['url'] ?? '');
+                        $label = (string) ($link['label'] ?? '');
+                        $key = (string) ($link['key'] ?? '');
+                    @endphp
+                    @continue($url === '' || $label === '')
+                    <a
+                        href="{{ $url }}"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        @class([
+                            'agricart-fxr-visit',
+                            'agricart-fxr-visit--'.$key => $key !== '',
+                        ])
+                    >
+                        <span>{{ $label }}</span>
+                        <svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path d="M5.22 14.78a.75.75 0 0 0 1.06 0l5.97-5.97v2.69a.75.75 0 0 0 1.5 0v-4.5a.75.75 0 0 0-.75-.75h-4.5a.75.75 0 0 0 0 1.5h2.69l-5.97 5.97a.75.75 0 0 0 0 1.06Z" />
+                        </svg>
+                    </a>
+                @endforeach
             @endif
 
             @if (filled($toolbar['addLabel']))
