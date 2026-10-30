@@ -492,15 +492,10 @@ class ReOrderPage extends BaseModulePage
         $payload = $this->orderPayload($status);
         $payload['order_no'] = $orderNo;
 
-        $order = ToolsReorderOrder::query()->updateOrCreate(
-            [
-                'user_id' => (int) auth()->id(),
-                'order_no' => $orderNo,
-            ],
-            $payload,
-        );
+        $order = $this->upsertOrderSafely($payload, $orderNo, preferDraft: true);
 
         $this->editingOrderId = (int) $order->id;
+        $this->orderNo = (string) $order->order_no;
         $this->draftFlash = 'saved';
 
         if ($skipRender) {
@@ -1002,21 +997,7 @@ class ReOrderPage extends BaseModulePage
         }
         $payload['order_no'] = $orderNo;
 
-        if ($this->editingOrderId) {
-            $order = ToolsReorderOrder::query()
-                ->where('user_id', auth()->id())
-                ->whereKey($this->editingOrderId)
-                ->firstOrFail();
-            $order->update($payload);
-        } else {
-            ToolsReorderOrder::query()->updateOrCreate(
-                [
-                    'user_id' => (int) auth()->id(),
-                    'order_no' => $payload['order_no'],
-                ],
-                $payload,
-            );
-        }
+        $this->upsertOrderSafely($payload, $payload['order_no'], preferDraft: false);
 
         $this->js('window.dispatchEvent(new CustomEvent("tools-reorder-clear-local-draft"))');
         $this->editingOrderId = null;
@@ -1519,5 +1500,81 @@ class ReOrderPage extends BaseModulePage
         return ToolsCluster::unshiftClusterBreadcrumbs([
             static::getUrl() => static::getNavigationLabel(),
         ]);
+    }
+
+    /**
+     * Never overwrite a saved/closed row when draft autosave reuses a peeked number
+     * after cache/sequence reset (Hostinger deploy wipe symptom).
+     *
+     * @param  array<string, mixed>  $payload
+     */
+    protected function upsertOrderSafely(array $payload, string $orderNo, bool $preferDraft): ToolsReorderOrder
+    {
+        $userId = (int) auth()->id();
+        $service = app(ReOrderSettingsService::class);
+
+        if ($this->editingOrderId) {
+            $order = ToolsReorderOrder::query()
+                ->where('user_id', $userId)
+                ->whereKey($this->editingOrderId)
+                ->first();
+
+            if ($order !== null) {
+                if ((string) $order->status === 'closed' && $preferDraft) {
+                    // Closed rows are immutable from autosave — start a fresh number.
+                    $orderNo = $service->nextOrderNumber();
+                    $payload['order_no'] = $orderNo;
+                    $payload['status'] = 'draft';
+                    $created = ToolsReorderOrder::query()->create(array_merge($payload, [
+                        'user_id' => $userId,
+                    ]));
+                    $this->editingOrderId = (int) $created->id;
+
+                    return $created;
+                }
+
+                $payload['order_no'] = (string) $order->order_no;
+                if ($preferDraft && (string) $order->status === 'saved') {
+                    unset($payload['status']);
+                }
+                $order->update($payload);
+
+                return $order->fresh() ?? $order;
+            }
+        }
+
+        $existing = ToolsReorderOrder::query()
+            ->where('user_id', $userId)
+            ->where('order_no', $orderNo)
+            ->first();
+
+        if ($existing !== null) {
+            if (in_array((string) $existing->status, ['saved', 'closed'], true) && $preferDraft) {
+                $orderNo = $service->nextOrderNumber();
+                $payload['order_no'] = $orderNo;
+                $payload['status'] = 'draft';
+
+                return ToolsReorderOrder::query()->create(array_merge($payload, [
+                    'user_id' => $userId,
+                ]));
+            }
+
+            if ((string) $existing->status === 'closed' && ! $preferDraft) {
+                $orderNo = $service->nextOrderNumber();
+                $payload['order_no'] = $orderNo;
+
+                return ToolsReorderOrder::query()->create(array_merge($payload, [
+                    'user_id' => $userId,
+                ]));
+            }
+
+            $existing->update($payload);
+
+            return $existing->fresh() ?? $existing;
+        }
+
+        return ToolsReorderOrder::query()->create(array_merge($payload, [
+            'user_id' => $userId,
+        ]));
     }
 }

@@ -342,6 +342,7 @@ class PermissionRegistry
             ],
             'fx-learn' => [
                 'economic-radar' => ['label_en' => 'Economic Radar', 'label_ur' => 'اکنامک ریڈار', 'actions' => $viewOnly],
+                'market-signals' => ['label_en' => 'Market Signals', 'label_ur' => 'مارکیٹ سگنلز', 'actions' => $viewOnly],
             ],
         ];
     }

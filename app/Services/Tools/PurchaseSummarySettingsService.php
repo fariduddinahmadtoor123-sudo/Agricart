@@ -2,6 +2,7 @@
 
 namespace App\Services\Tools;
 
+use App\Models\ToolsPurchaseSummary;
 use App\Models\ToolsPurchaseSummarySetting;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
@@ -125,19 +126,39 @@ class PurchaseSummarySettingsService
     public function nextSummaryNumber(?int $userId = null): string
     {
         $userId = $userId ?? (int) (auth()->id() ?? 0);
-        $key = "agricart.tools.purchase_summary.seq.{$userId}";
-        $seq = (int) Cache::get($key, 0) + 1;
-        Cache::forever($key, $seq);
+        $cacheKey = "agricart.tools.purchase_summary.seq.{$userId}";
+        $settingsSeq = (int) ($this->getForUser($userId)['summary_seq'] ?? 0);
 
-        return 'PS-' . str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+        $seq = ToolsDocumentSequence::allocate(
+            ToolsPurchaseSummary::class,
+            'summary_no',
+            $userId,
+            $cacheKey,
+            $settingsSeq,
+            function (int $newSeq) use ($userId): void {
+                $data = $this->getForUser($userId);
+                $data['summary_seq'] = $newSeq;
+                $this->saveForUser($data, $userId);
+            },
+        );
+
+        return ToolsDocumentSequence::format('PS-', $seq);
     }
 
     public function peekSummaryNumber(?int $userId = null): string
     {
         $userId = $userId ?? (int) (auth()->id() ?? 0);
-        $seq = (int) Cache::get("agricart.tools.purchase_summary.seq.{$userId}", 0) + 1;
+        $cacheKey = "agricart.tools.purchase_summary.seq.{$userId}";
+        $settingsSeq = (int) ($this->getForUser($userId)['summary_seq'] ?? 0);
+        $seq = ToolsDocumentSequence::peek(
+            ToolsPurchaseSummary::class,
+            'summary_no',
+            $userId,
+            $cacheKey,
+            $settingsSeq,
+        );
 
-        return 'PS-' . str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+        return ToolsDocumentSequence::format('PS-', $seq);
     }
 
     protected function filePath(int $userId): string

@@ -2,6 +2,7 @@
 
 namespace App\Services\Tools;
 
+use App\Models\ToolsReorderOrder;
 use App\Models\ToolsReorderSetting;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
@@ -76,19 +77,39 @@ class ReOrderSettingsService
     public function nextOrderNumber(?int $userId = null): string
     {
         $userId = $userId ?? (int) (auth()->id() ?? 0);
-        $key = "agricart.tools.reorder.order_seq.{$userId}";
-        $seq = (int) Cache::get($key, 0) + 1;
-        Cache::forever($key, $seq);
+        $cacheKey = "agricart.tools.reorder.order_seq.{$userId}";
+        $settingsSeq = (int) ($this->getForUser($userId)['order_seq'] ?? 0);
 
-        return 'PO-' . str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+        $seq = ToolsDocumentSequence::allocate(
+            ToolsReorderOrder::class,
+            'order_no',
+            $userId,
+            $cacheKey,
+            $settingsSeq,
+            function (int $newSeq) use ($userId): void {
+                $data = $this->getForUser($userId);
+                $data['order_seq'] = $newSeq;
+                $this->saveForUser($data, $userId);
+            },
+        );
+
+        return ToolsDocumentSequence::format('PO-', $seq);
     }
 
     public function peekOrderNumber(?int $userId = null): string
     {
         $userId = $userId ?? (int) (auth()->id() ?? 0);
-        $seq = (int) Cache::get("agricart.tools.reorder.order_seq.{$userId}", 0) + 1;
+        $cacheKey = "agricart.tools.reorder.order_seq.{$userId}";
+        $settingsSeq = (int) ($this->getForUser($userId)['order_seq'] ?? 0);
+        $seq = ToolsDocumentSequence::peek(
+            ToolsReorderOrder::class,
+            'order_no',
+            $userId,
+            $cacheKey,
+            $settingsSeq,
+        );
 
-        return 'PO-' . str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+        return ToolsDocumentSequence::format('PO-', $seq);
     }
 
     /**

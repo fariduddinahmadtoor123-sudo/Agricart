@@ -37,7 +37,36 @@ class FxLearnPageToolbar extends ClusterPageToolbar
             return null;
         }
 
-        if ((string) ($config['resourceSlug'] ?? '') !== 'economic-radar') {
+        $slug = (string) ($config['resourceSlug'] ?? '');
+
+        if ($slug === 'market-signals') {
+            return [
+                ...$config,
+                'addLabel' => null,
+                'hideSearch' => false,
+                'hideSearchInput' => false,
+                'hideFilters' => true,
+                'hideColumns' => true,
+                'searchPlaceholder' => __('agricart.pages.fx-learn.sig_search_ph'),
+                'livewirePrefix' => 'fx-learn-signals',
+                'fxLearnRadarChrome' => true,
+                'fxLearnSignalsDropdowns' => true,
+                'fxLearnVisitLinks' => [
+                    [
+                        'key' => 'tv',
+                        'label' => __('agricart.pages.fx-learn.sig_visit_tv'),
+                        'url' => 'https://www.tradingview.com/markets/currencies/',
+                    ],
+                    [
+                        'key' => 'heat',
+                        'label' => __('agricart.pages.fx-learn.sig_visit_heatmap'),
+                        'url' => 'https://www.tradingview.com/heatmap/forex/',
+                    ],
+                ],
+            ];
+        }
+
+        if ($slug !== 'economic-radar') {
             return [
                 ...$config,
                 'addLabel' => null,
@@ -74,13 +103,7 @@ class FxLearnPageToolbar extends ClusterPageToolbar
                     'url' => 'https://www.tradingview.com/economic-calendar/',
                 ],
             ],
-            'fxLearnQuickFilters' => [
-                ['key' => 'all', 'label' => __('agricart.pages.fx-learn.filter_all')],
-                ['key' => 'high', 'label' => __('agricart.pages.fx-learn.filter_high')],
-                ['key' => 'usd', 'label' => __('agricart.pages.fx-learn.filter_usd')],
-                ['key' => 'actual', 'label' => __('agricart.pages.fx-learn.filter_actual')],
-                ['key' => 'practice', 'label' => __('agricart.pages.fx-learn.filter_practice')],
-            ],
+            'fxLearnDropdownFilters' => true,
             'fxLearnSettings' => [
                 'label' => __('agricart.pages.fx-learn.settings'),
                 'event' => 'fx-learn-radar-settings',

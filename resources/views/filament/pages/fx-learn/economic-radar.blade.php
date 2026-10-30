@@ -1,10 +1,14 @@
 @php
+    $calendar = app(\App\Services\FxLearn\EconomicCalendarService::class);
     $rows = $this->filteredEvents();
-    $radar = $this->radarEvent(app(\App\Services\FxLearn\EconomicCalendarService::class));
+    $filteredRadar = $this->filteredRadarEvent($calendar);
+    $routineRadar = $this->routineRadarEvent($calendar);
     $clocks = $this->sessionClocks();
     $leftClocks = collect($clocks)->where('side', 'left')->values();
     $rightClocks = collect($clocks)->where('side', 'right')->values();
-    $radarAt = (int) ($radar['at'] ?? 0);
+    $pk = $this->pakistanClock();
+    $filteredAt = (int) ($filteredRadar['at'] ?? 0);
+    $routineAt = (int) ($routineRadar['at'] ?? 0);
     $metaFrom = (string) ($this->feedMeta['from'] ?? '—');
     $metaTo = (string) ($this->feedMeta['to'] ?? '—');
     $metaStatus = $this->feedMeta['http_status'] ?? null;
@@ -38,7 +42,7 @@
             </div>
         @endif
 
-        {{-- Left clocks | radar | right clocks --}}
+        {{-- 4 session clocks + center Pakistan clock + next-data line --}}
         <section class="fxr__deck" aria-label="{{ __('agricart.pages.fx-learn.deck_label') }}">
             <div class="fxr__clocks fxr__clocks--left" aria-label="{{ __('agricart.pages.fx-learn.sessions_label') }}">
                 @foreach ($leftClocks as $clock)
@@ -46,64 +50,83 @@
                 @endforeach
             </div>
 
-            <div class="fxr__radar" aria-label="{{ __('agricart.pages.fx-learn.radar_label') }}">
-                @if ($radar)
+            <div class="fxr__hub" aria-label="{{ __('agricart.pages.fx-learn.pk_hub_label') }}">
+                {{-- Filtered strip (matches toolbar dropdowns) --}}
+                @if ($filteredRadar)
                     <div
-                        class="fxr__radar-inner"
-                        x-data="fxrGauge(@js($radarAt))"
+                        class="fxr__eta fxr__eta--filter"
+                        wire:key="fxr-eta-f-{{ $this->ccyFilter }}-{{ $this->impactFilter }}-{{ md5($this->search.'|'.$filteredAt) }}"
+                        x-data="fxrEtaLine(@js([
+                            'atMs' => $filteredAt,
+                            'title' => (string) ($filteredRadar['title'] ?? ''),
+                            'ccy' => (string) ($filteredRadar['ccy'] ?? ''),
+                            'impact' => (string) ($filteredRadar['impact'] ?? ''),
+                            'flag' => $this->flagForCcy((string) ($filteredRadar['ccy'] ?? '')),
+                            'prefix' => __('agricart.pages.fx-learn.eta_filtered_prefix'),
+                        ]))"
                         x-init="boot()"
                     >
-                        <div class="fxr__gauge" aria-hidden="true">
-                            <svg viewBox="0 0 120 120" class="fxr__gauge-svg">
-                                <circle cx="60" cy="60" r="48" class="fxr__gauge-track" />
-                                <circle
-                                    cx="60" cy="60" r="48"
-                                    class="fxr__gauge-arc"
-                                    :stroke-dasharray="arc"
-                                    stroke-dashoffset="0"
-                                />
-                                <line
-                                    x1="60" y1="60" x2="60" y2="22"
-                                    class="fxr__gauge-needle"
-                                    :transform="`rotate(${angle} 60 60)`"
-                                />
-                                <circle cx="60" cy="60" r="4" class="fxr__gauge-hub" />
-                            </svg>
-                            <div class="fxr__gauge-count" dir="ltr">
-                                <template x-if="withinFive">
-                                    <span class="fxr__gauge-live" x-text="countdown"></span>
-                                </template>
-                                <template x-if="!withinFive">
-                                    <span x-text="eta"></span>
-                                </template>
-                            </div>
-                        </div>
-
-                        <div class="fxr__radar-copy">
-                            <p class="fxr__radar-kicker">{{ __('agricart.pages.fx-learn.radar_next') }}</p>
-                            <h2 class="fxr__radar-title">
-                                <span class="fxr__flag fxr__flag--inline">{{ $this->flagForCcy((string) ($radar['ccy'] ?? '')) }}</span>
-                                {{ $radar['title'] ?? '' }}
-                            </h2>
-                            <dl class="fxr__radar-metrics" dir="ltr">
-                                <div>
-                                    <dt>{{ __('agricart.pages.fx-learn.col_previous') }}</dt>
-                                    <dd>{{ $radar['previous'] ?? '—' }}</dd>
-                                </div>
-                                <div>
-                                    <dt>{{ __('agricart.pages.fx-learn.col_forecast') }}</dt>
-                                    <dd>{{ $radar['forecast'] ?? '—' }}</dd>
-                                </div>
-                                <div>
-                                    <dt>{{ __('agricart.pages.fx-learn.col_ccy') }}</dt>
-                                    <dd>{{ $radar['ccy'] ?? '' }}</dd>
-                                </div>
-                            </dl>
-                        </div>
+                        <span class="fxr__eta-flag" x-text="flag" aria-hidden="true"></span>
+                        <span class="fxr__eta-text" dir="ltr">
+                            <span x-text="prefix"></span>
+                            <strong x-text="countdown"></strong>
+                            <span class="fxr__eta-sep">·</span>
+                            <span x-text="ccy"></span>
+                            <span x-text="title"></span>
+                            <span class="fxr__eta-impact" x-text="impact"></span>
+                        </span>
                     </div>
                 @else
-                    <div class="fxr__radar-empty">
-                        <p>{{ __('agricart.pages.fx-learn.radar_empty') }}</p>
+                    <div class="fxr__eta fxr__eta--filter fxr__eta--empty">
+                        <span>{{ __('agricart.pages.fx-learn.eta_filtered_empty') }}</span>
+                    </div>
+                @endif
+
+                <div
+                    class="fxr__pk"
+                    x-data="fxrPakistanClock(@js($pk['tz']))"
+                    x-init="boot()"
+                    x-on:beforeunload.window="destroy()"
+                >
+                    <div class="fxr__pk-top">
+                        <span class="fxr__pk-flag" aria-hidden="true">{{ $pk['flag'] }}</span>
+                        <span class="fxr__pk-label">{{ $pk['label'] }}</span>
+                    </div>
+                    <p class="fxr__pk-time" dir="ltr">
+                        <span class="fxr__pk-hm" x-text="hm">{{ $pk['hm'] }}</span>
+                        <span class="fxr__pk-sec" x-text="sec">{{ $pk['sec'] }}</span>
+                    </p>
+                    <p class="fxr__pk-date" dir="ltr" x-text="date">{{ $pk['date'] }}</p>
+                </div>
+
+                {{-- Routine next print (unfiltered) --}}
+                @if ($routineRadar)
+                    <div
+                        class="fxr__eta fxr__eta--routine"
+                        wire:key="fxr-eta-r-{{ $routineAt }}"
+                        x-data="fxrEtaLine(@js([
+                            'atMs' => $routineAt,
+                            'title' => (string) ($routineRadar['title'] ?? ''),
+                            'ccy' => (string) ($routineRadar['ccy'] ?? ''),
+                            'impact' => (string) ($routineRadar['impact'] ?? ''),
+                            'flag' => $this->flagForCcy((string) ($routineRadar['ccy'] ?? '')),
+                            'prefix' => __('agricart.pages.fx-learn.eta_routine_prefix'),
+                        ]))"
+                        x-init="boot()"
+                    >
+                        <span class="fxr__eta-flag" x-text="flag" aria-hidden="true"></span>
+                        <span class="fxr__eta-text" dir="ltr">
+                            <span x-text="prefix"></span>
+                            <strong x-text="countdown"></strong>
+                            <span class="fxr__eta-sep">·</span>
+                            <span x-text="ccy"></span>
+                            <span x-text="title"></span>
+                            <span class="fxr__eta-impact" x-text="impact"></span>
+                        </span>
+                    </div>
+                @else
+                    <div class="fxr__eta fxr__eta--routine fxr__eta--empty">
+                        <span>{{ __('agricart.pages.fx-learn.radar_empty') }}</span>
                     </div>
                 @endif
             </div>
@@ -149,6 +172,32 @@
                 </button>
             </header>
 
+            <div class="fxr__daybar" role="tablist" aria-label="{{ __('agricart.pages.fx-learn.day_tabs_label') }}">
+                @foreach ($this->dayTabs() as $tab)
+                    <button
+                        type="button"
+                        role="tab"
+                        class="fxr__daychip"
+                        wire:key="fxr-day-{{ $tab['key'] }}"
+                        wire:click="setDayFilter(@js($tab['key']))"
+                        aria-selected="{{ $this->dayFilter === $tab['key'] ? 'true' : 'false' }}"
+                        @class(['is-on' => $this->dayFilter === $tab['key']])
+                    >
+                        <span>{{ $tab['label'] }}</span>
+                        <span class="fxr__daychip-n" dir="ltr">{{ $tab['count'] }}</span>
+                    </button>
+                @endforeach
+                <button
+                    type="button"
+                    class="fxr__daychip fxr__daychip--tool"
+                    wire:click="toggleNumbersOnly"
+                    @class(['is-on' => $this->numbersOnly])
+                    title="{{ __('agricart.pages.fx-learn.filter_numbers_hint') }}"
+                >
+                    {{ __('agricart.pages.fx-learn.filter_numbers') }}
+                </button>
+            </div>
+
             <div class="fxr__table-wrap">
                 <table class="fxr__table">
                     <thead>
@@ -164,7 +213,10 @@
                     </thead>
                     <tbody>
                         @forelse ($rows as $ev)
-                            @php $tone = $this->actualTone($ev); @endphp
+                            @php
+                                $tone = $this->actualTone($ev);
+                                $surprise = $this->surpriseLabel($ev);
+                            @endphp
                             <tr @class(['fxr__row', 'is-high' => ($ev['impact'] ?? '') === 'high'])>
                                 <td class="fxr__td-time" dir="ltr">{{ $this->formatPkt((int) $ev['at']) }}</td>
                                 <td class="fxr__td-ccy" dir="ltr">
@@ -177,6 +229,9 @@
                                 <td class="fxr__td-num" dir="ltr">{{ $ev['forecast'] ?? '—' }}</td>
                                 <td class="fxr__td-num" dir="ltr">
                                     <span @class(['fxr__actual', 'is-'.$tone])>{{ $ev['actual'] ?? '—' }}</span>
+                                    @if ($surprise !== null)
+                                        <span @class(['fxr__surprise', 'is-'.$tone]) dir="ltr">{{ $surprise }}</span>
+                                    @endif
                                 </td>
                                 <td>
                                     <button
@@ -213,7 +268,7 @@
             <div class="fxr__tv-frame" dir="ltr" wire:ignore>
                 <div
                     class="tradingview-widget-container"
-                    style="height:420px;width:100%"
+                    style="height:480px;width:100%"
                     x-data
                     x-init="
                         if ($el.dataset.booted) return;
@@ -222,7 +277,7 @@
                         conf.type = 'text/javascript';
                         conf.text = JSON.stringify({
                             width: '100%',
-                            height: '100%',
+                            height: 480,
                             colorTheme: 'light',
                             isTransparent: true,
                             locale: 'en',
@@ -236,7 +291,7 @@
                         $el.appendChild(s);
                     "
                 >
-                    <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
+                    <div class="tradingview-widget-container__widget" style="height:480px;width:100%"></div>
                 </div>
             </div>
         </section>
@@ -389,19 +444,19 @@
 
     <script>
         function fxrSessionClock(cfg) {
-            const c = (cfg && typeof cfg === 'object') ? cfg : { tz: cfg, open: arguments[1] };
+            const c = (cfg && typeof cfg === 'object') ? cfg : { tz: String(cfg || 'UTC') };
             return {
                 hm: '--:--',
                 sec: '--',
                 open: !!c.open,
-                untilLabel: c.untilLabel || '',
-                hoursLabel: c.hoursLabel || '',
+                openUntilLabel: c.openUntilLabel || '',
+                closeUntilLabel: c.closeUntilLabel || '',
                 labels: c.labels || {},
                 tz: c.tz,
                 openStart: Number(c.openStart) || 9,
                 openEnd: Number(c.openEnd) || 17,
-                boundaryMs: Number(c.boundaryMs) || 0,
-                boundaryKind: c.boundaryKind || 'open',
+                openBoundaryMs: Number(c.openBoundaryMs) || 0,
+                closeBoundaryMs: Number(c.closeBoundaryMs) || 0,
                 timer: null,
                 boot() {
                     this.tick();
@@ -410,7 +465,7 @@
                 destroy() {
                     if (this.timer) clearInterval(this.timer);
                 },
-                localHourMinute() {
+                localParts() {
                     const parts = new Intl.DateTimeFormat('en-GB', {
                         timeZone: this.tz,
                         weekday: 'short',
@@ -423,87 +478,111 @@
                     return {
                         weekday: get('weekday'),
                         hour: Number(get('hour')),
-                        minute: get('minute'),
-                        second: get('second'),
                         hm: `${get('hour')}:${get('minute')}`,
+                        second: get('second'),
                     };
                 },
                 isWeekday(wd) {
                     return !['Sat', 'Sun'].includes(wd);
                 },
+                spanText(diffSec) {
+                    const h = Math.floor(diffSec / 3600);
+                    const m = Math.floor((diffSec % 3600) / 60);
+                    if (h > 0) return h + 'h ' + m + 'm';
+                    return Math.max(1, m) + 'm';
+                },
                 tick() {
                     try {
-                        const loc = this.localHourMinute();
+                        const loc = this.localParts();
                         this.hm = loc.hm;
                         this.sec = loc.second;
                         this.open = this.isWeekday(loc.weekday) && loc.hour >= this.openStart && loc.hour < this.openEnd;
 
                         const now = Date.now();
-                        const pad = (n) => String(n).padStart(2, '0');
-                        this.boundaryKind = this.open ? 'close' : 'open';
-                        this.hoursLabel = this.open
-                            ? (this.labels.closesAt || 'Closes __TIME__').replace('__TIME__', `${pad(this.openEnd)}:00`)
-                            : (this.labels.opensAt || 'Opens __TIME__').replace('__TIME__', `${pad(this.openStart)}:00`);
+                        const openTarget = this.openBoundaryMs > now ? this.openBoundaryMs : now;
+                        const closeTarget = this.closeBoundaryMs > now ? this.closeBoundaryMs : now;
 
-                        let target = this.boundaryMs;
-                        if (!target || target <= now) {
-                            target = now;
-                        }
-                        const diffSec = Math.max(0, Math.floor((target - now) / 1000));
-                        const h = Math.floor(diffSec / 3600);
-                        const m = Math.floor((diffSec % 3600) / 60);
-                        let span;
-                        if (h > 0) {
-                            span = (this.labels.inHm || '__H__h __M__m').replace('__H__', String(h)).replace('__M__', String(m));
+                        if (this.open) {
+                            this.openUntilLabel = this.labels.open || 'Open';
                         } else {
-                            span = (this.labels.inM || '__M__m').replace('__M__', String(Math.max(1, m)));
+                            const openSec = Math.max(0, Math.floor((openTarget - now) / 1000));
+                            this.openUntilLabel = (this.labels.opensIn || 'Open __SPAN__')
+                                .replace('__SPAN__', this.spanText(openSec));
                         }
-                        const tpl = this.boundaryKind === 'close'
-                            ? (this.labels.closesIn || 'Closes in __SPAN__')
-                            : (this.labels.opensIn || 'Opens in __SPAN__');
-                        this.untilLabel = tpl.replace('__SPAN__', span);
+
+                        const closeSec = Math.max(0, Math.floor((closeTarget - now) / 1000));
+                        this.closeUntilLabel = (this.labels.closesIn || 'Close __SPAN__')
+                            .replace('__SPAN__', this.spanText(closeSec));
                     } catch (e) {}
                 }
             };
         }
 
-        function fxrGauge(atMs) {
+        function fxrPakistanClock(tz) {
             return {
-                atMs: Number(atMs) || 0,
-                countdown: '--:--',
-                eta: '—',
-                withinFive: false,
-                angle: -90,
-                arc: '0 302',
+                hm: '--:--',
+                sec: '--',
+                date: '—',
                 timer: null,
                 boot() {
                     this.tick();
-                    this.timer = setInterval(() => this.tick(), 250);
+                    this.timer = setInterval(() => this.tick(), 1000);
+                },
+                destroy() {
+                    if (this.timer) clearInterval(this.timer);
                 },
                 tick() {
-                    const now = Date.now();
-                    const diff = Math.floor((this.atMs - now) / 1000);
+                    try {
+                        const now = new Date();
+                        const timeParts = new Intl.DateTimeFormat('en-GB', {
+                            timeZone: tz,
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: false,
+                        }).formatToParts(now);
+                        const dateParts = new Intl.DateTimeFormat('en-GB', {
+                            timeZone: tz,
+                            weekday: 'short',
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                        }).formatToParts(now);
+                        const get = (parts, t) => parts.find(p => p.type === t)?.value || '';
+                        this.hm = `${get(timeParts, 'hour')}:${get(timeParts, 'minute')}`;
+                        this.sec = get(timeParts, 'second');
+                        this.date = `${get(dateParts, 'weekday')} ${get(dateParts, 'day')} ${get(dateParts, 'month')} ${get(dateParts, 'year')}`;
+                    } catch (e) {}
+                }
+            };
+        }
+
+        function fxrEtaLine(cfg) {
+            const c = cfg || {};
+            return {
+                atMs: Number(c.atMs) || 0,
+                title: c.title || '',
+                ccy: c.ccy || '',
+                impact: c.impact || '',
+                flag: c.flag || '',
+                prefix: c.prefix || 'Data in',
+                countdown: '—',
+                timer: null,
+                boot() {
+                    this.tick();
+                    this.timer = setInterval(() => this.tick(), 1000);
+                },
+                tick() {
+                    const diff = Math.floor((this.atMs - Date.now()) / 1000);
                     const abs = Math.abs(diff);
                     const h = Math.floor(abs / 3600);
                     const m = Math.floor((abs % 3600) / 60);
                     const s = abs % 60;
                     const pad = (n) => String(n).padStart(2, '0');
-
-                    this.withinFive = diff >= 0 && diff <= 300;
-
                     if (diff >= 0) {
-                        this.countdown = h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
-                        this.eta = h > 0 ? `in ${h}h ${m}m` : (m > 0 ? `in ${m}m ${s}s` : `in ${s}s`);
-                        const windowSec = 6 * 3600;
-                        const progress = Math.max(0, Math.min(1, 1 - (diff / windowSec)));
-                        this.angle = -90 + (progress * 180);
-                        const len = 301.6;
-                        this.arc = `${(progress * len * 0.5).toFixed(1)} ${len}`;
+                        this.countdown = h > 0 ? `${h}h ${m}m` : (m > 0 ? `${m}m ${pad(s)}s` : `${s}s`);
                     } else {
-                        this.withinFive = false;
-                        this.eta = `${m}m ago`;
-                        this.angle = 90;
-                        this.arc = `150.8 301.6`;
+                        this.countdown = h > 0 ? `${h}h ${m}m ago` : `${m}m ago`;
                     }
                 }
             };

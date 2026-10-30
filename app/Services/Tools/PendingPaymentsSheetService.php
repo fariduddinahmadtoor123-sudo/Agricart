@@ -2,6 +2,7 @@
 
 namespace App\Services\Tools;
 
+use App\Models\ToolsPendingPaymentSheet;
 use Illuminate\Support\Facades\Cache;
 
 class PendingPaymentsSheetService
@@ -9,18 +10,34 @@ class PendingPaymentsSheetService
     public function nextSheetNumber(?int $userId = null): string
     {
         $userId = $userId ?? (int) (auth()->id() ?? 0);
-        $key = "agricart.tools.pending_payments.seq.{$userId}";
-        $seq = (int) Cache::get($key, 0) + 1;
-        Cache::forever($key, $seq);
+        $cacheKey = "agricart.tools.pending_payments.seq.{$userId}";
 
-        return 'PP-'.str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+        $seq = ToolsDocumentSequence::allocate(
+            ToolsPendingPaymentSheet::class,
+            'sheet_no',
+            $userId,
+            $cacheKey,
+            (int) Cache::get($cacheKey, 0),
+            function (int $newSeq) use ($cacheKey): void {
+                Cache::forever($cacheKey, $newSeq);
+            },
+        );
+
+        return ToolsDocumentSequence::format('PP-', $seq);
     }
 
     public function peekSheetNumber(?int $userId = null): string
     {
         $userId = $userId ?? (int) (auth()->id() ?? 0);
-        $seq = (int) Cache::get("agricart.tools.pending_payments.seq.{$userId}", 0) + 1;
+        $cacheKey = "agricart.tools.pending_payments.seq.{$userId}";
+        $seq = ToolsDocumentSequence::peek(
+            ToolsPendingPaymentSheet::class,
+            'sheet_no',
+            $userId,
+            $cacheKey,
+            (int) Cache::get($cacheKey, 0),
+        );
 
-        return 'PP-'.str_pad((string) $seq, 3, '0', STR_PAD_LEFT);
+        return ToolsDocumentSequence::format('PP-', $seq);
     }
 }

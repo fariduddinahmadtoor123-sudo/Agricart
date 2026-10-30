@@ -124,11 +124,79 @@
             x-on:livewire:init="Livewire.on(@js($livewirePrefix . '-toolbar-sync'), (payload) => sync(payload))"
         @endif
     >
+        @if (! empty($toolbar['fxLearnDropdownFilters']))
+            <div class="agricart-fxr-selects" role="group" aria-label="{{ __('agricart.pages.fx-learn.filters_label') }}">
+                <label class="agricart-fxr-select">
+                    <span class="fi-sr-only">{{ __('agricart.pages.fx-learn.filter_ccy_label') }}</span>
+                    <select
+                        class="agricart-fxr-select__el"
+                        x-data
+                        x-on:change="window.Livewire?.dispatch('fx-learn-radar-ccy', { ccy: $event.target.value })"
+                    >
+                        <option value="all">{{ __('agricart.pages.fx-learn.filter_ccy_all') }}</option>
+                        <option value="usd">{{ __('agricart.pages.fx-learn.filter_ccy_usd') }}</option>
+                    </select>
+                </label>
+                <label class="agricart-fxr-select">
+                    <span class="fi-sr-only">{{ __('agricart.pages.fx-learn.filter_impact_label') }}</span>
+                    <select
+                        class="agricart-fxr-select__el"
+                        x-data
+                        x-on:change="window.Livewire?.dispatch('fx-learn-radar-impact', { impact: $event.target.value })"
+                    >
+                        <option value="all">{{ __('agricart.pages.fx-learn.filter_impact_all') }}</option>
+                        <option value="high">{{ __('agricart.pages.fx-learn.filter_impact_high') }}</option>
+                        <option value="med">{{ __('agricart.pages.fx-learn.filter_impact_med') }}</option>
+                        <option value="low">{{ __('agricart.pages.fx-learn.filter_impact_low') }}</option>
+                    </select>
+                </label>
+            </div>
+        @endif
+
+        @if (! empty($toolbar['fxLearnSignalsDropdowns']))
+            @php
+                $sigCats = [
+                    'forex' => __('agricart.pages.fx-learn.sig_cat_forex'),
+                    'commodities' => __('agricart.pages.fx-learn.sig_cat_commodities'),
+                    'indices' => __('agricart.pages.fx-learn.sig_cat_indices'),
+                    'crypto' => __('agricart.pages.fx-learn.sig_cat_crypto'),
+                ];
+                $sigTfs = \App\Services\FxLearn\MarketSignalCatalog::intervals();
+            @endphp
+            <div class="agricart-fxr-selects" role="group" aria-label="{{ __('agricart.pages.fx-learn.sig_picker_label') }}">
+                <label class="agricart-fxr-select">
+                    <span class="fi-sr-only">{{ __('agricart.pages.fx-learn.sig_cat_label') }}</span>
+                    <select
+                        class="agricart-fxr-select__el"
+                        x-data
+                        x-on:change="window.Livewire?.dispatch('fx-learn-signals-category', { category: $event.target.value })"
+                    >
+                        @foreach ($sigCats as $catId => $catLabel)
+                            <option value="{{ $catId }}">{{ $catLabel }}</option>
+                        @endforeach
+                    </select>
+                </label>
+                <label class="agricart-fxr-select">
+                    <span class="fi-sr-only">{{ __('agricart.pages.fx-learn.sig_tf_label') }}</span>
+                    <select
+                        class="agricart-fxr-select__el"
+                        x-data
+                        x-on:change="window.Livewire?.dispatch('fx-learn-signals-interval', { interval: $event.target.value })"
+                    >
+                        @foreach ($sigTfs as $tfRow)
+                            <option value="{{ $tfRow['id'] }}" @selected($tfRow['id'] === '1h')>{{ $tfRow['label'] }}</option>
+                        @endforeach
+                    </select>
+                </label>
+            </div>
+        @endif
+
         @if (empty($toolbar['hideSearch']))
             <div @class([
                 'agricart-catalog-toolbar__search',
                 'agricart-catalog-toolbar__search--segments' => ! empty($toolbar['segments']),
                 'agricart-catalog-toolbar__search--expense-estimate' => ($toolbar['resourceSlug'] ?? '') === 'expenses',
+                'agricart-catalog-toolbar__search--fx-center' => ! empty($toolbar['fxLearnRadarChrome']),
             ])>
                 @if (! empty($toolbar['segments']))
                     @include('filament.components.module.toolbar-segments', ['toolbar' => $toolbar, 'moduleKey' => $moduleKey])
@@ -352,24 +420,6 @@
 
             @if (! empty($toolbar['toolbarActions']))
                 @include('filament.components.module.toolbar-actions', ['toolbar' => $toolbar])
-            @endif
-
-            @if (! empty($toolbar['fxLearnQuickFilters']) && is_array($toolbar['fxLearnQuickFilters']))
-                <div class="agricart-fxr-filters" role="group" aria-label="{{ __('agricart.pages.fx-learn.filters_label') }}">
-                    @foreach ($toolbar['fxLearnQuickFilters'] as $filter)
-                        @php
-                            $fkey = (string) ($filter['key'] ?? '');
-                            $flabel = (string) ($filter['label'] ?? '');
-                        @endphp
-                        @continue($fkey === '' || $flabel === '')
-                        <button
-                            type="button"
-                            class="agricart-fxr-filters__btn"
-                            x-data
-                            x-on:click="window.Livewire?.dispatch('fx-learn-radar-filter', { filter: @js($fkey) })"
-                        >{{ $flabel }}</button>
-                    @endforeach
-                </div>
             @endif
 
             @if (! empty($toolbar['fxLearnSettings']) && is_array($toolbar['fxLearnSettings']))

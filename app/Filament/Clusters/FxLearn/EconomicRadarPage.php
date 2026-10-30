@@ -32,7 +32,14 @@ class EconomicRadarPage extends BaseModulePage
 
     protected string $view = 'filament.pages.fx-learn.economic-radar';
 
-    public string $quickFilter = 'all';
+    public string $ccyFilter = 'all';
+
+    public string $impactFilter = 'all';
+
+    /** Y-m-d in display timezone, or "all". */
+    public string $dayFilter = 'today';
+
+    public bool $numbersOnly = false;
 
     public string $search = '';
 
@@ -97,16 +104,28 @@ class EconomicRadarPage extends BaseModulePage
         $this->search = trim($value);
     }
 
-    #[On('fx-learn-radar-filter')]
-    public function onToolbarFilter(mixed $filter = null): void
+    #[On('fx-learn-radar-ccy')]
+    public function onToolbarCcy(mixed $ccy = null): void
     {
-        $value = is_array($filter) ? (string) ($filter['filter'] ?? '') : (string) $filter;
+        $value = is_array($ccy) ? (string) ($ccy['ccy'] ?? '') : (string) $ccy;
 
-        if (! in_array($value, ['all', 'high', 'usd', 'actual', 'practice'], true)) {
+        if (! in_array($value, ['all', 'usd'], true)) {
             return;
         }
 
-        $this->quickFilter = $value;
+        $this->ccyFilter = $value;
+    }
+
+    #[On('fx-learn-radar-impact')]
+    public function onToolbarImpact(mixed $impact = null): void
+    {
+        $value = is_array($impact) ? (string) ($impact['impact'] ?? '') : (string) $impact;
+
+        if (! in_array($value, ['all', 'high', 'med', 'low'], true)) {
+            return;
+        }
+
+        $this->impactFilter = $value;
     }
 
     #[On('fx-learn-radar-settings')]
@@ -115,33 +134,108 @@ class EconomicRadarPage extends BaseModulePage
         $this->openSettings();
     }
 
+    public function setDayFilter(string $day): void
+    {
+        $day = trim($day);
+
+        if ($day === 'all' || $day === 'today') {
+            $this->dayFilter = $day;
+
+            return;
+        }
+
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $day) === 1) {
+            $this->dayFilter = $day;
+        }
+    }
+
+    public function toggleNumbersOnly(): void
+    {
+        $this->numbersOnly = ! $this->numbersOnly;
+    }
+
+    /**
+     * Day chips for the economic sheet (display timezone).
+     *
+     * @return list<array{key: string, label: string, count: int}>
+     */
+    public function dayTabs(): array
+    {
+        $tz = agricart_display_timezone();
+        $today = now($tz)->toDateString();
+        $base = collect($this->events)
+            ->reject(fn (array $ev): bool => str_starts_with((string) ($ev['id'] ?? ''), 'practice-'));
+
+        $byDay = $base
+            ->groupBy(function (array $ev) use ($tz): string {
+                return CarbonImmutable::createFromTimestampMs((int) ($ev['at'] ?? 0), 'UTC')
+                    ->timezone($tz)
+                    ->toDateString();
+            })
+            ->sortKeys();
+
+        $tabs = [
+            [
+                'key' => 'today',
+                'label' => __('agricart.pages.fx-learn.day_today'),
+                'count' => (int) ($byDay->get($today)?->count() ?? 0),
+            ],
+            [
+                'key' => 'all',
+                'label' => __('agricart.pages.fx-learn.day_all'),
+                'count' => $base->count(),
+            ],
+        ];
+
+        foreach ($byDay as $ymd => $rows) {
+            $local = CarbonImmutable::parse((string) $ymd, $tz);
+            $tabs[] = [
+                'key' => (string) $ymd,
+                'label' => $local->format('D d'),
+                'count' => $rows->count(),
+            ];
+        }
+
+        return $tabs;
+    }
+
     /**
      * @return Collection<int, array<string, mixed>>
      */
     public function filteredEvents(): Collection
     {
         $q = mb_strtolower(trim($this->search));
+        $tz = agricart_display_timezone();
+        $dayKey = $this->dayFilter === 'today' ? now($tz)->toDateString() : $this->dayFilter;
 
         return collect($this->events)
-            ->filter(function (array $ev) use ($q): bool {
-                if ($this->quickFilter === 'high' && ($ev['impact'] ?? '') !== 'high') {
+            ->filter(function (array $ev) use ($q, $tz, $dayKey): bool {
+                if ($this->ccyFilter === 'usd' && strtoupper((string) ($ev['ccy'] ?? '')) !== 'USD') {
                     return false;
                 }
 
-                if ($this->quickFilter === 'usd' && strtoupper((string) ($ev['ccy'] ?? '')) !== 'USD') {
+                if ($this->impactFilter !== 'all' && ($ev['impact'] ?? '') !== $this->impactFilter) {
                     return false;
                 }
 
-                if ($this->quickFilter === 'actual') {
-                    $actual = trim((string) ($ev['actual'] ?? ''));
+                if ($dayKey !== 'all') {
+                    $evDay = CarbonImmutable::createFromTimestampMs((int) ($ev['at'] ?? 0), 'UTC')
+                        ->timezone($tz)
+                        ->toDateString();
 
-                    if ($actual === '' || $actual === '—') {
+                    if ($evDay !== $dayKey) {
                         return false;
                     }
                 }
 
-                if ($this->quickFilter === 'practice' && ($ev['src'] ?? '') !== 'practice') {
-                    return false;
+                if ($this->numbersOnly) {
+                    $hasNum = ! $this->isBlankFigure($ev['previous'] ?? null)
+                        || ! $this->isBlankFigure($ev['forecast'] ?? null)
+                        || ! $this->isBlankFigure($ev['actual'] ?? null);
+
+                    if (! $hasNum) {
+                        return false;
+                    }
                 }
 
                 if ($q === '') {
@@ -161,11 +255,33 @@ class EconomicRadarPage extends BaseModulePage
     }
 
     /**
+     * Next print matching active toolbar filters.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function filteredRadarEvent(EconomicCalendarService $calendar): ?array
+    {
+        return $calendar->nextUpcoming($this->filteredEvents()->all(), highOnly: false);
+    }
+
+    /**
+     * Next print on the full feed (routine / unfiltered).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function routineRadarEvent(EconomicCalendarService $calendar): ?array
+    {
+        return $calendar->nextUpcoming($this->events, highOnly: false);
+    }
+
+    /**
+     * @deprecated Use filteredRadarEvent()
+     *
      * @return array<string, mixed>|null
      */
     public function radarEvent(EconomicCalendarService $calendar): ?array
     {
-        return $calendar->nextHighImpact($this->filteredEvents()->all());
+        return $this->filteredRadarEvent($calendar);
     }
 
     /**
@@ -174,6 +290,24 @@ class EconomicRadarPage extends BaseModulePage
     public function sessionClocks(): array
     {
         return MarketSessionClock::deckSnapshot();
+    }
+
+    /**
+     * @return array{flag: string, label: string, tz: string, hm: string, sec: string, date: string}
+     */
+    public function pakistanClock(): array
+    {
+        $tz = 'Asia/Karachi';
+        $local = CarbonImmutable::now($tz);
+
+        return [
+            'flag' => '🇵🇰',
+            'label' => __('agricart.pages.fx-learn.clock_pakistan'),
+            'tz' => $tz,
+            'hm' => $local->format('H:i'),
+            'sec' => $local->format('s'),
+            'date' => $local->format('D d M Y'),
+        ];
     }
 
     public function flagForCcy(string $ccy): string
@@ -219,6 +353,36 @@ class EconomicRadarPage extends BaseModulePage
         }
 
         return 'flat';
+    }
+
+    /**
+     * Compact surprise vs forecast for the Actual cell (e.g. +0.1).
+     */
+    public function surpriseLabel(array $ev): ?string
+    {
+        $actual = trim((string) ($ev['actual'] ?? ''));
+        $forecast = trim((string) ($ev['forecast'] ?? ''));
+
+        if ($actual === '' || $actual === '—' || $forecast === '' || $forecast === '—') {
+            return null;
+        }
+
+        $a = $this->toFloat($actual);
+        $f = $this->toFloat($forecast);
+
+        if ($a === null || $f === null) {
+            return null;
+        }
+
+        $diff = round($a - $f, 3);
+
+        if (abs($diff) < 0.0000001) {
+            return '0';
+        }
+
+        $text = rtrim(rtrim(number_format($diff, 3, '.', ''), '0'), '.');
+
+        return ($diff > 0 ? '+' : '').$text;
     }
 
     public function openSettings(): void
@@ -416,6 +580,7 @@ class EconomicRadarPage extends BaseModulePage
         $this->usingDemo = (bool) ($snapshot['using_demo'] ?? false);
     }
 
+
     private function clearAiResult(): void
     {
         $this->aiBias = null;
@@ -433,5 +598,16 @@ class EconomicRadarPage extends BaseModulePage
         }
 
         return (float) $clean;
+    }
+
+    private function isBlankFigure(mixed $value): bool
+    {
+        if ($value === null) {
+            return true;
+        }
+
+        $s = trim((string) $value);
+
+        return $s === '' || $s === '—';
     }
 }

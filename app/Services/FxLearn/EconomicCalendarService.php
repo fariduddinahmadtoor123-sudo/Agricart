@@ -10,6 +10,7 @@ class EconomicCalendarService
 {
     public function __construct(
         protected FreeEconomicCalendarClient $freeClient,
+        protected EconomicEventArchiveService $archive,
     ) {}
 
     /**
@@ -68,8 +69,9 @@ class EconomicCalendarService
         // Include prior week so released Actuals are available for AI testing.
         $from = $weekStart->copy()->subDays(7)->timezone('UTC')->toDateString();
         $to = $weekEnd->copy()->addDay()->timezone('UTC')->toDateString();
-        $cacheKey = 'fx-learn:econ:week:v5:'.$from.':'.$to;
-        $ttl = max(60, (int) config('services.fx_learn.calendar_cache_ttl', 900));
+        $cacheKey = 'fx-learn:econ:week:v6:'.$from.':'.$to;
+        $baseTtl = max(60, (int) config('services.fx_learn.calendar_cache_ttl', 900));
+        $nearTtl = max(45, (int) config('services.fx_learn.calendar_near_ttl', 90));
 
         if ($forceRefresh) {
             Cache::forget($cacheKey);
@@ -79,16 +81,30 @@ class EconomicCalendarService
         $cached = Cache::get($cacheKey);
 
         if (is_array($cached) && ! $forceRefresh) {
-            return [
-                'events' => $cached['events'] ?? [],
-                'source' => (string) ($cached['source'] ?? 'cache'),
-                'fetched_at' => (string) ($cached['fetched_at'] ?? ''),
-                'error' => $cached['error'] ?? null,
-                'meta' => is_array($cached['meta'] ?? null) ? $cached['meta'] : ['from' => $from, 'to' => $to],
-                'using_demo' => (bool) ($cached['using_demo'] ?? false),
-                'week_start' => $weekStart->toDateString(),
-                'week_end' => $weekEnd->toDateString(),
-            ];
+            $events = is_array($cached['events'] ?? null) ? $cached['events'] : [];
+            $events = $this->archive->hydrate($events);
+
+            try {
+                $fetchedTs = CarbonImmutable::parse((string) ($cached['fetched_at'] ?? ''))->getTimestamp();
+            } catch (\Throwable) {
+                $fetchedTs = 0;
+            }
+
+            $age = max(0, now()->getTimestamp() - $fetchedTs);
+            $ttlWanted = $this->adaptiveTtl($events, $baseTtl, $nearTtl);
+
+            if ($fetchedTs > 0 && $age < $ttlWanted) {
+                return [
+                    'events' => $events,
+                    'source' => (string) ($cached['source'] ?? 'cache'),
+                    'fetched_at' => (string) ($cached['fetched_at'] ?? ''),
+                    'error' => $cached['error'] ?? null,
+                    'meta' => is_array($cached['meta'] ?? null) ? $cached['meta'] : ['from' => $from, 'to' => $to],
+                    'using_demo' => (bool) ($cached['using_demo'] ?? false),
+                    'week_start' => $weekStart->toDateString(),
+                    'week_end' => $weekEnd->toDateString(),
+                ];
+            }
         }
 
         $fetch = $this->freeClient->fetchWeek($from, $to);
@@ -103,18 +119,24 @@ class EconomicCalendarService
             $source = 'demo';
             $error = $error ?? __('agricart.pages.fx-learn.free_feed_empty');
         } else {
+            $events = $this->archive->hydrate($events);
+            $this->archive->remember($events);
             // Always prepend practice rows so Analyze News can be tested without waiting for a live print.
             $events = array_merge($this->practiceEvents($tz), $events);
         }
 
         $fetchedAt = now($tz)->toIso8601String();
+        $ttl = $this->adaptiveTtl($events, $baseTtl, $nearTtl);
 
         $payload = [
             'events' => $events,
             'source' => $source,
             'fetched_at' => $fetchedAt,
             'error' => $usingDemo ? $error : null,
-            'meta' => $fetch['meta'],
+            'meta' => array_merge($fetch['meta'] ?? ['from' => $from, 'to' => $to], [
+                'cache_ttl' => $ttl,
+                'archived' => ! $usingDemo,
+            ]),
             'using_demo' => $usingDemo,
         ];
 
@@ -125,7 +147,7 @@ class EconomicCalendarService
             'source' => $source,
             'fetched_at' => $fetchedAt,
             'error' => $payload['error'],
-            'meta' => $fetch['meta'],
+            'meta' => $payload['meta'],
             'using_demo' => $usingDemo,
             'week_start' => $weekStart->toDateString(),
             'week_end' => $weekEnd->toDateString(),
@@ -138,10 +160,21 @@ class EconomicCalendarService
      */
     public function nextHighImpact(array $events): ?array
     {
+        return $this->nextUpcoming($events, highOnly: true);
+    }
+
+    /**
+     * Next release of any impact (for center countdown line).
+     *
+     * @param  list<array<string, mixed>>  $events
+     * @return array<string, mixed>|null
+     */
+    public function nextUpcoming(array $events, bool $highOnly = false): ?array
+    {
         $nowMs = (int) (CarbonImmutable::now('UTC')->valueOf());
 
         $upcoming = collect($events)
-            ->filter(fn (array $ev): bool => ($ev['impact'] ?? '') === 'high')
+            ->when($highOnly, fn ($c) => $c->filter(fn (array $ev): bool => ($ev['impact'] ?? '') === 'high'))
             ->filter(fn (array $ev): bool => (int) ($ev['at'] ?? 0) >= $nowMs - 60_000)
             ->sortBy('at')
             ->values();
@@ -157,11 +190,56 @@ class EconomicCalendarService
         $fromWide = $weekStart->copy()->subDays(7)->timezone('UTC')->toDateString();
         $toWide = $weekEnd->copy()->addDay()->timezone('UTC')->toDateString();
 
-        foreach (['v1', 'v2', 'v3', 'v4', 'v5'] as $ver) {
+        foreach (['v1', 'v2', 'v3', 'v4', 'v5', 'v6'] as $ver) {
             Cache::forget('fx-learn:econ:week:'.$ver.':'.$fromWide.':'.$toWide);
             Cache::forget('fx-learn:econ:week:'.$ver.':'.$weekStart->copy()->subDay()->timezone('UTC')->toDateString().':'.$weekEnd->copy()->addDay()->timezone('UTC')->toDateString());
             Cache::forget('fx-learn:econ:week:'.$ver.':'.$weekStart->copy()->timezone('UTC')->toDateString().':'.$weekEnd->copy()->timezone('UTC')->toDateString());
         }
+    }
+
+    /**
+     * Shorter cache near a print, or when recent releases still lack Actual.
+     *
+     * @param  list<array<string, mixed>>  $events
+     */
+    protected function adaptiveTtl(array $events, int $baseTtl, int $nearTtl): int
+    {
+        $nowMs = (int) CarbonImmutable::now('UTC')->valueOf();
+        $windowMs = 20 * 60 * 1000;
+
+        foreach ($events as $ev) {
+            if (! is_array($ev)) {
+                continue;
+            }
+
+            $at = (int) ($ev['at'] ?? 0);
+
+            if ($at <= 0) {
+                continue;
+            }
+
+            // Upcoming release within 20 minutes → poll faster.
+            if ($at >= $nowMs && ($at - $nowMs) <= $windowMs) {
+                return $nearTtl;
+            }
+
+            // Just released, still no Actual on a data-style event → poll faster.
+            if ($at < $nowMs && ($nowMs - $at) <= $windowMs) {
+                $actual = trim((string) ($ev['actual'] ?? ''));
+                $title = (string) ($ev['title'] ?? '');
+
+                if (($actual === '' || $actual === '—') && ! $this->isNonNumericEvent($title)) {
+                    return $nearTtl;
+                }
+            }
+        }
+
+        return $baseTtl;
+    }
+
+    protected function isNonNumericEvent(string $title): bool
+    {
+        return (bool) preg_match('/speaks|speech|statement|press conference|holiday|auction|minutes\b|testimony|budget release|forecast statement/i', $title);
     }
 
     /**

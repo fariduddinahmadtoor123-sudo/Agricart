@@ -44,6 +44,7 @@ return [
 
     'fx_learn' => [
         'calendar_cache_ttl' => (int) env('FX_LEARN_CALENDAR_CACHE_TTL', 900),
+        'calendar_near_ttl' => (int) env('FX_LEARN_CALENDAR_NEAR_TTL', 90),
     ],
 
 ];

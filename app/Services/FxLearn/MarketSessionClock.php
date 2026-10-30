@@ -87,22 +87,7 @@ class MarketSessionClock
     }
 
     /**
-     * @return list<array{
-     *     id: string,
-     *     label: string,
-     *     flag: string,
-     *     tz: string,
-     *     time: string,
-     *     hm: string,
-     *     sec: string,
-     *     open: bool,
-     *     pill: string,
-     *     side: 'left'|'right',
-     *     hours_label: string,
-     *     boundary_ms: int,
-     *     boundary_kind: 'open'|'close',
-     *     until_label: string
-     * }>
+     * @return list<array<string, mixed>>
      */
     public static function deckSnapshot(): array
     {
@@ -112,12 +97,8 @@ class MarketSessionClock
         foreach (self::sessions() as $session) {
             $local = $now->timezone($session['tz']);
             $open = self::isOpen($session, $now);
-            $boundary = self::nextBoundary($session, $now);
-            $kind = $open ? 'close' : 'open';
-            $untilLabel = self::formatUntil($boundary['at'], $now, $kind);
-            $hoursLabel = $open
-                ? __('agricart.pages.fx-learn.session_closes_at', ['time' => $boundary['local_hm']])
-                : __('agricart.pages.fx-learn.session_opens_at', ['time' => $boundary['local_hm']]);
+            $nextOpen = self::nextOpenAt($session, $now);
+            $nextClose = self::nextCloseAt($session, $now);
 
             $out[] = [
                 'id' => $session['id'],
@@ -132,12 +113,21 @@ class MarketSessionClock
                     ? __('agricart.pages.fx-learn.session_open')
                     : __('agricart.pages.fx-learn.session_closed'),
                 'side' => $session['side'],
-                'hours_label' => $hoursLabel,
-                'boundary_ms' => (int) $boundary['at']->valueOf(),
-                'boundary_kind' => $kind,
-                'until_label' => $untilLabel,
                 'open_start' => (int) $session['open_start'],
                 'open_end' => (int) $session['open_end'],
+                'open_boundary_ms' => (int) $nextOpen->valueOf(),
+                'close_boundary_ms' => (int) $nextClose->valueOf(),
+                // Keep legacy keys for any old JS callers.
+                'boundary_ms' => (int) ($open ? $nextClose : $nextOpen)->valueOf(),
+                'boundary_kind' => $open ? 'close' : 'open',
+                'open_until_label' => $open
+                    ? __('agricart.pages.fx-learn.session_open')
+                    : self::formatUntil($nextOpen, $now, 'open'),
+                'close_until_label' => self::formatUntil($nextClose, $now, 'close'),
+                'until_label' => $open
+                    ? self::formatUntil($nextClose, $now, 'close')
+                    : self::formatUntil($nextOpen, $now, 'open'),
+                'hours_label' => '',
             ];
         }
 
@@ -146,12 +136,45 @@ class MarketSessionClock
 
     /**
      * @param  array{tz: string, open_start: int, open_end: int}  $session
-     * @return array{at: CarbonImmutable, local_hm: string}
      */
-    protected static function nextBoundary(array $session, CarbonImmutable $nowUtc): array
+    protected static function nextOpenAt(array $session, CarbonImmutable $nowUtc): CarbonImmutable
     {
         $tz = $session['tz'];
         $start = (int) $session['open_start'];
+        $local = $nowUtc->timezone($tz);
+
+        if (self::isOpen($session, $nowUtc)) {
+            // Already open: next open is next weekday session start.
+            $next = $local->addDay()->setTime($start, 0, 0);
+
+            while (! $next->isWeekday()) {
+                $next = $next->addDay()->setTime($start, 0, 0);
+            }
+
+            return $next->utc();
+        }
+
+        $candidate = $local->setTime($start, 0, 0);
+
+        if ($local->isWeekday() && $local->lt($candidate)) {
+            return $candidate->utc();
+        }
+
+        $next = $local->addDay()->setTime($start, 0, 0);
+
+        while (! $next->isWeekday()) {
+            $next = $next->addDay()->setTime($start, 0, 0);
+        }
+
+        return $next->utc();
+    }
+
+    /**
+     * @param  array{tz: string, open_start: int, open_end: int}  $session
+     */
+    protected static function nextCloseAt(array $session, CarbonImmutable $nowUtc): CarbonImmutable
+    {
+        $tz = $session['tz'];
         $end = (int) $session['open_end'];
         $local = $nowUtc->timezone($tz);
 
@@ -162,32 +185,13 @@ class MarketSessionClock
                 $at = $at->addDay();
             }
 
-            return [
-                'at' => $at->utc(),
-                'local_hm' => $at->format('H:i'),
-            ];
+            return $at->utc();
         }
 
-        // Next open: today if before open on weekday, else next weekday open.
-        $candidate = $local->setTime($start, 0, 0);
+        // Closed: close time of the upcoming session (same day as next open).
+        $nextOpenLocal = self::nextOpenAt($session, $nowUtc)->timezone($tz);
 
-        if ($local->isWeekday() && $local->lt($candidate)) {
-            return [
-                'at' => $candidate->utc(),
-                'local_hm' => $candidate->format('H:i'),
-            ];
-        }
-
-        $next = $local->addDay()->setTime($start, 0, 0);
-
-        while (! $next->isWeekday()) {
-            $next = $next->addDay()->setTime($start, 0, 0);
-        }
-
-        return [
-            'at' => $next->utc(),
-            'local_hm' => $next->format('H:i'),
-        ];
+        return $nextOpenLocal->setTime($end, 0, 0)->utc();
     }
 
     protected static function formatUntil(CarbonImmutable $boundaryUtc, CarbonImmutable $nowUtc, string $kind): string
@@ -197,9 +201,17 @@ class MarketSessionClock
         $mins = intdiv($seconds % 3600, 60);
 
         if ($hours > 0) {
-            $span = __('agricart.pages.fx-learn.session_in_hm', ['h' => $hours, 'm' => $mins]);
+            $span = __('agricart.pages.fx-learn.session_in_hm', [
+                'h' => $hours,
+                'm' => $mins,
+                'hh' => $hours.'h',
+                'mm' => $mins.'m',
+            ]);
         } else {
-            $span = __('agricart.pages.fx-learn.session_in_m', ['m' => max(1, $mins)]);
+            $span = __('agricart.pages.fx-learn.session_in_m', [
+                'm' => max(1, $mins),
+                'mm' => max(1, $mins).'m',
+            ]);
         }
 
         return $kind === 'close'

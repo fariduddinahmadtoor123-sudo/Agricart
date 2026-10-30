@@ -292,6 +292,30 @@ class FreeEconomicCalendarClient
 
         $impact = $this->normalizeMarketImpact($title, $impact);
 
+        $fromObs = $this->figuresFromObservations($item);
+
+        $previous = $this->dash($item['prior'] ?? null);
+        $forecast = $this->dash($item['consensus'] ?? null);
+        $actual = $this->dash($item['actual'] ?? null);
+
+        if ($this->isBlank($previous) && ! $this->isBlank($fromObs['previous'])) {
+            $previous = $fromObs['previous'];
+        }
+
+        if ($this->isBlank($forecast) && ! $this->isBlank($fromObs['forecast'])) {
+            $forecast = $fromObs['forecast'];
+        }
+
+        if ($this->isBlank($actual) && ! $this->isBlank($fromObs['actual'])) {
+            $actual = $fromObs['actual'];
+        }
+
+        $unit = trim((string) ($item['unit'] ?? ''));
+
+        if ($unit === '' && $fromObs['unit'] !== '') {
+            $unit = $fromObs['unit'];
+        }
+
         return [
             'id' => 'fc-'.sha1($ccy.'|'.$title.'|'.$at->toIso8601String().'|'.$idx),
             'title' => $title,
@@ -299,16 +323,17 @@ class FreeEconomicCalendarClient
             'ccy' => $ccy,
             'impact' => $impact,
             'at' => (int) $at->valueOf(),
-            'previous' => $this->dash($item['prior'] ?? null),
-            'forecast' => $this->dash($item['consensus'] ?? null),
-            'actual' => $this->dash($item['actual'] ?? null),
-            'unit' => trim((string) ($item['unit'] ?? '')),
+            'previous' => $previous,
+            'forecast' => $forecast,
+            'actual' => $actual,
+            'unit' => $unit,
             'src' => 'fc',
         ];
     }
 
     /**
      * FF preferred on overlap; fill blank Actual/Previous/Forecast from the other.
+     * Falls back to same-day+ccy fuzzy title match when exact keys diverge.
      *
      * @param  list<array<string, mixed>>  $ff
      * @param  list<array<string, mixed>>  $fc
@@ -326,20 +351,30 @@ class FreeEconomicCalendarClient
             if (! isset($map[$key])) {
                 $map[$key] = $ev;
                 $order[] = $key;
+            } else {
+                $map[$key] = $this->preferFilled($map[$key], $ev);
             }
         }
 
         foreach ($ff as $ev) {
             $key = $this->dedupeKey($ev);
 
-            if (! isset($map[$key])) {
-                $map[$key] = $ev;
-                $order[] = $key;
+            if (isset($map[$key])) {
+                $map[$key] = $this->preferFilled($ev, $map[$key]);
 
                 continue;
             }
 
-            $map[$key] = $this->preferFilled($ev, $map[$key]);
+            $fuzzyKey = $this->findFuzzyKey($ev, $map);
+
+            if ($fuzzyKey !== null) {
+                $map[$fuzzyKey] = $this->preferFilled($ev, $map[$fuzzyKey]);
+
+                continue;
+            }
+
+            $map[$key] = $ev;
+            $order[] = $key;
         }
 
         $out = [];
@@ -351,6 +386,139 @@ class FreeEconomicCalendarClient
         usort($out, fn (array $a, array $b): int => ((int) $a['at']) <=> ((int) $b['at']));
 
         return $out;
+    }
+
+    /**
+     * @param  array<string, mixed>  $item
+     * @return array{previous: string, forecast: string, actual: string, unit: string}
+     */
+    protected function figuresFromObservations(array $item): array
+    {
+        $out = ['previous' => '—', 'forecast' => '—', 'actual' => '—', 'unit' => ''];
+        $rows = $item['observations'] ?? null;
+
+        if (! is_array($rows) || $rows === []) {
+            return $out;
+        }
+
+        foreach ($rows as $obs) {
+            if (! is_array($obs)) {
+                continue;
+            }
+
+            $role = strtolower(trim((string) ($obs['role'] ?? '')));
+            $value = $this->dash($obs['value'] ?? null);
+
+            if ($this->isBlank($value)) {
+                continue;
+            }
+
+            if ($out['unit'] === '') {
+                $out['unit'] = trim((string) ($obs['unit'] ?? ''));
+            }
+
+            if (in_array($role, ['actual', 'print', 'latest'], true)) {
+                $out['actual'] = $value;
+            } elseif (in_array($role, ['prior', 'previous', 'prev'], true)) {
+                $out['previous'] = $value;
+            } elseif (in_array($role, ['consensus', 'forecast', 'estimate'], true)) {
+                $out['forecast'] = $value;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  array<string, mixed>  $needle
+     * @param  array<string, array<string, mixed>>  $map
+     */
+    protected function findFuzzyKey(array $needle, array $map): ?string
+    {
+        $day = CarbonImmutable::createFromTimestampMs((int) ($needle['at'] ?? 0), 'UTC')->toDateString();
+        $ccy = strtoupper((string) ($needle['ccy'] ?? ''));
+        $tokens = $this->titleTokens((string) ($needle['title'] ?? ''));
+
+        if ($tokens === [] || $ccy === '') {
+            return null;
+        }
+
+        $bestKey = null;
+        $bestScore = 0.0;
+
+        foreach ($map as $key => $ev) {
+            $otherDay = CarbonImmutable::createFromTimestampMs((int) ($ev['at'] ?? 0), 'UTC')->toDateString();
+            $otherCcy = strtoupper((string) ($ev['ccy'] ?? ''));
+
+            if ($otherDay !== $day || $otherCcy !== $ccy) {
+                continue;
+            }
+
+            $score = $this->tokenOverlap($tokens, $this->titleTokens((string) ($ev['title'] ?? '')));
+
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestKey = $key;
+            }
+        }
+
+        return $bestScore >= 0.45 ? $bestKey : null;
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function titleTokens(string $title): array
+    {
+        $norm = Str::of($title)
+            ->lower()
+            ->replaceMatches('/[^a-z0-9]+/', ' ')
+            ->squish()
+            ->toString();
+
+        $parts = preg_split('/\s+/', $norm) ?: [];
+        $stop = [
+            'the', 'and', 'of', 'for', 'a', 'an', 'm', 'y', 'q', 'mm', 'yy', 'qq',
+            'us', 'usa', 'uk', 'gb', 'eu', 'german', 'germany', 'eurozone', 'euro',
+            'zone', 'october', 'november', 'december', 'january', 'february', 'march',
+            'april', 'may', 'june', 'july', 'august', 'september', '2025', '2026', '2027',
+        ];
+
+        $out = [];
+
+        foreach ($parts as $part) {
+            if (strlen($part) < 2 || in_array($part, $stop, true)) {
+                continue;
+            }
+
+            $out[] = $part;
+        }
+
+        return array_values(array_unique($out));
+    }
+
+    /**
+     * @param  list<string>  $a
+     * @param  list<string>  $b
+     */
+    protected function tokenOverlap(array $a, array $b): float
+    {
+        if ($a === [] || $b === []) {
+            return 0.0;
+        }
+
+        $setB = array_fill_keys($b, true);
+        $hit = 0;
+
+        foreach ($a as $token) {
+            if (isset($setB[$token])) {
+                $hit++;
+            }
+        }
+
+        $union = count(array_unique(array_merge($a, $b)));
+
+        return $union > 0 ? $hit / $union : 0.0;
     }
 
     /**

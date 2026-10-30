@@ -1912,8 +1912,134 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
 
 /* ── FX Learn Economic Radar ── */
 .agricart-catalog-toolbar--fx-radar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.55rem 0.75rem;
+    direction: ltr;
+    flex-wrap: nowrap;
+}
+
+.agricart-catalog-toolbar--fx-radar > .agricart-fxr-selects {
+    grid-column: 1;
+    justify-self: start;
+}
+
+.agricart-catalog-toolbar--fx-radar .agricart-catalog-toolbar__search--fx-center {
+    grid-column: 2;
+    justify-self: center;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    width: min(100%, 22rem);
+    min-width: 12rem;
+    margin: 0;
+    order: unset;
+}
+
+.agricart-catalog-toolbar--fx-radar .agricart-catalog-toolbar__search--fx-center .fi-input-wrp {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+}
+
+.agricart-catalog-toolbar--fx-radar .agricart-catalog-toolbar__actions {
+    grid-column: 3;
+    justify-self: end;
+    margin: 0;
+    order: unset;
+}
+
+.agricart-fxr-eta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 1.35rem;
+    padding: 0.22rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--agricart-primary) 30%, var(--agricart-border));
+    background: color-mix(in srgb, var(--agricart-primary) 8%, var(--agricart-surface));
+    font-size: 0.68rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--agricart-text);
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.agricart-fxr-eta__line {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.agricart-fxr-eta__line strong {
+    font-weight: 850;
+    color: #b45309;
+    font-variant-numeric: tabular-nums;
+}
+
+.agricart-fxr-eta__sep {
+    opacity: 0.45;
+}
+
+.agricart-fxr-eta__impact {
+    text-transform: uppercase;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    color: var(--agricart-muted);
+}
+
+.agricart-fxr-eta__empty {
+    color: var(--agricart-muted);
+    font-weight: 650;
+}
+
+@media (max-width: 960px) {
+    .agricart-catalog-toolbar--fx-radar {
+        grid-template-columns: 1fr;
+    }
+
+    .agricart-catalog-toolbar--fx-radar > .agricart-fxr-selects,
+    .agricart-catalog-toolbar--fx-radar .agricart-catalog-toolbar__search--fx-center,
+    .agricart-catalog-toolbar--fx-radar .agricart-catalog-toolbar__actions {
+        grid-column: 1;
+        justify-self: stretch;
+        width: 100%;
+    }
+}
+
+.agricart-fxr-selects {
+    display: inline-flex;
     flex-wrap: wrap;
-    gap: 0.45rem 0.65rem;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.agricart-fxr-select__el {
+    appearance: none;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0.45rem;
+    background:
+        var(--agricart-surface)
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='%2364748b'%3E%3Cpath d='M5.25 7.5L10 12.25L14.75 7.5'/%3E%3C/svg%3E")
+        no-repeat right 0.45rem center;
+    color: var(--agricart-text);
+    font-size: 0.72rem;
+    font-weight: 750;
+    padding: 0.34rem 1.55rem 0.34rem 0.55rem;
+    cursor: pointer;
+    min-height: 2rem;
+}
+
+.agricart-fxr-select__el:focus {
+    outline: 2px solid color-mix(in srgb, var(--agricart-primary) 45%, transparent);
+    outline-offset: 1px;
 }
 
 .agricart-fxr-filters {
@@ -1989,7 +2115,7 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .fxr__radar {
+    .fxr__hub {
         order: -1;
     }
 }
@@ -2033,14 +2159,12 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
 
 .fxr__clock {
     display: flex;
-    gap: 0.65rem;
+    gap: 0.55rem;
     align-items: center;
-    padding: 0.75rem 0.85rem;
-    border-radius: 0.85rem;
+    padding: 0.55rem 0.65rem;
+    border-radius: 0.65rem;
     border: 1px solid var(--agricart-border);
-    background:
-        linear-gradient(145deg, color-mix(in srgb, var(--agricart-surface) 88%, #fff), var(--agricart-surface));
-    box-shadow: inset 0 1px 0 rgb(255 255 255 / .35);
+    background: var(--agricart-surface);
 }
 
 .fxr__clock.is-open {
@@ -2048,20 +2172,18 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
 }
 
 .fxr__clock.is-closed {
-    opacity: 0.78;
+    opacity: 0.92;
 }
 
 .fxr__flag {
-    width: 2.4rem;
-    height: 2.4rem;
-    border-radius: 0.65rem;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.5rem;
     display: grid;
     place-items: center;
-    font-size: 1.45rem;
+    font-size: 1.2rem;
     background: color-mix(in srgb, var(--agricart-bg, #f1f5f9) 70%, var(--agricart-surface));
-    box-shadow:
-        0 8px 16px rgb(15 23 42 / .08),
-        inset 0 1px 0 rgb(255 255 255 / .5);
+    flex-shrink: 0;
 }
 
 .fxr__flag--inline {
@@ -2076,26 +2198,23 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
 
 .fxr__clock-city {
     margin: 0;
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--agricart-muted);
+    color: var(--agricart-text);
 }
 
 .fxr__clock-time {
-    margin: 0.1rem 0 0.25rem;
+    margin: 0.1rem 0;
     display: flex;
     align-items: baseline;
-    gap: 0.25rem;
+    gap: 0.2rem;
     font-variant-numeric: tabular-nums;
 }
 
 .fxr__clock-hm {
-    font-size: 1.35rem;
-    font-weight: 850;
+    font-size: 1.2rem;
+    font-weight: 800;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    letter-spacing: 0.02em;
     color: var(--agricart-text);
 }
 
@@ -2104,43 +2223,178 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
 }
 
 .fxr__clock-sec {
-    font-size: 0.78rem;
+    font-size: 0.7rem;
     font-weight: 700;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     color: var(--agricart-muted);
 }
 
-.fxr__session-pill {
-    display: inline-flex;
-    padding: 0.08rem 0.4rem;
-    border-radius: 999px;
-    font-size: 0.58rem;
-    font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    background: #e2e8f0;
-    color: #475569;
-}
-
-.fxr__session-pill.is-on {
-    background: #dcfce7;
-    color: #166534;
-}
-
 .fxr__clock-until {
-    margin: 0.28rem 0 0;
+    margin: 0;
     font-size: 0.68rem;
+    font-weight: 750;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+}
+
+.fxr__clock-until.is-opening {
+    color: #16a34a !important;
+}
+
+.fxr__clock-until.is-closing {
+    color: #dc2626 !important;
+}
+
+html.dark .fxr__clock-until.is-opening {
+    color: #4ade80 !important;
+}
+
+html.dark .fxr__clock-until.is-closing {
+    color: #f87171 !important;
+}
+
+.fxr__hub {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0.45rem;
+    min-width: 0;
+    padding: 0.55rem 0.65rem 0.6rem;
+    border-radius: 0.85rem;
+    border: 1px solid var(--agricart-border);
+    background: var(--agricart-surface);
+}
+
+.fxr__pk {
+    text-align: center;
+    padding: 0.35rem 0.25rem 0.2rem;
+    border-radius: 0.65rem;
+    background: color-mix(in srgb, var(--agricart-primary) 7%, var(--agricart-surface));
+    border: 1px solid color-mix(in srgb, var(--agricart-primary) 18%, var(--agricart-border));
+}
+
+.fxr__pk-top {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    margin-bottom: 0.1rem;
+}
+
+.fxr__pk-flag {
+    font-size: 1.35rem;
+    line-height: 1;
+}
+
+.fxr__pk-label {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 850;
+    letter-spacing: 0.02em;
+    color: var(--agricart-text);
+}
+
+.fxr__pk-time {
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.35rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.fxr__pk-hm {
+    font-size: 2.55rem;
+    font-weight: 900;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--agricart-text);
+    letter-spacing: 0.03em;
+    line-height: 1;
+}
+
+.fxr__pk-sec {
+    font-size: 1.15rem;
+    font-weight: 800;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--agricart-muted);
+    line-height: 1;
+}
+
+.fxr__pk-date {
+    margin: 0.2rem 0 0;
+    font-size: 0.92rem;
     font-weight: 750;
     color: var(--agricart-text);
     font-variant-numeric: tabular-nums;
 }
 
-.fxr__clock-hours {
-    margin: 0.1rem 0 0;
-    font-size: 0.62rem;
-    font-weight: 650;
+.fxr__eta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    width: 100%;
+    padding: 0.35rem 0.55rem;
+    border-radius: 0.55rem;
+    border: 1px solid var(--agricart-border);
+    background: color-mix(in srgb, var(--agricart-bg, #f1f5f9) 55%, var(--agricart-surface));
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1.25;
+    color: var(--agricart-text);
+}
+
+.fxr__eta--filter {
+    border-color: color-mix(in srgb, #ea580c 35%, var(--agricart-border));
+    background: color-mix(in srgb, #ffedd5 70%, var(--agricart-surface));
+}
+
+.fxr__eta--routine {
+    border-color: color-mix(in srgb, #2563eb 28%, var(--agricart-border));
+    background: color-mix(in srgb, #dbeafe 65%, var(--agricart-surface));
+}
+
+.fxr__eta--empty {
     color: var(--agricart-muted);
+    font-weight: 650;
+}
+
+.fxr__eta-flag {
+    font-size: 0.9rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.fxr__eta-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fxr__eta-text strong {
+    font-weight: 900;
+    color: #b45309;
     font-variant-numeric: tabular-nums;
+}
+
+.fxr__eta--routine .fxr__eta-text strong {
+    color: #1d4ed8;
+}
+
+.fxr__eta-sep {
+    opacity: 0.45;
+    margin: 0 0.08rem;
+}
+
+.fxr__eta-impact {
+    text-transform: uppercase;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--agricart-muted);
+    margin-inline-start: 0.12rem;
 }
 
 .fxr__radar {
@@ -2291,6 +2545,62 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
     color: var(--agricart-muted);
 }
 
+.fxr__daybar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    padding: 0.55rem 0.75rem;
+    border-bottom: 1px solid var(--agricart-border);
+    background: color-mix(in srgb, var(--agricart-surface) 92%, #e2e8f0);
+}
+
+.fxr__daychip {
+    appearance: none;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0.45rem;
+    background: var(--agricart-surface);
+    color: var(--agricart-text);
+    font-size: 0.68rem;
+    font-weight: 750;
+    padding: 0.28rem 0.5rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+}
+
+.fxr__daychip.is-on {
+    border-color: color-mix(in srgb, var(--agricart-primary) 55%, var(--agricart-border));
+    background: color-mix(in srgb, var(--agricart-primary) 12%, var(--agricart-surface));
+    color: var(--agricart-primary-hover);
+}
+
+.fxr__daychip-n {
+    font-variant-numeric: tabular-nums;
+    opacity: 0.72;
+    font-size: 0.62rem;
+}
+
+.fxr__daychip--tool {
+    margin-inline-start: auto;
+}
+
+.fxr__surprise {
+    display: inline-flex;
+    margin-inline-start: 0.28rem;
+    padding: 0.05rem 0.28rem;
+    border-radius: 0.3rem;
+    font-size: 0.62rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    background: #e2e8f0;
+    color: #475569;
+}
+
+.fxr__surprise.is-up { background: #dcfce7; color: #166534; }
+.fxr__surprise.is-down { background: #fee2e2; color: #b91c1c; }
+.fxr__surprise.is-flat { background: #e2e8f0; color: #334155; }
+
 .fxr__feed.is-live {
     color: #15803d;
     font-weight: 800;
@@ -2302,19 +2612,37 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
 }
 
 .fxr__tv {
-    border-radius: 1rem;
+    width: 100%;
     border: 1px solid var(--agricart-border);
+    border-radius: 0.9rem;
     background: var(--agricart-surface);
-    padding: 0.85rem 1rem 1rem;
+    overflow: hidden;
+    padding: 0;
+}
+
+.fxr__tv .fxr__sheet-head {
+    width: 100%;
 }
 
 .fxr__tv-frame {
-    margin-top: 0.65rem;
-    border-radius: 0.75rem;
+    width: 100%;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
     overflow: hidden;
-    border: 1px solid var(--agricart-border);
-    min-height: 420px;
+    min-height: 480px;
     background: #fff;
+}
+
+.fxr__tv-frame .tradingview-widget-container,
+.fxr__tv-frame .tradingview-widget-container__widget {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+.fxr__tv-frame iframe {
+    width: 100% !important;
+    max-width: none !important;
 }
 
 .fxr__btn {
@@ -2604,6 +2932,178 @@ html.dark .fxr__session-pill.is-on {
     }
 
     .fxr__radar-metrics {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ── FX Learn · Market Signals ── */
+.fxs {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+}
+
+.fxs__tape {
+    border: 1px solid var(--agricart-border);
+    border-radius: 0.9rem;
+    background: var(--agricart-surface);
+    overflow: hidden;
+}
+
+.fxs__tape-frame {
+    min-height: 2.75rem;
+    width: 100%;
+}
+
+.fxs__assets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.fxs__assets--stage {
+    padding: 0.55rem 0.85rem;
+    border-bottom: 1px solid var(--agricart-border);
+    background: color-mix(in srgb, var(--agricart-surface) 92%, #e2e8f0);
+}
+
+.fxs__chip {
+    appearance: none;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0.45rem;
+    background: color-mix(in srgb, var(--agricart-surface) 88%, #e2e8f0);
+    color: var(--agricart-text);
+    font-size: 0.72rem;
+    font-weight: 750;
+    padding: 0.32rem 0.62rem;
+    cursor: pointer;
+}
+
+.fxs__chip:hover {
+    border-color: color-mix(in srgb, var(--agricart-primary) 40%, var(--agricart-border));
+}
+
+.fxs__chip.is-on {
+    border-color: color-mix(in srgb, var(--agricart-primary) 55%, var(--agricart-border));
+    background: color-mix(in srgb, var(--agricart-primary) 14%, var(--agricart-surface));
+    color: var(--agricart-primary-hover);
+}
+
+.fxs__chip--asset {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+}
+
+.fxs__chip--tf {
+    font-size: 0.68rem;
+    min-width: 2.4rem;
+    justify-content: center;
+}
+
+.fxs__empty-hint {
+    font-size: 0.75rem;
+    color: var(--agricart-muted);
+    padding: 0.2rem 0.1rem;
+}
+
+.fxs__stage,
+.fxs__panel {
+    border: 1px solid var(--agricart-border);
+    border-radius: 0.9rem;
+    background: var(--agricart-surface);
+    overflow: hidden;
+}
+
+.fxs__stage-head,
+.fxs__panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 0.95rem;
+    border-bottom: 1px solid var(--agricart-border);
+}
+
+.fxs__kicker {
+    margin: 0;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--agricart-muted);
+}
+
+.fxs__stage-title,
+.fxs__panel-title {
+    margin: 0.12rem 0 0;
+    font-size: 1.05rem;
+    font-weight: 850;
+}
+
+.fxs__stage-sub,
+.fxs__panel-sub {
+    margin: 0.2rem 0 0;
+    font-size: 0.72rem;
+    color: var(--agricart-muted);
+    max-width: 40rem;
+}
+
+.fxs__btn {
+    appearance: none;
+    border: 1px solid var(--agricart-border);
+    border-radius: 0.45rem;
+    background: color-mix(in srgb, var(--agricart-surface) 90%, #e2e8f0);
+    color: var(--agricart-text);
+    font-size: 0.72rem;
+    font-weight: 750;
+    padding: 0.35rem 0.65rem;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.fxs__btn:hover {
+    border-color: color-mix(in srgb, var(--agricart-primary) 45%, var(--agricart-border));
+}
+
+.fxs__stage-grid {
+    display: grid;
+    grid-template-columns: minmax(14rem, 0.9fr) minmax(18rem, 1.4fr);
+    gap: 0.75rem;
+    padding: 0.85rem;
+    align-items: stretch;
+}
+
+.fxs__quote,
+.fxs__ta {
+    border: 1px solid color-mix(in srgb, var(--agricart-border) 75%, transparent);
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--agricart-bg, #f8fafc) 70%, var(--agricart-surface));
+    overflow: hidden;
+    min-height: 8rem;
+}
+
+.fxs__ta {
+    min-height: 400px;
+}
+
+.fxs__quote .tradingview-widget-container,
+.fxs__quote .tradingview-widget-container__widget {
+    width: 100% !important;
+}
+
+.fxs__markets {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.85rem;
+}
+
+.fxs__panel-body {
+    padding: 0.35rem;
+}
+
+@media (max-width: 960px) {
+    .fxs__stage-grid,
+    .fxs__markets {
         grid-template-columns: 1fr;
     }
 }

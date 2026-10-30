@@ -264,11 +264,9 @@ class PendingPaymentsPage extends BaseModulePage
         $status = $this->persistStatus === 'saved' ? 'saved' : 'draft';
         $payload = $this->sheetPayload($status);
         $payload['sheet_no'] = $sheetNo;
-        $sheet = ToolsPendingPaymentSheet::query()->updateOrCreate(
-            ['user_id' => (int) auth()->id(), 'sheet_no' => $sheetNo],
-            $payload,
-        );
+        $sheet = $this->upsertSheetSafely($payload, $sheetNo, preferDraft: true);
         $this->editingSheetId = (int) $sheet->id;
+        $this->sheetNo = (string) $sheet->sheet_no;
         $this->draftFlash = 'saved';
         if ($skipRender) {
             $this->skipRender();
@@ -290,18 +288,7 @@ class PendingPaymentsPage extends BaseModulePage
             $this->sheetNo = $sheetNo;
         }
         $payload['sheet_no'] = $sheetNo;
-        if ($this->editingSheetId) {
-            ToolsPendingPaymentSheet::query()
-                ->where('user_id', auth()->id())
-                ->whereKey($this->editingSheetId)
-                ->firstOrFail()
-                ->update($payload);
-        } else {
-            ToolsPendingPaymentSheet::query()->updateOrCreate(
-                ['user_id' => (int) auth()->id(), 'sheet_no' => $sheetNo],
-                $payload,
-            );
-        }
+        $this->upsertSheetSafely($payload, $sheetNo, preferDraft: false);
         $this->editingSheetId = null;
         $this->persistStatus = 'draft';
         $this->screen = 'list';
@@ -1056,5 +1043,69 @@ class PendingPaymentsPage extends BaseModulePage
         return ToolsCluster::unshiftClusterBreadcrumbs([
             static::getUrl() => static::getNavigationLabel(),
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    protected function upsertSheetSafely(array $payload, string $sheetNo, bool $preferDraft): ToolsPendingPaymentSheet
+    {
+        $userId = (int) auth()->id();
+        $service = app(PendingPaymentsSheetService::class);
+
+        if ($this->editingSheetId) {
+            $row = ToolsPendingPaymentSheet::query()
+                ->where('user_id', $userId)
+                ->whereKey($this->editingSheetId)
+                ->first();
+
+            if ($row !== null) {
+                if ((string) $row->status === 'closed' && $preferDraft) {
+                    $sheetNo = $service->nextSheetNumber();
+                    $payload['sheet_no'] = $sheetNo;
+                    $payload['status'] = 'draft';
+                    $created = ToolsPendingPaymentSheet::query()->create(array_merge($payload, ['user_id' => $userId]));
+                    $this->editingSheetId = (int) $created->id;
+
+                    return $created;
+                }
+
+                $payload['sheet_no'] = (string) $row->sheet_no;
+                if ($preferDraft && (string) $row->status === 'saved') {
+                    unset($payload['status']);
+                }
+                $row->update($payload);
+
+                return $row->fresh() ?? $row;
+            }
+        }
+
+        $existing = ToolsPendingPaymentSheet::query()
+            ->where('user_id', $userId)
+            ->where('sheet_no', $sheetNo)
+            ->first();
+
+        if ($existing !== null) {
+            if (in_array((string) $existing->status, ['saved', 'closed'], true) && $preferDraft) {
+                $sheetNo = $service->nextSheetNumber();
+                $payload['sheet_no'] = $sheetNo;
+                $payload['status'] = 'draft';
+
+                return ToolsPendingPaymentSheet::query()->create(array_merge($payload, ['user_id' => $userId]));
+            }
+
+            if ((string) $existing->status === 'closed' && ! $preferDraft) {
+                $sheetNo = $service->nextSheetNumber();
+                $payload['sheet_no'] = $sheetNo;
+
+                return ToolsPendingPaymentSheet::query()->create(array_merge($payload, ['user_id' => $userId]));
+            }
+
+            $existing->update($payload);
+
+            return $existing->fresh() ?? $existing;
+        }
+
+        return ToolsPendingPaymentSheet::query()->create(array_merge($payload, ['user_id' => $userId]));
     }
 }

@@ -464,15 +464,10 @@ class PurchaseSummaryPage extends BaseModulePage
         $payload = $this->summaryPayload($status);
         $payload['summary_no'] = $summaryNo;
 
-        $summary = ToolsPurchaseSummary::query()->updateOrCreate(
-            [
-                'user_id' => (int) auth()->id(),
-                'summary_no' => $summaryNo,
-            ],
-            $payload,
-        );
+        $summary = $this->upsertSummarySafely($payload, $summaryNo, preferDraft: true);
 
         $this->editingSummaryId = (int) $summary->id;
+        $this->summaryNo = (string) $summary->summary_no;
         $this->draftFlash = 'saved';
 
         if ($skipRender) {
@@ -1113,21 +1108,7 @@ class PurchaseSummaryPage extends BaseModulePage
         }
         $payload['summary_no'] = $summaryNo;
 
-        if ($this->editingSummaryId) {
-            $summary = ToolsPurchaseSummary::query()
-                ->where('user_id', auth()->id())
-                ->whereKey($this->editingSummaryId)
-                ->firstOrFail();
-            $summary->update($payload);
-        } else {
-            ToolsPurchaseSummary::query()->updateOrCreate(
-                [
-                    'user_id' => (int) auth()->id(),
-                    'summary_no' => $payload['summary_no'],
-                ],
-                $payload,
-            );
-        }
+        $this->upsertSummarySafely($payload, $payload['summary_no'], preferDraft: false);
 
         $this->js('window.dispatchEvent(new CustomEvent("tools-purchase-summary-clear-local-draft"))');
         $this->editingSummaryId = null;
@@ -1701,5 +1682,69 @@ class PurchaseSummaryPage extends BaseModulePage
         return ToolsCluster::unshiftClusterBreadcrumbs([
             static::getUrl() => static::getNavigationLabel(),
         ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    protected function upsertSummarySafely(array $payload, string $summaryNo, bool $preferDraft): ToolsPurchaseSummary
+    {
+        $userId = (int) auth()->id();
+        $service = app(PurchaseSummarySettingsService::class);
+
+        if ($this->editingSummaryId) {
+            $row = ToolsPurchaseSummary::query()
+                ->where('user_id', $userId)
+                ->whereKey($this->editingSummaryId)
+                ->first();
+
+            if ($row !== null) {
+                if ((string) $row->status === 'closed' && $preferDraft) {
+                    $summaryNo = $service->nextSummaryNumber();
+                    $payload['summary_no'] = $summaryNo;
+                    $payload['status'] = 'draft';
+                    $created = ToolsPurchaseSummary::query()->create(array_merge($payload, ['user_id' => $userId]));
+                    $this->editingSummaryId = (int) $created->id;
+
+                    return $created;
+                }
+
+                $payload['summary_no'] = (string) $row->summary_no;
+                if ($preferDraft && (string) $row->status === 'saved') {
+                    unset($payload['status']);
+                }
+                $row->update($payload);
+
+                return $row->fresh() ?? $row;
+            }
+        }
+
+        $existing = ToolsPurchaseSummary::query()
+            ->where('user_id', $userId)
+            ->where('summary_no', $summaryNo)
+            ->first();
+
+        if ($existing !== null) {
+            if (in_array((string) $existing->status, ['saved', 'closed'], true) && $preferDraft) {
+                $summaryNo = $service->nextSummaryNumber();
+                $payload['summary_no'] = $summaryNo;
+                $payload['status'] = 'draft';
+
+                return ToolsPurchaseSummary::query()->create(array_merge($payload, ['user_id' => $userId]));
+            }
+
+            if ((string) $existing->status === 'closed' && ! $preferDraft) {
+                $summaryNo = $service->nextSummaryNumber();
+                $payload['summary_no'] = $summaryNo;
+
+                return ToolsPurchaseSummary::query()->create(array_merge($payload, ['user_id' => $userId]));
+            }
+
+            $existing->update($payload);
+
+            return $existing->fresh() ?? $existing;
+        }
+
+        return ToolsPurchaseSummary::query()->create(array_merge($payload, ['user_id' => $userId]));
     }
 }

@@ -62,6 +62,10 @@ return Application::configure(basePath: dirname(__DIR__))
             ->dailyAt('00:05')
             ->timezone(config('app.display_timezone')));
 
+        $protect($schedule->command('fx-learn:refresh-calendar')
+            ->everyFiveMinutes()
+            ->when($databaseReachable));
+
         app(BackupScheduleRegistrar::class)->register($schedule, $protect);
 
         $protect($schedule->command('media:purge-temp --hours=24')
