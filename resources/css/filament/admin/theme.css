@@ -1942,7 +1942,7 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
 
 .agricart-fxt-chrome {
     display: grid;
-    grid-template-columns: minmax(11rem, 1.1fr) auto minmax(13rem, 1.15fr);
+    grid-template-columns: minmax(18rem, 1.25fr) auto minmax(13rem, 1.05fr);
     align-items: center;
     gap: .55rem .85rem;
     width: 100%;
@@ -1955,78 +1955,114 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
 .agricart-fxt-sessions {
     justify-self: start;
     min-width: 0;
-    max-width: 22rem;
+    max-width: none;
     display: flex;
-    flex-direction: column;
-    gap: .22rem;
+    flex-wrap: nowrap;
+    align-items: flex-end;
+    gap: .4rem .5rem;
 }
 
-.agricart-fxt-sessions__meta {
+.agricart-fxt-sessions__chip {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: .25rem .4rem;
-    font-size: .58rem;
-    font-weight: 750;
-    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: .12rem;
+    min-width: 3.6rem;
+    max-width: 4.6rem;
+    padding: .15rem .3rem .2rem;
+    border-radius: .4rem;
+    align-self: stretch;
 }
 
 .agricart-fxt-sessions__liq {
     letter-spacing: .03em;
     text-transform: uppercase;
     font-weight: 850;
+    font-size: .52rem;
+    line-height: 1.15;
     color: var(--agricart-muted);
 }
 
-.agricart-fxt-sessions__liq.is-very-high {
-    color: #15803d;
+.agricart-fxt-sessions__chip.is-very-high {
     background: #dcfce7;
     border: 1px solid #86efac;
-    border-radius: .3rem;
-    padding: .06rem .35rem;
 }
-
-.agricart-fxt-sessions__liq.is-high { color: #166534; }
-.agricart-fxt-sessions__liq.is-medium { color: #1d4ed8; }
-.agricart-fxt-sessions__liq.is-off { color: #b91c1c; }
+.agricart-fxt-sessions__chip.is-very-high .agricart-fxt-sessions__liq { color: #15803d; }
+.agricart-fxt-sessions__chip.is-high .agricart-fxt-sessions__liq { color: #166534; }
+.agricart-fxt-sessions__chip.is-medium .agricart-fxt-sessions__liq { color: #1d4ed8; }
+.agricart-fxt-sessions__chip.is-off .agricart-fxt-sessions__liq { color: #b91c1c; }
 
 .agricart-fxt-sessions__overlap {
     background: #fff7ed;
     color: #c2410c;
     border: 1px solid #fdba74;
-    border-radius: .3rem;
-    padding: .06rem .3rem;
-    font-weight: 800;
-    letter-spacing: .04em;
+    border-radius: .25rem;
+    padding: .04rem .25rem;
+    font-size: .5rem;
+    font-weight: 850;
+    letter-spacing: .03em;
     text-transform: uppercase;
+    width: fit-content;
 }
 
-.agricart-fxt-sessions__summary {
+.agricart-fxt-sessions__item {
+    width: 4.85rem;
+    flex: 0 0 4.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: .08rem;
+    min-width: 0;
+}
+
+.agricart-fxt-sessions__code {
+    font-size: .52rem;
+    font-weight: 800;
+    letter-spacing: .05em;
+    text-transform: uppercase;
     color: var(--agricart-muted);
+    line-height: 1.1;
+}
+
+.agricart-fxt-sessions__until {
+    font-size: .66rem;
+    font-weight: 850;
+    font-variant-numeric: tabular-nums;
+    color: var(--agricart-text);
+    line-height: 1.1;
     white-space: nowrap;
+}
+
+.agricart-fxt-sessions__bar {
+    display: block;
+    height: .28rem;
+    border-radius: 999px;
     overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 9rem;
+    background: #fee2e2;
+    margin-top: .04rem;
 }
 
-.agricart-fxt-sessions__track {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: .22rem;
-    align-items: end;
+.agricart-fxt-sessions__fill {
+    display: block;
+    height: 100%;
+    width: 0;
+    border-radius: inherit;
+    background: #dc2626;
+    transition: width .45s ease;
 }
 
-.agricart-fxt-sessions__seg { display: flex; flex-direction: column; gap: .14rem; min-width: 0; }
-.agricart-fxt-sessions__code { font-size: .55rem; font-weight: 800; letter-spacing: .05em; color: var(--agricart-muted); }
-.agricart-fxt-sessions__seg.is-open .agricart-fxt-sessions__code { color: #166534; }
-.agricart-fxt-sessions__seg.is-overlap .agricart-fxt-sessions__code { color: #c2410c; }
-.agricart-fxt-sessions__seg.is-closed .agricart-fxt-sessions__code { color: #b91c1c; }
-.agricart-fxt-sessions__bar { display: block; height: .36rem; border-radius: 999px; overflow: hidden; background: #fecaca; }
-.agricart-fxt-sessions__seg.is-open .agricart-fxt-sessions__bar { background: #bbf7d0; }
-.agricart-fxt-sessions__seg.is-overlap .agricart-fxt-sessions__bar { background: #fde68a; }
-.agricart-fxt-sessions__fill { display: block; height: 100%; width: 0; border-radius: inherit; background: #dc2626; transition: width .6s ease; }
-.agricart-fxt-sessions__seg.is-open .agricart-fxt-sessions__fill { background: #16a34a; }
-.agricart-fxt-sessions__seg.is-overlap .agricart-fxt-sessions__fill { background: linear-gradient(90deg, #16a34a, #d97706); }
+.agricart-fxt-sessions__item.is-closed .agricart-fxt-sessions__code { color: #b91c1c; }
+.agricart-fxt-sessions__item.is-closed .agricart-fxt-sessions__until { color: #b91c1c; }
+.agricart-fxt-sessions__item.is-closed .agricart-fxt-sessions__fill { width: 100% !important; background: #dc2626; }
+
+.agricart-fxt-sessions__item.is-open .agricart-fxt-sessions__code { color: #166534; }
+.agricart-fxt-sessions__item.is-open .agricart-fxt-sessions__until { color: #166534; }
+.agricart-fxt-sessions__item.is-open .agricart-fxt-sessions__bar { background: #bbf7d0; }
+.agricart-fxt-sessions__item.is-open .agricart-fxt-sessions__fill { background: #16a34a; }
+
+.agricart-fxt-sessions__item.is-overlap .agricart-fxt-sessions__code { color: #c2410c; }
+.agricart-fxt-sessions__item.is-overlap .agricart-fxt-sessions__until { color: #c2410c; }
+.agricart-fxt-sessions__item.is-overlap .agricart-fxt-sessions__bar { background: #fde68a; }
+.agricart-fxt-sessions__item.is-overlap .agricart-fxt-sessions__fill { background: linear-gradient(90deg, #16a34a, #d97706); }
 
 .agricart-fxt-risk {
     justify-self: end;
@@ -2103,6 +2139,8 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
         justify-self: stretch;
         max-width: none;
     }
+    .agricart-fxt-sessions { flex-wrap: wrap; }
+    .agricart-fxt-sessions__item { flex: 1 1 4.5rem; width: auto; }
     .agricart-fxt-risk { justify-content: space-between; }
     .agricart-fxt-risk__item { flex: 1 1 0; width: auto; }
 }

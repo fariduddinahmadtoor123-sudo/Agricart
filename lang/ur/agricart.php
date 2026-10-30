@@ -481,6 +481,8 @@ return [
             'term_liq_medium' => 'میڈیم',
             'term_liq_off' => 'مارکیٹ بند',
             'term_session_overlap' => 'اوورلیپ',
+            'term_sess_close' => 'Close',
+            'term_sess_open' => 'Open',
             'term_data_label' => 'اگلا ڈیٹا',
             'term_data_box' => 'اکنامک ڈیٹا ٹکر',
             'term_data_empty' => 'اس فلٹر میں کوئی آنے والا ڈیٹا نہیں',

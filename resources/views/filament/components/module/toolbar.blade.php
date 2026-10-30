@@ -241,7 +241,7 @@
                 $termSessions = is_array($toolbar['fxLearnTerminalSessions'] ?? null) ? $toolbar['fxLearnTerminalSessions'] : [];
             @endphp
             <div class="agricart-fxt-chrome">
-                {{-- Left: session / liquidity strip --}}
+                {{-- Left: session gauges (same rhythm as risk bars) — closed=full red, open=green fill + Close/Open countdown --}}
                 <div
                     class="agricart-fxt-sessions"
                     role="group"
@@ -250,6 +250,9 @@
                         pack: @js($termSessions),
                         rows: @js($termSessions['sessions'] ?? []),
                         overlap: @js(! empty($termSessions['overlap'])),
+                        closeWord: @js(__('agricart.pages.fx-learn.term_sess_close')),
+                        openWord: @js(__('agricart.pages.fx-learn.term_sess_open')),
+                        timer: null,
                         init() {
                             Livewire.on('fx-learn-terminal-sessions-sync', (e) => {
                                 const d = Array.isArray(e) ? (e[0] ?? {}) : (e ?? {});
@@ -261,20 +264,41 @@
                                 }
                             });
                             this.tick();
-                            setInterval(() => this.tick(), 15000);
+                            this.timer = setInterval(() => this.tick(), 1000);
+                        },
+                        destroy() {
+                            if (this.timer) clearInterval(this.timer);
+                        },
+                        span(ms) {
+                            const abs = Math.max(0, Math.floor(ms / 1000));
+                            const h = Math.floor(abs / 3600);
+                            const m = Math.floor((abs % 3600) / 60);
+                            const s = abs % 60;
+                            if (h > 0) return h + 'h ' + m + 'm';
+                            if (m > 0) return m + 'm';
+                            return Math.max(1, s) + 's';
                         },
                         tick() {
                             const now = Date.now();
+                            let openCount = 0;
                             this.rows = (this.rows || []).map((row) => {
                                 const startMs = Number(row.start_ms) || 0;
                                 const closeMs = Number(row.close_ms) || 0;
                                 const open = startMs > 0 && closeMs > startMs && now >= startMs && now < closeMs;
-                                let progress = 0;
+                                let progress = 100;
+                                let until = '—';
                                 if (open) {
+                                    openCount++;
                                     progress = Math.min(100, Math.max(0, ((now - startMs) / (closeMs - startMs)) * 100));
+                                    until = this.closeWord + ' ' + this.span(closeMs - now);
+                                } else if (startMs > now) {
+                                    until = this.openWord + ' ' + this.span(startMs - now);
+                                } else if (closeMs > now) {
+                                    until = this.openWord + ' ' + this.span(closeMs - now);
                                 }
-                                return { ...row, open, progress };
+                                return { ...row, open, progress, until };
                             });
+                            this.overlap = openCount >= 2;
                         },
                         liqClass() {
                             const k = this.pack?.liquidity || 'off';
@@ -286,26 +310,33 @@
                             };
                         }
                     }"
+                    x-on:remove="destroy()"
                 >
-                    <div class="agricart-fxt-sessions__meta">
-                        <span class="agricart-fxt-sessions__liq" :class="liqClass()" x-text="pack?.liquidity_label || ''"></span>
+                    <div
+                        class="agricart-fxt-sessions__chip"
+                        :class="liqClass()"
+                        :title="pack?.summary || ''"
+                    >
+                        <span class="agricart-fxt-sessions__liq" x-text="pack?.liquidity_label || ''"></span>
                         <span class="agricart-fxt-sessions__overlap" x-show="overlap" x-cloak>{{ __('agricart.pages.fx-learn.term_session_overlap') }}</span>
-                        <span class="agricart-fxt-sessions__summary" dir="ltr" x-text="pack?.summary || ''"></span>
                     </div>
-                    <div class="agricart-fxt-sessions__track" dir="ltr">
-                        <template x-for="row in rows" :key="row.id">
-                            <div
-                                class="agricart-fxt-sessions__seg"
-                                :class="{ 'is-open': row.open, 'is-closed': !row.open, 'is-overlap': row.open && overlap }"
-                                :title="row.label"
-                            >
-                                <span class="agricart-fxt-sessions__code" x-text="row.short"></span>
-                                <span class="agricart-fxt-sessions__bar" aria-hidden="true">
-                                    <span class="agricart-fxt-sessions__fill" :style="'width:' + (row.open ? row.progress : 0) + '%'"></span>
-                                </span>
-                            </div>
-                        </template>
-                    </div>
+                    <template x-for="row in rows" :key="row.id">
+                        <div
+                            class="agricart-fxt-sessions__item"
+                            :class="{
+                                'is-open': row.open,
+                                'is-closed': ! row.open,
+                                'is-overlap': row.open && overlap
+                            }"
+                            :title="row.label"
+                        >
+                            <span class="agricart-fxt-sessions__code" x-text="row.short"></span>
+                            <strong class="agricart-fxt-sessions__until" dir="ltr" x-text="row.until || '—'"></strong>
+                            <span class="agricart-fxt-sessions__bar" aria-hidden="true">
+                                <span class="agricart-fxt-sessions__fill" :style="'width:' + (row.progress || 0) + '%'"></span>
+                            </span>
+                        </div>
+                    </template>
                 </div>
 
                 {{-- Center: market category chips --}}

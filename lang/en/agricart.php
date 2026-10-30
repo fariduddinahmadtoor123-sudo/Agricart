@@ -482,6 +482,8 @@ return [
             'term_liq_medium' => 'Medium',
             'term_liq_off' => 'Market closed',
             'term_session_overlap' => 'Overlap',
+            'term_sess_close' => 'Close',
+            'term_sess_open' => 'Open',
             'term_data_label' => 'Next data',
             'term_data_box' => 'Economic data ticker',
             'term_data_empty' => 'No upcoming data for this filter',
