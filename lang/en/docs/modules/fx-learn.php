@@ -88,4 +88,46 @@ return [
             ],
         ],
     ],
+
+    'trade-terminal' => [
+        'title' => 'FX Learn — Trade Terminal',
+        'summary' => 'Personal demo trading desk: watchlist, TradingView chart, SL/TP orders, open positions, history, save/reset.',
+        'meta' => [
+            'routes' => ['/admin/fx-learn/trade-terminal'],
+            'permissions' => ['fx-learn.trade-terminal.view', 'fx-learn.trade-terminal.edit'],
+        ],
+        'sections' => [
+            [
+                'id' => 'purpose',
+                'type' => 'purpose',
+                'heading' => 'Purpose',
+                'paragraphs' => [
+                    'Practice desk with demo money. Front-line shows only symbols you add to the watchlist.',
+                    'Charts are TradingView Advanced Chart embeds (same symbol family as Market Signals). Order fills use Yahoo/Binance sample quotes for bid/ask and SL/TP hits.',
+                ],
+            ],
+            [
+                'id' => 'workflows',
+                'type' => 'workflows',
+                'heading' => 'Use',
+                'steps' => [
+                    'Add symbols with + Add symbol (catalog by category).',
+                    'Select a watchlist symbol — chart and ticket follow it.',
+                    'Set lots, optional SL/TP, Buy or Sell. Open positions and history stay under your user.',
+                    'Account & rules: save challenge %, or Reset account (closes opens, restores balance; history kept).',
+                ],
+            ],
+            [
+                'id' => 'technical',
+                'type' => 'technical',
+                'heading' => 'Technical',
+                'classes' => [
+                    'page' => 'App\\Filament\\Clusters\\FxLearn\\TradeTerminalPage',
+                    'terminal' => 'App\\Services\\FxLearn\\DemoTerminalService',
+                    'quotes' => 'App\\Services\\FxLearn\\DemoQuoteService',
+                    'catalog' => 'App\\Services\\FxLearn\\DemoSymbolCatalog',
+                ],
+            ],
+        ],
+    ],
 ];

@@ -88,4 +88,46 @@ return [
             ],
         ],
     ],
+
+    'trade-terminal' => [
+        'title' => 'FX Learn — ٹریڈ ٹرمینل',
+        'summary' => 'ذاتی ڈیمو ٹریڈنگ ڈیسک: واچ لسٹ، TradingView چارٹ، SL/TP، اوپن پوزیشنز، ہسٹری، سیو/ری سیٹ۔',
+        'meta' => [
+            'routes' => ['/admin/fx-learn/trade-terminal'],
+            'permissions' => ['fx-learn.trade-terminal.view', 'fx-learn.trade-terminal.edit'],
+        ],
+        'sections' => [
+            [
+                'id' => 'purpose',
+                'type' => 'purpose',
+                'heading' => 'مقصد',
+                'paragraphs' => [
+                    'ڈیمو منی سے پریکٹس۔ فرنٹ لائن پر صرف وہ سمبلز جو آپ واچ لسٹ میں ایڈ کریں۔',
+                    'چارٹ TradingView Advanced Chart ہے (Market Signals جیسا سمبل خاندان)۔ فلز Yahoo/Binance سیمپل کوٹس سے ہیں۔',
+                ],
+            ],
+            [
+                'id' => 'workflows',
+                'type' => 'workflows',
+                'heading' => 'استعمال',
+                'steps' => [
+                    '+ Add symbol سے کیٹلاگ میں سے سمبل ایڈ کریں۔',
+                    'واچ لسٹ سمبل چنیں — چارٹ اور ٹکٹ فالو کریں گے۔',
+                    'لاٹس، اختیاری SL/TP، Buy/Sell۔ اوپن اور ہسٹری آپ کے یوزر کے تحت محفوظ۔',
+                    'Account & rules: % محفوظ کریں، یا Reset (اوپن بند، بیلنس واپس؛ ہسٹری رہتی ہے)۔',
+                ],
+            ],
+            [
+                'id' => 'technical',
+                'type' => 'technical',
+                'heading' => 'تکنیکی',
+                'classes' => [
+                    'page' => 'App\\Filament\\Clusters\\FxLearn\\TradeTerminalPage',
+                    'terminal' => 'App\\Services\\FxLearn\\DemoTerminalService',
+                    'quotes' => 'App\\Services\\FxLearn\\DemoQuoteService',
+                    'catalog' => 'App\\Services\\FxLearn\\DemoSymbolCatalog',
+                ],
+            ],
+        ],
+    ],
 ];
