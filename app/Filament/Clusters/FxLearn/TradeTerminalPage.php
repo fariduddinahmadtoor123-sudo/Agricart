@@ -402,12 +402,11 @@ class TradeTerminalPage extends BaseModulePage
     /**
      * All tradable symbols in the active category (auto — no manual add).
      *
-     * @return list<array{id: string, label: string, tv: string, binance: ?string, bid: float|null, ask: float|null, mid: float|null, high: float|null, low: float|null, digits: int, live: bool, time: string, refresh: string, refresh_mode: string}>
+     * @return list<array{id: string, label: string, tv: string, binance: ?string, bid: float|null, ask: float|null, mid: float|null, high: float|null, low: float|null, digits: int, live: bool, time: string}>
      */
     public function categorySymbolRows(): array
     {
         $rows = [];
-        $serverSeconds = max(DemoQuoteService::SOFT_POLL_SECONDS, DemoQuoteService::sharedCacheSeconds());
 
         foreach (DemoSymbolCatalog::optionsForCategory($this->category) as $row) {
             $q = $this->quotes[$row['id']] ?? null;
@@ -415,28 +414,12 @@ class TradeTerminalPage extends BaseModulePage
             $digits = (int) ($q['digits'] ?? $meta['digits'] ?? 5);
             $quotedAt = $q['quoted_at'] ?? null;
             $time = is_string($quotedAt) && $quotedAt !== ''
-                ? agricart_datetime(\Carbon\CarbonImmutable::parse($quotedAt), 'H:i:s', true)
+                ? agricart_datetime(\Carbon\CarbonImmutable::parse($quotedAt), 'H:i:s', false)
                 : '—';
             // Prefer stream-eligible Binance symbol from quote service (null when Finnhub owns the row).
             $binance = $q['binance'] ?? null;
             $hasStream = is_string($binance) && $binance !== '';
-            $source = (string) ($q['source'] ?? 'seed');
             $live = (bool) ($q['live'] ?? false);
-
-            if ($hasStream) {
-                // Binance bookTicker: updates on every best bid/ask change (typically milliseconds).
-                $refreshMode = 'ws';
-                $refresh = __('agricart.pages.fx-learn.term_refresh_ms');
-            } elseif ($live && $source === 'finnhub') {
-                $refreshMode = 'poll';
-                $refresh = __('agricart.pages.fx-learn.term_refresh_sec', ['n' => $serverSeconds]);
-            } elseif ($live) {
-                $refreshMode = 'poll';
-                $refresh = __('agricart.pages.fx-learn.term_refresh_sec', ['n' => $serverSeconds]);
-            } else {
-                $refreshMode = 'fixed';
-                $refresh = __('agricart.pages.fx-learn.term_refresh_fixed');
-            }
 
             $rows[] = [
                 'id' => $row['id'],
@@ -451,8 +434,6 @@ class TradeTerminalPage extends BaseModulePage
                 'digits' => $digits,
                 'live' => $live,
                 'time' => $time,
-                'refresh' => $refresh,
-                'refresh_mode' => $refreshMode,
             ];
         }
 
@@ -570,7 +551,7 @@ class TradeTerminalPage extends BaseModulePage
                 'pnl' => $trade->pnl,
                 'reason' => $trade->close_reason,
                 'digits' => $trade->digits,
-                'closed_at' => agricart_datetime($trade->closed_at, 'Y-m-d H:i', true),
+                'closed_at' => agricart_datetime($trade->closed_at, 'Y-m-d H:i:s', false),
             ];
         })->all();
     }

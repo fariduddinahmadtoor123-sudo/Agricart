@@ -167,7 +167,6 @@
                                 <th>{{ __('agricart.pages.fx-learn.term_bid') }}</th>
                                 <th>{{ __('agricart.pages.fx-learn.term_card_high') }}</th>
                                 <th>{{ __('agricart.pages.fx-learn.term_card_time') }}</th>
-                                <th>{{ __('agricart.pages.fx-learn.term_col_refresh') }}</th>
                                 <th>{{ __('agricart.pages.fx-learn.term_col_trade') }}</th>
                             </tr>
                         </thead>
@@ -190,16 +189,6 @@
                                     <td class="fxt__grid-bid" data-fxt-bid dir="ltr">{{ $fmt($row['bid']) }}</td>
                                     <td data-fxt-high dir="ltr">{{ $fmt($row['high']) }}</td>
                                     <td class="fxt__grid-time" data-fxt-time dir="ltr">{{ $row['time'] }}</td>
-                                    <td
-                                        class="fxt__grid-refresh"
-                                        data-fxt-refresh
-                                        dir="ltr"
-                                        @class([
-                                            'is-ws' => ($row['refresh_mode'] ?? '') === 'ws',
-                                            'is-poll' => ($row['refresh_mode'] ?? '') === 'poll',
-                                            'is-fixed' => ($row['refresh_mode'] ?? '') === 'fixed',
-                                        ])
-                                    >{{ $row['refresh'] }}</td>
                                     <td class="fxt__grid-actions" wire:click.stop>
                                         <button
                                             type="button"

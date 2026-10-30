@@ -500,7 +500,7 @@ return [
             'term_col_side' => 'Side',
             'term_col_entry' => 'Entry',
             'term_col_exit' => 'Exit',
-            'term_col_when' => 'Closed (PKT)',
+            'term_col_when' => 'Closed',
             'term_close' => 'Close',
             'term_no_open' => 'No open trades.',
             'term_no_history' => 'No closed trades yet.',

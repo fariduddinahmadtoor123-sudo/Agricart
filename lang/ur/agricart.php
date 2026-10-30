@@ -499,7 +499,7 @@ return [
             'term_col_side' => 'سائیڈ',
             'term_col_entry' => 'انٹری',
             'term_col_exit' => 'ایگزٹ',
-            'term_col_when' => 'بند (PKT)',
+            'term_col_when' => 'بند',
             'term_close' => 'بند کریں',
             'term_no_open' => 'کوئی اوپن ٹریڈ نہیں۔',
             'term_no_history' => 'ابھی کوئی بند ٹریڈ نہیں۔',
