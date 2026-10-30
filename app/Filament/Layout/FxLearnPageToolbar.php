@@ -4,6 +4,7 @@ namespace App\Filament\Layout;
 
 use App\Filament\Clusters\FxLearn\EconomicRadarPage;
 use App\Filament\Clusters\FxLearn\MarketSignalsPage;
+use App\Filament\Clusters\FxLearn\TradeTerminalPage;
 use Livewire\Livewire;
 
 class FxLearnPageToolbar extends ClusterPageToolbar
@@ -70,6 +71,27 @@ class FxLearnPageToolbar extends ClusterPageToolbar
                         'label' => __('agricart.pages.fx-learn.sig_visit_heatmap'),
                         'url' => 'https://www.tradingview.com/heatmap/forex/',
                     ],
+                ],
+            ];
+        }
+
+        if ($slug === 'trade-terminal') {
+            $terminal = Livewire::current();
+            $category = $terminal instanceof TradeTerminalPage ? $terminal->category : 'forex';
+
+            return [
+                ...$config,
+                'addLabel' => null,
+                'hideSearch' => true,
+                'hideSearchInput' => true,
+                'hideFilters' => true,
+                'hideColumns' => true,
+                'fxLearnRadarChrome' => true,
+                'fxLearnTerminalCategories' => true,
+                'fxLearnTerminalCategory' => $category,
+                'fxLearnSettings' => [
+                    'label' => __('agricart.pages.fx-learn.term_settings'),
+                    'event' => 'fx-learn-terminal-settings',
                 ],
             ];
         }

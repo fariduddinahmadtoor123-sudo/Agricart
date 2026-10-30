@@ -16,6 +16,7 @@ use Filament\Support\Icons\Heroicon;
 use Illuminate\Contracts\Support\Htmlable;
 use InvalidArgumentException;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\On;
 
 class TradeTerminalPage extends BaseModulePage
 {
@@ -83,6 +84,7 @@ class TradeTerminalPage extends BaseModulePage
         $this->quotes = $quoteService->snapshot();
         $terminal->autoCloseHits($account->fresh());
         $this->dash = $terminal->dashboard($account->fresh(), $this->quotes);
+        $this->dispatch('fx-learn-terminal-filters-sync', category: $this->category);
     }
 
     public function refreshQuotes(DemoTerminalService $terminal, DemoQuoteService $quoteService): void
@@ -91,6 +93,19 @@ class TradeTerminalPage extends BaseModulePage
         $this->quotes = $quoteService->refresh();
         $terminal->autoCloseHits($account);
         $this->dash = $terminal->dashboard($account->fresh(), $this->quotes);
+    }
+
+    #[On('fx-learn-terminal-category')]
+    public function onToolbarCategory(mixed $category = null): void
+    {
+        $value = is_array($category) ? (string) ($category['category'] ?? '') : (string) $category;
+        $this->setCategory($value, app(DemoTerminalService::class));
+    }
+
+    #[On('fx-learn-terminal-settings')]
+    public function onToolbarSettings(): void
+    {
+        $this->showSettings = true;
     }
 
     public function setCategory(string $category, DemoTerminalService $terminal): void
@@ -107,6 +122,8 @@ class TradeTerminalPage extends BaseModulePage
         if (is_string($first)) {
             $this->setSymbol($first, $terminal);
         }
+
+        $this->dispatch('fx-learn-terminal-filters-sync', category: $this->category);
     }
 
     public function setSymbol(string $symbol, DemoTerminalService $terminal): void

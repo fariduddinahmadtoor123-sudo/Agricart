@@ -34,29 +34,8 @@
             }
         }"
     >
-        <div class="fxt__toolbar">
-            <button type="button" class="fxt__btn" wire:click="$toggle('showSettings')">
-                {{ __('agricart.pages.fx-learn.term_settings') }}
-            </button>
-            <button type="button" class="fxt__btn" wire:click="refreshQuotes" wire:loading.attr="disabled">
-                {{ __('agricart.pages.fx-learn.term_refresh') }}
-            </button>
-        </div>
-
-        {{-- Categories + all symbols auto --}}
+        {{-- Symbols for active category (categories live in module toolbar under sub-nav) --}}
         <section class="fxt__watch" aria-label="{{ __('agricart.pages.fx-learn.term_watch_label') }}">
-            <div class="fxt__cats" role="tablist" aria-label="{{ __('agricart.pages.fx-learn.term_cats_label') }}">
-                @foreach ($this->categoryOptions() as $cat)
-                    <button
-                        type="button"
-                        role="tab"
-                        wire:click="setCategory(@js($cat['id']))"
-                        aria-selected="{{ $category === $cat['id'] ? 'true' : 'false' }}"
-                        @class(['fxt__cat', 'is-on' => $category === $cat['id']])
-                    >{{ __('agricart.pages.fx-learn.term_cat_'.$cat['id']) }}</button>
-                @endforeach
-            </div>
-
             <div class="fxt__watch-row" role="listbox" wire:key="fxt-syms-{{ $category }}">
                 @foreach ($this->categorySymbolRows() as $row)
                     <div

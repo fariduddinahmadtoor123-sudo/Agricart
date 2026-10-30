@@ -227,6 +227,43 @@
             </div>
         @endif
 
+        @if (! empty($toolbar['fxLearnTerminalCategories']))
+            @php
+                $termCats = [
+                    'forex' => __('agricart.pages.fx-learn.term_cat_forex'),
+                    'commodities' => __('agricart.pages.fx-learn.term_cat_commodities'),
+                    'indices' => __('agricart.pages.fx-learn.term_cat_indices'),
+                    'crypto' => __('agricart.pages.fx-learn.term_cat_crypto'),
+                ];
+                $termCat = (string) ($toolbar['fxLearnTerminalCategory'] ?? 'forex');
+            @endphp
+            <div
+                class="agricart-fxt-cats"
+                role="tablist"
+                aria-label="{{ __('agricart.pages.fx-learn.term_cats_label') }}"
+                x-data="{
+                    category: @js($termCat),
+                    init() {
+                        Livewire.on('fx-learn-terminal-filters-sync', (e) => {
+                            const d = Array.isArray(e) ? (e[0] ?? {}) : (e ?? {});
+                            if (d.category) this.category = d.category;
+                        });
+                    },
+                }"
+            >
+                @foreach ($termCats as $catId => $catLabel)
+                    <button
+                        type="button"
+                        role="tab"
+                        class="agricart-fxt-cats__btn"
+                        x-bind:aria-selected="category === @js($catId) ? 'true' : 'false'"
+                        x-bind:class="{ 'is-on': category === @js($catId) }"
+                        x-on:click="category = @js($catId); window.Livewire?.dispatch('fx-learn-terminal-category', { category: @js($catId) })"
+                    >{{ $catLabel }}</button>
+                @endforeach
+            </div>
+        @endif
+
         @if (empty($toolbar['hideSearch']))
             <div @class([
                 'agricart-catalog-toolbar__search',
