@@ -185,6 +185,7 @@ class MarketSessionClock
                 'id' => $session['id'],
                 'short' => self::shortCode($session['id']),
                 'label' => $session['label'],
+                'tz' => (string) $session['tz'],
                 'open' => $open,
                 'progress' => $progress,
                 'start_ms' => $startMs,

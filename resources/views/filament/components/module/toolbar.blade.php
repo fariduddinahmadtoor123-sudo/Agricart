@@ -241,7 +241,7 @@
                 $termSessions = is_array($toolbar['fxLearnTerminalSessions'] ?? null) ? $toolbar['fxLearnTerminalSessions'] : [];
             @endphp
             <div class="agricart-fxt-chrome">
-                {{-- Left: session gauges (same rhythm as risk bars) — closed=full red, open=green fill + Close/Open countdown --}}
+                {{-- Left: session clocks — local time, green if open / red if closed (no extra gauge lines) --}}
                 <div
                     class="agricart-fxt-sessions"
                     role="group"
@@ -250,8 +250,6 @@
                         pack: @js($termSessions),
                         rows: @js($termSessions['sessions'] ?? []),
                         overlap: @js(! empty($termSessions['overlap'])),
-                        closeWord: @js(__('agricart.pages.fx-learn.term_sess_close')),
-                        openWord: @js(__('agricart.pages.fx-learn.term_sess_open')),
                         timer: null,
                         init() {
                             Livewire.on('fx-learn-terminal-sessions-sync', (e) => {
@@ -269,14 +267,18 @@
                         destroy() {
                             if (this.timer) clearInterval(this.timer);
                         },
-                        span(ms) {
-                            const abs = Math.max(0, Math.floor(ms / 1000));
-                            const h = Math.floor(abs / 3600);
-                            const m = Math.floor((abs % 3600) / 60);
-                            const s = abs % 60;
-                            if (h > 0) return h + 'h' + m + 'm';
-                            if (m > 0) return m + 'm';
-                            return Math.max(1, s) + 's';
+                        clock(tz) {
+                            try {
+                                return new Intl.DateTimeFormat('en-GB', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                    hour12: false,
+                                    timeZone: tz || 'UTC',
+                                }).format(new Date());
+                            } catch (e) {
+                                return '—';
+                            }
                         },
                         tick() {
                             const now = Date.now();
@@ -285,18 +287,12 @@
                                 const startMs = Number(row.start_ms) || 0;
                                 const closeMs = Number(row.close_ms) || 0;
                                 const open = startMs > 0 && closeMs > startMs && now >= startMs && now < closeMs;
-                                let progress = 100;
-                                let until = '—';
-                                if (open) {
-                                    openCount++;
-                                    progress = Math.min(100, Math.max(0, ((now - startMs) / (closeMs - startMs)) * 100));
-                                    until = this.closeWord + ' ' + this.span(closeMs - now);
-                                } else if (startMs > now) {
-                                    until = this.openWord + ' ' + this.span(startMs - now);
-                                } else if (closeMs > now) {
-                                    until = this.openWord + ' ' + this.span(closeMs - now);
-                                }
-                                return { ...row, open, progress, until };
+                                if (open) openCount++;
+                                return {
+                                    ...row,
+                                    open,
+                                    clock: this.clock(row.tz),
+                                };
                             });
                             this.overlap = openCount >= 2;
                         },
@@ -328,13 +324,8 @@
                             }"
                             :title="row.label"
                         >
-                            <div class="agricart-fxt-sessions__top">
-                                <span class="agricart-fxt-sessions__code" x-text="row.short"></span>
-                                <strong class="agricart-fxt-sessions__until" dir="ltr" x-text="row.until || '—'"></strong>
-                            </div>
-                            <span class="agricart-fxt-sessions__bar" aria-hidden="true">
-                                <span class="agricart-fxt-sessions__fill" :style="'width:' + (row.progress || 0) + '%'"></span>
-                            </span>
+                            <span class="agricart-fxt-sessions__code" x-text="row.short"></span>
+                            <strong class="agricart-fxt-sessions__clock" dir="ltr" x-text="row.clock || '—'"></strong>
                         </div>
                     </template>
                 </div>

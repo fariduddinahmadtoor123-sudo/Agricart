@@ -1957,19 +1957,17 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
     min-width: 0;
     display: flex;
     flex-wrap: nowrap;
-    align-items: flex-end;
-    gap: .55rem;
+    align-items: center;
+    gap: .55rem .7rem;
 }
 
 .agricart-fxt-sessions__liq {
-    align-self: center;
     font-size: .58rem;
     font-weight: 850;
     letter-spacing: .04em;
     text-transform: uppercase;
     color: var(--agricart-muted);
     white-space: nowrap;
-    padding-inline-end: .15rem;
 }
 
 .agricart-fxt-sessions__liq.is-very-high { color: #15803d; }
@@ -1978,73 +1976,37 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
 .agricart-fxt-sessions__liq.is-off { color: #b91c1c; }
 
 .agricart-fxt-sessions__item {
-    width: 5.6rem;
-    flex: 0 0 5.6rem;
-    display: flex;
-    flex-direction: column;
-    gap: .22rem;
-    min-width: 0;
-}
-
-.agricart-fxt-sessions__top {
-    display: flex;
+    display: inline-flex;
     align-items: baseline;
-    justify-content: space-between;
-    gap: .25rem;
+    gap: .3rem;
     min-width: 0;
+    white-space: nowrap;
 }
 
 .agricart-fxt-sessions__code {
     font-size: .55rem;
     font-weight: 800;
-    letter-spacing: .04em;
+    letter-spacing: .05em;
     text-transform: uppercase;
     color: var(--agricart-muted);
-    flex: 0 0 auto;
 }
 
-.agricart-fxt-sessions__until {
-    font-size: .68rem;
+.agricart-fxt-sessions__clock {
+    font-size: .78rem;
     font-weight: 850;
     font-variant-numeric: tabular-nums;
+    letter-spacing: .02em;
     color: var(--agricart-text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    min-width: 0;
-    text-align: end;
-}
-
-.agricart-fxt-sessions__bar {
-    display: block;
-    height: .26rem;
-    border-radius: 999px;
-    overflow: hidden;
-    background: #fee2e2;
-}
-
-.agricart-fxt-sessions__fill {
-    display: block;
-    height: 100%;
-    width: 0;
-    border-radius: inherit;
-    background: #dc2626;
-    transition: width .45s ease;
 }
 
 .agricart-fxt-sessions__item.is-closed .agricart-fxt-sessions__code,
-.agricart-fxt-sessions__item.is-closed .agricart-fxt-sessions__until { color: #b91c1c; }
-.agricart-fxt-sessions__item.is-closed .agricart-fxt-sessions__fill { width: 100% !important; background: #dc2626; }
+.agricart-fxt-sessions__item.is-closed .agricart-fxt-sessions__clock { color: #b91c1c; }
 
 .agricart-fxt-sessions__item.is-open .agricart-fxt-sessions__code,
-.agricart-fxt-sessions__item.is-open .agricart-fxt-sessions__until { color: #166534; }
-.agricart-fxt-sessions__item.is-open .agricart-fxt-sessions__bar { background: #dcfce7; }
-.agricart-fxt-sessions__item.is-open .agricart-fxt-sessions__fill { background: #16a34a; }
+.agricart-fxt-sessions__item.is-open .agricart-fxt-sessions__clock { color: #166534; }
 
 .agricart-fxt-sessions__item.is-overlap .agricart-fxt-sessions__code,
-.agricart-fxt-sessions__item.is-overlap .agricart-fxt-sessions__until { color: #c2410c; }
-.agricart-fxt-sessions__item.is-overlap .agricart-fxt-sessions__bar { background: #fef3c7; }
-.agricart-fxt-sessions__item.is-overlap .agricart-fxt-sessions__fill { background: #d97706; }
+.agricart-fxt-sessions__item.is-overlap .agricart-fxt-sessions__clock { color: #c2410c; }
 
 .agricart-fxt-risk {
     justify-self: end;
@@ -2127,7 +2089,6 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
         max-width: none;
     }
     .agricart-fxt-sessions { flex-wrap: wrap; }
-    .agricart-fxt-sessions__item,
     .agricart-fxt-risk__item { flex: 1 1 5rem; width: auto; }
     .agricart-fxt-risk { justify-content: flex-end; }
 }
@@ -19105,13 +19066,6 @@ html.dark .agricart-tools-reorder-settings__chip-names,
 .fxt__desk { display: flex; flex-direction: column; gap: .85rem; border: 1px solid color-mix(in srgb, var(--agricart-border, #e5e7eb) 100%, transparent); border-radius: .9rem; background: linear-gradient(180deg, #fafcfb, #fff); padding: .85rem .9rem 1rem; }
 .fxt__desk-head { display: flex; align-items: center; justify-content: space-between; gap: .65rem 1rem; flex-wrap: wrap; }
 .fxt__desk-title { margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--agricart-text); letter-spacing: .01em; flex: 0 0 auto; }
-.fxt__sessions { flex: 1 1 14rem; min-width: 12rem; max-width: 28rem; display: flex; flex-direction: column; gap: .28rem; }
-.fxt__sessions-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .45rem; font-size: .62rem; font-weight: 750; }
-.fxt__sessions-liq { letter-spacing: .03em; text-transform: uppercase; color: var(--agricart-muted); font-weight: 850; }
-.fxt__sessions-liq.is-very-high { color: #15803d; background: #dcfce7; border: 1px solid #86efac; border-radius: .3rem; padding: .08rem .4rem; }
-.fxt__sessions-liq.is-high { color: #166534; }
-.fxt__sessions-liq.is-medium { color: #1d4ed8; }
-.fxt__sessions-liq.is-off { color: #b91c1c; }
 .fxt__data { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem .65rem; margin-bottom: .65rem; padding: .45rem .65rem; border: 1px solid #e5e7eb; border-radius: .75rem; background: linear-gradient(180deg, #f8fafc, #fff); }
 .fxt__data-filters { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .25rem; }
 .fxt__data-filters-label { font-size: .58rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--agricart-muted); margin-inline-end: .15rem; }
@@ -19128,20 +19082,6 @@ html.dark .agricart-tools-reorder-settings__chip-names,
 .fxt__data-impact.is-high { background: #fee2e2; color: #b91c1c; }
 .fxt__data-impact.is-med { background: #ffedd5; color: #c2410c; }
 .fxt__data-impact.is-low { background: #e5e7eb; color: #6b7280; }
-.fxt__sessions-overlap { background: #fff7ed; color: #c2410c; border: 1px solid #fdba74; border-radius: .3rem; padding: .08rem .35rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
-.fxt__sessions-summary { color: var(--agricart-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 14rem; }
-.fxt__sessions-track { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .28rem; align-items: end; }
-.fxt__session-seg { display: flex; flex-direction: column; gap: .18rem; min-width: 0; }
-.fxt__session-code { font-size: .58rem; font-weight: 800; letter-spacing: .06em; color: var(--agricart-muted); }
-.fxt__session-seg.is-open .fxt__session-code { color: #166534; }
-.fxt__session-seg.is-overlap .fxt__session-code { color: #c2410c; }
-.fxt__session-seg.is-closed .fxt__session-code { color: #b91c1c; }
-.fxt__session-bar { display: block; height: .42rem; border-radius: 999px; overflow: hidden; background: #fecaca; }
-.fxt__session-seg.is-open .fxt__session-bar { background: #bbf7d0; }
-.fxt__session-seg.is-overlap .fxt__session-bar { background: #fde68a; }
-.fxt__session-fill { display: block; height: 100%; width: 0; border-radius: inherit; background: #dc2626; transition: width .6s ease; }
-.fxt__session-seg.is-open .fxt__session-fill { background: #16a34a; }
-.fxt__session-seg.is-overlap .fxt__session-fill { background: linear-gradient(90deg, #16a34a, #d97706); }
 .fxt__desk-metrics { display: flex; flex-wrap: wrap; align-items: stretch; gap: .35rem .55rem; margin-inline-start: auto; }
 .fxt__desk-metric { display: flex; flex-direction: column; gap: .08rem; min-width: 5.75rem; padding: .2rem .45rem; border-inline-start: 1px solid #e5e7eb; }
 .fxt__desk-metric:first-child { border-inline-start: 0; padding-inline-start: 0; }
