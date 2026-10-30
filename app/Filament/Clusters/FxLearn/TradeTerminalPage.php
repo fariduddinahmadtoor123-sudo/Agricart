@@ -361,6 +361,23 @@ class TradeTerminalPage extends BaseModulePage
     {
         $this->dispatch('fx-learn-terminal-account-sync', account: $this->accountToolbar());
         $this->dispatch('fx-learn-terminal-sessions-sync', sessions: $this->sessionLiquidity());
+        $this->dispatch('fx-learn-terminal-data-sync', data: $this->dataToolbar());
+    }
+
+    /**
+     * Upcoming economic print + filters for the module toolbar center.
+     *
+     * @return array{ccy: string, impact: string, next: ?array<string, mixed>}
+     */
+    public function dataToolbar(): array
+    {
+        $next = $this->nextDataEvent(app(EconomicCalendarService::class));
+
+        return [
+            'ccy' => $this->dataCcyFilter,
+            'impact' => $this->dataImpactFilter,
+            'next' => $next,
+        ];
     }
 
     /**
@@ -461,11 +478,27 @@ class TradeTerminalPage extends BaseModulePage
     public function setDataCcyFilter(string $ccy): void
     {
         $this->dataCcyFilter = strtoupper($ccy) === 'USD' ? 'USD' : 'all';
+        $this->dispatch('fx-learn-terminal-data-sync', data: $this->dataToolbar());
     }
 
     public function setDataImpactFilter(string $impact): void
     {
         $this->dataImpactFilter = in_array($impact, ['high', 'med', 'all'], true) ? $impact : 'high';
+        $this->dispatch('fx-learn-terminal-data-sync', data: $this->dataToolbar());
+    }
+
+    #[On('fx-learn-terminal-data-ccy')]
+    public function onToolbarDataCcy(mixed $ccy = null): void
+    {
+        $value = is_array($ccy) ? (string) ($ccy['ccy'] ?? '') : (string) $ccy;
+        $this->setDataCcyFilter($value);
+    }
+
+    #[On('fx-learn-terminal-data-impact')]
+    public function onToolbarDataImpact(mixed $impact = null): void
+    {
+        $value = is_array($impact) ? (string) ($impact['impact'] ?? '') : (string) $impact;
+        $this->setDataImpactFilter($value);
     }
 
     /**

@@ -1942,9 +1942,9 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
 
 .agricart-fxt-chrome {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: .55rem .85rem;
+    gap: .45rem .7rem;
     width: 100%;
 }
 
@@ -1956,6 +1956,56 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
     flex-wrap: nowrap;
     align-items: center;
     gap: .55rem .7rem;
+}
+
+.agricart-fxt-data {
+    justify-self: center;
+    grid-column: 2;
+    min-width: 0;
+    max-width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: .3rem .45rem;
+}
+
+.agricart-fxt-data__filters {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: .2rem;
+}
+
+.agricart-fxt-data__ticker {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .2rem .35rem;
+    min-width: 0;
+    font-size: .78rem;
+    font-weight: 650;
+    color: var(--agricart-text);
+}
+
+.agricart-fxt-data__ticker--empty {
+    color: var(--agricart-muted);
+    font-weight: 600;
+    font-size: .72rem;
+}
+
+.agricart-fxt-data .fxt__chip-btn {
+    padding: .14rem .38rem;
+    font-size: .62rem;
+    min-height: 0;
+    line-height: 1.2;
+}
+
+.agricart-fxt-data .fxt__data-title {
+    max-width: 14rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .agricart-fxt-sessions__liq {
@@ -2007,7 +2057,7 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
 
 .agricart-fxt-account {
     justify-self: end;
-    grid-column: 2;
+    grid-column: 3;
     display: flex;
     flex-wrap: nowrap;
     align-items: baseline;
@@ -2044,18 +2094,20 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
 .agricart-fxt-account__item.is-pos .agricart-fxt-account__value { color: #15803d; }
 .agricart-fxt-account__item.is-neg .agricart-fxt-account__value { color: #b91c1c; }
 
-@media (max-width: 1100px) {
+@media (max-width: 1280px) {
     .agricart-fxt-chrome {
         grid-template-columns: 1fr;
         justify-items: stretch;
     }
     .agricart-fxt-sessions,
+    .agricart-fxt-data,
     .agricart-fxt-account {
         grid-column: 1;
         justify-self: stretch;
         max-width: none;
     }
     .agricart-fxt-sessions { flex-wrap: wrap; }
+    .agricart-fxt-data { justify-content: flex-start; }
     .agricart-fxt-account { flex-wrap: wrap; justify-content: flex-start; }
 }
 

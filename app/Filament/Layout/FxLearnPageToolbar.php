@@ -79,6 +79,7 @@ class FxLearnPageToolbar extends ClusterPageToolbar
             $terminal = Livewire::current();
             $account = $terminal instanceof TradeTerminalPage ? $terminal->accountToolbar() : [];
             $sessions = $terminal instanceof TradeTerminalPage ? $terminal->sessionLiquidity() : [];
+            $data = $terminal instanceof TradeTerminalPage ? $terminal->dataToolbar() : [];
 
             return [
                 ...$config,
@@ -92,6 +93,7 @@ class FxLearnPageToolbar extends ClusterPageToolbar
                 'fxLearnTerminalStrip' => true,
                 'fxLearnTerminalAccount' => $account,
                 'fxLearnTerminalSessions' => $sessions,
+                'fxLearnTerminalData' => $data,
             ];
         }
 

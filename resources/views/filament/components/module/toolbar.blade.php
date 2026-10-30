@@ -232,6 +232,8 @@
             @php
                 $termAccount = is_array($toolbar['fxLearnTerminalAccount'] ?? null) ? $toolbar['fxLearnTerminalAccount'] : [];
                 $termSessions = is_array($toolbar['fxLearnTerminalSessions'] ?? null) ? $toolbar['fxLearnTerminalSessions'] : [];
+                $termData = is_array($toolbar['fxLearnTerminalData'] ?? null) ? $toolbar['fxLearnTerminalData'] : [];
+                $termDataNext = is_array($termData['next'] ?? null) ? $termData['next'] : null;
             @endphp
             <div class="agricart-fxt-chrome">
                 {{-- Left: session clocks — green open / red closed --}}
@@ -322,7 +324,88 @@
                     </template>
                 </div>
 
-                {{-- Right: Balance / Equity / Floating / Day P/L --}}
+                {{-- Center: next economic data + filters --}}
+                <div
+                    class="agricart-fxt-data"
+                    role="group"
+                    aria-label="{{ __('agricart.pages.fx-learn.term_data_box') }}"
+                    x-data="{
+                        ccy: @js((string) ($termData['ccy'] ?? 'all')),
+                        impact: @js((string) ($termData['impact'] ?? 'high')),
+                        next: @js($termDataNext),
+                        countdown: '—',
+                        timer: null,
+                        emptyLabel: @js(__('agricart.pages.fx-learn.term_data_empty')),
+                        prefixLabel: @js(__('agricart.pages.fx-learn.term_data_prefix')),
+                        init() {
+                            Livewire.on('fx-learn-terminal-data-sync', (e) => {
+                                const d = Array.isArray(e) ? (e[0] ?? {}) : (e ?? {});
+                                const pack = d.data || d;
+                                if (pack.ccy) this.ccy = pack.ccy;
+                                if (pack.impact) this.impact = pack.impact;
+                                this.next = pack.next ?? null;
+                                this.tick();
+                            });
+                            this.tick();
+                            this.timer = setInterval(() => this.tick(), 1000);
+                        },
+                        destroy() {
+                            if (this.timer) clearInterval(this.timer);
+                        },
+                        setCcy(v) {
+                            this.ccy = v;
+                            window.Livewire?.dispatch('fx-learn-terminal-data-ccy', { ccy: v });
+                        },
+                        setImpact(v) {
+                            this.impact = v;
+                            window.Livewire?.dispatch('fx-learn-terminal-data-impact', { impact: v });
+                        },
+                        tick() {
+                            const at = Number(this.next?.at) || 0;
+                            if (! at) {
+                                this.countdown = '—';
+                                return;
+                            }
+                            const diff = Math.floor((at - Date.now()) / 1000);
+                            const abs = Math.abs(diff);
+                            const h = Math.floor(abs / 3600);
+                            const m = Math.floor((abs % 3600) / 60);
+                            const s = abs % 60;
+                            const pad = (n) => String(n).padStart(2, '0');
+                            this.countdown = diff >= 0
+                                ? (h > 0 ? (h + 'h ' + m + 'm') : (m > 0 ? (m + 'm ' + pad(s) + 's') : (s + 's')))
+                                : (h > 0 ? (h + 'h ' + m + 'm ago') : (m + 'm ago'));
+                        }
+                    }"
+                    x-on:remove="destroy()"
+                >
+                    <div class="agricart-fxt-data__filters" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_data_ccy') }}">
+                        <button type="button" class="fxt__chip-btn" :class="{ 'is-on': ccy === 'USD' }" x-on:click="setCcy('USD')">{{ __('agricart.pages.fx-learn.term_data_ccy_usd') }}</button>
+                        <button type="button" class="fxt__chip-btn" :class="{ 'is-on': ccy === 'all' }" x-on:click="setCcy('all')">{{ __('agricart.pages.fx-learn.term_data_ccy_all') }}</button>
+                    </div>
+                    <div class="agricart-fxt-data__filters" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_data_impact') }}">
+                        <button type="button" class="fxt__chip-btn" :class="{ 'is-on': impact === 'high' }" x-on:click="setImpact('high')">{{ __('agricart.pages.fx-learn.term_data_impact_high') }}</button>
+                        <button type="button" class="fxt__chip-btn" :class="{ 'is-on': impact === 'med' }" x-on:click="setImpact('med')">{{ __('agricart.pages.fx-learn.term_data_impact_med') }}</button>
+                        <button type="button" class="fxt__chip-btn" :class="{ 'is-on': impact === 'all' }" x-on:click="setImpact('all')">{{ __('agricart.pages.fx-learn.term_data_impact_all') }}</button>
+                    </div>
+                    <div class="agricart-fxt-data__ticker" dir="ltr" x-show="next">
+                        <span class="fxt__data-kicker" x-text="prefixLabel"></span>
+                        <strong class="fxt__data-count" x-text="countdown">—</strong>
+                        <span class="fxt__data-sep">·</span>
+                        <span class="fxt__data-ccy" x-text="(next?.ccy || '').toUpperCase()"></span>
+                        <span class="fxt__data-title" x-text="next?.title || ''"></span>
+                        <span
+                            class="fxt__data-impact"
+                            :class="'is-' + (next?.impact || 'med')"
+                            x-text="(next?.impact || '').toUpperCase()"
+                        ></span>
+                    </div>
+                    <div class="agricart-fxt-data__ticker agricart-fxt-data__ticker--empty" x-show="! next" x-cloak>
+                        <span x-text="emptyLabel"></span>
+                    </div>
+                </div>
+
+                {{-- Right: Balance / Equity / Floating / Day / Overall --}}
                 <div
                     class="agricart-fxt-account"
                     role="group"

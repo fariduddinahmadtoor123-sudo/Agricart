@@ -7,8 +7,6 @@
     $label = $this->activeLabel();
     $taInterval = $this->taInterval();
     $deskRows = $this->categorySymbolRows();
-    $nextData = $this->nextDataEvent(app(\App\Services\FxLearn\EconomicCalendarService::class));
-    $nextDataAt = (int) ($nextData['at'] ?? 0);
     $binanceStreams = collect($deskRows)
         ->filter(fn ($row) => filled($row['binance'] ?? null))
         ->mapWithKeys(fn ($row) => [strtolower((string) $row['binance']) => [
@@ -132,57 +130,6 @@
             x-init="connectBinance()"
             x-on:remove="if (reconnectTimer) clearTimeout(reconnectTimer); if (ws) { try { ws.close(); } catch (e) {} }"
         ></div>
-        {{-- Next economic data ticker (shared calendar cache) + small filters --}}
-        <section class="fxt__data" aria-label="{{ __('agricart.pages.fx-learn.term_data_box') }}">
-            <div class="fxt__data-filters" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_data_ccy') }}">
-                <span class="fxt__data-filters-label">{{ __('agricart.pages.fx-learn.term_data_ccy') }}</span>
-                <button type="button" wire:click="setDataCcyFilter('USD')" @class(['fxt__chip-btn', 'is-on' => $dataCcyFilter === 'USD'])>{{ __('agricart.pages.fx-learn.term_data_ccy_usd') }}</button>
-                <button type="button" wire:click="setDataCcyFilter('all')" @class(['fxt__chip-btn', 'is-on' => $dataCcyFilter === 'all'])>{{ __('agricart.pages.fx-learn.term_data_ccy_all') }}</button>
-            </div>
-            <div class="fxt__data-filters" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_data_impact') }}">
-                <span class="fxt__data-filters-label">{{ __('agricart.pages.fx-learn.term_data_impact') }}</span>
-                <button type="button" wire:click="setDataImpactFilter('high')" @class(['fxt__chip-btn', 'is-on' => $dataImpactFilter === 'high'])>{{ __('agricart.pages.fx-learn.term_data_impact_high') }}</button>
-                <button type="button" wire:click="setDataImpactFilter('med')" @class(['fxt__chip-btn', 'is-on' => $dataImpactFilter === 'med'])>{{ __('agricart.pages.fx-learn.term_data_impact_med') }}</button>
-                <button type="button" wire:click="setDataImpactFilter('all')" @class(['fxt__chip-btn', 'is-on' => $dataImpactFilter === 'all'])>{{ __('agricart.pages.fx-learn.term_data_impact_all') }}</button>
-            </div>
-            @if ($nextData)
-                <div
-                    class="fxt__data-ticker"
-                    wire:key="fxt-data-{{ $dataCcyFilter }}-{{ $dataImpactFilter }}-{{ $nextDataAt }}"
-                    dir="ltr"
-                    x-data="{
-                        atMs: {{ $nextDataAt }},
-                        countdown: '—',
-                        timer: null,
-                        tick() {
-                            const diff = Math.floor((this.atMs - Date.now()) / 1000);
-                            const abs = Math.abs(diff);
-                            const h = Math.floor(abs / 3600);
-                            const m = Math.floor((abs % 3600) / 60);
-                            const s = abs % 60;
-                            const pad = (n) => String(n).padStart(2, '0');
-                            this.countdown = diff >= 0
-                                ? (h > 0 ? (h + 'h ' + m + 'm') : (m > 0 ? (m + 'm ' + pad(s) + 's') : (s + 's')))
-                                : (h > 0 ? (h + 'h ' + m + 'm ago') : (m + 'm ago'));
-                        }
-                    }"
-                    x-init="tick(); timer = setInterval(() => tick(), 1000)"
-                    x-on:remove="if (timer) clearInterval(timer)"
-                >
-                    <span class="fxt__data-kicker">{{ __('agricart.pages.fx-learn.term_data_prefix') }}</span>
-                    <strong class="fxt__data-count" x-text="countdown">—</strong>
-                    <span class="fxt__data-sep">·</span>
-                    <span class="fxt__data-ccy">{{ strtoupper((string) ($nextData['ccy'] ?? '')) }}</span>
-                    <span class="fxt__data-title">{{ (string) ($nextData['title'] ?? '') }}</span>
-                    <span @class(['fxt__data-impact', 'is-'.($nextData['impact'] ?? 'med')])>{{ strtoupper((string) ($nextData['impact'] ?? '')) }}</span>
-                </div>
-            @else
-                <div class="fxt__data-ticker fxt__data-ticker--empty">
-                    <span>{{ __('agricart.pages.fx-learn.term_data_empty') }}</span>
-                </div>
-            @endif
-        </section>
-
         {{-- Selected market desk — category chips sit with the rates board --}}
         <section class="fxt__desk" wire:key="fxt-desk-{{ $category }}" aria-label="{{ __('agricart.pages.fx-learn.term_desk_label', ['market' => __('agricart.pages.fx-learn.term_cat_'.$category)]) }}">
             <header class="fxt__desk-head">
