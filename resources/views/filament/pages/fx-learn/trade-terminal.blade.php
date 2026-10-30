@@ -1,4 +1,7 @@
 @php
+    $q = $quotes[$symbol] ?? null;
+    $digits = (int) ($q['digits'] ?? 5);
+    $risk = $this->riskPreview;
     $history = $this->historyRows(app(\App\Services\FxLearn\DemoTerminalService::class));
     $tvSymbol = $this->activeTvSymbol();
     $label = $this->activeLabel();
@@ -46,6 +49,7 @@
             wire:key="fxt-ws-{{ $category }}-{{ collect(array_keys($binanceStreams))->sort()->implode('-') }}"
             x-data="{
                 streams: @js($binanceStreams),
+                liveLabel: @js(__('agricart.pages.fx-learn.term_live')),
                 ws: null,
                 reconnectTimer: null,
                 fmt(value, digits) {
@@ -103,6 +107,18 @@
                             if (bidEl) bidEl.textContent = this.fmt(bid, digits);
                             if (timeEl) timeEl.textContent = this.nowTime();
                             if (dotEl) dotEl.classList.add('is-on');
+                        }
+                        const active = document.querySelector('.fxt__grid tbody tr.is-on');
+                        if (active && active.getAttribute('data-fxt-id') === map.id) {
+                            const ticketAsk = document.querySelector('[data-fxt-ticket-ask]');
+                            const ticketBid = document.querySelector('[data-fxt-ticket-bid]');
+                            const ticketLive = document.querySelector('[data-fxt-ticket-live]');
+                            if (ticketAsk) ticketAsk.textContent = this.fmt(ask, digits);
+                            if (ticketBid) ticketBid.textContent = this.fmt(bid, digits);
+                            if (ticketLive) {
+                                ticketLive.classList.add('is-on');
+                                ticketLive.textContent = this.liveLabel;
+                            }
                         }
                     };
                     socket.onclose = () => {
@@ -193,12 +209,63 @@
                     </table>
                 </div>
 
+                {{-- Center: lots / SL / TP for selected symbol --}}
+                <aside class="fxt__ticket fxt__ticket--rail" aria-label="{{ __('agricart.pages.fx-learn.term_ticket_label') }}">
+                    <div class="fxt__ticket-sym" dir="ltr">
+                        <span>{{ __('agricart.pages.fx-learn.term_col_symbol') }}</span>
+                        <strong>{{ $label }}</strong>
+                    </div>
+                    <div class="fxt__ticket-px" dir="ltr">
+                        <div>
+                            <span>{{ __('agricart.pages.fx-learn.term_bid') }}</span>
+                            <strong class="is-bid" data-fxt-ticket-bid>{{ $q ? number_format((float) $q['bid'], $digits, '.', '') : '—' }}</strong>
+                        </div>
+                        <div>
+                            <span>{{ __('agricart.pages.fx-learn.term_ask') }}</span>
+                            <strong class="is-ask" data-fxt-ticket-ask>{{ $q ? number_format((float) $q['ask'], $digits, '.', '') : '—' }}</strong>
+                        </div>
+                        <span data-fxt-ticket-live @class(['fxt__live', 'is-on' => ! empty($q['live']) || filled($q['binance'] ?? null)])>
+                            {{ (! empty($q['live']) || filled($q['binance'] ?? null)) ? __('agricart.pages.fx-learn.term_live') : __('agricart.pages.fx-learn.term_seed') }}
+                        </span>
+                    </div>
+                    <label class="fxt__ticket-field">
+                        <span>{{ __('agricart.pages.fx-learn.term_lots') }}</span>
+                        <input type="number" step="0.01" min="0.01" max="10" wire:model.live="lots" />
+                    </label>
+                    <label class="fxt__ticket-field">
+                        <span>{{ __('agricart.pages.fx-learn.term_sl') }}</span>
+                        <input type="number" step="any" wire:model.live="stopLoss" placeholder="—" dir="ltr" />
+                    </label>
+                    <label class="fxt__ticket-field">
+                        <span>{{ __('agricart.pages.fx-learn.term_tp') }}</span>
+                        <input type="number" step="any" wire:model.live="takeProfit" placeholder="—" dir="ltr" />
+                    </label>
+                    <div @class(['fxt__ticket-risk', 'is-fail' => ! empty($risk['fail'])])>
+                        <span>{{ __('agricart.pages.fx-learn.term_risk_pct') }}</span>
+                        <strong>{{ number_format((float) ($risk['pct'] ?? 0), 2) }}%</strong>
+                        <span>R:R {{ isset($risk['rr']) && $risk['rr'] !== null ? number_format((float) $risk['rr'], 2) : '—' }}</span>
+                    </div>
+                    <div class="fxt__ticket-actions">
+                        <button
+                            type="button"
+                            class="fxt__submit fxt__submit--buy"
+                            wire:click="openTradeAs('buy')"
+                            @disabled(! empty($dash['failed_day']) || ! empty($dash['failed_total']) || ! empty($risk['fail']) || ! $this->canTrade())
+                        >{{ __('agricart.pages.fx-learn.term_place_buy') }}</button>
+                        <button
+                            type="button"
+                            class="fxt__submit fxt__submit--sell"
+                            wire:click="openTradeAs('sell')"
+                            @disabled(! empty($dash['failed_day']) || ! empty($dash['failed_total']) || ! empty($risk['fail']) || ! $this->canTrade())
+                        >{{ __('agricart.pages.fx-learn.term_place_sell') }}</button>
+                    </div>
+                </aside>
+
                 <aside class="fxt__panel fxt__panel--gauge" aria-label="{{ __('agricart.pages.fx-learn.term_ta_title') }}">
                     <div class="fxt__panel-head">
                         <div>
                             <p class="fxt__kicker">{{ __('agricart.pages.fx-learn.term_ta_kicker') }}</p>
                             <h2 class="fxt__panel-title" dir="ltr">{{ $label }}</h2>
-                            <p class="fxt__panel-sub">{{ __('agricart.pages.fx-learn.term_ta_hint') }}</p>
                         </div>
                         <div class="fxt__tf" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_ta_tf_label') }}">
                             @foreach (['1' => '1m', '5' => '5m', '15' => '15m', '60' => '1H', '240' => '4H', 'D' => '1D'] as $id => $tfLabel)
