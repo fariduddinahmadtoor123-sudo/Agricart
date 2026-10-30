@@ -18911,8 +18911,16 @@ html.dark .agricart-tools-reorder-settings__chip-names,
 .fxt__page-tools { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .4rem; }
 .fxt__page-tools--foot { margin-top: .25rem; padding-top: .35rem; border-top: 1px dashed color-mix(in srgb, var(--agricart-border, #e5e7eb) 80%, transparent); }
 .fxt__desk { display: flex; flex-direction: column; gap: .85rem; border: 1px solid color-mix(in srgb, var(--agricart-border, #e5e7eb) 100%, transparent); border-radius: .9rem; background: linear-gradient(180deg, #fafcfb, #fff); padding: .85rem .9rem 1rem; }
-.fxt__desk-head { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
-.fxt__desk-title { margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--agricart-text); letter-spacing: .01em; }
+.fxt__desk-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem 1rem; flex-wrap: wrap; }
+.fxt__desk-title { margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--agricart-text); letter-spacing: .01em; flex: 0 0 auto; }
+.fxt__desk-metrics { display: flex; flex-wrap: wrap; align-items: stretch; gap: .35rem .55rem; margin-inline-start: auto; }
+.fxt__desk-metric { display: flex; flex-direction: column; gap: .08rem; min-width: 5.75rem; padding: .2rem .45rem; border-inline-start: 1px solid #e5e7eb; }
+.fxt__desk-metric:first-child { border-inline-start: 0; padding-inline-start: 0; }
+.fxt__desk-metric span { font-size: .58rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--agricart-muted); white-space: nowrap; }
+.fxt__desk-metric strong { font-size: .9rem; font-weight: 800; color: var(--agricart-text); font-variant-numeric: tabular-nums; white-space: nowrap; line-height: 1.15; }
+.fxt__desk-metric strong.is-pos { color: #15803d; }
+.fxt__desk-metric strong.is-neg { color: #b91c1c; }
+.fxt__stats--risk .fxt__stat { flex: 1 1 0; }
 .fxt__ws { display: none !important; }
 .fxt__board { display: grid; grid-template-columns: minmax(0, 1.55fr) minmax(16rem, .85fr); gap: .75rem; align-items: stretch; }
 .fxt__grid-wrap { overflow-x: auto; border: 1px solid #e5e7eb; border-radius: .65rem; background: #fff; min-width: 0; }

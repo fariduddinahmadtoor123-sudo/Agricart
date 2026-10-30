@@ -134,6 +134,28 @@
         <section class="fxt__desk" wire:key="fxt-desk-{{ $category }}" aria-label="{{ __('agricart.pages.fx-learn.term_desk_label', ['market' => __('agricart.pages.fx-learn.term_cat_'.$category)]) }}">
             <header class="fxt__desk-head">
                 <h2 class="fxt__desk-title">{{ __('agricart.pages.fx-learn.term_desk_title', ['market' => __('agricart.pages.fx-learn.term_cat_'.$category)]) }}</h2>
+                <div class="fxt__desk-metrics" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_stats_label') }}">
+                    <div class="fxt__desk-metric">
+                        <span>{{ __('agricart.pages.fx-learn.term_balance') }}</span>
+                        <strong dir="ltr">${{ number_format((float) ($dash['balance'] ?? 0), 2) }}</strong>
+                    </div>
+                    <div class="fxt__desk-metric">
+                        <span>{{ __('agricart.pages.fx-learn.term_equity') }}</span>
+                        <strong dir="ltr">${{ number_format((float) ($dash['equity'] ?? 0), 2) }}</strong>
+                    </div>
+                    <div class="fxt__desk-metric">
+                        <span>{{ __('agricart.pages.fx-learn.term_floating') }}</span>
+                        <strong dir="ltr" @class(['is-pos' => ($dash['floating'] ?? 0) > 0, 'is-neg' => ($dash['floating'] ?? 0) < 0])>
+                            ${{ number_format((float) ($dash['floating'] ?? 0), 2) }}
+                        </strong>
+                    </div>
+                    <div class="fxt__desk-metric">
+                        <span>{{ __('agricart.pages.fx-learn.term_day_pnl') }}</span>
+                        <strong dir="ltr" @class(['is-pos' => ($dash['day_pnl'] ?? 0) > 0, 'is-neg' => ($dash['day_pnl'] ?? 0) < 0])>
+                            ${{ number_format((float) ($dash['day_pnl'] ?? 0), 2) }}
+                        </strong>
+                    </div>
+                </div>
             </header>
 
             {{-- Rates grid + TradingView TA gauge (official embed — click symbol / pick TF) --}}
@@ -237,27 +259,7 @@
                 </aside>
             </div>
 
-        <div class="fxt__stats" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_stats_label') }}">
-            <div class="fxt__stat">
-                <span>{{ __('agricart.pages.fx-learn.term_balance') }}</span>
-                <strong>${{ number_format((float) ($dash['balance'] ?? 0), 2) }}</strong>
-            </div>
-            <div class="fxt__stat">
-                <span>{{ __('agricart.pages.fx-learn.term_equity') }}</span>
-                <strong>${{ number_format((float) ($dash['equity'] ?? 0), 2) }}</strong>
-            </div>
-            <div class="fxt__stat">
-                <span>{{ __('agricart.pages.fx-learn.term_floating') }}</span>
-                <strong @class(['is-pos' => ($dash['floating'] ?? 0) > 0, 'is-neg' => ($dash['floating'] ?? 0) < 0])>
-                    ${{ number_format((float) ($dash['floating'] ?? 0), 2) }}
-                </strong>
-            </div>
-            <div class="fxt__stat">
-                <span>{{ __('agricart.pages.fx-learn.term_day_pnl') }}</span>
-                <strong @class(['is-pos' => ($dash['day_pnl'] ?? 0) > 0, 'is-neg' => ($dash['day_pnl'] ?? 0) < 0])>
-                    ${{ number_format((float) ($dash['day_pnl'] ?? 0), 2) }}
-                </strong>
-            </div>
+        <div class="fxt__stats fxt__stats--risk" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_stats_label') }}">
             <div @class(['fxt__stat', 'is-fail' => ! empty($dash['failed_day'])])>
                 <span>{{ __('agricart.pages.fx-learn.term_day_loss') }}</span>
                 <strong>{{ number_format((float) ($dash['day_loss_pct'] ?? 0), 2) }}% / {{ $maxDayLossPct }}%</strong>
