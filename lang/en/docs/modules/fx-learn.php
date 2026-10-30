@@ -103,7 +103,7 @@ return [
                 'heading' => 'Purpose',
                 'paragraphs' => [
                     'Practice desk with demo money. Front-line shows only symbols you add to the watchlist.',
-                    'Charts are TradingView Advanced Chart embeds (same symbol family as Market Signals). Order fills use Yahoo/Binance sample quotes for bid/ask and SL/TP hits.',
+                    'Charts are TradingView Advanced Chart embeds (same symbol family as Market Signals). Live bid/ask come from Binance official WebSocket/REST (crypto + available FX/metal proxies) and Finnhub free quote API when a key is set — no page scraping.',
                 ],
             ],
             [

@@ -299,7 +299,7 @@ class TradeTerminalPage extends BaseModulePage
     /**
      * All tradable symbols in the active category (auto — no manual add).
      *
-     * @return list<array{id: string, label: string, tv: string, bid: float|null, ask: float|null, mid: float|null, high: float|null, low: float|null, digits: int, live: bool, time: string}>
+     * @return list<array{id: string, label: string, tv: string, binance: ?string, bid: float|null, ask: float|null, mid: float|null, high: float|null, low: float|null, digits: int, live: bool, time: string}>
      */
     public function categorySymbolRows(): array
     {
@@ -313,11 +313,14 @@ class TradeTerminalPage extends BaseModulePage
             $time = is_string($quotedAt) && $quotedAt !== ''
                 ? agricart_datetime(\Carbon\CarbonImmutable::parse($quotedAt), 'H:i:s', true)
                 : '—';
+            // Prefer stream-eligible Binance symbol from quote service (null when Finnhub owns the row).
+            $binance = $q['binance'] ?? null;
 
             $rows[] = [
                 'id' => $row['id'],
                 'label' => $row['label'],
                 'tv' => $row['tv'],
+                'binance' => is_string($binance) && $binance !== '' ? $binance : null,
                 'bid' => $q['bid'] ?? null,
                 'ask' => $q['ask'] ?? null,
                 'mid' => $q['mid'] ?? null,

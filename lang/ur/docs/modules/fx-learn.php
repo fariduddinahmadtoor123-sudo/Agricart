@@ -103,7 +103,7 @@ return [
                 'heading' => 'مقصد',
                 'paragraphs' => [
                     'ڈیمو منی سے پریکٹس۔ فرنٹ لائن پر صرف وہ سمبلز جو آپ واچ لسٹ میں ایڈ کریں۔',
-                    'چارٹ TradingView Advanced Chart ہے (Market Signals جیسا سمبل خاندان)۔ فلز Yahoo/Binance سیمپل کوٹس سے ہیں۔',
+                    'چارٹ TradingView Advanced Chart ہے (Market Signals جیسا سمبل خاندان)۔ لائیو بِڈ/آسک Binance سرکاری WebSocket/REST اور Finnhub فری quote API سے آتے ہیں — کوئی صفحہ سکریپنگ نہیں۔',
                 ],
             ],
             [

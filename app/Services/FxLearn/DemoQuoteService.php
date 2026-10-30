@@ -2,57 +2,77 @@
 
 namespace App\Services\FxLearn;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
+/**
+ * Official free quote sources only (no HTML scraping):
+ * - Binance public REST + browser WebSocket (fastest free live)
+ * - Finnhub quote REST when an API key is configured (true FX / metals / indices)
+ */
 class DemoQuoteService
 {
+    private const CACHE_KEY = 'fxlearn.demo.quotes.v4';
+
+    private const CACHE_TTL = 5;
+
+    public function __construct(
+        private readonly FinnhubCredentialService $finnhubCredentials,
+    ) {}
+
     /**
-     * @return array<string, array{
-     *   bid: float,
-     *   ask: float,
-     *   mid: float,
-     *   high: float,
-     *   low: float,
-     *   live: bool,
-     *   digits: int,
-     *   label: string,
-     *   category: string,
-     *   contract: float,
-     *   tv: string,
-     *   quoted_at: string|null
-     * }>
+     * @return array<string, array<string, mixed>>
      */
     public function snapshot(): array
     {
-        return Cache::remember('fxlearn.demo.quotes.v3', 20, function (): array {
+        return Cache::remember(self::CACHE_KEY, self::CACHE_TTL, function (): array {
             return $this->fetchFresh();
         });
     }
 
     /**
-     * @return array<string, array{
-     *   bid: float,
-     *   ask: float,
-     *   mid: float,
-     *   high: float,
-     *   low: float,
-     *   live: bool,
-     *   digits: int,
-     *   label: string,
-     *   category: string,
-     *   contract: float,
-     *   tv: string,
-     *   quoted_at: string|null
-     * }>
+     * @return array<string, array<string, mixed>>
      */
     public function refresh(): array
     {
-        Cache::forget('fxlearn.demo.quotes.v3');
+        Cache::forget(self::CACHE_KEY);
 
         return $this->snapshot();
+    }
+
+    /**
+     * Bypass cache for a single symbol (accurate demo fills).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function freshFor(string $symbol): ?array
+    {
+        $meta = DemoSymbolCatalog::get($symbol);
+
+        if ($meta === null) {
+            return null;
+        }
+
+        $tick = $this->fetchOneTick($symbol, $meta);
+
+        return $this->hydrate($symbol, $meta, $tick);
+    }
+
+    /**
+     * Binance stream symbol for browser WebSocket (null = Finnhub/seed only).
+     */
+    public function streamBinanceSymbol(string $symbol): ?string
+    {
+        $meta = DemoSymbolCatalog::get($symbol);
+
+        if ($meta === null || ! filled($meta['binance'] ?? null)) {
+            return null;
+        }
+
+        return (string) $meta['binance'];
     }
 
     /**
@@ -65,69 +85,85 @@ class DemoQuoteService
         $out = [];
 
         foreach ($catalog as $key => $meta) {
-            $tick = $ticks[$key] ?? null;
-            $live = is_array($tick);
-            $price = $live ? (float) $tick['mid'] : (float) $meta['seed'];
-            $half = $this->halfSpread($key, $price);
-            $digits = (int) $meta['digits'];
-            $high = $live && isset($tick['high']) ? (float) $tick['high'] : round($price * 1.002, $digits);
-            $low = $live && isset($tick['low']) ? (float) $tick['low'] : round($price * 0.998, $digits);
-
-            if ($high < $low) {
-                [$high, $low] = [$low, $high];
-            }
-
-            $out[$key] = [
-                'label' => $meta['label'],
-                'category' => $meta['category'],
-                'digits' => $digits,
-                'contract' => (float) $meta['contract'],
-                'tv' => (string) $meta['tv'],
-                'mid' => round($price, $digits),
-                'bid' => round($price - $half, $digits),
-                'ask' => round($price + $half, $digits),
-                'high' => round($high, $digits),
-                'low' => round($low, $digits),
-                'live' => $live,
-                'quoted_at' => $live ? ($tick['quoted_at'] ?? now()->toIso8601String()) : null,
-            ];
+            $out[$key] = $this->hydrate($key, $meta, $ticks[$key] ?? null);
         }
 
         return $out;
     }
 
     /**
+     * @param  array<string, mixed>  $meta
+     * @param  array{mid: float, bid?: float, ask?: float, high?: float, low?: float, quoted_at?: string, source?: string}|null  $tick
+     * @return array<string, mixed>
+     */
+    private function hydrate(string $key, array $meta, ?array $tick): array
+    {
+        $live = is_array($tick);
+        $price = $live ? (float) $tick['mid'] : (float) $meta['seed'];
+        $digits = (int) $meta['digits'];
+        $half = $this->halfSpread($key, $price);
+
+        $bid = $live && isset($tick['bid']) ? (float) $tick['bid'] : ($price - $half);
+        $ask = $live && isset($tick['ask']) ? (float) $tick['ask'] : ($price + $half);
+        $high = $live && isset($tick['high']) ? (float) $tick['high'] : round($price * 1.002, $digits);
+        $low = $live && isset($tick['low']) ? (float) $tick['low'] : round($price * 0.998, $digits);
+
+        if ($high < $low) {
+            [$high, $low] = [$low, $high];
+        }
+
+        $source = $live ? (string) ($tick['source'] ?? 'live') : 'seed';
+        $streamBinance = $this->streamBinanceSymbol($key);
+
+        return [
+            'label' => $meta['label'],
+            'category' => $meta['category'],
+            'digits' => $digits,
+            'contract' => (float) $meta['contract'],
+            'tv' => (string) $meta['tv'],
+            'mid' => round(($bid + $ask) / 2, $digits),
+            'bid' => round($bid, $digits),
+            'ask' => round($ask, $digits),
+            'high' => round($high, $digits),
+            'low' => round($low, $digits),
+            'live' => $live,
+            'quoted_at' => $live ? ($tick['quoted_at'] ?? now()->toIso8601String()) : null,
+            'feed' => (string) ($meta['feed'] ?? ''),
+            'source' => $source,
+            'binance' => $streamBinance,
+        ];
+    }
+
+    /**
      * @param  array<string, array<string, mixed>>  $catalog
-     * @return array<string, array{mid: float, high?: float, low?: float, quoted_at?: string}>
+     * @return array<string, array{mid: float, bid?: float, ask?: float, high?: float, low?: float, quoted_at?: string, source?: string}>
      */
     private function fetchAllTicks(array $catalog): array
     {
         $ticks = [];
+        $finnhubToken = $this->finnhubCredentials->resolveToken();
 
         try {
-            $responses = Http::pool(function ($pool) use ($catalog) {
+            $responses = Http::pool(function ($pool) use ($catalog, $finnhubToken) {
                 $requests = [];
 
                 foreach ($catalog as $key => $meta) {
-                    if (($meta['feed'] ?? '') === 'yahoo') {
-                        $url = 'https://query1.finance.yahoo.com/v8/finance/chart/'
-                            .rawurlencode((string) $meta['yahoo'])
-                            .'?interval=1m&range=1d';
-                        $requests[$key] = $pool->as($key)
-                            ->timeout(8)
-                            ->withHeaders([
-                                'User-Agent' => 'Mozilla/5.0 (compatible; Agricart-FXLearn/1.0)',
-                                'Accept' => 'application/json',
-                            ])
-                            ->get($url);
-                    }
+                    $route = $this->routeFor($meta, $finnhubToken);
 
-                    if (($meta['feed'] ?? '') === 'binance') {
+                    if ($route === 'binance') {
                         $requests[$key] = $pool->as($key)
                             ->timeout(8)
                             ->withHeaders(['User-Agent' => 'Agricart-FXLearn/1.0'])
                             ->get('https://api.binance.com/api/v3/ticker/24hr', [
                                 'symbol' => (string) $meta['binance'],
+                            ]);
+                    } elseif ($route === 'finnhub') {
+                        $requests[$key] = $pool->as($key)
+                            ->timeout(8)
+                            ->withHeaders(['User-Agent' => 'Agricart-FXLearn/1.0'])
+                            ->get('https://finnhub.io/api/v1/quote', [
+                                'symbol' => (string) $meta['finnhub'],
+                                'token' => $finnhubToken,
                             ]);
                     }
                 }
@@ -136,13 +172,22 @@ class DemoQuoteService
             });
 
             foreach ($catalog as $key => $meta) {
+                $route = $this->routeFor($meta, $finnhubToken);
                 $response = $responses[$key] ?? null;
 
                 if (! is_object($response) || ! method_exists($response, 'successful') || ! $response->successful()) {
+                    if ($route === 'binance' && $finnhubToken !== null && filled($meta['finnhub'] ?? null)) {
+                        $fallback = $this->fetchFinnhubTick((string) $meta['finnhub'], $finnhubToken);
+
+                        if ($fallback !== null) {
+                            $ticks[$key] = $fallback;
+                        }
+                    }
+
                     continue;
                 }
 
-                if (($meta['feed'] ?? '') === 'binance') {
+                if ($route === 'binance') {
                     $parsed = $this->parseBinancePayload($response->json());
 
                     if ($parsed !== null) {
@@ -152,7 +197,7 @@ class DemoQuoteService
                     continue;
                 }
 
-                $parsed = $this->parseYahooPayload($response->json());
+                $parsed = $this->parseFinnhubPayload($response->json());
 
                 if ($parsed !== null) {
                     $ticks[$key] = $parsed;
@@ -166,71 +211,86 @@ class DemoQuoteService
     }
 
     /**
-     * @param  mixed  $json
-     * @return array{mid: float, high: float, low: float, quoted_at: string}|null
+     * Prefer Binance whenever a public pair exists (free + WebSocket-fast).
+     * Finnhub free tier blocks OANDA FX; it still helps for equity/ETF proxies.
+     *
+     * @param  array<string, mixed>  $meta
      */
-    private function parseYahooPayload(mixed $json): ?array
+    private function routeFor(array $meta, ?string $finnhubToken): ?string
     {
-        if (! is_array($json)) {
-            return null;
+        if (filled($meta['binance'] ?? null)) {
+            return 'binance';
         }
 
-        $result = data_get($json, 'chart.result.0');
-
-        if (! is_array($result)) {
-            return null;
+        if ($finnhubToken !== null && filled($meta['finnhub'] ?? null)) {
+            return 'finnhub';
         }
 
-        $meta = $result['meta'] ?? [];
-        $price = (float) ($meta['regularMarketPrice'] ?? 0);
+        return null;
+    }
 
-        if ($price <= 0) {
-            $price = (float) ($meta['previousClose'] ?? 0);
-        }
+    /**
+     * @param  array<string, mixed>  $meta
+     * @return array{mid: float, bid?: float, ask?: float, high?: float, low?: float, quoted_at?: string, source?: string}|null
+     */
+    private function fetchOneTick(string $symbol, array $meta): ?array
+    {
+        try {
+            $token = $this->finnhubCredentials->resolveToken();
+            $route = $this->routeFor($meta, $token);
 
-        if ($price <= 0) {
-            $closes = data_get($result, 'indicators.quote.0.close', []);
+            if ($route === 'binance') {
+                $response = Http::timeout(8)
+                    ->withHeaders(['User-Agent' => 'Agricart-FXLearn/1.0'])
+                    ->get('https://api.binance.com/api/v3/ticker/24hr', [
+                        'symbol' => (string) $meta['binance'],
+                    ]);
 
-            if (is_array($closes)) {
-                for ($i = count($closes) - 1; $i >= 0; $i--) {
-                    if (is_numeric($closes[$i]) && (float) $closes[$i] > 0) {
-                        $price = (float) $closes[$i];
-                        break;
+                if ($response->successful()) {
+                    $parsed = $this->parseBinancePayload($response->json());
+
+                    if ($parsed !== null) {
+                        return $parsed;
                     }
                 }
+
+                if ($token !== null && filled($meta['finnhub'] ?? null)) {
+                    return $this->fetchFinnhubTick((string) $meta['finnhub'], $token);
+                }
             }
+
+            if ($route === 'finnhub' && $token !== null) {
+                return $this->fetchFinnhubTick((string) $meta['finnhub'], $token);
+            }
+        } catch (Throwable $e) {
+            Log::warning('FX Learn single quote failed', ['symbol' => $symbol, 'error' => $e->getMessage()]);
         }
 
-        if ($price <= 0) {
+        return null;
+    }
+
+    /**
+     * @return array{mid: float, bid: float, ask: float, high: float, low: float, quoted_at: string, source: string}|null
+     */
+    private function fetchFinnhubTick(string $finnhubSymbol, string $token): ?array
+    {
+        $response = Http::timeout(8)
+            ->withHeaders(['User-Agent' => 'Agricart-FXLearn/1.0'])
+            ->get('https://finnhub.io/api/v1/quote', [
+                'symbol' => $finnhubSymbol,
+                'token' => $token,
+            ]);
+
+        if (! $response->successful()) {
             return null;
         }
 
-        $high = (float) ($meta['regularMarketDayHigh'] ?? 0);
-        $low = (float) ($meta['regularMarketDayLow'] ?? 0);
-
-        if ($high <= 0 || $low <= 0) {
-            $highs = data_get($result, 'indicators.quote.0.high', []);
-            $lows = data_get($result, 'indicators.quote.0.low', []);
-            $high = $this->extremeFromSeries($highs, true) ?? $price;
-            $low = $this->extremeFromSeries($lows, false) ?? $price;
-        }
-
-        $ts = (int) ($meta['regularMarketTime'] ?? data_get($result, 'timestamp.'.(count((array) data_get($result, 'timestamp', [])) - 1), 0));
-        $quotedAt = $ts > 0
-            ? \Carbon\CarbonImmutable::createFromTimestamp($ts, 'UTC')->setTimezone(agricart_display_timezone())->toIso8601String()
-            : now(agricart_display_timezone())->toIso8601String();
-
-        return [
-            'mid' => $price,
-            'high' => $high > 0 ? $high : $price,
-            'low' => $low > 0 ? $low : $price,
-            'quoted_at' => $quotedAt,
-        ];
+        return $this->parseFinnhubPayload($response->json());
     }
 
     /**
      * @param  mixed  $json
-     * @return array{mid: float, high: float, low: float, quoted_at: string}|null
+     * @return array{mid: float, bid: float, ask: float, high: float, low: float, quoted_at: string, source: string}|null
      */
     private function parseBinancePayload(mixed $json): ?array
     {
@@ -238,62 +298,72 @@ class DemoQuoteService
             return null;
         }
 
-        $last = (float) ($json['lastPrice'] ?? 0);
         $bid = (float) ($json['bidPrice'] ?? 0);
         $ask = (float) ($json['askPrice'] ?? 0);
-        $mid = $last > 0 ? $last : (($bid > 0 && $ask > 0) ? (($bid + $ask) / 2) : 0);
+        $last = (float) ($json['lastPrice'] ?? 0);
+        $mid = ($bid > 0 && $ask > 0) ? (($bid + $ask) / 2) : $last;
 
         if ($mid <= 0) {
             return null;
+        }
+
+        if ($bid <= 0 || $ask <= 0) {
+            $half = max($mid * 0.00005, 0.00001);
+            $bid = $mid - $half;
+            $ask = $mid + $half;
         }
 
         $high = (float) ($json['highPrice'] ?? $mid);
         $low = (float) ($json['lowPrice'] ?? $mid);
         $closeMs = (int) ($json['closeTime'] ?? 0);
         $quotedAt = $closeMs > 0
-            ? \Carbon\CarbonImmutable::createFromTimestampMs($closeMs, 'UTC')->setTimezone(agricart_display_timezone())->toIso8601String()
+            ? CarbonImmutable::createFromTimestampMs($closeMs, 'UTC')->setTimezone(agricart_display_timezone())->toIso8601String()
             : now(agricart_display_timezone())->toIso8601String();
 
         return [
             'mid' => $mid,
+            'bid' => $bid,
+            'ask' => $ask,
             'high' => $high > 0 ? $high : $mid,
             'low' => $low > 0 ? $low : $mid,
             'quoted_at' => $quotedAt,
+            'source' => 'binance',
         ];
     }
 
     /**
-     * @param  mixed  $series
+     * @param  mixed  $json
+     * @return array{mid: float, bid: float, ask: float, high: float, low: float, quoted_at: string, source: string}|null
      */
-    private function extremeFromSeries(mixed $series, bool $max): ?float
+    private function parseFinnhubPayload(mixed $json): ?array
     {
-        if (! is_array($series) || $series === []) {
+        if (! is_array($json)) {
             return null;
         }
 
-        $best = null;
+        $current = (float) ($json['c'] ?? 0);
 
-        foreach ($series as $value) {
-            if (! is_numeric($value)) {
-                continue;
-            }
-
-            $n = (float) $value;
-
-            if ($n <= 0) {
-                continue;
-            }
-
-            if ($best === null) {
-                $best = $n;
-
-                continue;
-            }
-
-            $best = $max ? max($best, $n) : min($best, $n);
+        if ($current <= 0) {
+            return null;
         }
 
-        return $best;
+        $high = (float) ($json['h'] ?? $current);
+        $low = (float) ($json['l'] ?? $current);
+        $half = max($current * 0.00005, 0.00001);
+        $ts = (int) ($json['t'] ?? 0);
+        $quotedAt = $ts > 0
+            ? CarbonImmutable::createFromTimestamp($ts, 'UTC')->setTimezone(agricart_display_timezone())->toIso8601String()
+            : now(agricart_display_timezone())->toIso8601String();
+
+        return [
+            'mid' => $current,
+            'bid' => $current - $half,
+            'ask' => $current + $half,
+            'high' => $high > 0 ? $high : $current,
+            'low' => $low > 0 ? $low : $current,
+            'quoted_at' => $quotedAt,
+            'source' => 'finnhub',
+        ];
     }
 
     private function halfSpread(string $key, float $price): float
@@ -305,10 +375,9 @@ class DemoQuoteService
             'eurusd', 'usdchf', 'audusd', 'nzdusd', 'usdcad', 'eurchf', 'euraud' => 0.00008,
             'gbpusd', 'eurgbp' => 0.0001,
             'usdjpy', 'gbpjpy', 'audjpy' => 0.008,
-            'btcusdt' => 2.5,
-            'ethusdt' => 0.35,
-            'us30' => 1.2,
-            'nas100' => 1.0,
+            'btcusdt', 'ethusdt', 'bnbusdt', 'solusdt', 'avaxusdt', 'linkusdt', 'dotusdt' => max($price * 0.00005, 0.01),
+            'xrpusdt', 'adausdt', 'dogeusdt' => max($price * 0.00008, 0.00001),
+            'us30', 'nas100' => 0.05,
             default => max($price * 0.00005, 0.00001),
         };
     }

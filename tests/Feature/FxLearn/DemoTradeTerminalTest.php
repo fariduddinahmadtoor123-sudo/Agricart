@@ -48,6 +48,9 @@ class DemoTradeTerminalTest extends TestCase
             ];
             $mock->shouldReceive('snapshot')->andReturn($snapshot);
             $mock->shouldReceive('refresh')->andReturn($snapshot);
+            $mock->shouldReceive('freshFor')->andReturnUsing(function (string $symbol) use ($snapshot) {
+                return $snapshot[$symbol] ?? null;
+            });
         });
 
         $user = User::factory()->create();

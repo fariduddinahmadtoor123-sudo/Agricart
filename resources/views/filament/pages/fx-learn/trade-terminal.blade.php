@@ -6,12 +6,20 @@
     $tvSymbol = $this->activeTvSymbol();
     $label = $this->activeLabel();
     $taInterval = $this->taInterval();
+    $deskRows = $this->categorySymbolRows();
+    $binanceStreams = collect($deskRows)
+        ->filter(fn ($row) => filled($row['binance'] ?? null))
+        ->mapWithKeys(fn ($row) => [strtolower((string) $row['binance']) => [
+            'id' => $row['id'],
+            'digits' => (int) $row['digits'],
+        ]])
+        ->all();
 @endphp
 
 <x-filament-panels::page>
     <div
         class="fxt"
-        wire:poll.10s="refreshQuotes"
+        wire:poll.5s="refreshQuotes"
         x-data="{
             mountTv(el, src, config) {
                 if (! el) return;
@@ -34,6 +42,102 @@
             }
         }"
     >
+        {{-- Stable Binance WebSocket host — remounts only when stream set changes --}}
+        <div
+            class="fxt__ws"
+            wire:ignore
+            wire:key="fxt-ws-{{ $category }}-{{ collect(array_keys($binanceStreams))->sort()->implode('-') }}"
+            x-data="{
+                streams: @js($binanceStreams),
+                liveLabel: @js(__('agricart.pages.fx-learn.term_live')),
+                ws: null,
+                reconnectTimer: null,
+                fmt(value, digits) {
+                    const n = Number(value);
+                    if (! Number.isFinite(n)) return '—';
+                    return n.toFixed(digits);
+                },
+                nowTime() {
+                    try {
+                        return new Intl.DateTimeFormat(undefined, {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: false,
+                            timeZone: 'Asia/Karachi'
+                        }).format(new Date());
+                    } catch (e) {
+                        return new Date().toLocaleTimeString();
+                    }
+                },
+                connectBinance() {
+                    if (this.ws) {
+                        try { this.ws.close(); } catch (e) {}
+                        this.ws = null;
+                    }
+                    if (this.reconnectTimer) {
+                        clearTimeout(this.reconnectTimer);
+                        this.reconnectTimer = null;
+                    }
+                    const keys = Object.keys(this.streams || {});
+                    if (! keys.length) return;
+                    const streams = keys.map((s) => s + '@ticker').join('/');
+                    const url = 'wss://stream.binance.com:9443/stream?streams=' + streams;
+                    const socket = new WebSocket(url);
+                    this.ws = socket;
+                    socket.onmessage = (event) => {
+                        let payload;
+                        try { payload = JSON.parse(event.data); } catch (e) { return; }
+                        const data = payload && payload.data ? payload.data : payload;
+                        if (! data || ! data.s) return;
+                        const map = this.streams[String(data.s).toLowerCase()];
+                        if (! map) return;
+                        const digits = map.digits || 2;
+                        let bid = Number(data.b);
+                        let ask = Number(data.a);
+                        const last = Number(data.c);
+                        if (! (bid > 0) || ! (ask > 0)) {
+                            if (! (last > 0)) return;
+                            const half = Math.max(last * 0.00005, 0.00001);
+                            bid = last - half;
+                            ask = last + half;
+                        }
+                        const high = Number(data.h);
+                        const row = document.querySelector('[data-fxt-id=\"' + map.id + '\"]');
+                        if (row) {
+                            const askEl = row.querySelector('[data-fxt-ask]');
+                            const bidEl = row.querySelector('[data-fxt-bid]');
+                            const highEl = row.querySelector('[data-fxt-high]');
+                            const timeEl = row.querySelector('[data-fxt-time]');
+                            const dotEl = row.querySelector('[data-fxt-dot]');
+                            if (askEl) askEl.textContent = this.fmt(ask, digits);
+                            if (bidEl) bidEl.textContent = this.fmt(bid, digits);
+                            if (highEl && high > 0) highEl.textContent = this.fmt(high, digits);
+                            if (timeEl) timeEl.textContent = this.nowTime();
+                            if (dotEl) dotEl.classList.add('is-on');
+                        }
+                        const active = document.querySelector('.fxt__grid tbody tr.is-on');
+                        if (active && active.getAttribute('data-fxt-id') === map.id) {
+                            const ticketAsk = document.querySelector('[data-fxt-ticket-ask]');
+                            const ticketBid = document.querySelector('[data-fxt-ticket-bid]');
+                            const ticketLive = document.querySelector('[data-fxt-ticket-live]');
+                            if (ticketAsk) ticketAsk.textContent = this.fmt(ask, digits);
+                            if (ticketBid) ticketBid.textContent = this.fmt(bid, digits);
+                            if (ticketLive) {
+                                ticketLive.classList.add('is-on');
+                                ticketLive.textContent = this.liveLabel;
+                            }
+                        }
+                    };
+                    socket.onclose = () => {
+                        if (this.ws !== socket) return;
+                        this.reconnectTimer = setTimeout(() => this.connectBinance(), 2500);
+                    };
+                }
+            }"
+            x-init="connectBinance()"
+            x-on:remove="if (reconnectTimer) clearTimeout(reconnectTimer); if (ws) { try { ws.close(); } catch (e) {} }"
+        ></div>
         {{-- Selected market desk (Forex / Commodities / …) --}}
         <section class="fxt__desk" wire:key="fxt-desk-{{ $category }}" aria-label="{{ __('agricart.pages.fx-learn.term_desk_label', ['market' => __('agricart.pages.fx-learn.term_cat_'.$category)]) }}">
             <header class="fxt__desk-head">
@@ -53,23 +157,24 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($this->categorySymbolRows() as $row)
+                        @foreach ($deskRows as $row)
                             @php
                                 $fmt = static fn ($v) => $v !== null ? number_format((float) $v, $row['digits'], '.', '') : '—';
                             @endphp
                             <tr
                                 wire:key="fxt-row-{{ $row['id'] }}"
+                                data-fxt-id="{{ $row['id'] }}"
                                 @class(['is-on' => $symbol === $row['id']])
                                 wire:click="setSymbol(@js($row['id']))"
                             >
                                 <td class="fxt__grid-sym" dir="ltr">
                                     <strong>{{ $row['label'] }}</strong>
-                                    <span @class(['fxt__dot', 'is-on' => $row['live']])></span>
+                                    <span data-fxt-dot @class(['fxt__dot', 'is-on' => $row['live'] || filled($row['binance'])])></span>
                                 </td>
-                                <td class="fxt__grid-ask" dir="ltr">{{ $fmt($row['ask']) }}</td>
-                                <td class="fxt__grid-bid" dir="ltr">{{ $fmt($row['bid']) }}</td>
-                                <td dir="ltr">{{ $fmt($row['high']) }}</td>
-                                <td class="fxt__grid-time" dir="ltr">{{ $row['time'] }}</td>
+                                <td class="fxt__grid-ask" data-fxt-ask dir="ltr">{{ $fmt($row['ask']) }}</td>
+                                <td class="fxt__grid-bid" data-fxt-bid dir="ltr">{{ $fmt($row['bid']) }}</td>
+                                <td data-fxt-high dir="ltr">{{ $fmt($row['high']) }}</td>
+                                <td class="fxt__grid-time" data-fxt-time dir="ltr">{{ $row['time'] }}</td>
                                 <td class="fxt__grid-actions" wire:click.stop>
                                     <button
                                         type="button"
@@ -139,14 +244,14 @@
             <div class="fxt__ticket-px" dir="ltr">
                 <div>
                     <span>{{ __('agricart.pages.fx-learn.term_bid') }}</span>
-                    <strong class="is-bid">{{ $q ? number_format((float) $q['bid'], $digits, '.', '') : '—' }}</strong>
+                    <strong class="is-bid" data-fxt-ticket-bid>{{ $q ? number_format((float) $q['bid'], $digits, '.', '') : '—' }}</strong>
                 </div>
                 <div>
                     <span>{{ __('agricart.pages.fx-learn.term_ask') }}</span>
-                    <strong class="is-ask">{{ $q ? number_format((float) $q['ask'], $digits, '.', '') : '—' }}</strong>
+                    <strong class="is-ask" data-fxt-ticket-ask>{{ $q ? number_format((float) $q['ask'], $digits, '.', '') : '—' }}</strong>
                 </div>
-                <span @class(['fxt__live', 'is-on' => ! empty($q['live'])])>
-                    {{ ! empty($q['live']) ? __('agricart.pages.fx-learn.term_live') : __('agricart.pages.fx-learn.term_seed') }}
+                <span data-fxt-ticket-live @class(['fxt__live', 'is-on' => ! empty($q['live']) || filled($q['binance'] ?? null)])>
+                    {{ (! empty($q['live']) || filled($q['binance'] ?? null)) ? __('agricart.pages.fx-learn.term_live') : __('agricart.pages.fx-learn.term_seed') }}
                 </span>
             </div>
             <label class="fxt__ticket-field">

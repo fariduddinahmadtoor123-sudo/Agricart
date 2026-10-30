@@ -169,12 +169,14 @@ class DemoTerminalService
 
         $side = strtolower($side) === 'sell' ? 'sell' : 'buy';
         $lots = round(max(0.01, min(10, $lots)), 2);
-        $quotes = $this->quotes->snapshot();
-        $quote = $quotes[$symbol] ?? null;
+        $quote = $this->quotes->freshFor($symbol) ?? ($this->quotes->snapshot()[$symbol] ?? null);
 
         if ($quote === null) {
             throw new InvalidArgumentException(__('agricart.pages.fx-learn.term_err_quote'));
         }
+
+        $quotes = $this->quotes->snapshot();
+        $quotes[$symbol] = $quote;
 
         $dashboard = $this->dashboard($account, $quotes);
 
@@ -258,8 +260,8 @@ class DemoTerminalService
             ->where('status', 'open')
             ->firstOrFail();
 
-        $quotes = $this->quotes->snapshot();
-        $quote = $quotes[$trade->symbol] ?? null;
+        $quote = $this->quotes->freshFor((string) $trade->symbol)
+            ?? ($this->quotes->snapshot()[$trade->symbol] ?? null);
         $exit = $quote
             ? ($trade->side === 'buy' ? (float) $quote['bid'] : (float) $quote['ask'])
             : (float) $trade->entry_price;
