@@ -352,6 +352,7 @@ class TradeTerminalPage extends BaseModulePage
     private function dispatchRiskSync(): void
     {
         $this->dispatch('fx-learn-terminal-risk-sync', risk: $this->riskToolbar());
+        $this->dispatch('fx-learn-terminal-sessions-sync', sessions: $this->sessionLiquidity());
     }
 
     /**

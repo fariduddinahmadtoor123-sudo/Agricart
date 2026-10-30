@@ -238,8 +238,77 @@
                 ];
                 $termCat = (string) ($toolbar['fxLearnTerminalCategory'] ?? 'forex');
                 $termRisk = is_array($toolbar['fxLearnTerminalRisk'] ?? null) ? $toolbar['fxLearnTerminalRisk'] : [];
+                $termSessions = is_array($toolbar['fxLearnTerminalSessions'] ?? null) ? $toolbar['fxLearnTerminalSessions'] : [];
             @endphp
             <div class="agricart-fxt-chrome">
+                {{-- Left: session / liquidity strip --}}
+                <div
+                    class="agricart-fxt-sessions"
+                    role="group"
+                    aria-label="{{ __('agricart.pages.fx-learn.term_sessions_label') }}"
+                    x-data="{
+                        pack: @js($termSessions),
+                        rows: @js($termSessions['sessions'] ?? []),
+                        overlap: @js(! empty($termSessions['overlap'])),
+                        init() {
+                            Livewire.on('fx-learn-terminal-sessions-sync', (e) => {
+                                const d = Array.isArray(e) ? (e[0] ?? {}) : (e ?? {});
+                                if (d.sessions) {
+                                    this.pack = d.sessions;
+                                    this.rows = d.sessions.sessions || [];
+                                    this.overlap = !!d.sessions.overlap;
+                                    this.tick();
+                                }
+                            });
+                            this.tick();
+                            setInterval(() => this.tick(), 15000);
+                        },
+                        tick() {
+                            const now = Date.now();
+                            this.rows = (this.rows || []).map((row) => {
+                                const startMs = Number(row.start_ms) || 0;
+                                const closeMs = Number(row.close_ms) || 0;
+                                const open = startMs > 0 && closeMs > startMs && now >= startMs && now < closeMs;
+                                let progress = 0;
+                                if (open) {
+                                    progress = Math.min(100, Math.max(0, ((now - startMs) / (closeMs - startMs)) * 100));
+                                }
+                                return { ...row, open, progress };
+                            });
+                        },
+                        liqClass() {
+                            const k = this.pack?.liquidity || 'off';
+                            return {
+                                'is-very-high': k === 'very_high',
+                                'is-high': k === 'high',
+                                'is-medium': k === 'medium',
+                                'is-off': k === 'off',
+                            };
+                        }
+                    }"
+                >
+                    <div class="agricart-fxt-sessions__meta">
+                        <span class="agricart-fxt-sessions__liq" :class="liqClass()" x-text="pack?.liquidity_label || ''"></span>
+                        <span class="agricart-fxt-sessions__overlap" x-show="overlap" x-cloak>{{ __('agricart.pages.fx-learn.term_session_overlap') }}</span>
+                        <span class="agricart-fxt-sessions__summary" dir="ltr" x-text="pack?.summary || ''"></span>
+                    </div>
+                    <div class="agricart-fxt-sessions__track" dir="ltr">
+                        <template x-for="row in rows" :key="row.id">
+                            <div
+                                class="agricart-fxt-sessions__seg"
+                                :class="{ 'is-open': row.open, 'is-closed': !row.open, 'is-overlap': row.open && overlap }"
+                                :title="row.label"
+                            >
+                                <span class="agricart-fxt-sessions__code" x-text="row.short"></span>
+                                <span class="agricart-fxt-sessions__bar" aria-hidden="true">
+                                    <span class="agricart-fxt-sessions__fill" :style="'width:' + (row.open ? row.progress : 0) + '%'"></span>
+                                </span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                {{-- Center: market category chips --}}
                 <div
                     class="agricart-fxt-cats"
                     role="tablist"
@@ -266,6 +335,7 @@
                     @endforeach
                 </div>
 
+                {{-- Right: challenge risk bars --}}
                 <div
                     class="agricart-fxt-risk"
                     role="group"
@@ -293,10 +363,8 @@
                                 'is-loss': risk?.[key]?.tone === 'loss'
                             }"
                         >
-                            <div class="agricart-fxt-risk__top">
-                                <span class="agricart-fxt-risk__label" x-text="risk?.[key]?.label || ''"></span>
-                                <strong class="agricart-fxt-risk__value" dir="ltr" x-text="risk?.[key]?.value || '—'"></strong>
-                            </div>
+                            <span class="agricart-fxt-risk__label" x-text="risk?.[key]?.label || ''"></span>
+                            <strong class="agricart-fxt-risk__value" dir="ltr" x-text="risk?.[key]?.value || '—'"></strong>
                             <span class="agricart-fxt-risk__bar" aria-hidden="true">
                                 <span class="agricart-fxt-risk__fill" :style="'width:' + fill(key) + '%'"></span>
                             </span>

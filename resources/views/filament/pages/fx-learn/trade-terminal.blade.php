@@ -7,7 +7,6 @@
     $label = $this->activeLabel();
     $taInterval = $this->taInterval();
     $deskRows = $this->categorySymbolRows();
-    $liq = $this->sessionLiquidity();
     $nextData = $this->nextDataEvent(app(\App\Services\FxLearn\EconomicCalendarService::class));
     $nextDataAt = (int) ($nextData['at'] ?? 0);
     $binanceStreams = collect($deskRows)
@@ -188,65 +187,6 @@
         <section class="fxt__desk" wire:key="fxt-desk-{{ $category }}" aria-label="{{ __('agricart.pages.fx-learn.term_desk_label', ['market' => __('agricart.pages.fx-learn.term_cat_'.$category)]) }}">
             <header class="fxt__desk-head">
                 <h2 class="fxt__desk-title">{{ __('agricart.pages.fx-learn.term_desk_title', ['market' => __('agricart.pages.fx-learn.term_cat_'.$category)]) }}</h2>
-
-                <div
-                    class="fxt__sessions"
-                    role="group"
-                    aria-label="{{ __('agricart.pages.fx-learn.term_sessions_label') }}"
-                    wire:key="fxt-sessions-{{ collect($liq['sessions'] ?? [])->map(fn ($s) => ($s['id'] ?? '').'-'.(! empty($s['open']) ? '1' : '0'))->implode('_') }}"
-                    x-data="{
-                        rows: @js($liq['sessions'] ?? []),
-                        tick() {
-                            const now = Date.now();
-                            this.rows = (this.rows || []).map((row) => {
-                                const startMs = Number(row.start_ms) || 0;
-                                const closeMs = Number(row.close_ms) || 0;
-                                const open = startMs > 0 && closeMs > startMs && now >= startMs && now < closeMs;
-                                let progress = 0;
-                                if (open) {
-                                    progress = Math.min(100, Math.max(0, ((now - startMs) / (closeMs - startMs)) * 100));
-                                }
-                                return { ...row, open, progress };
-                            });
-                        }
-                    }"
-                    x-init="tick(); setInterval(() => tick(), 15000)"
-                >
-                    <div class="fxt__sessions-meta">
-                        <span
-                            class="fxt__sessions-liq"
-                            @class([
-                                'is-very-high' => ($liq['liquidity'] ?? '') === 'very_high',
-                                'is-high' => ($liq['liquidity'] ?? '') === 'high',
-                                'is-medium' => ($liq['liquidity'] ?? '') === 'medium',
-                                'is-off' => ($liq['liquidity'] ?? '') === 'off',
-                            ])
-                        >{{ $liq['liquidity_label'] ?? '' }}</span>
-                        @if (! empty($liq['overlap']))
-                            <span class="fxt__sessions-overlap">{{ __('agricart.pages.fx-learn.term_session_overlap') }}</span>
-                        @endif
-                        <span class="fxt__sessions-summary" dir="ltr">{{ $liq['summary'] ?? '' }}</span>
-                    </div>
-                    <div class="fxt__sessions-track" dir="ltr">
-                        <template x-for="row in rows" :key="row.id">
-                            <div
-                                class="fxt__session-seg"
-                                :class="{
-                                    'is-open': row.open,
-                                    'is-closed': ! row.open,
-                                    'is-overlap': row.open && {{ ! empty($liq['overlap']) ? 'true' : 'false' }}
-                                }"
-                                :title="row.label"
-                            >
-                                <span class="fxt__session-code" x-text="row.short"></span>
-                                <span class="fxt__session-bar" aria-hidden="true">
-                                    <span class="fxt__session-fill" :style="'width:' + (row.open ? row.progress : 0) + '%'"></span>
-                                </span>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-
                 <div class="fxt__desk-metrics" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_stats_label') }}">
                     <div class="fxt__desk-metric">
                         <span>{{ __('agricart.pages.fx-learn.term_balance') }}</span>

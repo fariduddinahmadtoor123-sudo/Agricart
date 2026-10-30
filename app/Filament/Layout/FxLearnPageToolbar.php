@@ -79,6 +79,7 @@ class FxLearnPageToolbar extends ClusterPageToolbar
             $terminal = Livewire::current();
             $category = $terminal instanceof TradeTerminalPage ? $terminal->category : 'forex';
             $risk = $terminal instanceof TradeTerminalPage ? $terminal->riskToolbar() : [];
+            $sessions = $terminal instanceof TradeTerminalPage ? $terminal->sessionLiquidity() : [];
 
             return [
                 ...$config,
@@ -92,6 +93,7 @@ class FxLearnPageToolbar extends ClusterPageToolbar
                 'fxLearnTerminalCategories' => true,
                 'fxLearnTerminalCategory' => $category,
                 'fxLearnTerminalRisk' => $risk,
+                'fxLearnTerminalSessions' => $sessions,
             ];
         }
 
