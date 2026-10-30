@@ -18866,11 +18866,8 @@ html.dark .agricart-tools-reorder-settings__chip-names,
 
 /* FX Learn — Demo Trade Terminal */
 .fxt { display: flex; flex-direction: column; gap: 1rem; }
+.fxt__toolbar { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .4rem; }
 .fxt__kicker { margin: 0; font-size: .68rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--agricart-muted); }
-.fxt__head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .75rem 1rem; align-items: flex-start; }
-.fxt__title { margin: .2rem 0 0; font-size: 1.35rem; font-weight: 800; color: var(--agricart-text); }
-.fxt__intro { margin: .35rem 0 0; max-width: 46rem; font-size: .875rem; line-height: 1.5; color: var(--agricart-muted); }
-.fxt__head-actions { display: flex; flex-wrap: wrap; gap: .4rem; }
 .fxt__btn { border: 1px solid color-mix(in srgb, var(--agricart-border, #d1d5db) 100%, transparent); background: #fff; color: var(--agricart-text); border-radius: .55rem; padding: .45rem .75rem; font-size: .8rem; font-weight: 700; cursor: pointer; }
 .fxt__btn:hover { background: color-mix(in srgb, var(--agricart-primary, #166534) 8%, #fff); }
 .fxt__btn--accent { background: color-mix(in srgb, var(--agricart-primary, #166534) 12%, #fff); border-color: color-mix(in srgb, var(--agricart-primary, #166534) 35%, #d1d5db); color: var(--agricart-primary, #166534); }
@@ -18887,9 +18884,6 @@ html.dark .agricart-tools-reorder-settings__chip-names,
 .fxt__bar > span { display: block; height: 100%; background: var(--agricart-primary, #166534); }
 .fxt__alert { border-radius: .65rem; padding: .7rem .9rem; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; font-size: .85rem; font-weight: 600; }
 .fxt__watch { border: 1px solid color-mix(in srgb, var(--agricart-border, #e5e7eb) 100%, transparent); border-radius: .85rem; background: #fff; padding: .75rem .85rem; }
-.fxt__watch-head { display: flex; justify-content: space-between; align-items: flex-start; gap: .5rem; margin-bottom: .45rem; }
-.fxt__watch-title { margin: 0; font-size: .9rem; font-weight: 800; }
-.fxt__watch-hint { margin: .25rem 0 0; font-size: .75rem; line-height: 1.4; color: var(--agricart-muted); max-width: 40rem; }
 .fxt__cats { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .65rem; }
 .fxt__cat { border: 1px solid #e5e7eb; background: #fff; border-radius: .5rem; padding: .4rem .75rem; font-size: .8rem; font-weight: 800; cursor: pointer; color: var(--agricart-muted); }
 .fxt__cat.is-on { background: var(--agricart-primary, #166534); border-color: var(--agricart-primary, #166534); color: #fff; }

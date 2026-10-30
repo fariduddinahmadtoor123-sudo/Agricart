@@ -34,31 +34,17 @@
             }
         }"
     >
-        <header class="fxt__head">
-            <div>
-                <p class="fxt__kicker">{{ __('agricart.pages.fx-learn.term_kicker') }}</p>
-                <h1 class="fxt__title">{{ __('agricart.pages.fx-learn.trade-terminal') }}</h1>
-                <p class="fxt__intro">{{ __('agricart.pages.fx-learn.term_page_intro') }}</p>
-            </div>
-            <div class="fxt__head-actions">
-                <button type="button" class="fxt__btn" wire:click="$toggle('showSettings')">
-                    {{ __('agricart.pages.fx-learn.term_settings') }}
-                </button>
-                <button type="button" class="fxt__btn" wire:click="refreshQuotes" wire:loading.attr="disabled">
-                    {{ __('agricart.pages.fx-learn.term_refresh') }}
-                </button>
-            </div>
-        </header>
+        <div class="fxt__toolbar">
+            <button type="button" class="fxt__btn" wire:click="$toggle('showSettings')">
+                {{ __('agricart.pages.fx-learn.term_settings') }}
+            </button>
+            <button type="button" class="fxt__btn" wire:click="refreshQuotes" wire:loading.attr="disabled">
+                {{ __('agricart.pages.fx-learn.term_refresh') }}
+            </button>
+        </div>
 
         {{-- Categories + all symbols auto --}}
         <section class="fxt__watch" aria-label="{{ __('agricart.pages.fx-learn.term_watch_label') }}">
-            <div class="fxt__watch-head">
-                <div>
-                    <h2 class="fxt__watch-title">{{ __('agricart.pages.fx-learn.term_watch_title') }}</h2>
-                    <p class="fxt__watch-hint">{{ __('agricart.pages.fx-learn.term_watch_hint') }}</p>
-                </div>
-            </div>
-
             <div class="fxt__cats" role="tablist" aria-label="{{ __('agricart.pages.fx-learn.term_cats_label') }}">
                 @foreach ($this->categoryOptions() as $cat)
                     <button
