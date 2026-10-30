@@ -321,6 +321,7 @@ class TradeTerminalPage extends BaseModulePage
         $equity = (float) ($this->dash['equity'] ?? 0);
         $floating = (float) ($this->dash['floating'] ?? 0);
         $dayPnl = (float) ($this->dash['day_pnl'] ?? 0);
+        $totalPnl = (float) ($this->dash['total_pnl'] ?? 0);
 
         return [
             [
@@ -346,6 +347,12 @@ class TradeTerminalPage extends BaseModulePage
                 'label' => __('agricart.pages.fx-learn.term_day_pnl'),
                 'value' => $money($dayPnl),
                 'tone' => $tone($dayPnl),
+            ],
+            [
+                'id' => 'total_pnl',
+                'label' => __('agricart.pages.fx-learn.term_overall_pnl'),
+                'value' => $money($totalPnl),
+                'tone' => $tone($totalPnl),
             ],
         ];
     }

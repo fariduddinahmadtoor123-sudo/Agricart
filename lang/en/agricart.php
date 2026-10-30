@@ -430,6 +430,7 @@ return [
             'term_equity' => 'Equity',
             'term_floating' => 'Floating P/L',
             'term_day_pnl' => 'Day P/L',
+            'term_overall_pnl' => 'Overall P/L',
             'term_day_loss' => 'Day loss vs cap',
             'term_total_dd' => 'Total DD vs cap',
             'term_phase_left' => 'Phase profit still needed',

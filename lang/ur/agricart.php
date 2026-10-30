@@ -429,6 +429,7 @@ return [
             'term_equity' => 'ایکوئٹی',
             'term_floating' => 'فلوتنگ P/L',
             'term_day_pnl' => 'دن کا P/L',
+            'term_overall_pnl' => 'اوورآل P/L',
             'term_day_loss' => 'یومیہ نقصان بمقابلہ حد',
             'term_total_dd' => 'کل DD بمقابلہ حد',
             'term_phase_left' => 'فیس منافع باقی',
