@@ -19312,7 +19312,39 @@ html.dark .agricart-tools-reorder-settings__chip-names,
 .fxt__settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .55rem; }
 .fxt__settings-grid label { display: flex; flex-direction: column; gap: .2rem; }
 .fxt__settings-grid span { font-size: .65rem; font-weight: 800; text-transform: uppercase; color: var(--agricart-muted); }
+.fxt__settings-grid .fxt__span-2 { grid-column: 1 / -1; }
+.fxt__settings-grid .fxt__check { flex-direction: row; align-items: center; gap: .45rem; margin-top: .85rem; }
+.fxt__settings-grid .fxt__check span { text-transform: none; font-size: .8rem; font-weight: 700; color: var(--agricart-text); }
 .fxt__modal-foot { margin-top: .9rem; display: flex; flex-wrap: wrap; gap: .45rem; justify-content: flex-end; }
+.fxt__modal-card--wide { width: min(42rem, 100%); }
+.fxt__btn--primary { background: var(--agricart-primary, #166534); border-color: var(--agricart-primary, #166534); color: #fff; }
+.fxt__btn--primary:hover { filter: brightness(.95); color: #fff; }
+.fxt__mini--danger { border-color: #fecaca; color: #b91c1c; }
+.fxt__atypes-intro { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: .75rem 1rem; margin-bottom: .85rem; }
+.fxt__atypes-title { margin: .15rem 0 0; font-size: 1.35rem; font-weight: 850; color: var(--agricart-text); }
+.fxt__atypes-lead { margin: .35rem 0 0; max-width: 42rem; font-size: .86rem; line-height: 1.45; color: var(--agricart-muted); }
+.fxt__atypes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(16.5rem, 1fr)); gap: .75rem; }
+.fxt__atype-card {
+    display: flex;
+    flex-direction: column;
+    gap: .55rem;
+    border: 1px solid #e5e7eb;
+    border-radius: .75rem;
+    background: #fff;
+    padding: .85rem .9rem;
+}
+.fxt__atype-card.is-off { opacity: .72; background: #fafafa; }
+.fxt__atype-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }
+.fxt__atype-name { margin: 0; font-size: 1rem; font-weight: 850; }
+.fxt__atype-balance { margin: .2rem 0 0; font-size: 1.35rem; font-weight: 850; font-variant-numeric: tabular-nums; color: var(--agricart-primary, #166534); }
+.fxt__atype-badge { font-size: .62rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; border-radius: .3rem; padding: .18rem .4rem; background: #f3f4f6; color: #6b7280; }
+.fxt__atype-badge.is-on { background: #dcfce7; color: #166534; }
+.fxt__atype-desc { margin: 0; font-size: .78rem; color: var(--agricart-muted); line-height: 1.4; }
+.fxt__atype-rules { margin: 0; display: grid; grid-template-columns: 1fr 1fr; gap: .35rem .55rem; }
+.fxt__atype-rules div { display: flex; flex-direction: column; gap: .08rem; min-width: 0; }
+.fxt__atype-rules dt { font-size: .55rem; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; color: var(--agricart-muted); }
+.fxt__atype-rules dd { margin: 0; font-size: .82rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.fxt__atype-actions { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: auto; padding-top: .25rem; }
 @media (max-width: 1280px) {
     .fxt__board { grid-template-columns: minmax(0, 1fr) minmax(11.5rem, 13rem); }
     .fxt__panel--gauge { grid-column: 1 / -1; }

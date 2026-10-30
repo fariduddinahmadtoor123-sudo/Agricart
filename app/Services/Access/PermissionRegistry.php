@@ -99,8 +99,8 @@ class PermissionRegistry
                 'ur' => 'بیرونی ایپس ایگری کارٹ کور سے الگ ہیں۔ فہرست لاگ اِن یوزر کی اپنی ہے — دوسرے ایڈمن کی شیٹس آپ کی لسٹ میں نہیں آتیں۔ یہاں Re Order خریداری → Purchase Re-Orders سے الگ ہے۔',
             ],
             'fx-learn' => [
-                'en' => 'Grant each FX Learn page separately. Economic Radar Edit is for AI analyze. Trade Terminal Edit is for placing/resetting demo trades. Calendar feed is free FF+FC (not Finnhub).',
-                'ur' => 'FX Learn کا ہر صفحہ الگ دیں۔ AI تجزیہ کے لیے Economic Radar Edit، ڈیمو ٹریڈ/ری سیٹ کے لیے Trade Terminal Edit درکار ہے۔ کیلنڈر فیڈ مفت FF+FC ہے (Finnhub نہیں)۔',
+                'en' => 'Grant each FX Learn page separately. Economic Radar Edit is for AI analyze. Trade Terminal Edit is for placing demo trades. Account Types Edit manages challenge sizes and rules.',
+                'ur' => 'FX Learn کا ہر صفحہ الگ دیں۔ AI تجزیہ کے لیے Economic Radar Edit، ڈیمو ٹریڈ کے لیے Trade Terminal Edit، چیلنج سائز/رولز کے لیے Account Types Edit درکار ہے۔',
             ],
         ];
 
@@ -344,6 +344,7 @@ class PermissionRegistry
                 'economic-radar' => ['label_en' => 'Economic Radar', 'label_ur' => 'اکنامک ریڈار', 'actions' => $viewEdit],
                 'market-signals' => ['label_en' => 'Market Signals', 'label_ur' => 'مارکیٹ سگنلز', 'actions' => $viewOnly],
                 'trade-terminal' => ['label_en' => 'Trade Terminal', 'label_ur' => 'ٹریڈ ٹرمینل', 'actions' => $viewEdit],
+                'account-types' => ['label_en' => 'Account Types', 'label_ur' => 'اکاؤنٹ ٹائپس', 'actions' => $viewEdit],
             ],
         ];
     }

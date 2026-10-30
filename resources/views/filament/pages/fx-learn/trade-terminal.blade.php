@@ -472,53 +472,5 @@
             </div>
         </section>
         </section>{{-- /.fxt__desk --}}
-
-        <div class="fxt__page-tools fxt__page-tools--foot">
-            <button type="button" class="fxt__btn" wire:click="$toggle('showSettings')">
-                {{ __('agricart.pages.fx-learn.term_settings') }}
-            </button>
-            <button type="button" class="fxt__btn" wire:click="refreshQuotes" wire:loading.attr="disabled">
-                {{ __('agricart.pages.fx-learn.term_refresh') }}
-            </button>
-        </div>
-
-        @if ($showSettings)
-            <div class="fxt__modal" role="dialog" aria-modal="true">
-                <div class="fxt__modal-backdrop" wire:click="$set('showSettings', false)"></div>
-                <div class="fxt__modal-card">
-                    <div class="fxt__modal-head">
-                        <h2>{{ __('agricart.pages.fx-learn.term_settings') }}</h2>
-                        <button type="button" wire:click="$set('showSettings', false)">×</button>
-                    </div>
-                    <p class="fxt__modal-hint">{{ __('agricart.pages.fx-learn.term_settings_hint') }}</p>
-                    <div class="fxt__settings-grid">
-                        <label><span>{{ __('agricart.pages.fx-learn.prop_balance') }}</span><input type="number" wire:model="startingBalance" /></label>
-                        <label><span>{{ __('agricart.pages.fx-learn.prop_phase1') }}</span><input type="number" step="0.1" wire:model="phase1Pct" /></label>
-                        <label><span>{{ __('agricart.pages.fx-learn.prop_phase2') }}</span><input type="number" step="0.1" wire:model="phase2Pct" /></label>
-                        <label><span>{{ __('agricart.pages.fx-learn.prop_phase3') }}</span><input type="number" step="0.1" wire:model="phase3Pct" /></label>
-                        <label><span>{{ __('agricart.pages.fx-learn.prop_max_day') }}</span><input type="number" step="0.1" wire:model="maxDayLossPct" /></label>
-                        <label><span>{{ __('agricart.pages.fx-learn.prop_max_total') }}</span><input type="number" step="0.1" wire:model="maxTotalLossPct" /></label>
-                        <label><span>{{ __('agricart.pages.fx-learn.prop_max_trade') }}</span><input type="number" step="0.1" wire:model="maxTradeLossPct" /></label>
-                        <label>
-                            <span>{{ __('agricart.pages.fx-learn.prop_active_phase') }}</span>
-                            <select wire:model="activePhase">
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                            </select>
-                        </label>
-                    </div>
-                    <div class="fxt__modal-foot">
-                        <button type="button" class="fxt__btn" wire:click="saveSettings">{{ __('agricart.pages.fx-learn.term_save_rules') }}</button>
-                        <button
-                            type="button"
-                            class="fxt__btn fxt__btn--danger"
-                            wire:click="resetAccount"
-                            wire:confirm="{{ __('agricart.pages.fx-learn.term_reset_confirm') }}"
-                        >{{ __('agricart.pages.fx-learn.term_reset_balance') }}</button>
-                    </div>
-                </div>
-            </div>
-        @endif
     </div>
 </x-filament-panels::page>

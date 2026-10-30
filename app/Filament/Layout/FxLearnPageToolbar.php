@@ -97,6 +97,18 @@ class FxLearnPageToolbar extends ClusterPageToolbar
             ];
         }
 
+        if ($slug === 'account-types') {
+            return [
+                ...$config,
+                'addLabel' => null,
+                'hideSearch' => true,
+                'hideSearchInput' => true,
+                'hideFilters' => true,
+                'hideColumns' => true,
+                'fxLearnRadarChrome' => true,
+            ];
+        }
+
         if ($slug !== 'economic-radar') {
             return [
                 ...$config,

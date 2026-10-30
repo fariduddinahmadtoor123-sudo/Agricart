@@ -48,8 +48,6 @@ class TradeTerminalPage extends BaseModulePage
 
     public string $historyTab = 'open';
 
-    public bool $showSettings = false;
-
     public string $chartInterval = '60';
 
     public string $startingBalance = '100000';
@@ -123,12 +121,6 @@ class TradeTerminalPage extends BaseModulePage
     {
         $value = is_array($category) ? (string) ($category['category'] ?? '') : (string) $category;
         $this->setCategory($value, app(DemoTerminalService::class));
-    }
-
-    #[On('fx-learn-terminal-settings')]
-    public function onToolbarSettings(): void
-    {
-        $this->showSettings = true;
     }
 
     public function setCategory(string $category, DemoTerminalService $terminal): void
@@ -292,7 +284,6 @@ class TradeTerminalPage extends BaseModulePage
         ]);
 
         $this->syncSettingsFromAccount($account);
-        $this->showSettings = false;
         $this->quotes = app(DemoQuoteService::class)->snapshot();
         $this->dash = $terminal->dashboard($account, $this->quotes);
         $this->dispatchRiskSync();
