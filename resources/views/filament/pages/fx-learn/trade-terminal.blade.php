@@ -1,6 +1,4 @@
 @php
-    $q = $quotes[$symbol] ?? null;
-    $digits = (int) ($q['digits'] ?? 5);
     $history = $this->historyRows(app(\App\Services\FxLearn\DemoTerminalService::class));
     $tvSymbol = $this->activeTvSymbol();
     $label = $this->activeLabel();
