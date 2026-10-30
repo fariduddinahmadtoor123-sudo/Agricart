@@ -1942,7 +1942,7 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
 
 .agricart-fxt-chrome {
     display: grid;
-    grid-template-columns: minmax(18rem, 1.25fr) auto minmax(13rem, 1.05fr);
+    grid-template-columns: 1fr auto 1fr;
     align-items: center;
     gap: .55rem .85rem;
     width: 100%;
@@ -1950,10 +1950,12 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
 
 .agricart-fxt-cats {
     justify-self: center;
+    grid-column: 2;
 }
 
 .agricart-fxt-sessions {
     justify-self: start;
+    grid-column: 1;
     min-width: 0;
     display: flex;
     flex-wrap: nowrap;
@@ -2010,6 +2012,7 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
 
 .agricart-fxt-risk {
     justify-self: end;
+    grid-column: 3;
     display: flex;
     flex-wrap: nowrap;
     align-items: flex-end;
@@ -2085,6 +2088,7 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
     .agricart-fxt-cats,
     .agricart-fxt-sessions,
     .agricart-fxt-risk {
+        grid-column: 1;
         justify-self: stretch;
         max-width: none;
     }
@@ -2184,8 +2188,9 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
 
 .agricart-fxt-cats {
     display: inline-flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
+    justify-content: center;
     gap: 0.35rem;
 }
 

@@ -262,7 +262,7 @@
                                 }
                             });
                             this.tick();
-                            this.timer = setInterval(() => this.tick(), 1000);
+                            this.timer = setInterval(() => this.tick(), 15000);
                         },
                         destroy() {
                             if (this.timer) clearInterval(this.timer);
@@ -272,7 +272,6 @@
                                 return new Intl.DateTimeFormat('en-GB', {
                                     hour: '2-digit',
                                     minute: '2-digit',
-                                    second: '2-digit',
                                     hour12: false,
                                     timeZone: tz || 'UTC',
                                 }).format(new Date());
