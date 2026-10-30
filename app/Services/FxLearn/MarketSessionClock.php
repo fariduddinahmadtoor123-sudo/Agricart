@@ -135,6 +135,101 @@ class MarketSessionClock
     }
 
     /**
+     * Compact desk strip: per-session fill % + liquidity / overlap summary.
+     *
+     * @return array{
+     *   open_count: int,
+     *   overlap: bool,
+     *   liquidity: string,
+     *   liquidity_label: string,
+     *   summary: string,
+     *   sessions: list<array{
+     *     id: string,
+     *     short: string,
+     *     label: string,
+     *     open: bool,
+     *     progress: float,
+     *     start_ms: int,
+     *     close_ms: int
+     *   }>
+     * }
+     */
+    public static function liquidityStrip(): array
+    {
+        $now = CarbonImmutable::now('UTC');
+        $sessions = [];
+        $openLabels = [];
+
+        foreach (self::sessions() as $session) {
+            $open = self::isOpen($session, $now);
+            $nextOpen = self::nextOpenAt($session, $now);
+            $nextClose = self::nextCloseAt($session, $now);
+            $local = $now->timezone($session['tz']);
+            $windowStart = $local->setTime((int) $session['open_start'], 0, 0);
+            $windowEnd = $local->setTime((int) $session['open_end'], 0, 0);
+            $progress = 0.0;
+
+            if ($open) {
+                $total = max(1, $windowEnd->getTimestamp() - $windowStart->getTimestamp());
+                $elapsed = max(0, $local->getTimestamp() - $windowStart->getTimestamp());
+                $progress = min(100, round(($elapsed / $total) * 100, 1));
+                $openLabels[] = $session['label'];
+                $startMs = (int) $windowStart->utc()->valueOf();
+                $closeMs = (int) $windowEnd->utc()->valueOf();
+            } else {
+                $startMs = (int) $nextOpen->valueOf();
+                $closeMs = (int) $nextClose->valueOf();
+            }
+
+            $sessions[] = [
+                'id' => $session['id'],
+                'short' => self::shortCode($session['id']),
+                'label' => $session['label'],
+                'open' => $open,
+                'progress' => $progress,
+                'start_ms' => $startMs,
+                'close_ms' => $closeMs,
+            ];
+        }
+
+        $openCount = count($openLabels);
+        $overlap = $openCount >= 2;
+        $liquidity = match (true) {
+            $openCount >= 3 => 'high',
+            $openCount === 2 => 'medium',
+            $openCount === 1 => 'low',
+            default => 'off',
+        };
+
+        return [
+            'open_count' => $openCount,
+            'overlap' => $overlap,
+            'liquidity' => $liquidity,
+            'liquidity_label' => match ($liquidity) {
+                'high' => __('agricart.pages.fx-learn.term_liq_high'),
+                'medium' => __('agricart.pages.fx-learn.term_liq_medium'),
+                'low' => __('agricart.pages.fx-learn.term_liq_low'),
+                default => __('agricart.pages.fx-learn.term_liq_off'),
+            },
+            'summary' => $openLabels !== []
+                ? implode(' · ', $openLabels)
+                : __('agricart.pages.fx-learn.term_sessions_none'),
+            'sessions' => $sessions,
+        ];
+    }
+
+    protected static function shortCode(string $id): string
+    {
+        return match ($id) {
+            'sydney' => 'SYD',
+            'tokyo' => 'TOK',
+            'london' => 'LON',
+            'new_york' => 'NY',
+            default => strtoupper(substr($id, 0, 3)),
+        };
+    }
+
+    /**
      * @param  array{tz: string, open_start: int, open_end: int}  $session
      */
     protected static function nextOpenAt(array $session, CarbonImmutable $nowUtc): CarbonImmutable

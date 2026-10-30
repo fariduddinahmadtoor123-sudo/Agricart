@@ -10,6 +10,7 @@ use App\Services\Access\ModulePageAccess;
 use App\Services\FxLearn\DemoQuoteService;
 use App\Services\FxLearn\DemoSymbolCatalog;
 use App\Services\FxLearn\DemoTerminalService;
+use App\Services\FxLearn\MarketSessionClock;
 use BackedEnum;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
@@ -376,6 +377,14 @@ class TradeTerminalPage extends BaseModulePage
     public function categoryOptions(): array
     {
         return DemoSymbolCatalog::categories();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function sessionLiquidity(): array
+    {
+        return MarketSessionClock::liquidityStrip();
     }
 
     public function activeTvSymbol(): string
