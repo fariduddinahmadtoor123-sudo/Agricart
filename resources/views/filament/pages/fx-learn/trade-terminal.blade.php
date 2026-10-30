@@ -302,80 +302,125 @@
         @endif
 
         {{-- Positions / history under rates board --}}
+        @php
+            $openRows = $dash['open'] ?? [];
+            $openCount = count($openRows);
+            $floatPnl = (float) ($dash['floating'] ?? 0);
+            $histNet = collect($history)->sum(fn ($r) => (float) ($r['pnl'] ?? 0));
+            $histWins = collect($history)->filter(fn ($r) => (float) ($r['pnl'] ?? 0) > 0)->count();
+            $histLosses = collect($history)->filter(fn ($r) => (float) ($r['pnl'] ?? 0) < 0)->count();
+        @endphp
         <section class="fxt__book" aria-label="{{ __('agricart.pages.fx-learn.term_book_label') }}">
-            <div class="fxt__tabs">
-                <button type="button" wire:click="$set('historyTab', 'open')" @class(['is-active' => $historyTab === 'open'])>
-                    {{ __('agricart.pages.fx-learn.term_tab_open') }} ({{ count($dash['open'] ?? []) }})
-                </button>
-                <button type="button" wire:click="$set('historyTab', 'history')" @class(['is-active' => $historyTab === 'history'])>
-                    {{ __('agricart.pages.fx-learn.term_tab_history') }}
-                </button>
+            <div class="fxt__book-head">
+                <div class="fxt__tabs">
+                    <button type="button" wire:click="$set('historyTab', 'open')" @class(['is-active' => $historyTab === 'open'])>
+                        {{ __('agricart.pages.fx-learn.term_tab_open') }} ({{ $openCount }})
+                    </button>
+                    <button type="button" wire:click="$set('historyTab', 'history')" @class(['is-active' => $historyTab === 'history'])>
+                        {{ __('agricart.pages.fx-learn.term_tab_history') }} ({{ count($history) }})
+                    </button>
+                </div>
+                <div class="fxt__book-summary" role="status">
+                    @if ($historyTab === 'open')
+                        <span class="fxt__book-chip">{{ __('agricart.pages.fx-learn.term_book_open_count', ['n' => $openCount]) }}</span>
+                        <span @class(['fxt__book-chip', 'is-pos' => $floatPnl > 0, 'is-neg' => $floatPnl < 0])>
+                            {{ __('agricart.pages.fx-learn.term_book_float') }}
+                            <strong dir="ltr">${{ number_format($floatPnl, 2) }}</strong>
+                        </span>
+                    @else
+                        <span class="fxt__book-chip">{{ __('agricart.pages.fx-learn.term_book_closed_count', ['n' => count($history)]) }}</span>
+                        <span class="fxt__book-chip">{{ __('agricart.pages.fx-learn.term_book_wins') }} <strong>{{ $histWins }}</strong></span>
+                        <span class="fxt__book-chip">{{ __('agricart.pages.fx-learn.term_book_losses') }} <strong>{{ $histLosses }}</strong></span>
+                        <span @class(['fxt__book-chip', 'is-pos' => $histNet > 0, 'is-neg' => $histNet < 0])>
+                            {{ __('agricart.pages.fx-learn.term_book_net') }}
+                            <strong dir="ltr">${{ number_format($histNet, 2) }}</strong>
+                        </span>
+                    @endif
+                </div>
             </div>
 
             @if ($historyTab === 'open')
                 <div class="fxt__table-wrap">
-                    <table class="fxt__table">
+                    <table class="fxt__table fxt__table--book">
                         <thead>
                             <tr>
+                                <th>{{ __('agricart.pages.fx-learn.term_col_ticket') }}</th>
                                 <th>{{ __('agricart.pages.fx-learn.term_col_symbol') }}</th>
                                 <th>{{ __('agricart.pages.fx-learn.term_col_side') }}</th>
                                 <th>{{ __('agricart.pages.fx-learn.term_lots') }}</th>
                                 <th>{{ __('agricart.pages.fx-learn.term_col_entry') }}</th>
+                                <th>{{ __('agricart.pages.fx-learn.term_col_current') }}</th>
                                 <th>SL</th>
                                 <th>TP</th>
-                                <th>P/L</th>
+                                <th>{{ __('agricart.pages.fx-learn.term_col_pnl') }}</th>
+                                <th>{{ __('agricart.pages.fx-learn.term_col_opened') }}</th>
                                 <th></th>
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse (($dash['open'] ?? []) as $row)
+                            @forelse ($openRows as $row)
+                                @php $d = (int) ($row['digits'] ?? 5); @endphp
                                 <tr wire:key="fxt-open-{{ $row['id'] }}">
-                                    <td dir="ltr">{{ $row['label'] }}</td>
-                                    <td class="is-{{ $row['side'] }}">{{ strtoupper($row['side']) }}</td>
-                                    <td>{{ number_format((float) $row['lots'], 2) }}</td>
-                                    <td dir="ltr">{{ number_format((float) $row['entry'], (int) $row['digits'], '.', '') }}</td>
-                                    <td dir="ltr">{{ $row['sl'] !== null ? number_format((float) $row['sl'], (int) $row['digits'], '.', '') : '—' }}</td>
-                                    <td dir="ltr">{{ $row['tp'] !== null ? number_format((float) $row['tp'], (int) $row['digits'], '.', '') : '—' }}</td>
-                                    <td @class(['is-pos' => $row['pnl'] > 0, 'is-neg' => $row['pnl'] < 0])>${{ number_format((float) $row['pnl'], 2) }}</td>
-                                    <td>
+                                    <td class="fxt__mono" dir="ltr">{{ (int) $row['id'] }}</td>
+                                    <td class="fxt__sym" dir="ltr">{{ $row['label'] }}</td>
+                                    <td><span @class(['fxt__side', 'is-'.$row['side']])>{{ strtoupper((string) $row['side']) }}</span></td>
+                                    <td dir="ltr">{{ number_format((float) $row['lots'], 2) }}</td>
+                                    <td dir="ltr">{{ number_format((float) $row['entry'], $d, '.', '') }}</td>
+                                    <td dir="ltr">{{ isset($row['current']) && $row['current'] !== null ? number_format((float) $row['current'], $d, '.', '') : '—' }}</td>
+                                    <td dir="ltr">{{ $row['sl'] !== null ? number_format((float) $row['sl'], $d, '.', '') : '—' }}</td>
+                                    <td dir="ltr">{{ $row['tp'] !== null ? number_format((float) $row['tp'], $d, '.', '') : '—' }}</td>
+                                    <td @class(['is-pos' => $row['pnl'] > 0, 'is-neg' => $row['pnl'] < 0, 'fxt__pnl']) dir="ltr">${{ number_format((float) $row['pnl'], 2) }}</td>
+                                    <td class="fxt__when" dir="ltr">{{ $row['opened_at'] }}</td>
+                                    <td class="fxt__act">
                                         <button type="button" class="fxt__mini" wire:click="closeTrade({{ (int) $row['id'] }})">
                                             {{ __('agricart.pages.fx-learn.term_close') }}
                                         </button>
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="8" class="fxt__empty">{{ __('agricart.pages.fx-learn.term_no_open') }}</td></tr>
+                                <tr><td colspan="11" class="fxt__empty">{{ __('agricart.pages.fx-learn.term_no_open') }}</td></tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
             @else
                 <div class="fxt__table-wrap">
-                    <table class="fxt__table">
+                    <table class="fxt__table fxt__table--book">
                         <thead>
                             <tr>
+                                <th>{{ __('agricart.pages.fx-learn.term_col_ticket') }}</th>
                                 <th>{{ __('agricart.pages.fx-learn.term_col_symbol') }}</th>
                                 <th>{{ __('agricart.pages.fx-learn.term_col_side') }}</th>
                                 <th>{{ __('agricart.pages.fx-learn.term_lots') }}</th>
                                 <th>{{ __('agricart.pages.fx-learn.term_col_entry') }}</th>
                                 <th>{{ __('agricart.pages.fx-learn.term_col_exit') }}</th>
-                                <th>P/L</th>
+                                <th>SL</th>
+                                <th>TP</th>
+                                <th>{{ __('agricart.pages.fx-learn.term_col_pnl') }}</th>
+                                <th>{{ __('agricart.pages.fx-learn.term_col_reason') }}</th>
+                                <th>{{ __('agricart.pages.fx-learn.term_col_duration') }}</th>
                                 <th>{{ __('agricart.pages.fx-learn.term_col_when') }}</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse ($history as $row)
+                                @php $d = (int) ($row['digits'] ?? 5); @endphp
                                 <tr wire:key="fxt-hist-{{ $row['id'] }}">
-                                    <td dir="ltr">{{ $row['label'] }}</td>
-                                    <td class="is-{{ $row['side'] }}">{{ strtoupper($row['side']) }}</td>
-                                    <td>{{ number_format((float) $row['lots'], 2) }}</td>
-                                    <td dir="ltr">{{ number_format((float) $row['entry'], (int) $row['digits'], '.', '') }}</td>
-                                    <td dir="ltr">{{ number_format((float) $row['exit'], (int) $row['digits'], '.', '') }}</td>
-                                    <td @class(['is-pos' => $row['pnl'] > 0, 'is-neg' => $row['pnl'] < 0])>${{ number_format((float) $row['pnl'], 2) }}</td>
-                                    <td>{{ $row['closed_at'] }}</td>
+                                    <td class="fxt__mono" dir="ltr">{{ (int) $row['id'] }}</td>
+                                    <td class="fxt__sym" dir="ltr">{{ $row['label'] }}</td>
+                                    <td><span @class(['fxt__side', 'is-'.$row['side']])>{{ strtoupper((string) $row['side']) }}</span></td>
+                                    <td dir="ltr">{{ number_format((float) $row['lots'], 2) }}</td>
+                                    <td dir="ltr">{{ number_format((float) $row['entry'], $d, '.', '') }}</td>
+                                    <td dir="ltr">{{ number_format((float) $row['exit'], $d, '.', '') }}</td>
+                                    <td dir="ltr">{{ $row['sl'] !== null ? number_format((float) $row['sl'], $d, '.', '') : '—' }}</td>
+                                    <td dir="ltr">{{ $row['tp'] !== null ? number_format((float) $row['tp'], $d, '.', '') : '—' }}</td>
+                                    <td @class(['is-pos' => $row['pnl'] > 0, 'is-neg' => $row['pnl'] < 0, 'fxt__pnl']) dir="ltr">${{ number_format((float) $row['pnl'], 2) }}</td>
+                                    <td><span @class(['fxt__reason', 'is-'.($row['reason'] ?? 'manual')])>{{ $row['reason_label'] ?? '—' }}</span></td>
+                                    <td dir="ltr">{{ $row['duration'] ?? '—' }}</td>
+                                    <td class="fxt__when" dir="ltr">{{ $row['closed_at'] }}</td>
                                 </tr>
                             @empty
-                                <tr><td colspan="7" class="fxt__empty">{{ __('agricart.pages.fx-learn.term_no_history') }}</td></tr>
+                                <tr><td colspan="12" class="fxt__empty">{{ __('agricart.pages.fx-learn.term_no_history') }}</td></tr>
                             @endforelse
                         </tbody>
                     </table>

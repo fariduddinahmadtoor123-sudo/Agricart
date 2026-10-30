@@ -541,6 +541,18 @@ class TradeTerminalPage extends BaseModulePage
         $account = $terminal->accountFor($this->authUser());
 
         return $terminal->history($account)->map(function ($trade): array {
+            $opened = $trade->opened_at;
+            $closed = $trade->closed_at;
+            $duration = '—';
+            if ($opened && $closed) {
+                $mins = max(0, (int) $opened->diffInMinutes($closed));
+                $duration = $mins >= 60
+                    ? intdiv($mins, 60).'h '.($mins % 60).'m'
+                    : $mins.'m';
+            }
+
+            $reason = (string) ($trade->close_reason ?? 'manual');
+
             return [
                 'id' => $trade->id,
                 'label' => $trade->label,
@@ -548,10 +560,19 @@ class TradeTerminalPage extends BaseModulePage
                 'lots' => $trade->lots,
                 'entry' => $trade->entry_price,
                 'exit' => $trade->exit_price,
+                'sl' => $trade->stop_loss,
+                'tp' => $trade->take_profit,
                 'pnl' => $trade->pnl,
-                'reason' => $trade->close_reason,
+                'reason' => $reason,
+                'reason_label' => match ($reason) {
+                    'sl' => __('agricart.pages.fx-learn.term_reason_sl'),
+                    'tp' => __('agricart.pages.fx-learn.term_reason_tp'),
+                    default => __('agricart.pages.fx-learn.term_reason_manual'),
+                },
                 'digits' => $trade->digits,
+                'opened_at' => agricart_datetime($trade->opened_at, 'Y-m-d H:i:s', false),
                 'closed_at' => agricart_datetime($trade->closed_at, 'Y-m-d H:i:s', false),
+                'duration' => $duration,
             ];
         })->all();
     }

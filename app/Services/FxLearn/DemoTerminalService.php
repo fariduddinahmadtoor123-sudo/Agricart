@@ -356,6 +356,13 @@ class DemoTerminalService
         foreach ($open as $trade) {
             $pnl = $this->floatingPnl($trade, $quotes);
             $floating += $pnl;
+            $quote = $quotes[$trade->symbol] ?? null;
+            $current = null;
+            if (is_array($quote)) {
+                $current = $trade->side === 'buy'
+                    ? (isset($quote['bid']) ? (float) $quote['bid'] : null)
+                    : (isset($quote['ask']) ? (float) $quote['ask'] : null);
+            }
             $rows[] = [
                 'id' => $trade->id,
                 'symbol' => $trade->symbol,
@@ -364,11 +371,12 @@ class DemoTerminalService
                 'side' => $trade->side,
                 'lots' => $trade->lots,
                 'entry' => $trade->entry_price,
+                'current' => $current,
                 'sl' => $trade->stop_loss,
                 'tp' => $trade->take_profit,
                 'digits' => $trade->digits,
-                'pnl' => $pnl,
-                'opened_at' => agricart_datetime($trade->opened_at, 'Y-m-d H:i', true),
+                'pnl' => round($pnl, 2),
+                'opened_at' => agricart_datetime($trade->opened_at, 'Y-m-d H:i:s', false),
             ];
         }
 
