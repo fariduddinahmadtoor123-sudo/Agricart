@@ -419,6 +419,8 @@ return [
             'term_settings' => 'Account & rules',
             'term_refresh' => 'Refresh quotes',
             'term_cats_label' => 'Market categories',
+            'term_desk_label' => ':market desk',
+            'term_desk_title' => ':market',
             'term_markets_label' => 'Chart and technical analysis',
             'term_ta_kicker' => 'Bias',
             'term_ta_title' => 'Technical analysis',

@@ -87,12 +87,9 @@ class FxLearnPageToolbar extends ClusterPageToolbar
                 'hideFilters' => true,
                 'hideColumns' => true,
                 'fxLearnRadarChrome' => true,
+                'fxLearnTerminalChrome' => true,
                 'fxLearnTerminalCategories' => true,
                 'fxLearnTerminalCategory' => $category,
-                'fxLearnSettings' => [
-                    'label' => __('agricart.pages.fx-learn.term_settings'),
-                    'event' => 'fx-learn-terminal-settings',
-                ],
             ];
         }
 

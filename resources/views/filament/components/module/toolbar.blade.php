@@ -36,6 +36,7 @@
             'agricart-catalog-toolbar--tools-bc' => ! empty($toolbar['toolsBarcodePrintingChrome']),
             'agricart-catalog-toolbar--tools-he' => ! empty($toolbar['toolsHomeExpensesChrome']),
             'agricart-catalog-toolbar--fx-radar' => ! empty($toolbar['fxLearnRadarChrome']),
+            'agricart-catalog-toolbar--fx-terminal' => ! empty($toolbar['fxLearnTerminalChrome']),
         ])
         @if (! empty($toolbar['toolsReorderChrome']))
             x-data="{

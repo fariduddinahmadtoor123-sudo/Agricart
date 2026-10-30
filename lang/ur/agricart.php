@@ -418,6 +418,8 @@ return [
             'term_settings' => 'اکاؤنٹ اور رولز',
             'term_refresh' => 'ریٹس ریفریش',
             'term_cats_label' => 'مارکیٹ کیٹیگریز',
+            'term_desk_label' => ':market ڈیسک',
+            'term_desk_title' => ':market',
             'term_markets_label' => 'چارٹ اور ٹیکنیکل اینالیسس',
             'term_ta_kicker' => 'بایس',
             'term_ta_title' => 'ٹیکنیکل اینالیسس',
