@@ -5,6 +5,7 @@ namespace App\Filament\Clusters\Staff;
 use App\Filament\Clusters\StaffCluster;
 use App\Filament\Pages\BaseModulePage;
 use App\Models\User;
+use App\Services\Access\ModulePageAccess;
 use App\Services\Staff\StaffPermissions;
 use BackedEnum;
 use Filament\Support\Icons\Heroicon;
@@ -32,7 +33,9 @@ class OverviewPage extends BaseModulePage
             return false;
         }
 
-        return StaffPermissions::canAccessModule($user);
+        // Landing page: any Staff module access, or explicit overview.view.
+        return StaffPermissions::canAccessModule($user)
+            || ModulePageAccess::can($user, 'staff', 'overview', 'view');
     }
 
     public function getHeading(): string|Htmlable|null

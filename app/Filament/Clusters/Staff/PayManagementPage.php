@@ -32,7 +32,7 @@ class PayManagementPage extends BaseModulePage
             return false;
         }
 
-        return StaffPermissions::canViewRoster($user);
+        return StaffPermissions::canViewPayManagement($user);
     }
 
     public function getHeading(): string|Htmlable|null

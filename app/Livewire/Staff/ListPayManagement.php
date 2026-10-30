@@ -141,6 +141,6 @@ class ListPayManagement extends Component
             return false;
         }
 
-        return StaffPermissions::canManageRoster($user);
+        return StaffPermissions::canManagePayManagement($user);
     }
 }

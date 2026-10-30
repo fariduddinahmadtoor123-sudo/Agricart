@@ -56,6 +56,28 @@ class StaffPermissions
             || ModulePageAccess::can($user, 'staff', 'staff', 'edit');
     }
 
+    /** Salary / pay assignment list. */
+    public static function canViewPayManagement(User $user): bool
+    {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        return ModulePageAccess::can($user, 'staff', 'pay-management', 'view')
+            || self::canViewRoster($user);
+    }
+
+    public static function canManagePayManagement(User $user): bool
+    {
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+
+        return ModulePageAccess::can($user, 'staff', 'pay-management', 'create')
+            || ModulePageAccess::can($user, 'staff', 'pay-management', 'edit')
+            || self::canManageRoster($user);
+    }
+
     public static function canViewAllAttendance(User $user): bool
     {
         if ($user->isSuperAdmin()) {
