@@ -14,7 +14,7 @@
         'commodities', 'indices', 'crypto' => __('agricart.pages.fx-learn.sig_cross_quotes'),
         default => __('agricart.pages.fx-learn.sig_cross_title'),
     };
-
+@endphp
 
 <x-filament-panels::page>
     <div
