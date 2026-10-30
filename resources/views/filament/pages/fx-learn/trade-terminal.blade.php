@@ -417,7 +417,8 @@
                         allow_symbol_change: false,
                         calendar: false,
                         support_host: 'https://www.tradingview.com',
-                        height: 420,
+                        height: 540,
+                        width: '100%',
                         hide_top_toolbar: false,
                         hide_legend: false,
                         save_image: false

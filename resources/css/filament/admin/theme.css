@@ -19186,8 +19186,8 @@ html.dark .agricart-tools-reorder-settings__chip-names,
 .fxt__submit--buy { background: #166534; }
 .fxt__submit--sell { background: #b91c1c; }
 .fxt__submit:disabled { opacity: .45; cursor: not-allowed; }
-.fxt__markets { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; align-items: stretch; }
-.fxt__markets--chart { grid-template-columns: 1fr; }
+.fxt__markets { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; align-items: stretch; }
+.fxt__markets--chart { grid-template-columns: 1fr; margin-inline: -.15rem; }
 .fxt__panel { border: 1px solid color-mix(in srgb, var(--agricart-border, #e5e7eb) 100%, transparent); border-radius: .85rem; background: #fff; padding: .75rem; min-width: 0; }
 .fxt__panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; margin-bottom: .55rem; align-items: flex-end; }
 .fxt__panel-title { margin: .15rem 0 0; font-size: 1.05rem; font-weight: 800; }
@@ -19195,7 +19195,42 @@ html.dark .agricart-tools-reorder-settings__chip-names,
 .fxt__tf { display: flex; flex-wrap: wrap; gap: .25rem; }
 .fxt__tf-btn { border: 1px solid #e5e7eb; background: #fff; border-radius: .45rem; padding: .28rem .5rem; font-size: .72rem; font-weight: 700; cursor: pointer; color: var(--agricart-muted); }
 .fxt__tf-btn.is-on { background: var(--agricart-primary, #166534); border-color: var(--agricart-primary, #166534); color: #fff; }
-.fxt__chart, .fxt__ta { min-height: 420px; border-radius: .55rem; overflow: hidden; background: #f8fafc; }
+.fxt__chart, .fxt__ta { min-height: 420px; border-radius: .55rem; overflow: hidden; background: #f8fafc; width: 100%; }
+.fxt__markets--chart .fxt__panel {
+    padding: .4rem .4rem .45rem;
+    border-radius: .65rem;
+}
+.fxt__markets--chart .fxt__panel-head {
+    margin-bottom: .3rem;
+    gap: .35rem .55rem;
+    align-items: center;
+}
+.fxt__markets--chart .fxt__kicker {
+    font-size: .8rem;
+    letter-spacing: .06em;
+}
+.fxt__markets--chart .fxt__panel-title {
+    margin-top: .1rem;
+    font-size: 1.35rem;
+    letter-spacing: .01em;
+}
+.fxt__markets--chart .fxt__tf {
+    gap: .3rem;
+}
+.fxt__markets--chart .fxt__tf-btn {
+    font-size: .84rem;
+    font-weight: 800;
+    padding: .38rem .7rem;
+    border-radius: .5rem;
+}
+.fxt__markets--chart .fxt__chart {
+    min-height: 540px;
+    border-radius: .4rem;
+}
+.fxt__markets--chart .tradingview-widget-container,
+.fxt__markets--chart .tradingview-widget-container__widget {
+    width: 100% !important;
+}
 .fxt__tabs { display: flex; gap: .35rem; margin-bottom: .55rem; }
 .fxt__tabs button { border: 1px solid #e5e7eb; background: #fff; border-radius: .5rem; padding: .4rem .7rem; font-size: .8rem; font-weight: 700; cursor: pointer; color: var(--agricart-muted); }
 .fxt__tabs button.is-active { background: color-mix(in srgb, var(--agricart-primary, #166534) 12%, #fff); border-color: color-mix(in srgb, var(--agricart-primary, #166534) 35%, #e5e7eb); color: var(--agricart-primary, #166534); }
