@@ -372,22 +372,6 @@
                 </aside>
             </div>
 
-        <div class="fxt__stats fxt__stats--risk" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_stats_label') }}">
-            <div @class(['fxt__stat', 'is-fail' => ! empty($dash['failed_day'])])>
-                <span>{{ __('agricart.pages.fx-learn.term_day_loss') }}</span>
-                <strong>{{ number_format((float) ($dash['day_loss_pct'] ?? 0), 2) }}% / {{ $maxDayLossPct }}%</strong>
-            </div>
-            <div @class(['fxt__stat', 'is-fail' => ! empty($dash['failed_total'])])>
-                <span>{{ __('agricart.pages.fx-learn.term_total_dd') }}</span>
-                <strong>{{ number_format((float) ($dash['total_loss_pct'] ?? 0), 2) }}% / {{ $maxTotalLossPct }}%</strong>
-            </div>
-            <div class="fxt__stat fxt__stat--phase">
-                <span>{{ __('agricart.pages.fx-learn.term_phase_left') }}</span>
-                <strong>${{ number_format((float) ($dash['phase_remaining_usd'] ?? 0), 2) }}</strong>
-                <div class="fxt__bar"><span style="width: {{ number_format((float) ($dash['phase_progress_pct'] ?? 0), 1) }}%"></span></div>
-            </div>
-        </div>
-
         @if (! empty($dash['failed_day']) || ! empty($dash['failed_total']))
             <div class="fxt__alert">{{ __('agricart.pages.fx-learn.term_fail_banner') }}</div>
         @endif

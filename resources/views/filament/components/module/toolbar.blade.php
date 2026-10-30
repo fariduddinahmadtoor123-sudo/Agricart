@@ -237,31 +237,72 @@
                     'crypto' => __('agricart.pages.fx-learn.term_cat_crypto'),
                 ];
                 $termCat = (string) ($toolbar['fxLearnTerminalCategory'] ?? 'forex');
+                $termRisk = is_array($toolbar['fxLearnTerminalRisk'] ?? null) ? $toolbar['fxLearnTerminalRisk'] : [];
             @endphp
-            <div
-                class="agricart-fxt-cats"
-                role="tablist"
-                aria-label="{{ __('agricart.pages.fx-learn.term_cats_label') }}"
-                x-data="{
-                    category: @js($termCat),
-                    init() {
-                        Livewire.on('fx-learn-terminal-filters-sync', (e) => {
-                            const d = Array.isArray(e) ? (e[0] ?? {}) : (e ?? {});
-                            if (d.category) this.category = d.category;
-                        });
-                    },
-                }"
-            >
-                @foreach ($termCats as $catId => $catLabel)
-                    <button
-                        type="button"
-                        role="tab"
-                        class="agricart-fxt-cats__btn"
-                        x-bind:aria-selected="category === @js($catId) ? 'true' : 'false'"
-                        x-bind:class="{ 'is-on': category === @js($catId) }"
-                        x-on:click="category = @js($catId); window.Livewire?.dispatch('fx-learn-terminal-category', { category: @js($catId) })"
-                    >{{ $catLabel }}</button>
-                @endforeach
+            <div class="agricart-fxt-chrome">
+                <div
+                    class="agricart-fxt-cats"
+                    role="tablist"
+                    aria-label="{{ __('agricart.pages.fx-learn.term_cats_label') }}"
+                    x-data="{
+                        category: @js($termCat),
+                        init() {
+                            Livewire.on('fx-learn-terminal-filters-sync', (e) => {
+                                const d = Array.isArray(e) ? (e[0] ?? {}) : (e ?? {});
+                                if (d.category) this.category = d.category;
+                            });
+                        },
+                    }"
+                >
+                    @foreach ($termCats as $catId => $catLabel)
+                        <button
+                            type="button"
+                            role="tab"
+                            class="agricart-fxt-cats__btn"
+                            x-bind:aria-selected="category === @js($catId) ? 'true' : 'false'"
+                            x-bind:class="{ 'is-on': category === @js($catId) }"
+                            x-on:click="category = @js($catId); window.Livewire?.dispatch('fx-learn-terminal-category', { category: @js($catId) })"
+                        >{{ $catLabel }}</button>
+                    @endforeach
+                </div>
+
+                <div
+                    class="agricart-fxt-risk"
+                    role="group"
+                    aria-label="{{ __('agricart.pages.fx-learn.term_tb_risk_label') }}"
+                    x-data="{
+                        risk: @js($termRisk),
+                        init() {
+                            Livewire.on('fx-learn-terminal-risk-sync', (e) => {
+                                const d = Array.isArray(e) ? (e[0] ?? {}) : (e ?? {});
+                                if (d.risk) this.risk = d.risk;
+                            });
+                        },
+                        fill(key) {
+                            const row = this.risk?.[key] || {};
+                            return Math.max(0, Math.min(100, Number(row.fill) || 0));
+                        }
+                    }"
+                >
+                    <template x-for="key in ['day', 'overall_loss', 'pnl']" :key="key">
+                        <div
+                            class="agricart-fxt-risk__item"
+                            :class="{
+                                'is-fail': !!(risk?.[key]?.fail),
+                                'is-profit': risk?.[key]?.tone === 'profit',
+                                'is-loss': risk?.[key]?.tone === 'loss'
+                            }"
+                        >
+                            <div class="agricart-fxt-risk__top">
+                                <span class="agricart-fxt-risk__label" x-text="risk?.[key]?.label || ''"></span>
+                                <strong class="agricart-fxt-risk__value" dir="ltr" x-text="risk?.[key]?.value || '—'"></strong>
+                            </div>
+                            <span class="agricart-fxt-risk__bar" aria-hidden="true">
+                                <span class="agricart-fxt-risk__fill" :style="'width:' + fill(key) + '%'"></span>
+                            </span>
+                        </div>
+                    </template>
+                </div>
             </div>
         @endif
 

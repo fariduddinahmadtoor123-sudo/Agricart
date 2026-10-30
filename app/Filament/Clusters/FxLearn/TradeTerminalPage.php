@@ -91,6 +91,7 @@ class TradeTerminalPage extends BaseModulePage
         $terminal->autoCloseHits($account->fresh());
         $this->dash = $terminal->dashboard($account->fresh(), $this->quotes);
         $this->dispatch('fx-learn-terminal-filters-sync', category: $this->category);
+        $this->dispatchRiskSync();
     }
 
     /**
@@ -102,6 +103,7 @@ class TradeTerminalPage extends BaseModulePage
         $this->quotes = $quoteService->snapshot();
         $terminal->autoCloseHits($account);
         $this->dash = $terminal->dashboard($account->fresh(), $this->quotes);
+        $this->dispatchRiskSync();
     }
 
     /**
@@ -113,6 +115,7 @@ class TradeTerminalPage extends BaseModulePage
         $this->quotes = $quoteService->refresh();
         $terminal->autoCloseHits($account);
         $this->dash = $terminal->dashboard($account->fresh(), $this->quotes);
+        $this->dispatchRiskSync();
     }
 
     #[On('fx-learn-terminal-category')]
@@ -236,6 +239,7 @@ class TradeTerminalPage extends BaseModulePage
 
             $this->quotes = app(DemoQuoteService::class)->snapshot();
             $this->dash = $terminal->dashboard($account->fresh(), $this->quotes);
+            $this->dispatchRiskSync();
         } catch (InvalidArgumentException $e) {
             Notification::make()->title($e->getMessage())->danger()->send();
         }
@@ -254,6 +258,7 @@ class TradeTerminalPage extends BaseModulePage
                 ->send();
             $this->quotes = app(DemoQuoteService::class)->snapshot();
             $this->dash = $terminal->dashboard($account->fresh(), $this->quotes);
+            $this->dispatchRiskSync();
         } catch (InvalidArgumentException $e) {
             Notification::make()->title($e->getMessage())->danger()->send();
         }
@@ -290,11 +295,63 @@ class TradeTerminalPage extends BaseModulePage
         $this->showSettings = false;
         $this->quotes = app(DemoQuoteService::class)->snapshot();
         $this->dash = $terminal->dashboard($account, $this->quotes);
+        $this->dispatchRiskSync();
 
         Notification::make()
             ->title(__('agricart.pages.fx-learn.term_settings_saved'))
             ->success()
             ->send();
+    }
+
+    /**
+     * Thin FundedHigh-style bars for the module toolbar (day loss / overall loss / profit|loss).
+     *
+     * @return array{day: array<string, mixed>, overall_loss: array<string, mixed>, pnl: array<string, mixed>}
+     */
+    public function riskToolbar(): array
+    {
+        $dayPct = (float) ($this->dash['day_loss_pct'] ?? 0);
+        $dayCap = max(0.01, (float) $this->maxDayLossPct);
+        $totalPct = (float) ($this->dash['total_loss_pct'] ?? 0);
+        $totalCap = max(0.01, (float) $this->maxTotalLossPct);
+        $totalPnl = (float) ($this->dash['total_pnl'] ?? 0);
+        $phaseFill = (float) ($this->dash['phase_progress_pct'] ?? 0);
+        $profitMode = $totalPnl >= 0;
+
+        return [
+            'day' => [
+                'label' => __('agricart.pages.fx-learn.term_tb_day'),
+                'value' => number_format($dayPct, 1).'% / '.number_format((float) $this->maxDayLossPct, 0).'%',
+                'fill' => min(100.0, round(($dayPct / $dayCap) * 100, 1)),
+                'fail' => ! empty($this->dash['failed_day']),
+                'tone' => 'loss',
+            ],
+            'overall_loss' => [
+                'label' => __('agricart.pages.fx-learn.term_tb_dd'),
+                'value' => number_format($totalPct, 1).'% / '.number_format((float) $this->maxTotalLossPct, 0).'%',
+                'fill' => min(100.0, round(($totalPct / $totalCap) * 100, 1)),
+                'fail' => ! empty($this->dash['failed_total']),
+                'tone' => 'loss',
+            ],
+            'pnl' => [
+                'label' => $profitMode
+                    ? __('agricart.pages.fx-learn.term_tb_profit')
+                    : __('agricart.pages.fx-learn.term_tb_overall_loss'),
+                'value' => $profitMode
+                    ? number_format($phaseFill, 1).'%'
+                    : number_format($totalPct, 1).'% / '.number_format((float) $this->maxTotalLossPct, 0).'%',
+                'fill' => $profitMode
+                    ? min(100.0, round($phaseFill, 1))
+                    : min(100.0, round(($totalPct / $totalCap) * 100, 1)),
+                'fail' => (! $profitMode) && ! empty($this->dash['failed_total']),
+                'tone' => $profitMode ? 'profit' : 'loss',
+            ],
+        ];
+    }
+
+    private function dispatchRiskSync(): void
+    {
+        $this->dispatch('fx-learn-terminal-risk-sync', risk: $this->riskToolbar());
     }
 
     /**
