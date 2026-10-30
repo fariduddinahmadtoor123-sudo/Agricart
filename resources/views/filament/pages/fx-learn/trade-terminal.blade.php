@@ -183,31 +183,29 @@
             @endif
         </section>
 
-        {{-- Selected market desk (Forex / Commodities / …) --}}
+        {{-- Selected market desk — category chips sit with the rates board --}}
         <section class="fxt__desk" wire:key="fxt-desk-{{ $category }}" aria-label="{{ __('agricart.pages.fx-learn.term_desk_label', ['market' => __('agricart.pages.fx-learn.term_cat_'.$category)]) }}">
             <header class="fxt__desk-head">
-                <h2 class="fxt__desk-title">{{ __('agricart.pages.fx-learn.term_desk_title', ['market' => __('agricart.pages.fx-learn.term_cat_'.$category)]) }}</h2>
-                <div class="fxt__desk-metrics" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_stats_label') }}">
-                    <div class="fxt__desk-metric">
-                        <span>{{ __('agricart.pages.fx-learn.term_balance') }}</span>
-                        <strong dir="ltr">${{ number_format((float) ($dash['balance'] ?? 0), 2) }}</strong>
-                    </div>
-                    <div class="fxt__desk-metric">
-                        <span>{{ __('agricart.pages.fx-learn.term_equity') }}</span>
-                        <strong dir="ltr">${{ number_format((float) ($dash['equity'] ?? 0), 2) }}</strong>
-                    </div>
-                    <div class="fxt__desk-metric">
-                        <span>{{ __('agricart.pages.fx-learn.term_floating') }}</span>
-                        <strong dir="ltr" @class(['is-pos' => ($dash['floating'] ?? 0) > 0, 'is-neg' => ($dash['floating'] ?? 0) < 0])>
-                            ${{ number_format((float) ($dash['floating'] ?? 0), 2) }}
-                        </strong>
-                    </div>
-                    <div class="fxt__desk-metric">
-                        <span>{{ __('agricart.pages.fx-learn.term_day_pnl') }}</span>
-                        <strong dir="ltr" @class(['is-pos' => ($dash['day_pnl'] ?? 0) > 0, 'is-neg' => ($dash['day_pnl'] ?? 0) < 0])>
-                            ${{ number_format((float) ($dash['day_pnl'] ?? 0), 2) }}
-                        </strong>
-                    </div>
+                <div
+                    class="fxt__desk-cats agricart-fxt-cats"
+                    role="tablist"
+                    aria-label="{{ __('agricart.pages.fx-learn.term_cats_label') }}"
+                >
+                    @foreach ([
+                        'forex' => __('agricart.pages.fx-learn.term_cat_forex'),
+                        'commodities' => __('agricart.pages.fx-learn.term_cat_commodities'),
+                        'indices' => __('agricart.pages.fx-learn.term_cat_indices'),
+                        'crypto' => __('agricart.pages.fx-learn.term_cat_crypto'),
+                    ] as $catId => $catLabel)
+                        <button
+                            type="button"
+                            role="tab"
+                            wire:click="setCategory('{{ $catId }}')"
+                            class="agricart-fxt-cats__btn"
+                            aria-selected="{{ $category === $catId ? 'true' : 'false' }}"
+                            @class(['is-on' => $category === $catId])
+                        >{{ $catLabel }}</button>
+                    @endforeach
                 </div>
             </header>
 

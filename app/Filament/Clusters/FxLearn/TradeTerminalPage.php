@@ -304,54 +304,55 @@ class TradeTerminalPage extends BaseModulePage
     }
 
     /**
-     * Thin FundedHigh-style bars for the module toolbar (day loss / overall loss / profit|loss).
+     * Account strip for the module toolbar (Balance / Equity / Floating / Day P/L).
      *
-     * @return array{day: array<string, mixed>, overall_loss: array<string, mixed>, pnl: array<string, mixed>}
+     * @return list<array{id: string, label: string, value: string, tone: string}>
      */
-    public function riskToolbar(): array
+    public function accountToolbar(): array
     {
-        $dayPct = (float) ($this->dash['day_loss_pct'] ?? 0);
-        $dayCap = max(0.01, (float) $this->maxDayLossPct);
-        $totalPct = (float) ($this->dash['total_loss_pct'] ?? 0);
-        $totalCap = max(0.01, (float) $this->maxTotalLossPct);
-        $totalPnl = (float) ($this->dash['total_pnl'] ?? 0);
-        $phaseFill = (float) ($this->dash['phase_progress_pct'] ?? 0);
-        $profitMode = $totalPnl >= 0;
+        $money = static fn (float $n): string => '$'.number_format($n, 2);
+        $tone = static fn (float $n): string => match (true) {
+            $n > 0 => 'pos',
+            $n < 0 => 'neg',
+            default => 'flat',
+        };
+
+        $balance = (float) ($this->dash['balance'] ?? 0);
+        $equity = (float) ($this->dash['equity'] ?? 0);
+        $floating = (float) ($this->dash['floating'] ?? 0);
+        $dayPnl = (float) ($this->dash['day_pnl'] ?? 0);
 
         return [
-            'day' => [
-                'label' => __('agricart.pages.fx-learn.term_tb_day'),
-                'value' => number_format($dayPct, 1).'%',
-                'fill' => min(100.0, round(($dayPct / $dayCap) * 100, 1)),
-                'fail' => ! empty($this->dash['failed_day']),
-                'tone' => 'loss',
+            [
+                'id' => 'balance',
+                'label' => __('agricart.pages.fx-learn.term_balance'),
+                'value' => $money($balance),
+                'tone' => 'flat',
             ],
-            'overall_loss' => [
-                'label' => __('agricart.pages.fx-learn.term_tb_dd'),
-                'value' => number_format($totalPct, 1).'%',
-                'fill' => min(100.0, round(($totalPct / $totalCap) * 100, 1)),
-                'fail' => ! empty($this->dash['failed_total']),
-                'tone' => 'loss',
+            [
+                'id' => 'equity',
+                'label' => __('agricart.pages.fx-learn.term_equity'),
+                'value' => $money($equity),
+                'tone' => 'flat',
             ],
-            'pnl' => [
-                'label' => $profitMode
-                    ? __('agricart.pages.fx-learn.term_tb_profit')
-                    : __('agricart.pages.fx-learn.term_tb_overall_loss'),
-                'value' => $profitMode
-                    ? number_format($phaseFill, 1).'%'
-                    : number_format($totalPct, 1).'%',
-                'fill' => $profitMode
-                    ? min(100.0, round($phaseFill, 1))
-                    : min(100.0, round(($totalPct / $totalCap) * 100, 1)),
-                'fail' => (! $profitMode) && ! empty($this->dash['failed_total']),
-                'tone' => $profitMode ? 'profit' : 'loss',
+            [
+                'id' => 'floating',
+                'label' => __('agricart.pages.fx-learn.term_floating'),
+                'value' => $money($floating),
+                'tone' => $tone($floating),
+            ],
+            [
+                'id' => 'day_pnl',
+                'label' => __('agricart.pages.fx-learn.term_day_pnl'),
+                'value' => $money($dayPnl),
+                'tone' => $tone($dayPnl),
             ],
         ];
     }
 
     private function dispatchRiskSync(): void
     {
-        $this->dispatch('fx-learn-terminal-risk-sync', risk: $this->riskToolbar());
+        $this->dispatch('fx-learn-terminal-account-sync', account: $this->accountToolbar());
         $this->dispatch('fx-learn-terminal-sessions-sync', sessions: $this->sessionLiquidity());
     }
 
