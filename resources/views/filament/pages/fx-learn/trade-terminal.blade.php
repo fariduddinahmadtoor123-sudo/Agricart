@@ -136,66 +136,105 @@
                 <h2 class="fxt__desk-title">{{ __('agricart.pages.fx-learn.term_desk_title', ['market' => __('agricart.pages.fx-learn.term_cat_'.$category)]) }}</h2>
             </header>
 
-            <div class="fxt__grid-wrap" wire:key="fxt-board-{{ $category }}">
-                <table class="fxt__grid" aria-label="{{ __('agricart.pages.fx-learn.term_watch_label') }}">
-                    <thead>
-                        <tr>
-                            <th>{{ __('agricart.pages.fx-learn.term_col_symbol') }}</th>
-                            <th>{{ __('agricart.pages.fx-learn.term_ask') }}</th>
-                            <th>{{ __('agricart.pages.fx-learn.term_bid') }}</th>
-                            <th>{{ __('agricart.pages.fx-learn.term_card_high') }}</th>
-                            <th>{{ __('agricart.pages.fx-learn.term_card_time') }}</th>
-                            <th>{{ __('agricart.pages.fx-learn.term_col_refresh') }}</th>
-                            <th>{{ __('agricart.pages.fx-learn.term_col_trade') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($deskRows as $row)
-                            @php
-                                $fmt = static fn ($v) => $v !== null ? number_format((float) $v, $row['digits'], '.', '') : '—';
-                            @endphp
-                            <tr
-                                wire:key="fxt-row-{{ $row['id'] }}"
-                                data-fxt-id="{{ $row['id'] }}"
-                                @class(['is-on' => $symbol === $row['id']])
-                                wire:click="setSymbol(@js($row['id']))"
-                            >
-                                <td class="fxt__grid-sym" dir="ltr">
-                                    <strong>{{ $row['label'] }}</strong>
-                                    <span data-fxt-dot @class(['fxt__dot', 'is-on' => $row['live'] || filled($row['binance'])])></span>
-                                </td>
-                                <td class="fxt__grid-ask" data-fxt-ask dir="ltr">{{ $fmt($row['ask']) }}</td>
-                                <td class="fxt__grid-bid" data-fxt-bid dir="ltr">{{ $fmt($row['bid']) }}</td>
-                                <td data-fxt-high dir="ltr">{{ $fmt($row['high']) }}</td>
-                                <td class="fxt__grid-time" data-fxt-time dir="ltr">{{ $row['time'] }}</td>
-                                <td
-                                    class="fxt__grid-refresh"
-                                    data-fxt-refresh
-                                    dir="ltr"
-                                    @class([
-                                        'is-ws' => ($row['refresh_mode'] ?? '') === 'ws',
-                                        'is-poll' => ($row['refresh_mode'] ?? '') === 'poll',
-                                        'is-fixed' => ($row['refresh_mode'] ?? '') === 'fixed',
-                                    ])
-                                >{{ $row['refresh'] }}</td>
-                                <td class="fxt__grid-actions" wire:click.stop>
-                                    <button
-                                        type="button"
-                                        class="fxt__grid-buy"
-                                        wire:click="quickTrade(@js($row['id']), 'buy')"
-                                        @disabled(! empty($dash['failed_day']) || ! empty($dash['failed_total']) || ! $this->canTrade())
-                                    >BUY</button>
-                                    <button
-                                        type="button"
-                                        class="fxt__grid-sell"
-                                        wire:click="quickTrade(@js($row['id']), 'sell')"
-                                        @disabled(! empty($dash['failed_day']) || ! empty($dash['failed_total']) || ! $this->canTrade())
-                                    >SELL</button>
-                                </td>
+            {{-- Rates grid + TradingView TA gauge (official embed — click symbol / pick TF) --}}
+            <div class="fxt__board">
+                <div class="fxt__grid-wrap" wire:key="fxt-board-grid-{{ $category }}">
+                    <table class="fxt__grid" aria-label="{{ __('agricart.pages.fx-learn.term_watch_label') }}">
+                        <thead>
+                            <tr>
+                                <th>{{ __('agricart.pages.fx-learn.term_col_symbol') }}</th>
+                                <th>{{ __('agricart.pages.fx-learn.term_ask') }}</th>
+                                <th>{{ __('agricart.pages.fx-learn.term_bid') }}</th>
+                                <th>{{ __('agricart.pages.fx-learn.term_card_high') }}</th>
+                                <th>{{ __('agricart.pages.fx-learn.term_card_time') }}</th>
+                                <th>{{ __('agricart.pages.fx-learn.term_col_refresh') }}</th>
+                                <th>{{ __('agricart.pages.fx-learn.term_col_trade') }}</th>
                             </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            @foreach ($deskRows as $row)
+                                @php
+                                    $fmt = static fn ($v) => $v !== null ? number_format((float) $v, $row['digits'], '.', '') : '—';
+                                @endphp
+                                <tr
+                                    wire:key="fxt-row-{{ $row['id'] }}"
+                                    data-fxt-id="{{ $row['id'] }}"
+                                    @class(['is-on' => $symbol === $row['id']])
+                                    wire:click="setSymbol(@js($row['id']))"
+                                >
+                                    <td class="fxt__grid-sym" dir="ltr">
+                                        <strong>{{ $row['label'] }}</strong>
+                                        <span data-fxt-dot @class(['fxt__dot', 'is-on' => $row['live'] || filled($row['binance'])])></span>
+                                    </td>
+                                    <td class="fxt__grid-ask" data-fxt-ask dir="ltr">{{ $fmt($row['ask']) }}</td>
+                                    <td class="fxt__grid-bid" data-fxt-bid dir="ltr">{{ $fmt($row['bid']) }}</td>
+                                    <td data-fxt-high dir="ltr">{{ $fmt($row['high']) }}</td>
+                                    <td class="fxt__grid-time" data-fxt-time dir="ltr">{{ $row['time'] }}</td>
+                                    <td
+                                        class="fxt__grid-refresh"
+                                        data-fxt-refresh
+                                        dir="ltr"
+                                        @class([
+                                            'is-ws' => ($row['refresh_mode'] ?? '') === 'ws',
+                                            'is-poll' => ($row['refresh_mode'] ?? '') === 'poll',
+                                            'is-fixed' => ($row['refresh_mode'] ?? '') === 'fixed',
+                                        ])
+                                    >{{ $row['refresh'] }}</td>
+                                    <td class="fxt__grid-actions" wire:click.stop>
+                                        <button
+                                            type="button"
+                                            class="fxt__grid-buy"
+                                            wire:click="quickTrade(@js($row['id']), 'buy')"
+                                            @disabled(! empty($dash['failed_day']) || ! empty($dash['failed_total']) || ! $this->canTrade())
+                                        >BUY</button>
+                                        <button
+                                            type="button"
+                                            class="fxt__grid-sell"
+                                            wire:click="quickTrade(@js($row['id']), 'sell')"
+                                            @disabled(! empty($dash['failed_day']) || ! empty($dash['failed_total']) || ! $this->canTrade())
+                                        >SELL</button>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+
+                <aside class="fxt__panel fxt__panel--gauge" aria-label="{{ __('agricart.pages.fx-learn.term_ta_title') }}">
+                    <div class="fxt__panel-head">
+                        <div>
+                            <p class="fxt__kicker">{{ __('agricart.pages.fx-learn.term_ta_kicker') }}</p>
+                            <h2 class="fxt__panel-title" dir="ltr">{{ $label }}</h2>
+                            <p class="fxt__panel-sub">{{ __('agricart.pages.fx-learn.term_ta_hint') }}</p>
+                        </div>
+                        <div class="fxt__tf" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_ta_tf_label') }}">
+                            @foreach (['1' => '1m', '5' => '5m', '15' => '15m', '60' => '1H', '240' => '4H', 'D' => '1D'] as $id => $tfLabel)
+                                <button
+                                    type="button"
+                                    wire:click="setChartInterval(@js($id))"
+                                    @class(['fxt__tf-btn', 'is-on' => $chartInterval === $id])
+                                >{{ $tfLabel }}</button>
+                            @endforeach
+                        </div>
+                    </div>
+                    <div
+                        class="fxt__ta fxt__ta--desk"
+                        dir="ltr"
+                        wire:key="fxt-ta-desk-{{ $tvSymbol }}-{{ $taInterval }}"
+                        wire:replace
+                        x-init="mountTv($el, 'https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js', {
+                            interval: @js($taInterval),
+                            width: '100%',
+                            isTransparent: true,
+                            height: 380,
+                            symbol: @js($tvSymbol),
+                            showIntervalTabs: false,
+                            displayMode: 'single',
+                            locale: 'en',
+                            colorTheme: 'light'
+                        })"
+                    ></div>
+                </aside>
             </div>
 
         <div class="fxt__stats" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_stats_label') }}">
@@ -372,8 +411,8 @@
             @endif
         </section>
 
-        {{-- Chart 50% + Technical Analysis (strong buy/sell) 50% --}}
-        <section class="fxt__markets" aria-label="{{ __('agricart.pages.fx-learn.term_markets_label') }}">
+        {{-- Full-width chart (same symbol + timeframe as the desk gauge) --}}
+        <section class="fxt__markets fxt__markets--chart" aria-label="{{ __('agricart.pages.fx-learn.term_chart_label') }}">
             <div class="fxt__panel">
                 <div class="fxt__panel-head">
                     <div>
@@ -410,33 +449,6 @@
                         hide_top_toolbar: false,
                         hide_legend: false,
                         save_image: false
-                    })"
-                ></div>
-            </div>
-
-            <div class="fxt__panel">
-                <div class="fxt__panel-head">
-                    <div>
-                        <p class="fxt__kicker">{{ __('agricart.pages.fx-learn.term_ta_kicker') }}</p>
-                        <h2 class="fxt__panel-title">{{ __('agricart.pages.fx-learn.term_ta_title') }}</h2>
-                        <p class="fxt__panel-sub">{{ __('agricart.pages.fx-learn.term_ta_hint') }}</p>
-                    </div>
-                </div>
-                <div
-                    class="fxt__ta"
-                    dir="ltr"
-                    wire:key="fxt-ta-{{ $tvSymbol }}-{{ $taInterval }}"
-                    wire:replace
-                    x-init="mountTv($el, 'https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js', {
-                        interval: @js($taInterval),
-                        width: '100%',
-                        isTransparent: true,
-                        height: 420,
-                        symbol: @js($tvSymbol),
-                        showIntervalTabs: true,
-                        displayMode: 'single',
-                        locale: 'en',
-                        colorTheme: 'light'
                     })"
                 ></div>
             </div>
