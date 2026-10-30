@@ -97,7 +97,7 @@ class FxLearnPageToolbar extends ClusterPageToolbar
             ];
         }
 
-        if ($slug === 'account-types') {
+        if (in_array($slug, ['account-types', 'strategies', 'learning-course', 'account-history'], true)) {
             return [
                 ...$config,
                 'addLabel' => null,

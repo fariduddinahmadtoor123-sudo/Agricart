@@ -39,6 +39,17 @@ class PagePermissionsTest extends TestCase
         $this->assertContains('staff.view_self', $keys);
         $this->assertContains('logistics.delivered.view', $keys);
         $this->assertContains('fx-learn.economic-radar.view', $keys);
+        $this->assertContains('fx-learn.trade-terminal.view', $keys);
+        $this->assertContains('fx-learn.trade-terminal.edit', $keys);
+        $this->assertContains('fx-learn.market-signals.view', $keys);
+        $this->assertNotContains('fx-learn.market-signals.edit', $keys);
+        $this->assertContains('fx-learn.account-types.view', $keys);
+        $this->assertContains('fx-learn.strategies.view', $keys);
+        $this->assertContains('fx-learn.learning-course.view', $keys);
+        $this->assertContains('fx-learn.account-history.view', $keys);
+        $this->assertContains('fx-learn.account-history.edit', $keys);
+        $this->assertNotContains('fx-learn.strategies.edit', $keys);
+        $this->assertNotContains('fx-learn.learning-course.edit', $keys);
         $this->assertNotContains('catalog.view', $keys);
         $this->assertNotContains('settings.users.manage', $keys);
         $this->assertTrue(PermissionRegistry::moduleUsesPagePermissions('catalog'));

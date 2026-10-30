@@ -218,6 +218,7 @@ class TradeTerminalPage extends BaseModulePage
             'selected_symbol' => $symbol,
             'desk_category' => $this->category,
         ])->save();
+        app(DemoQuoteService::class)->forgetCandleRange($symbol);
         $this->stopLoss = '';
         $this->takeProfit = '';
     }
@@ -245,11 +246,41 @@ class TradeTerminalPage extends BaseModulePage
 
     public function setChartInterval(string $interval): void
     {
-        $allowed = ['1', '5', '15', '60', '240', 'D'];
-
-        if (in_array($interval, $allowed, true)) {
-            $this->chartInterval = $interval;
+        if (! in_array($interval, DemoQuoteService::INTERVALS, true)) {
+            return;
         }
+
+        $this->chartInterval = $interval;
+        app(DemoQuoteService::class)->forgetCandleRange($this->symbol, $interval);
+    }
+
+    /**
+     * Desk / gauge / chart timeframe chips (same set everywhere).
+     *
+     * @return array<string, string>
+     */
+    public function chartIntervalOptions(): array
+    {
+        return [
+            '1' => '1m',
+            '5' => '5m',
+            '15' => '15m',
+            '60' => '1H',
+            '240' => '4H',
+            'D' => '1D',
+            'W' => '1W',
+            'M' => '1M',
+        ];
+    }
+
+    /**
+     * Current-candle high / low for the selected symbol + desk timeframe.
+     *
+     * @return array{high: float|null, low: float|null, center: float|null, range: float|null, digits: int, label: string, tf: string, live: bool, source: string|null}
+     */
+    public function activeTfRange(): array
+    {
+        return app(DemoQuoteService::class)->candleRange($this->symbol, $this->chartInterval);
     }
 
     /**
@@ -371,9 +402,15 @@ class TradeTerminalPage extends BaseModulePage
     }
 
     /**
-     * Account strip for the module toolbar (Balance / Equity / Floating / Day P/L).
+     * Account strip for the module toolbar (picker + Balance / Equity / Floating / Day / Overall).
      *
-     * @return list<array{id: string, label: string, value: string, tone: string}>
+     * @return array{
+     *   active_id: int|null,
+     *   account_no: string,
+     *   can_create: bool,
+     *   accounts: list<array{id: int, no: string, label: string}>,
+     *   metrics: list<array{id: string, label: string, value: string, tone: string}>
+     * }
      */
     public function accountToolbar(): array
     {
@@ -384,6 +421,15 @@ class TradeTerminalPage extends BaseModulePage
             default => 'flat',
         };
 
+        $terminal = app(DemoTerminalService::class);
+        $user = $this->authUser();
+        $active = $terminal->accountFor($user);
+        $accounts = $terminal->accountsFor($user)->map(static fn (FxLearnDemoAccount $row): array => [
+            'id' => (int) $row->id,
+            'no' => (string) $row->account_no,
+            'label' => (string) $row->account_no,
+        ])->values()->all();
+
         $balance = (float) ($this->dash['balance'] ?? 0);
         $equity = (float) ($this->dash['equity'] ?? 0);
         $floating = (float) ($this->dash['floating'] ?? 0);
@@ -391,37 +437,108 @@ class TradeTerminalPage extends BaseModulePage
         $totalPnl = (float) ($this->dash['total_pnl'] ?? 0);
 
         return [
-            [
-                'id' => 'balance',
-                'label' => __('agricart.pages.fx-learn.term_balance'),
-                'value' => $money($balance),
-                'tone' => 'flat',
-            ],
-            [
-                'id' => 'equity',
-                'label' => __('agricart.pages.fx-learn.term_equity'),
-                'value' => $money($equity),
-                'tone' => 'flat',
-            ],
-            [
-                'id' => 'floating',
-                'label' => __('agricart.pages.fx-learn.term_floating'),
-                'value' => $money($floating),
-                'tone' => $tone($floating),
-            ],
-            [
-                'id' => 'day_pnl',
-                'label' => __('agricart.pages.fx-learn.term_day_pnl'),
-                'value' => $money($dayPnl),
-                'tone' => $tone($dayPnl),
-            ],
-            [
-                'id' => 'total_pnl',
-                'label' => __('agricart.pages.fx-learn.term_overall_pnl'),
-                'value' => $money($totalPnl),
-                'tone' => $tone($totalPnl),
+            'active_id' => (int) $active->id,
+            'account_no' => (string) $active->account_no,
+            'can_create' => $this->canTrade(),
+            'accounts' => $accounts,
+            'metrics' => [
+                [
+                    'id' => 'balance',
+                    'label' => __('agricart.pages.fx-learn.term_balance'),
+                    'value' => $money($balance),
+                    'tone' => 'flat',
+                ],
+                [
+                    'id' => 'equity',
+                    'label' => __('agricart.pages.fx-learn.term_equity'),
+                    'value' => $money($equity),
+                    'tone' => 'flat',
+                ],
+                [
+                    'id' => 'floating',
+                    'label' => __('agricart.pages.fx-learn.term_floating'),
+                    'value' => $money($floating),
+                    'tone' => $tone($floating),
+                ],
+                [
+                    'id' => 'day_pnl',
+                    'label' => __('agricart.pages.fx-learn.term_day_pnl'),
+                    'value' => $money($dayPnl),
+                    'tone' => $tone($dayPnl),
+                ],
+                [
+                    'id' => 'total_pnl',
+                    'label' => __('agricart.pages.fx-learn.term_overall_pnl'),
+                    'value' => $money($totalPnl),
+                    'tone' => $tone($totalPnl),
+                ],
             ],
         ];
+    }
+
+    #[On('fx-learn-terminal-account-select')]
+    public function onToolbarAccountSelect(mixed $id = null): void
+    {
+        $value = is_array($id) ? (string) ($id['id'] ?? '') : (string) $id;
+
+        if ($value === '__new__') {
+            $this->createDemoAccount(app(DemoTerminalService::class));
+
+            return;
+        }
+
+        if (ctype_digit($value)) {
+            $this->switchDemoAccount((int) $value, app(DemoTerminalService::class));
+        }
+    }
+
+    public function switchDemoAccount(int $accountId, DemoTerminalService $terminal): void
+    {
+        try {
+            $account = $terminal->activateAccount($this->authUser(), $accountId);
+            $this->hydrateFromAccount($account, $terminal);
+            Notification::make()
+                ->title(__('agricart.pages.fx-learn.term_account_switched', ['no' => $account->account_no]))
+                ->success()
+                ->send();
+        } catch (\Throwable) {
+            Notification::make()
+                ->title(__('agricart.pages.fx-learn.term_account_switch_fail'))
+                ->danger()
+                ->send();
+        }
+    }
+
+    public function createDemoAccount(DemoTerminalService $terminal): void
+    {
+        if (! $this->ensureCanTrade()) {
+            return;
+        }
+
+        $account = $terminal->createAccount($this->authUser());
+        $this->hydrateFromAccount($account, $terminal);
+        Notification::make()
+            ->title(__('agricart.pages.fx-learn.term_account_created', ['no' => $account->account_no]))
+            ->success()
+            ->send();
+    }
+
+    private function hydrateFromAccount(FxLearnDemoAccount $account, DemoTerminalService $terminal): void
+    {
+        $this->syncSettingsFromAccount($account);
+        $this->symbol = (string) ($account->selected_symbol ?: 'eurusd');
+        $deskCat = (string) ($account->desk_category ?: '');
+        $allowedCats = collect(DemoSymbolCatalog::categories())->pluck('id')->all();
+        $this->category = in_array($deskCat, $allowedCats, true)
+            ? $deskCat
+            : (string) (DemoSymbolCatalog::get($this->symbol)['category'] ?? 'forex');
+        $this->quotes = app(DemoQuoteService::class)->snapshot();
+        $terminal->autoCloseHits($account->fresh());
+        $this->dash = $terminal->dashboard($account->fresh(), $this->quotes);
+        $this->stopLoss = '';
+        $this->takeProfit = '';
+        $this->dispatch('fx-learn-terminal-filters-sync', category: $this->category);
+        $this->dispatchRiskSync();
     }
 
     private function dispatchRiskSync(): void
@@ -630,6 +747,8 @@ class TradeTerminalPage extends BaseModulePage
             '15' => '15m',
             '240' => '4h',
             'D' => '1D',
+            'W' => '1W',
+            'M' => '1M',
             default => '1h',
         };
     }

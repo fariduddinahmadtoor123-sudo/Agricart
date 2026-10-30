@@ -12,6 +12,8 @@ class FxLearnDemoAccount extends Model
 
     protected $fillable = [
         'user_id',
+        'account_no',
+        'is_active',
         'starting_balance',
         'balance',
         'phase1_pct',
@@ -31,6 +33,7 @@ class FxLearnDemoAccount extends Model
     protected function casts(): array
     {
         return [
+            'is_active' => 'boolean',
             'starting_balance' => 'float',
             'balance' => 'float',
             'phase1_pct' => 'float',
@@ -53,6 +56,6 @@ class FxLearnDemoAccount extends Model
 
     public function trades(): HasMany
     {
-        return $this->hasMany(FxLearnDemoTrade::class, 'user_id', 'user_id');
+        return $this->hasMany(FxLearnDemoTrade::class, 'demo_account_id');
     }
 }

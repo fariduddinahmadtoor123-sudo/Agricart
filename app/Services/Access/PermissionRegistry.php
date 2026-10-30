@@ -99,8 +99,8 @@ class PermissionRegistry
                 'ur' => 'بیرونی ایپس ایگری کارٹ کور سے الگ ہیں۔ فہرست لاگ اِن یوزر کی اپنی ہے — دوسرے ایڈمن کی شیٹس آپ کی لسٹ میں نہیں آتیں۔ یہاں Re Order خریداری → Purchase Re-Orders سے الگ ہے۔',
             ],
             'fx-learn' => [
-                'en' => 'Grant each FX Learn page separately. Economic Radar Edit is for AI analyze. Trade Terminal Edit is for placing demo trades. Account Types Edit manages challenge sizes and rules.',
-                'ur' => 'FX Learn کا ہر صفحہ الگ دیں۔ AI تجزیہ کے لیے Economic Radar Edit، ڈیمو ٹریڈ کے لیے Trade Terminal Edit، چیلنج سائز/رولز کے لیے Account Types Edit درکار ہے۔',
+                'en' => 'Grant each FX Learn page separately. Economic Radar Edit = AI analyze. Trade Terminal Edit = demo trades + multi-account switch/create. Account Types Edit = challenge sizes/rules. Account History Edit = see all users’ demo accounts. Strategies and Learning Course are view-only for now.',
+                'ur' => 'FX Learn کا ہر صفحہ الگ دیں۔ Economic Radar Edit = AI تجزیہ۔ Trade Terminal Edit = ڈیمو ٹریڈ + ملٹی اکاؤنٹ۔ Account Types Edit = چیلنج رولز۔ Account History Edit = تمام یوزرز کے اکاؤنٹس۔ Strategies / Learning Course ابھی صرف View۔',
             ],
         ];
 
@@ -345,6 +345,9 @@ class PermissionRegistry
                 'market-signals' => ['label_en' => 'Market Signals', 'label_ur' => 'مارکیٹ سگنلز', 'actions' => $viewOnly],
                 'trade-terminal' => ['label_en' => 'Trade Terminal', 'label_ur' => 'ٹریڈ ٹرمینل', 'actions' => $viewEdit],
                 'account-types' => ['label_en' => 'Account Types', 'label_ur' => 'اکاؤنٹ ٹائپس', 'actions' => $viewEdit],
+                'strategies' => ['label_en' => 'Strategies', 'label_ur' => 'سٹریٹجیز', 'actions' => $viewOnly],
+                'learning-course' => ['label_en' => 'Learning Course', 'label_ur' => 'لرننگ کورس', 'actions' => $viewOnly],
+                'account-history' => ['label_en' => 'Account History', 'label_ur' => 'اکاؤنٹ ہسٹری', 'actions' => $viewEdit],
             ],
         ];
     }

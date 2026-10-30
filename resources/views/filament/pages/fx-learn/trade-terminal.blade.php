@@ -7,6 +7,8 @@
     $label = $this->activeLabel();
     $taInterval = $this->taInterval();
     $deskRows = $this->categorySymbolRows();
+    $tfRange = $this->activeTfRange();
+    $tfFmt = static fn ($v, int $digits) => $v !== null ? number_format((float) $v, $digits, '.', '') : '—';
     $binanceStreams = collect($deskRows)
         ->filter(fn ($row) => filled($row['binance'] ?? null))
         ->mapWithKeys(fn ($row) => [strtolower((string) $row['binance']) => [
@@ -155,6 +157,32 @@
                         >{{ $catLabel }}</button>
                     @endforeach
                 </div>
+
+                <div class="fxt__desk-range" wire:key="fxt-desk-range-{{ $symbol }}-{{ $chartInterval }}">
+                    <div class="fxt__tf fxt__tf--desk" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_tf_label') }}">
+                        @foreach ($this->chartIntervalOptions() as $id => $tfLabel)
+                            <button
+                                type="button"
+                                wire:click="setChartInterval(@js($id))"
+                                @class(['fxt__tf-btn', 'is-on' => $chartInterval === $id])
+                            >{{ $tfLabel }}</button>
+                        @endforeach
+                    </div>
+                    <div class="fxt__hl" aria-label="{{ __('agricart.pages.fx-learn.term_tf_range_label', ['tf' => $tfRange['tf'], 'symbol' => $tfRange['label']]) }}">
+                        <div class="fxt__hl-box fxt__hl-box--low">
+                            <span>{{ __('agricart.pages.fx-learn.term_tf_range_low') }}</span>
+                            <strong dir="ltr">{{ $tfFmt($tfRange['low'], (int) $tfRange['digits']) }}</strong>
+                        </div>
+                        <div class="fxt__hl-box fxt__hl-box--center">
+                            <span>{{ __('agricart.pages.fx-learn.term_tf_range_center') }}</span>
+                            <strong dir="ltr">{{ $tfFmt($tfRange['center'] ?? null, (int) $tfRange['digits']) }}</strong>
+                        </div>
+                        <div class="fxt__hl-box fxt__hl-box--high">
+                            <span>{{ __('agricart.pages.fx-learn.term_tf_range_high') }}</span>
+                            <strong dir="ltr">{{ $tfFmt($tfRange['high'], (int) $tfRange['digits']) }}</strong>
+                        </div>
+                    </div>
+                </div>
             </header>
 
             @if ($category === 'custom')
@@ -301,7 +329,7 @@
                             <h2 class="fxt__panel-title" dir="ltr">{{ $label }}</h2>
                         </div>
                         <div class="fxt__tf" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_ta_tf_label') }}">
-                            @foreach (['1' => '1m', '5' => '5m', '15' => '15m', '60' => '1H', '240' => '4H', 'D' => '1D'] as $id => $tfLabel)
+                            @foreach ($this->chartIntervalOptions() as $id => $tfLabel)
                                 <button
                                     type="button"
                                     wire:click="setChartInterval(@js($id))"
@@ -470,7 +498,7 @@
                         <h2 class="fxt__panel-title" dir="ltr">{{ $label }}</h2>
                     </div>
                     <div class="fxt__tf" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_tf_label') }}">
-                        @foreach (['1' => '1m', '5' => '5m', '15' => '15m', '60' => '1H', '240' => '4H', 'D' => '1D'] as $id => $tfLabel)
+                        @foreach ($this->chartIntervalOptions() as $id => $tfLabel)
                             <button
                                 type="button"
                                 wire:click="setChartInterval(@js($id))"

@@ -18,26 +18,31 @@ class DemoTerminalService
 
     public function accountFor(User $user): FxLearnDemoAccount
     {
-        $account = FxLearnDemoAccount::query()->firstOrCreate(
-            ['user_id' => $user->id],
-            [
-                'starting_balance' => 100000,
-                'balance' => 100000,
-                'phase1_pct' => 8,
-                'phase2_pct' => 6,
-                'phase3_pct' => 3,
-                'max_day_loss_pct' => 5,
-                'max_total_loss_pct' => 10,
-                'max_trade_loss_pct' => 3,
-                'active_phase' => 1,
-                'selected_symbol' => 'eurusd',
-                'desk_category' => 'forex',
-                'watchlist' => DemoSymbolCatalog::defaultWatchlist(),
-            ],
-        );
+        $account = FxLearnDemoAccount::query()
+            ->where('user_id', $user->id)
+            ->where('is_active', true)
+            ->first();
+
+        if ($account === null) {
+            $account = FxLearnDemoAccount::query()
+                ->where('user_id', $user->id)
+                ->orderByDesc('id')
+                ->first();
+
+            if ($account !== null) {
+                $this->activateAccount($user, (int) $account->id);
+                $account = $account->fresh();
+            } else {
+                $account = $this->createAccount($user);
+            }
+        }
 
         if (! is_array($account->watchlist) || $account->watchlist === []) {
             $account->forceFill(['watchlist' => DemoSymbolCatalog::defaultWatchlist()])->save();
+        }
+
+        if (! filled($account->account_no)) {
+            $account->forceFill(['account_no' => $this->nextAccountNo()])->save();
         }
 
         $today = CarbonImmutable::now(agricart_display_timezone())->toDateString();
@@ -52,6 +57,82 @@ class DemoTerminalService
         }
 
         return $account->fresh();
+    }
+
+    /**
+     * @return Collection<int, FxLearnDemoAccount>
+     */
+    public function accountsFor(User $user): Collection
+    {
+        return FxLearnDemoAccount::query()
+            ->where('user_id', $user->id)
+            ->orderByDesc('is_active')
+            ->orderByDesc('id')
+            ->get();
+    }
+
+    /**
+     * @param  array<string, float|int|string|bool>  $overrides
+     */
+    public function createAccount(User $user, array $overrides = []): FxLearnDemoAccount
+    {
+        FxLearnDemoAccount::query()
+            ->where('user_id', $user->id)
+            ->update(['is_active' => false]);
+
+        $starting = max(1000, (float) ($overrides['starting_balance'] ?? 100000));
+
+        return FxLearnDemoAccount::query()->create([
+            'user_id' => $user->id,
+            'account_no' => $this->nextAccountNo(),
+            'is_active' => true,
+            'starting_balance' => $starting,
+            'balance' => $starting,
+            'phase1_pct' => (float) ($overrides['phase1_pct'] ?? 8),
+            'phase2_pct' => (float) ($overrides['phase2_pct'] ?? 6),
+            'phase3_pct' => (float) ($overrides['phase3_pct'] ?? 3),
+            'max_day_loss_pct' => (float) ($overrides['max_day_loss_pct'] ?? 5),
+            'max_total_loss_pct' => (float) ($overrides['max_total_loss_pct'] ?? 10),
+            'max_trade_loss_pct' => (float) ($overrides['max_trade_loss_pct'] ?? 3),
+            'active_phase' => 1,
+            'day_anchor_equity' => $starting,
+            'day_anchor_date' => CarbonImmutable::now(agricart_display_timezone())->toDateString(),
+            'selected_symbol' => 'eurusd',
+            'desk_category' => 'forex',
+            'watchlist' => DemoSymbolCatalog::defaultWatchlist(),
+        ])->fresh();
+    }
+
+    public function activateAccount(User $user, int $accountId): FxLearnDemoAccount
+    {
+        $account = FxLearnDemoAccount::query()
+            ->where('user_id', $user->id)
+            ->whereKey($accountId)
+            ->firstOrFail();
+
+        FxLearnDemoAccount::query()
+            ->where('user_id', $user->id)
+            ->where('id', '!=', $account->id)
+            ->update(['is_active' => false]);
+
+        $account->forceFill(['is_active' => true])->save();
+
+        return $account->fresh();
+    }
+
+    public function nextAccountNo(): string
+    {
+        $max = 0;
+        foreach (FxLearnDemoAccount::query()->pluck('account_no') as $no) {
+            if (! is_string($no) || ! preg_match('/(\d+)$/', $no, $m)) {
+                continue;
+            }
+            $max = max($max, (int) $m[1]);
+        }
+
+        $next = max($max + 1, ((int) FxLearnDemoAccount::query()->max('id')) + 1, 1);
+
+        return 'FXA-'.str_pad((string) $next, 6, '0', STR_PAD_LEFT);
     }
 
     /**
@@ -240,6 +321,7 @@ class DemoTerminalService
 
         $trade = FxLearnDemoTrade::query()->create([
             'user_id' => $account->user_id,
+            'demo_account_id' => $account->id,
             'symbol' => $symbol,
             'label' => $meta['label'],
             'category' => $meta['category'],
@@ -271,7 +353,7 @@ class DemoTerminalService
     public function closeTrade(FxLearnDemoAccount $account, int $tradeId, string $reason = 'manual'): FxLearnDemoTrade
     {
         $trade = FxLearnDemoTrade::query()
-            ->where('user_id', $account->user_id)
+            ->where('demo_account_id', $account->id)
             ->where('id', $tradeId)
             ->where('status', 'open')
             ->firstOrFail();
@@ -339,7 +421,7 @@ class DemoTerminalService
     public function openTrades(FxLearnDemoAccount $account): Collection
     {
         return FxLearnDemoTrade::query()
-            ->where('user_id', $account->user_id)
+            ->where('demo_account_id', $account->id)
             ->where('status', 'open')
             ->orderByDesc('opened_at')
             ->get();
@@ -351,7 +433,7 @@ class DemoTerminalService
     public function history(FxLearnDemoAccount $account, int $limit = 40): Collection
     {
         return FxLearnDemoTrade::query()
-            ->where('user_id', $account->user_id)
+            ->where('demo_account_id', $account->id)
             ->where('status', 'closed')
             ->orderByDesc('closed_at')
             ->limit($limit)

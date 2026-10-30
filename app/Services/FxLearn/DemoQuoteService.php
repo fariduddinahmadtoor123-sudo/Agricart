@@ -23,6 +23,9 @@ class DemoQuoteService
     /** Livewire soft-poll interval (seconds) when the terminal tab is visible. */
     public const SOFT_POLL_SECONDS = 15;
 
+    /** Chart / candle timeframe ids (TradingView + Binance/Finnhub compatible). */
+    public const INTERVALS = ['1', '5', '15', '60', '240', 'D', 'W', 'M'];
+
     public static function sharedCacheSeconds(): int
     {
         return self::CACHE_TTL;
@@ -82,6 +85,233 @@ class DemoQuoteService
         }
 
         return (string) $meta['binance'];
+    }
+
+    /**
+     * High / low of the current candle for a chart timeframe (same ids as TradingView: 1,5,15,60,240,D).
+     *
+     * @return array{high: float|null, low: float|null, center: float|null, range: float|null, digits: int, label: string, tf: string, live: bool, source: string|null}
+     */
+    public function candleRange(string $symbol, string $interval): array
+    {
+        $meta = DemoSymbolCatalog::get($symbol);
+        $tf = $this->intervalLabel($interval);
+        $empty = [
+            'high' => null,
+            'low' => null,
+            'center' => null,
+            'range' => null,
+            'digits' => (int) ($meta['digits'] ?? 5),
+            'label' => (string) ($meta['label'] ?? strtoupper($symbol)),
+            'tf' => $tf,
+            'live' => false,
+            'source' => null,
+        ];
+
+        if ($meta === null || ! $this->isAllowedInterval($interval)) {
+            return $empty;
+        }
+
+        // v2 includes center midpoint — bust old cached shapes.
+        $cacheKey = 'fxlearn.demo.candle-range.v2.'.$symbol.'.'.$interval;
+
+        /** @var array{high: float|null, low: float|null, center: float|null, range: float|null, digits: int, label: string, tf: string, live: bool, source: string|null} */
+        return Cache::remember($cacheKey, 20, function () use ($symbol, $interval, $meta, $tf, $empty): array {
+            $digits = (int) $meta['digits'];
+            $bar = $this->fetchCurrentCandle($symbol, $meta, $interval);
+
+            if ($bar === null) {
+                return $empty;
+            }
+
+            $high = round((float) $bar['high'], $digits);
+            $low = round((float) $bar['low'], $digits);
+
+            if ($high < $low) {
+                [$high, $low] = [$low, $high];
+            }
+
+            return [
+                'high' => $high,
+                'low' => $low,
+                'center' => round(($high + $low) / 2, $digits),
+                'range' => round($high - $low, $digits),
+                'digits' => $digits,
+                'label' => (string) $meta['label'],
+                'tf' => $tf,
+                'live' => true,
+                'source' => (string) $bar['source'],
+            ];
+        });
+    }
+
+    public function forgetCandleRange(string $symbol, ?string $interval = null): void
+    {
+        $intervals = $interval !== null ? [$interval] : self::INTERVALS;
+
+        foreach ($intervals as $id) {
+            Cache::forget('fxlearn.demo.candle-range.v1.'.$symbol.'.'.$id);
+            Cache::forget('fxlearn.demo.candle-range.v2.'.$symbol.'.'.$id);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $meta
+     * @return array{high: float, low: float, source: string}|null
+     */
+    private function fetchCurrentCandle(string $symbol, array $meta, string $interval): ?array
+    {
+        try {
+            if (filled($meta['binance'] ?? null)) {
+                $binance = $this->fetchBinanceCandle((string) $meta['binance'], $interval);
+                if ($binance !== null) {
+                    return $binance;
+                }
+            }
+
+            $token = $this->finnhubCredentials->resolveToken();
+            if ($token !== null && filled($meta['finnhub'] ?? null)) {
+                return $this->fetchFinnhubCandle((string) $meta['finnhub'], $interval, $token);
+            }
+        } catch (Throwable $e) {
+            Log::warning('fxlearn.candle_range_failed', [
+                'symbol' => $symbol,
+                'interval' => $interval,
+                'message' => $e->getMessage(),
+            ]);
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{high: float, low: float, source: string}|null
+     */
+    private function fetchBinanceCandle(string $binanceSymbol, string $interval): ?array
+    {
+        $response = Http::timeout(8)
+            ->withHeaders(['User-Agent' => 'Agricart-FXLearn/1.0'])
+            ->get('https://api.binance.com/api/v3/klines', [
+                'symbol' => $binanceSymbol,
+                'interval' => $this->binanceKlineInterval($interval),
+                'limit' => 1,
+            ]);
+
+        if (! $response->successful()) {
+            return null;
+        }
+
+        $rows = $response->json();
+        if (! is_array($rows) || $rows === [] || ! is_array($rows[0] ?? null)) {
+            return null;
+        }
+
+        $row = $rows[0];
+        $high = (float) ($row[2] ?? 0);
+        $low = (float) ($row[3] ?? 0);
+
+        if ($high <= 0 || $low <= 0) {
+            return null;
+        }
+
+        return ['high' => $high, 'low' => $low, 'source' => 'binance'];
+    }
+
+    /**
+     * @return array{high: float, low: float, source: string}|null
+     */
+    private function fetchFinnhubCandle(string $finnhubSymbol, string $interval, string $token): ?array
+    {
+        $seconds = $this->intervalSeconds($interval);
+        $to = time();
+        $from = $to - max($seconds * 3, 180);
+        $path = str_contains($finnhubSymbol, ':')
+            ? 'https://finnhub.io/api/v1/forex/candle'
+            : 'https://finnhub.io/api/v1/stock/candle';
+
+        $response = Http::timeout(8)
+            ->withHeaders(['User-Agent' => 'Agricart-FXLearn/1.0'])
+            ->get($path, [
+                'symbol' => $finnhubSymbol,
+                'resolution' => $interval,
+                'from' => $from,
+                'to' => $to,
+                'token' => $token,
+            ]);
+
+        if (! $response->successful()) {
+            return null;
+        }
+
+        $json = $response->json();
+        if (! is_array($json) || ($json['s'] ?? '') !== 'ok') {
+            return null;
+        }
+
+        $highs = $json['h'] ?? null;
+        $lows = $json['l'] ?? null;
+        if (! is_array($highs) || ! is_array($lows) || $highs === [] || $lows === []) {
+            return null;
+        }
+
+        $high = (float) $highs[array_key_last($highs)];
+        $low = (float) $lows[array_key_last($lows)];
+
+        if ($high <= 0 || $low <= 0) {
+            return null;
+        }
+
+        return ['high' => $high, 'low' => $low, 'source' => 'finnhub'];
+    }
+
+    private function isAllowedInterval(string $interval): bool
+    {
+        return in_array($interval, self::INTERVALS, true);
+    }
+
+    private function intervalLabel(string $interval): string
+    {
+        return match ($interval) {
+            '1' => '1m',
+            '5' => '5m',
+            '15' => '15m',
+            '60' => '1H',
+            '240' => '4H',
+            'D' => '1D',
+            'W' => '1W',
+            'M' => '1M',
+            default => $interval,
+        };
+    }
+
+    private function binanceKlineInterval(string $interval): string
+    {
+        return match ($interval) {
+            '1' => '1m',
+            '5' => '5m',
+            '15' => '15m',
+            '60' => '1h',
+            '240' => '4h',
+            'D' => '1d',
+            'W' => '1w',
+            'M' => '1M',
+            default => '15m',
+        };
+    }
+
+    private function intervalSeconds(string $interval): int
+    {
+        return match ($interval) {
+            '1' => 60,
+            '5' => 300,
+            '15' => 900,
+            '60' => 3600,
+            '240' => 14400,
+            'D' => 86400,
+            'W' => 7 * 86400,
+            'M' => 31 * 86400,
+            default => 900,
+        };
     }
 
     /**

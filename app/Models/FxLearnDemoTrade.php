@@ -11,6 +11,7 @@ class FxLearnDemoTrade extends Model
 
     protected $fillable = [
         'user_id',
+        'demo_account_id',
         'symbol',
         'label',
         'category',
@@ -48,5 +49,10 @@ class FxLearnDemoTrade extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function demoAccount(): BelongsTo
+    {
+        return $this->belongsTo(FxLearnDemoAccount::class, 'demo_account_id');
     }
 }

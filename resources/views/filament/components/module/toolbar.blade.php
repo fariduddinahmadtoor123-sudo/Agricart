@@ -405,21 +405,52 @@
                     </div>
                 </div>
 
-                {{-- Right: Balance / Equity / Floating / Day / Overall --}}
+                {{-- Right: account picker + Balance / Equity / Floating / Day / Overall --}}
                 <div
                     class="agricart-fxt-account"
                     role="group"
                     aria-label="{{ __('agricart.pages.fx-learn.term_stats_label') }}"
                     x-data="{
-                        rows: @js($termAccount),
+                        pack: @js($termAccount),
+                        activeId: @js((string) ($termAccount['active_id'] ?? '')),
+                        accounts: @js($termAccount['accounts'] ?? []),
+                        canCreate: @js(! empty($termAccount['can_create'])),
+                        rows: @js($termAccount['metrics'] ?? []),
+                        newLabel: @js(__('agricart.pages.fx-learn.term_account_new')),
                         init() {
                             Livewire.on('fx-learn-terminal-account-sync', (e) => {
                                 const d = Array.isArray(e) ? (e[0] ?? {}) : (e ?? {});
-                                if (d.account) this.rows = d.account;
+                                const pack = d.account || {};
+                                if (Array.isArray(pack)) {
+                                    this.rows = pack;
+                                    return;
+                                }
+                                this.pack = pack;
+                                this.activeId = String(pack.active_id ?? '');
+                                this.accounts = pack.accounts || [];
+                                this.canCreate = !!pack.can_create;
+                                this.rows = pack.metrics || [];
                             });
+                        },
+                        onPick(v) {
+                            window.Livewire?.dispatch('fx-learn-terminal-account-select', { id: v });
                         },
                     }"
                 >
+                    <label class="agricart-fxt-account__picker">
+                        <span>{{ __('agricart.pages.fx-learn.term_account_label') }}</span>
+                        <select
+                            dir="ltr"
+                            x-model="activeId"
+                            x-on:change="onPick($event.target.value)"
+                            aria-label="{{ __('agricart.pages.fx-learn.term_account_label') }}"
+                        >
+                            <template x-for="acc in accounts" :key="acc.id">
+                                <option :value="String(acc.id)" x-text="acc.no || acc.label || acc.id"></option>
+                            </template>
+                            <option value="__new__" x-show="canCreate" x-text="'+ ' + newLabel"></option>
+                        </select>
+                    </label>
                     <template x-for="row in rows" :key="row.id">
                         <div
                             class="agricart-fxt-account__item"
