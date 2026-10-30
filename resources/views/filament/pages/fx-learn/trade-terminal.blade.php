@@ -155,8 +155,16 @@
                         >{{ $catLabel }}</button>
                     @endforeach
                 </div>
-                @if ($category === 'custom')
-                    <div class="fxt__custom-bar" wire:click.stop>
+            </header>
+
+            @if ($category === 'custom')
+                <div class="fxt__custom-panel" wire:click.stop>
+                    <div class="fxt__custom-panel-head">
+                        <div>
+                            <p class="fxt__kicker">{{ __('agricart.pages.fx-learn.term_cat_custom') }}</p>
+                            <h3 class="fxt__custom-panel-title">{{ __('agricart.pages.fx-learn.term_custom_title') }}</h3>
+                            <p class="fxt__custom-hint">{{ __('agricart.pages.fx-learn.term_custom_hint') }}</p>
+                        </div>
                         <label class="fxt__custom-add">
                             <span>{{ __('agricart.pages.fx-learn.term_custom_add') }}</span>
                             <select wire:model.live="customPick">
@@ -166,10 +174,9 @@
                                 @endforeach
                             </select>
                         </label>
-                        <p class="fxt__custom-hint">{{ __('agricart.pages.fx-learn.term_custom_hint') }}</p>
                     </div>
-                @endif
-            </header>
+                </div>
+            @endif
 
             {{-- Rates grid + TradingView TA gauge (official embed — click symbol / pick TF) --}}
             <div class="fxt__board">
@@ -186,7 +193,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($deskRows as $row)
+                            @forelse ($deskRows as $row)
                                 @php
                                     $fmt = static fn ($v) => $v !== null ? number_format((float) $v, $row['digits'], '.', '') : '—';
                                 @endphp
@@ -230,7 +237,11 @@
                                         @endif
                                     </td>
                                 </tr>
-                            @endforeach
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="fxt__empty">{{ __('agricart.pages.fx-learn.term_custom_empty') }}</td>
+                                </tr>
+                            @endforelse
                         </tbody>
                     </table>
                 </div>

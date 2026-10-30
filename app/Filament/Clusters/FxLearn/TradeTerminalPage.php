@@ -150,6 +150,8 @@ class TradeTerminalPage extends BaseModulePage
             $this->setSymbol($first, $terminal);
         }
 
+        // setSymbol must not wipe Custom after we intentionally opened that desk.
+        $this->category = $category;
         $this->dispatch('fx-learn-terminal-filters-sync', category: $this->category);
     }
 
@@ -171,9 +173,10 @@ class TradeTerminalPage extends BaseModulePage
 
         try {
             $account = $terminal->accountFor($this->authUser());
-            $terminal->addToWatchlist($account, $symbol);
             $this->category = 'custom';
+            $terminal->addToWatchlist($account, $symbol);
             $this->setSymbol($symbol, $terminal);
+            $this->category = 'custom';
             $this->dash = $terminal->dashboard($account->fresh(), $this->quotes);
             $this->dispatchRiskSync();
             Notification::make()
@@ -214,8 +217,15 @@ class TradeTerminalPage extends BaseModulePage
         }
 
         $this->symbol = $symbol;
-        $this->category = (string) $meta['category'];
-        $terminal->accountFor($this->authUser())->forceFill(['selected_symbol' => $symbol])->save();
+        // Keep Custom desk when browsing the saved mix; only jump market tabs for native categories.
+        if ($this->category !== 'custom') {
+            $this->category = (string) $meta['category'];
+        }
+
+        $terminal->accountFor($this->authUser())->forceFill([
+            'selected_symbol' => $symbol,
+            'desk_category' => $this->category,
+        ])->save();
         $this->stopLoss = '';
         $this->takeProfit = '';
     }
