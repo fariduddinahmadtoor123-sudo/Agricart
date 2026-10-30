@@ -20,6 +20,14 @@ class DemoQuoteService
     /** Shared app-wide TTL — one REST pool for all users; UI ticks use Binance WebSocket. */
     private const CACHE_TTL = 15;
 
+    /** Livewire soft-poll interval (seconds) when the terminal tab is visible. */
+    public const SOFT_POLL_SECONDS = 15;
+
+    public static function sharedCacheSeconds(): int
+    {
+        return self::CACHE_TTL;
+    }
+
     public function __construct(
         private readonly FinnhubCredentialService $finnhubCredentials,
     ) {}

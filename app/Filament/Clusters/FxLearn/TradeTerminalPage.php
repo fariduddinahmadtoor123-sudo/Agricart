@@ -313,11 +313,12 @@ class TradeTerminalPage extends BaseModulePage
     /**
      * All tradable symbols in the active category (auto — no manual add).
      *
-     * @return list<array{id: string, label: string, tv: string, binance: ?string, bid: float|null, ask: float|null, mid: float|null, high: float|null, low: float|null, digits: int, live: bool, time: string}>
+     * @return list<array{id: string, label: string, tv: string, binance: ?string, bid: float|null, ask: float|null, mid: float|null, high: float|null, low: float|null, digits: int, live: bool, time: string, refresh: string, refresh_mode: string}>
      */
     public function categorySymbolRows(): array
     {
         $rows = [];
+        $serverSeconds = max(DemoQuoteService::SOFT_POLL_SECONDS, DemoQuoteService::sharedCacheSeconds());
 
         foreach (DemoSymbolCatalog::optionsForCategory($this->category) as $row) {
             $q = $this->quotes[$row['id']] ?? null;
@@ -329,20 +330,40 @@ class TradeTerminalPage extends BaseModulePage
                 : '—';
             // Prefer stream-eligible Binance symbol from quote service (null when Finnhub owns the row).
             $binance = $q['binance'] ?? null;
+            $hasStream = is_string($binance) && $binance !== '';
+            $source = (string) ($q['source'] ?? 'seed');
+            $live = (bool) ($q['live'] ?? false);
+
+            if ($hasStream) {
+                // Binance bookTicker: updates on every best bid/ask change (typically milliseconds).
+                $refreshMode = 'ws';
+                $refresh = __('agricart.pages.fx-learn.term_refresh_ms');
+            } elseif ($live && $source === 'finnhub') {
+                $refreshMode = 'poll';
+                $refresh = __('agricart.pages.fx-learn.term_refresh_sec', ['n' => $serverSeconds]);
+            } elseif ($live) {
+                $refreshMode = 'poll';
+                $refresh = __('agricart.pages.fx-learn.term_refresh_sec', ['n' => $serverSeconds]);
+            } else {
+                $refreshMode = 'fixed';
+                $refresh = __('agricart.pages.fx-learn.term_refresh_fixed');
+            }
 
             $rows[] = [
                 'id' => $row['id'],
                 'label' => $row['label'],
                 'tv' => $row['tv'],
-                'binance' => is_string($binance) && $binance !== '' ? $binance : null,
+                'binance' => $hasStream ? $binance : null,
                 'bid' => $q['bid'] ?? null,
                 'ask' => $q['ask'] ?? null,
                 'mid' => $q['mid'] ?? null,
                 'high' => $q['high'] ?? null,
                 'low' => $q['low'] ?? null,
                 'digits' => $digits,
-                'live' => (bool) ($q['live'] ?? false),
+                'live' => $live,
                 'time' => $time,
+                'refresh' => $refresh,
+                'refresh_mode' => $refreshMode,
             ];
         }
 

@@ -18915,7 +18915,11 @@ html.dark .agricart-tools-reorder-settings__chip-names,
 .fxt__desk-title { margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--agricart-text); letter-spacing: .01em; }
 .fxt__ws { display: none !important; }
 .fxt__grid-wrap { overflow-x: auto; border: 1px solid #e5e7eb; border-radius: .65rem; background: #fff; }
-.fxt__grid { width: 100%; min-width: 44rem; border-collapse: collapse; table-layout: fixed; font-size: .84rem; }
+.fxt__grid { width: 100%; min-width: 50rem; border-collapse: collapse; table-layout: fixed; font-size: .84rem; }
+.fxt__grid-refresh { font-size: .72rem; font-weight: 750; letter-spacing: .02em; white-space: nowrap; color: var(--agricart-muted); }
+.fxt__grid-refresh.is-ws { color: #166534; }
+.fxt__grid-refresh.is-poll { color: #1d4ed8; }
+.fxt__grid-refresh.is-fixed { color: #9ca3af; }
 .fxt__grid thead th { text-align: start; font-size: .65rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--agricart-muted); background: #f8faf9; border-bottom: 1px solid #e5e7eb; padding: .55rem .65rem; white-space: nowrap; }
 .fxt__grid tbody td { border-bottom: 1px solid #eef0f2; padding: .48rem .65rem; font-variant-numeric: tabular-nums; vertical-align: middle; }
 .fxt__grid tbody tr { cursor: pointer; transition: background .12s ease; }
