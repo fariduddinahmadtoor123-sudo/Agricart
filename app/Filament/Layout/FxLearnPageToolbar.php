@@ -3,6 +3,8 @@
 namespace App\Filament\Layout;
 
 use App\Filament\Clusters\FxLearn\EconomicRadarPage;
+use App\Filament\Clusters\FxLearn\MarketSignalsPage;
+use Livewire\Livewire;
 
 class FxLearnPageToolbar extends ClusterPageToolbar
 {
@@ -40,6 +42,10 @@ class FxLearnPageToolbar extends ClusterPageToolbar
         $slug = (string) ($config['resourceSlug'] ?? '');
 
         if ($slug === 'market-signals') {
+            $signals = Livewire::current();
+            $category = $signals instanceof MarketSignalsPage ? $signals->category : 'forex';
+            $intervalId = $signals instanceof MarketSignalsPage ? $signals->intervalId : '1h';
+
             return [
                 ...$config,
                 'addLabel' => null,
@@ -51,6 +57,8 @@ class FxLearnPageToolbar extends ClusterPageToolbar
                 'livewirePrefix' => 'fx-learn-signals',
                 'fxLearnRadarChrome' => true,
                 'fxLearnSignalsDropdowns' => true,
+                'fxLearnSignalsCategory' => $category,
+                'fxLearnSignalsInterval' => $intervalId,
                 'fxLearnVisitLinks' => [
                     [
                         'key' => 'tv',
@@ -75,6 +83,10 @@ class FxLearnPageToolbar extends ClusterPageToolbar
                 'hideColumns' => true,
             ];
         }
+
+        $radar = Livewire::current();
+        $ccy = $radar instanceof EconomicRadarPage ? $radar->ccyFilter : 'all';
+        $impact = $radar instanceof EconomicRadarPage ? $radar->impactFilter : 'all';
 
         return [
             ...$config,
@@ -104,10 +116,9 @@ class FxLearnPageToolbar extends ClusterPageToolbar
                 ],
             ],
             'fxLearnDropdownFilters' => true,
-            'fxLearnSettings' => [
-                'label' => __('agricart.pages.fx-learn.settings'),
-                'event' => 'fx-learn-radar-settings',
-            ],
+            'fxLearnRadarCcy' => $ccy,
+            'fxLearnRadarImpact' => $impact,
+            // Calendar uses free FF+FC feeds — no Finnhub API settings chrome.
         ];
     }
 }

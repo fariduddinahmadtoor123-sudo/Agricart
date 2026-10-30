@@ -4,9 +4,9 @@ namespace App\Filament\Clusters\FxLearn;
 
 use App\Filament\Clusters\FxLearnCluster;
 use App\Filament\Pages\BaseModulePage;
+use App\Services\Access\ModulePageAccess;
 use App\Services\FxLearn\EconomicCalendarService;
 use App\Services\FxLearn\EconomicNewsBiasAiService;
-use App\Services\FxLearn\FinnhubCredentialService;
 use App\Services\FxLearn\MarketSessionClock;
 use App\Support\FriendlyError;
 use BackedEnum;
@@ -57,19 +57,6 @@ class EconomicRadarPage extends BaseModulePage
 
     public bool $usingDemo = false;
 
-    public bool $settingsOpen = false;
-
-    public string $settingsApiKey = '';
-
-    public string $settingsLabel = 'Finnhub';
-
-    public ?string $settingsMessage = null;
-
-    public string $settingsMessageTone = 'muted';
-
-    /** @var array<string, mixed> */
-    public array $credentialStatus = [];
-
     public ?string $analyzeEventId = null;
 
     public bool $analyzing = false;
@@ -86,10 +73,19 @@ class EconomicRadarPage extends BaseModulePage
 
     public string $aiMessageTone = 'muted';
 
-    public function mount(EconomicCalendarService $calendar, FinnhubCredentialService $credentials): void
+    public function mount(EconomicCalendarService $calendar): void
     {
-        $this->credentialStatus = $credentials->statusPayload();
         $this->loadSnapshot($calendar);
+    }
+
+    public function canRunAiAnalyze(): bool
+    {
+        $user = auth()->user();
+
+        return $user !== null && (
+            $user->isSuperAdmin()
+            || ModulePageAccess::can($user, 'fx-learn', 'economic-radar', 'edit')
+        );
     }
 
     public function refreshFeed(EconomicCalendarService $calendar): void
@@ -114,6 +110,7 @@ class EconomicRadarPage extends BaseModulePage
         }
 
         $this->ccyFilter = $value;
+        $this->dispatch('fx-learn-radar-filters-sync', ccy: $this->ccyFilter, impact: $this->impactFilter);
     }
 
     #[On('fx-learn-radar-impact')]
@@ -126,12 +123,7 @@ class EconomicRadarPage extends BaseModulePage
         }
 
         $this->impactFilter = $value;
-    }
-
-    #[On('fx-learn-radar-settings')]
-    public function onToolbarSettings(): void
-    {
-        $this->openSettings();
+        $this->dispatch('fx-learn-radar-filters-sync', ccy: $this->ccyFilter, impact: $this->impactFilter);
     }
 
     public function setDayFilter(string $day): void
@@ -385,66 +377,15 @@ class EconomicRadarPage extends BaseModulePage
         return ($diff > 0 ? '+' : '').$text;
     }
 
-    public function openSettings(): void
-    {
-        $credentials = app(FinnhubCredentialService::class);
-        $this->credentialStatus = $credentials->statusPayload();
-        $this->settingsApiKey = '';
-        $this->settingsLabel = 'Finnhub';
-        $this->settingsMessage = null;
-        $this->settingsMessageTone = 'muted';
-        $this->settingsOpen = true;
-    }
-
-    public function closeSettings(): void
-    {
-        $this->settingsOpen = false;
-        $this->settingsApiKey = '';
-        $this->settingsMessage = null;
-    }
-
-    public function saveAndTestConnection(
-        FinnhubCredentialService $credentials,
-        EconomicCalendarService $calendar,
-    ): void {
-        $result = $credentials->saveAndTest($this->settingsApiKey, $this->settingsLabel);
-        $this->credentialStatus = $credentials->statusPayload();
-        $this->settingsMessage = $result['message'];
-        $this->settingsMessageTone = $result['ok'] ? 'success' : 'danger';
-
-        if ($result['ok']) {
-            $this->settingsApiKey = '';
-            $this->applySnapshot($calendar->refresh());
-        }
-    }
-
-    public function testExistingConnection(
-        FinnhubCredentialService $credentials,
-        EconomicCalendarService $calendar,
-    ): void {
-        $result = $credentials->testActive();
-        $this->credentialStatus = $credentials->statusPayload();
-        $this->settingsMessage = $result['message'];
-        $this->settingsMessageTone = $result['ok'] ? 'success' : 'danger';
-
-        if ($result['ok']) {
-            $this->applySnapshot($calendar->refresh());
-        }
-    }
-
-    public function deleteApiKey(
-        FinnhubCredentialService $credentials,
-        EconomicCalendarService $calendar,
-    ): void {
-        $result = $credentials->deleteActive();
-        $this->credentialStatus = $credentials->statusPayload();
-        $this->settingsMessage = $result['message'];
-        $this->settingsMessageTone = $result['ok'] ? 'success' : 'danger';
-        $this->applySnapshot($calendar->refresh());
-    }
-
     public function openAnalyze(string $eventId): void
     {
+        if (! $this->canRunAiAnalyze()) {
+            $this->aiMessage = __('agricart.pages.fx-learn.ai_edit_required');
+            $this->aiMessageTone = 'warning';
+
+            return;
+        }
+
         $this->analyzeEventId = $eventId;
         $this->clearAiResult();
         $this->aiMessage = null;
@@ -478,6 +419,13 @@ class EconomicRadarPage extends BaseModulePage
 
     public function runAnalyze(EconomicNewsBiasAiService $ai): void
     {
+        if (! $this->canRunAiAnalyze()) {
+            $this->aiMessage = __('agricart.pages.fx-learn.ai_edit_required');
+            $this->aiMessageTone = 'warning';
+
+            return;
+        }
+
         $event = $this->analyzingEvent();
 
         if ($event === null) {

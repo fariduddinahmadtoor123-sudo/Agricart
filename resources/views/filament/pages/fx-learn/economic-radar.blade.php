@@ -12,7 +12,7 @@
     $metaFrom = (string) ($this->feedMeta['from'] ?? '—');
     $metaTo = (string) ($this->feedMeta['to'] ?? '—');
     $metaStatus = $this->feedMeta['http_status'] ?? null;
-    $cred = $this->credentialStatus;
+    $canAnalyze = $this->canRunAiAnalyze();
 @endphp
 
 <x-filament-panels::page>
@@ -29,15 +29,15 @@
                         <span>{{ $this->feedError }}</span>
                     @endif
                     <span class="fxr__banner-meta" dir="ltr">
-                        {{ __('agricart.pages.fx-learn.feed_range', ['from' => $metaFrom, 'to' => $metaTo]) }}
+                        {{ __('agricart.pages.fx-learn.feed_source_note') }}
+                        · {{ __('agricart.pages.fx-learn.feed_range', ['from' => $metaFrom, 'to' => $metaTo]) }}
                         @if ($metaStatus)
                             · HTTP {{ $metaStatus }}
                         @endif
-                        · {{ __('agricart.pages.fx-learn.feed_token_source', ['source' => $cred['source'] ?? 'none']) }}
                     </span>
                 </div>
-                <button type="button" class="fxr__btn fxr__btn--primary" wire:click="openSettings">
-                    {{ __('agricart.pages.fx-learn.settings') }}
+                <button type="button" class="fxr__btn fxr__btn--primary" wire:click="refreshFeed" wire:loading.attr="disabled">
+                    {{ __('agricart.pages.fx-learn.refresh') }}
                 </button>
             </div>
         @endif
@@ -234,11 +234,15 @@
                                     @endif
                                 </td>
                                 <td>
-                                    <button
-                                        type="button"
-                                        class="fxr__btn fxr__btn--ai"
-                                        wire:click="openAnalyze(@js((string) $ev['id']))"
-                                    >{{ __('agricart.pages.fx-learn.analyze') }}</button>
+                                    @if ($canAnalyze)
+                                        <button
+                                            type="button"
+                                            class="fxr__btn fxr__btn--ai"
+                                            wire:click="openAnalyze(@js((string) $ev['id']))"
+                                        >{{ __('agricart.pages.fx-learn.analyze') }}</button>
+                                    @else
+                                        <span class="fxr__muted" title="{{ __('agricart.pages.fx-learn.ai_edit_required') }}">—</span>
+                                    @endif
                                 </td>
                             </tr>
                         @empty
@@ -296,84 +300,6 @@
             </div>
         </section>
     </div>
-
-    @if ($this->settingsOpen)
-        <div class="fxr__modal fxr__modal--settings" role="dialog" aria-modal="true" wire:keydown.escape.window="closeSettings">
-            <button type="button" class="fxr__modal-backdrop" wire:click="closeSettings" aria-label="{{ __('agricart.pages.fx-learn.close') }}"></button>
-            <div class="fxr__modal-card fxr__modal-card--settings">
-                <header class="fxr__modal-head">
-                    <div>
-                        <p class="fxr__radar-kicker">{{ __('agricart.pages.fx-learn.settings') }}</p>
-                        <h2 class="fxr__modal-title">{{ __('agricart.pages.fx-learn.finnhub_settings_title') }}</h2>
-                    </div>
-                    <button type="button" class="fxr__btn" wire:click="closeSettings">{{ __('agricart.pages.fx-learn.close') }}</button>
-                </header>
-
-                <div class="fxr__settings-status" dir="ltr">
-                    <p>
-                        <strong>{{ __('agricart.pages.fx-learn.finnhub_status') }}:</strong>
-                        @if (($cred['source'] ?? 'none') === 'none')
-                            {{ __('agricart.pages.fx-learn.finnhub_status_none') }}
-                        @elseif (! empty($cred['limited']))
-                            {{ __('agricart.pages.fx-learn.finnhub_status_limited', ['masked' => $cred['masked'] ?? '••••']) }}
-                        @elseif (! empty($cred['connected']))
-                            {{ __('agricart.pages.fx-learn.finnhub_status_ok', ['masked' => $cred['masked'] ?? '••••']) }}
-                        @else
-                            {{ __('agricart.pages.fx-learn.finnhub_status_bad', ['masked' => $cred['masked'] ?? '••••']) }}
-                        @endif
-                    </p>
-                    @if (filled($cred['message'] ?? null))
-                        <p class="fxr__settings-hint">{{ $cred['message'] }}</p>
-                    @endif
-                    @if (filled($cred['last_tested_at'] ?? null))
-                        <p class="fxr__settings-hint">{{ __('agricart.pages.fx-learn.finnhub_last_tested', ['at' => $cred['last_tested_at']]) }}</p>
-                    @endif
-                </div>
-
-                <label class="fxr__field">
-                    <span>{{ __('agricart.pages.fx-learn.finnhub_label') }}</span>
-                    <input type="text" wire:model="settingsLabel" autocomplete="off" />
-                </label>
-
-                <label class="fxr__field">
-                    <span>{{ __('agricart.pages.fx-learn.finnhub_api_key') }}</span>
-                    <input
-                        type="password"
-                        wire:model="settingsApiKey"
-                        autocomplete="new-password"
-                        placeholder="{{ __('agricart.pages.fx-learn.finnhub_api_key_ph') }}"
-                    />
-                </label>
-
-                <div class="fxr__modal-actions fxr__modal-actions--wrap">
-                    <button
-                        type="button"
-                        class="fxr__btn fxr__btn--primary"
-                        wire:click="saveAndTestConnection"
-                        wire:loading.attr="disabled"
-                    >
-                        <span wire:loading.remove wire:target="saveAndTestConnection">{{ __('agricart.pages.fx-learn.finnhub_save_test') }}</span>
-                        <span wire:loading wire:target="saveAndTestConnection">{{ __('agricart.pages.fx-learn.finnhub_testing') }}</span>
-                    </button>
-
-                    @if (($cred['source'] ?? 'none') === 'database')
-                        <button type="button" class="fxr__btn" wire:click="testExistingConnection" wire:loading.attr="disabled">
-                            {{ __('agricart.pages.fx-learn.finnhub_retest') }}
-                        </button>
-                        <button type="button" class="fxr__btn fxr__btn--danger" wire:click="deleteApiKey" wire:confirm="{{ __('agricart.pages.fx-learn.finnhub_delete_confirm') }}">
-                            {{ __('agricart.pages.fx-learn.finnhub_delete') }}
-                        </button>
-                    @endif
-                </div>
-
-                @if (filled($this->settingsMessage))
-                    <p @class(['fxr__msg', 'is-'.$this->settingsMessageTone])>{{ $this->settingsMessage }}</p>
-                @endif
-
-                <p class="fxr__disclaimer">{{ __('agricart.pages.fx-learn.finnhub_settings_hint') }}</p>
-            </div>
-        </div>
-    @endif
 
     @if ($this->analyzeEventId)
         @php $ae = $this->analyzingEvent(); @endphp

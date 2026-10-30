@@ -51,8 +51,8 @@ class PermissionRegistry
                 'ur' => 'کیٹلاگ کا ہر صفحہ الگ دیں (پروڈکٹس، برانڈز، زمرے…)۔ صرف دیکھیں سے Add نہیں ہوتا — بنائیں (اور ترمیم) بھی آن کریں۔',
             ],
             'purchasing' => [
-                'en' => 'Grant each Purchasing page separately (View / Create / Edit / Delete / Print where available). Example: Price Update alone does not open Purchases. Channel Price Control is under Channels Hub.',
-                'ur' => 'خریداری کا ہر صفحہ الگ دیں (دیکھیں / بنائیں / ترمیم / حذف / پرنٹ جہاں ہو)۔ مثال: صرف پرائس اپڈیٹ سے Purchases نہیں کھلتے۔ چینل پرائس کنٹرول چینلز حب میں ہے۔',
+                'en' => 'Grant each Purchasing page separately (View / Create / Edit / Delete / Print where available). Example: Price Update alone does not open Purchases. Channel Price Control is under Channels Hub. Purchase Re-Orders (re-order-center) is NOT the same as External Apps → Re Order.',
+                'ur' => 'خریداری کا ہر صفحہ الگ دیں (دیکھیں / بنائیں / ترمیم / حذف / پرنٹ جہاں ہو)۔ مثال: صرف پرائس اپڈیٹ سے Purchases نہیں کھلتے۔ چینل پرائس کنٹرول چینلز حب میں ہے۔ Purchase Re-Orders (re-order-center) External Apps → Re Order سے الگ ہے۔',
             ],
             'sales' => [
                 'en' => 'Grant each Sales page separately (POS, quotations, dispatch, returns…). View alone cannot Add — also enable Create where needed.',
@@ -63,8 +63,8 @@ class PermissionRegistry
                 'ur' => 'آن لائن اسٹور کا ہر صفحہ الگ دیں۔ ایگری کارٹ ان باکس (کسٹمر میسجز اور گھنٹی) جائزہ کے بعد سب سے پہلے ہے۔',
             ],
             'logistics' => [
-                'en' => 'Grant each Logistics page separately (delivery methods, pending, shipped, delivered).',
-                'ur' => 'لاجسٹکس کا ہر صفحہ الگ دیں (ڈیلیوری طریقے، زیر التوا، بھیجے گئے، ڈلیورڈ)۔',
+                'en' => 'Grant each Logistics page separately (delivery methods, shipments/pending, shipped, delivered).',
+                'ur' => 'لاجسٹکس کا ہر صفحہ الگ دیں (ڈیلیوری طریقے، shipments/زیر التوا، بھیجے گئے، ڈلیورڈ)۔',
             ],
             'service' => [
                 'en' => 'Grant each Service page separately.',
@@ -95,12 +95,12 @@ class PermissionRegistry
                 'ur' => 'دستاویزات کے صفحات الگ دیں۔ اندرونی گائیڈ حصے پھر بھی ہر ماڈیول کی پیج دیکھیں اجازت کے مطابق فلٹر ہوتے ہیں۔',
             ],
             'tools' => [
-                'en' => 'External Apps are separate from Agricart core. Grant module/page access (e.g. open External Apps, only Re Order, create orders, edit settings).',
-                'ur' => 'بیرونی ایپس ایگری کارٹ کور سے الگ ہیں۔ ماڈیول/صفحہ اجازت دیں (مثلاً صرف External Apps کھولنا، صرف Re Order، آرڈر بنانا، سیٹنگز ترمیم)۔',
+                'en' => 'External Apps are separate from Agricart core. Lists are per logged-in user — another admin’s sheets will not appear in your list. Re Order here is NOT Purchasing → Purchase Re-Orders.',
+                'ur' => 'بیرونی ایپس ایگری کارٹ کور سے الگ ہیں۔ فہرست لاگ اِن یوزر کی اپنی ہے — دوسرے ایڈمن کی شیٹس آپ کی لسٹ میں نہیں آتیں۔ یہاں Re Order خریداری → Purchase Re-Orders سے الگ ہے۔',
             ],
             'fx-learn' => [
-                'en' => 'Grant each FX Learn page separately (Economic Radar and future learning tools).',
-                'ur' => 'FX Learn کا ہر صفحہ الگ دیں (اکنامک ریڈار اور آئندہ لرننگ ٹولز)۔',
+                'en' => 'Grant each FX Learn page separately. Economic Radar Edit is required for AI analyze. Calendar feed is free FF+FC (not Finnhub).',
+                'ur' => 'FX Learn کا ہر صفحہ الگ دیں۔ AI تجزیہ کے لیے Economic Radar Edit درکار ہے۔ کیلنڈر فیڈ مفت FF+FC ہے (Finnhub نہیں)۔',
             ],
         ];
 
@@ -341,7 +341,7 @@ class PermissionRegistry
                 'home-expenses' => ['label_en' => 'Home Expenses', 'label_ur' => 'ہوم ایکسپینس', 'actions' => $crudPrint],
             ],
             'fx-learn' => [
-                'economic-radar' => ['label_en' => 'Economic Radar', 'label_ur' => 'اکنامک ریڈار', 'actions' => $viewOnly],
+                'economic-radar' => ['label_en' => 'Economic Radar', 'label_ur' => 'اکنامک ریڈار', 'actions' => $viewEdit],
                 'market-signals' => ['label_en' => 'Market Signals', 'label_ur' => 'مارکیٹ سگنلز', 'actions' => $viewOnly],
             ],
         ];

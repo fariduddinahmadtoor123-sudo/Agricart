@@ -125,12 +125,31 @@
         @endif
     >
         @if (! empty($toolbar['fxLearnDropdownFilters']))
-            <div class="agricart-fxr-selects" role="group" aria-label="{{ __('agricart.pages.fx-learn.filters_label') }}">
+            @php
+                $radarCcy = (string) ($toolbar['fxLearnRadarCcy'] ?? 'all');
+                $radarImpact = (string) ($toolbar['fxLearnRadarImpact'] ?? 'all');
+            @endphp
+            <div
+                class="agricart-fxr-selects"
+                role="group"
+                aria-label="{{ __('agricart.pages.fx-learn.filters_label') }}"
+                x-data="{
+                    ccy: @js($radarCcy),
+                    impact: @js($radarImpact),
+                    init() {
+                        Livewire.on('fx-learn-radar-filters-sync', (e) => {
+                            const d = Array.isArray(e) ? (e[0] ?? {}) : (e ?? {});
+                            if (d.ccy) this.ccy = d.ccy;
+                            if (d.impact) this.impact = d.impact;
+                        });
+                    },
+                }"
+            >
                 <label class="agricart-fxr-select">
                     <span class="fi-sr-only">{{ __('agricart.pages.fx-learn.filter_ccy_label') }}</span>
                     <select
                         class="agricart-fxr-select__el"
-                        x-data
+                        x-model="ccy"
                         x-on:change="window.Livewire?.dispatch('fx-learn-radar-ccy', { ccy: $event.target.value })"
                     >
                         <option value="all">{{ __('agricart.pages.fx-learn.filter_ccy_all') }}</option>
@@ -141,7 +160,7 @@
                     <span class="fi-sr-only">{{ __('agricart.pages.fx-learn.filter_impact_label') }}</span>
                     <select
                         class="agricart-fxr-select__el"
-                        x-data
+                        x-model="impact"
                         x-on:change="window.Livewire?.dispatch('fx-learn-radar-impact', { impact: $event.target.value })"
                     >
                         <option value="all">{{ __('agricart.pages.fx-learn.filter_impact_all') }}</option>
@@ -162,13 +181,30 @@
                     'crypto' => __('agricart.pages.fx-learn.sig_cat_crypto'),
                 ];
                 $sigTfs = \App\Services\FxLearn\MarketSignalCatalog::intervals();
+                $sigCat = (string) ($toolbar['fxLearnSignalsCategory'] ?? 'forex');
+                $sigTf = (string) ($toolbar['fxLearnSignalsInterval'] ?? '1h');
             @endphp
-            <div class="agricart-fxr-selects" role="group" aria-label="{{ __('agricart.pages.fx-learn.sig_picker_label') }}">
+            <div
+                class="agricart-fxr-selects"
+                role="group"
+                aria-label="{{ __('agricart.pages.fx-learn.sig_picker_label') }}"
+                x-data="{
+                    category: @js($sigCat),
+                    interval: @js($sigTf),
+                    init() {
+                        Livewire.on('fx-learn-signals-filters-sync', (e) => {
+                            const d = Array.isArray(e) ? (e[0] ?? {}) : (e ?? {});
+                            if (d.category) this.category = d.category;
+                            if (d.interval) this.interval = d.interval;
+                        });
+                    },
+                }"
+            >
                 <label class="agricart-fxr-select">
                     <span class="fi-sr-only">{{ __('agricart.pages.fx-learn.sig_cat_label') }}</span>
                     <select
                         class="agricart-fxr-select__el"
-                        x-data
+                        x-model="category"
                         x-on:change="window.Livewire?.dispatch('fx-learn-signals-category', { category: $event.target.value })"
                     >
                         @foreach ($sigCats as $catId => $catLabel)
@@ -180,11 +216,11 @@
                     <span class="fi-sr-only">{{ __('agricart.pages.fx-learn.sig_tf_label') }}</span>
                     <select
                         class="agricart-fxr-select__el"
-                        x-data
+                        x-model="interval"
                         x-on:change="window.Livewire?.dispatch('fx-learn-signals-interval', { interval: $event.target.value })"
                     >
                         @foreach ($sigTfs as $tfRow)
-                            <option value="{{ $tfRow['id'] }}" @selected($tfRow['id'] === '1h')>{{ $tfRow['label'] }}</option>
+                            <option value="{{ $tfRow['id'] }}">{{ $tfRow['label'] }}</option>
                         @endforeach
                     </select>
                 </label>

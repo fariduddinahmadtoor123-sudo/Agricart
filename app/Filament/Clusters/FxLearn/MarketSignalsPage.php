@@ -76,6 +76,7 @@ class MarketSignalsPage extends BaseModulePage
         $first = MarketSignalCatalog::assetsFor($category)[0] ?? null;
         $this->assetId = (string) ($first['id'] ?? '');
         $this->ensureSelection();
+        $this->dispatch('fx-learn-signals-filters-sync', category: $this->category, interval: $this->intervalId);
     }
 
     public function setAsset(string $assetId): void
@@ -92,6 +93,7 @@ class MarketSignalsPage extends BaseModulePage
     public function setInterval(string $intervalId): void
     {
         $this->intervalId = MarketSignalCatalog::findInterval($intervalId)['id'];
+        $this->dispatch('fx-learn-signals-filters-sync', category: $this->category, interval: $this->intervalId);
     }
 
     /**
