@@ -19,7 +19,7 @@
 <x-filament-panels::page>
     <div
         class="fxt"
-        wire:poll.5s="refreshQuotes"
+        wire:poll.15s.visible="syncQuotes"
         x-data="{
             mountTv(el, src, config) {
                 if (! el) return;
@@ -81,7 +81,8 @@
                     }
                     const keys = Object.keys(this.streams || {});
                     if (! keys.length) return;
-                    const streams = keys.map((s) => s + '@ticker').join('/');
+                    // bookTicker = best bid/ask on every change (fastest free official stream, browser-only).
+                    const streams = keys.map((s) => s + '@bookTicker').join('/');
                     const url = 'wss://stream.binance.com:9443/stream?streams=' + streams;
                     const socket = new WebSocket(url);
                     this.ws = socket;
@@ -93,26 +94,17 @@
                         const map = this.streams[String(data.s).toLowerCase()];
                         if (! map) return;
                         const digits = map.digits || 2;
-                        let bid = Number(data.b);
-                        let ask = Number(data.a);
-                        const last = Number(data.c);
-                        if (! (bid > 0) || ! (ask > 0)) {
-                            if (! (last > 0)) return;
-                            const half = Math.max(last * 0.00005, 0.00001);
-                            bid = last - half;
-                            ask = last + half;
-                        }
-                        const high = Number(data.h);
+                        const bid = Number(data.b);
+                        const ask = Number(data.a);
+                        if (! (bid > 0) || ! (ask > 0)) return;
                         const row = document.querySelector('[data-fxt-id=\"' + map.id + '\"]');
                         if (row) {
                             const askEl = row.querySelector('[data-fxt-ask]');
                             const bidEl = row.querySelector('[data-fxt-bid]');
-                            const highEl = row.querySelector('[data-fxt-high]');
                             const timeEl = row.querySelector('[data-fxt-time]');
                             const dotEl = row.querySelector('[data-fxt-dot]');
                             if (askEl) askEl.textContent = this.fmt(ask, digits);
                             if (bidEl) bidEl.textContent = this.fmt(bid, digits);
-                            if (highEl && high > 0) highEl.textContent = this.fmt(high, digits);
                             if (timeEl) timeEl.textContent = this.nowTime();
                             if (dotEl) dotEl.classList.add('is-on');
                         }

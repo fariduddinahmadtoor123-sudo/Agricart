@@ -87,6 +87,20 @@ class TradeTerminalPage extends BaseModulePage
         $this->dispatch('fx-learn-terminal-filters-sync', category: $this->category);
     }
 
+    /**
+     * Soft poll: reuse shared quote cache (no API stampede). UI ticks stay on Binance WebSocket.
+     */
+    public function syncQuotes(DemoTerminalService $terminal, DemoQuoteService $quoteService): void
+    {
+        $account = $terminal->accountFor($this->authUser());
+        $this->quotes = $quoteService->snapshot();
+        $terminal->autoCloseHits($account);
+        $this->dash = $terminal->dashboard($account->fresh(), $this->quotes);
+    }
+
+    /**
+     * Manual refresh only — busts shared cache once.
+     */
     public function refreshQuotes(DemoTerminalService $terminal, DemoQuoteService $quoteService): void
     {
         $account = $terminal->accountFor($this->authUser());

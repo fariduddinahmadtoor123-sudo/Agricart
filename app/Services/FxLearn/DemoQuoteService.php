@@ -17,7 +17,8 @@ class DemoQuoteService
 {
     private const CACHE_KEY = 'fxlearn.demo.quotes.v4';
 
-    private const CACHE_TTL = 5;
+    /** Shared app-wide TTL — one REST pool for all users; UI ticks use Binance WebSocket. */
+    private const CACHE_TTL = 15;
 
     public function __construct(
         private readonly FinnhubCredentialService $finnhubCredentials,
