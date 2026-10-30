@@ -67,8 +67,8 @@ class PermissionRegistry
                 'ur' => 'لاجسٹکس کا ہر صفحہ الگ دیں (ڈیلیوری طریقے، shipments/زیر التوا، بھیجے گئے، ڈلیورڈ)۔',
             ],
             'service' => [
-                'en' => 'Grant each Service page separately.',
-                'ur' => 'سروس کا ہر صفحہ الگ دیں۔',
+                'en' => 'Service Center is coming soon — only Overview is reachable. Request tickets are not live yet.',
+                'ur' => 'سروس سینٹر جلد آرہا ہے — صرف Overview کھلتا ہے۔ ٹکٹ سسٹم ابھی لائیو نہیں۔',
             ],
             'reports' => [
                 'en' => 'Grant each Reports page separately (stock, ledgers, P&L, seasonal…).',
@@ -130,11 +130,8 @@ class PermissionRegistry
                 ['key' => 'comms.channel.internal_notes.access', 'label_en' => 'Internal Notes channel', 'label_ur' => 'اندرونی نوٹس چینل'],
                 ['key' => 'comms.channel.system.access', 'label_en' => 'System Notifications channel', 'label_ur' => 'سسٹم نوٹیفکیشن چینل'],
                 ['key' => 'comms.channel.task.access', 'label_en' => 'Task Communication channel', 'label_ur' => 'ٹاسک مواصلات چینل'],
-                ['key' => 'comms.conversation.manage', 'label_en' => 'Manage conversations', 'label_ur' => 'گفتگو کا انتظام'],
-                ['key' => 'comms.message.post', 'label_en' => 'Post messages', 'label_ur' => 'پیغامات بھیجیں'],
-                ['key' => 'comms.attachment.upload', 'label_en' => 'Upload attachments', 'label_ur' => 'اٹیچمنٹس اپلوڈ'],
-                ['key' => 'comms.link.manage', 'label_en' => 'Manage record links', 'label_ur' => 'ریکارڈ لنکس کا انتظام'],
-                ['key' => 'comms.task.manage', 'label_en' => 'Manage communication tasks', 'label_ur' => 'مواصلاتی ٹاسکس کا انتظام'],
+                // Granular conversation/message keys removed — runtime authorizer only checks
+                // comms.access + per-channel access (see CommunicationAuthorizer).
             ],
         ];
 
@@ -237,9 +234,10 @@ class PermissionRegistry
                 'order-dispatch' => ['label_en' => 'Order Dispatch', 'label_ur' => 'آرڈر ڈسپیچ', 'actions' => $crudPrint],
                 'forwarded-orders' => ['label_en' => 'Forwarded Orders', 'label_ur' => 'فارورڈڈ آرڈرز', 'actions' => $crudPrint],
                 'sales-returns' => ['label_en' => 'Sales Returns', 'label_ur' => 'سیلز ریٹرنز', 'actions' => $crudPrint],
-                'tasks' => ['label_en' => 'Tasks', 'label_ur' => 'ٹاسکس', 'actions' => $crud],
+                // Legacy deep-link pages (hidden from Roles form; still authorized if bookmarked).
+                'tasks' => ['label_en' => 'Tasks', 'label_ur' => 'ٹاسکس', 'actions' => $crud, 'form' => false],
                 'inbox' => ['label_en' => 'Staff Inbox', 'label_ur' => 'اسٹاف ان باکس', 'actions' => $viewEdit],
-                'online-orders' => ['label_en' => 'Online Orders', 'label_ur' => 'آن لائن آرڈرز', 'actions' => $crudPrint],
+                'online-orders' => ['label_en' => 'Online Orders', 'label_ur' => 'آن لائن آرڈرز', 'actions' => $crudPrint, 'form' => false],
             ],
             'store' => [
                 'overview' => ['label_en' => 'Overview', 'label_ur' => 'جائزہ', 'actions' => $viewOnly],
@@ -270,7 +268,8 @@ class PermissionRegistry
             ],
             'service' => [
                 'overview' => ['label_en' => 'Overview', 'label_ur' => 'جائزہ', 'actions' => $viewOnly],
-                'requests' => ['label_en' => 'Requests', 'label_ur' => 'درخواستیں', 'actions' => $crud],
+                // Coming-soon placeholder — not grantable in Roles UI until tickets ship.
+                'requests' => ['label_en' => 'Requests', 'label_ur' => 'درخواستیں', 'actions' => $crud, 'form' => false],
             ],
             'reports' => [
                 'overview' => ['label_en' => 'Overview', 'label_ur' => 'جائزہ', 'actions' => $viewOnly],
@@ -301,7 +300,8 @@ class PermissionRegistry
                 'expenses' => ['label_en' => 'Expenses', 'label_ur' => 'اخراجات', 'actions' => $crud],
                 'expense-payments' => ['label_en' => 'Expense Payments', 'label_ur' => 'اخراجات ادائیگیاں', 'actions' => $crud],
                 'cash-book' => ['label_en' => 'Cash Book', 'label_ur' => 'کیش بک', 'actions' => $viewPrint],
-                'financial-reports' => ['label_en' => 'Financial Reports', 'label_ur' => 'مالی رپورٹس', 'actions' => $viewOnly],
+                // Redirect stub → Reports module; hide from Roles form.
+                'financial-reports' => ['label_en' => 'Financial Reports', 'label_ur' => 'مالی رپورٹس', 'actions' => $viewOnly, 'form' => false],
             ],
             'marketplace' => [
                 'overview' => ['label_en' => 'Overview', 'label_ur' => 'جائزہ', 'actions' => $viewOnly],
@@ -432,6 +432,10 @@ class PermissionRegistry
         $resources = [];
 
         foreach (self::pagesFor($module) as $slug => $page) {
+            if (($page['form'] ?? true) === false) {
+                continue;
+            }
+
             $permissions = [];
 
             foreach ($page['actions'] as $action) {

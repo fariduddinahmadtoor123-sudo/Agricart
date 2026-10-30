@@ -133,4 +133,132 @@ class MarketSignalCatalog
 
         return self::intervals()[4]; // 1H
     }
+
+    /**
+     * Secondary market widgets for the selected category (heatmap / overview).
+     *
+     * @return array{left: array{script: string, config: array<string, mixed>}, right: array{script: string, config: array<string, mixed>}}
+     */
+    public static function marketWidgets(string $category): array
+    {
+        $base = [
+            'width' => '100%',
+            'height' => 380,
+            'isTransparent' => true,
+            'colorTheme' => 'light',
+            'locale' => 'en',
+        ];
+
+        return match ($category) {
+            'commodities' => [
+                'left' => [
+                    'script' => 'https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js',
+                    'config' => [
+                        ...$base,
+                        'title' => 'Commodities',
+                        'tabs' => [[
+                            'title' => 'Metals & Oil',
+                            'symbols' => array_map(
+                                static fn (array $a): array => ['s' => $a['symbol'], 'd' => $a['label']],
+                                self::assetsFor('commodities'),
+                            ),
+                        ]],
+                        'showSymbolLogo' => true,
+                    ],
+                ],
+                'right' => [
+                    'script' => 'https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js',
+                    'config' => [
+                        ...$base,
+                        'symbolsGroups' => [[
+                            'name' => 'Commodities',
+                            'symbols' => array_map(
+                                static fn (array $a): array => ['name' => $a['symbol'], 'displayName' => $a['label']],
+                                self::assetsFor('commodities'),
+                            ),
+                        ]],
+                    ],
+                ],
+            ],
+            'indices' => [
+                'left' => [
+                    'script' => 'https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js',
+                    'config' => [
+                        ...$base,
+                        'title' => 'Indices',
+                        'tabs' => [[
+                            'title' => 'US',
+                            'symbols' => array_map(
+                                static fn (array $a): array => ['s' => $a['symbol'], 'd' => $a['label']],
+                                self::assetsFor('indices'),
+                            ),
+                        ]],
+                        'showSymbolLogo' => true,
+                    ],
+                ],
+                'right' => [
+                    'script' => 'https://s3.tradingview.com/external-embedding/embed-widget-market-quotes.js',
+                    'config' => [
+                        ...$base,
+                        'symbolsGroups' => [[
+                            'name' => 'Indices',
+                            'symbols' => array_map(
+                                static fn (array $a): array => ['name' => $a['symbol'], 'displayName' => $a['label']],
+                                self::assetsFor('indices'),
+                            ),
+                        ]],
+                    ],
+                ],
+            ],
+            'crypto' => [
+                'left' => [
+                    'script' => 'https://s3.tradingview.com/external-embedding/embed-widget-crypto-coins-heatmap.js',
+                    'config' => [
+                        ...$base,
+                        'dataSource' => 'Crypto',
+                        'blockSize' => 'market_cap_calc',
+                        'blockColor' => 'change',
+                        'locale' => 'en',
+                        'symbolUrl' => '',
+                        'colorTheme' => 'light',
+                        'hasTopBar' => false,
+                        'isDataSetEnabled' => false,
+                        'isZoomEnabled' => true,
+                        'hasSymbolTooltip' => true,
+                    ],
+                ],
+                'right' => [
+                    'script' => 'https://s3.tradingview.com/external-embedding/embed-widget-market-overview.js',
+                    'config' => [
+                        ...$base,
+                        'title' => 'Crypto',
+                        'tabs' => [[
+                            'title' => 'Majors',
+                            'symbols' => array_map(
+                                static fn (array $a): array => ['s' => $a['symbol'], 'd' => $a['label']],
+                                self::assetsFor('crypto'),
+                            ),
+                        ]],
+                        'showSymbolLogo' => true,
+                    ],
+                ],
+            ],
+            default => [
+                'left' => [
+                    'script' => 'https://s3.tradingview.com/external-embedding/embed-widget-forex-heat-map.js',
+                    'config' => [
+                        ...$base,
+                        'currencies' => ['EUR', 'USD', 'JPY', 'GBP', 'CHF', 'AUD', 'CAD', 'NZD', 'CNY'],
+                    ],
+                ],
+                'right' => [
+                    'script' => 'https://s3.tradingview.com/external-embedding/embed-widget-forex-cross-rates.js',
+                    'config' => [
+                        ...$base,
+                        'currencies' => ['EUR', 'USD', 'JPY', 'GBP', 'CHF', 'AUD', 'CAD', 'NZD'],
+                    ],
+                ],
+            ],
+        };
+    }
 }

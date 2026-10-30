@@ -18,4 +18,10 @@ class RequestsPage extends BasePlaceholderPage
     protected static ?string $slug = 'requests';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedWrenchScrewdriver;
+
+    /** Hidden until Service tickets ship (module is coming soon). */
+    public static function registersInModuleChrome(): bool
+    {
+        return false;
+    }
 }

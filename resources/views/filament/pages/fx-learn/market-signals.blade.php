@@ -3,7 +3,18 @@
     $tf = $this->activeInterval();
     $tape = $this->tapeSymbols();
     $quoteKey = str_replace([':', '/'], '-', $asset['symbol']);
-@endphp
+    $markets = \App\Services\FxLearn\MarketSignalCatalog::marketWidgets($this->category);
+    $heatmapTitle = match ($this->category) {
+        'commodities' => __('agricart.pages.fx-learn.sig_heatmap_commodities'),
+        'indices' => __('agricart.pages.fx-learn.sig_heatmap_indices'),
+        'crypto' => __('agricart.pages.fx-learn.sig_heatmap_crypto'),
+        default => __('agricart.pages.fx-learn.sig_heatmap_title'),
+    };
+    $crossTitle = match ($this->category) {
+        'commodities', 'indices', 'crypto' => __('agricart.pages.fx-learn.sig_cross_quotes'),
+        default => __('agricart.pages.fx-learn.sig_cross_title'),
+    };
+
 
 <x-filament-panels::page>
     <div
@@ -122,45 +133,33 @@
             </div>
         </section>
 
-        {{-- Heatmap + cross rates (static — no symbol sync) --}}
+        {{-- Heatmap / overview panels follow selected category --}}
         <section class="fxs__markets" aria-label="{{ __('agricart.pages.fx-learn.sig_markets_label') }}">
             <div class="fxs__panel">
                 <header class="fxs__panel-head">
-                    <h3 class="fxs__panel-title">{{ __('agricart.pages.fx-learn.sig_heatmap_title') }}</h3>
+                    <h3 class="fxs__panel-title">{{ $heatmapTitle }}</h3>
                     <p class="fxs__panel-sub">{{ __('agricart.pages.fx-learn.sig_heatmap_hint') }}</p>
                 </header>
                 <div
                     class="fxs__panel-body"
                     dir="ltr"
-                    wire:ignore
-                    x-init="mountTv($el, 'https://s3.tradingview.com/external-embedding/embed-widget-forex-heat-map.js', {
-                        width: '100%',
-                        height: 380,
-                        currencies: ['EUR','USD','JPY','GBP','CHF','AUD','CAD','NZD','CNY'],
-                        isTransparent: true,
-                        colorTheme: 'light',
-                        locale: 'en'
-                    })"
+                    wire:key="fxs-heat-{{ $this->category }}"
+                    wire:replace
+                    x-init="mountTv($el, @js($markets['left']['script']), @js($markets['left']['config']))"
                 ></div>
             </div>
 
             <div class="fxs__panel">
                 <header class="fxs__panel-head">
-                    <h3 class="fxs__panel-title">{{ __('agricart.pages.fx-learn.sig_cross_title') }}</h3>
+                    <h3 class="fxs__panel-title">{{ $crossTitle }}</h3>
                     <p class="fxs__panel-sub">{{ __('agricart.pages.fx-learn.sig_cross_hint') }}</p>
                 </header>
                 <div
                     class="fxs__panel-body"
                     dir="ltr"
-                    wire:ignore
-                    x-init="mountTv($el, 'https://s3.tradingview.com/external-embedding/embed-widget-forex-cross-rates.js', {
-                        width: '100%',
-                        height: 380,
-                        currencies: ['EUR','USD','JPY','GBP','CHF','AUD','CAD','NZD'],
-                        isTransparent: true,
-                        colorTheme: 'light',
-                        locale: 'en'
-                    })"
+                    wire:key="fxs-cross-{{ $this->category }}"
+                    wire:replace
+                    x-init="mountTv($el, @js($markets['right']['script']), @js($markets['right']['config']))"
                 ></div>
             </div>
         </section>
