@@ -193,22 +193,27 @@ class MarketSessionClock
         }
 
         $openCount = count($openLabels);
+        $openIds = collect($sessions)->where('open', true)->pluck('id')->all();
+        $londonNy = in_array('london', $openIds, true) && in_array('new_york', $openIds, true);
         $overlap = $openCount >= 2;
+
+        // Typical FX liquidity: London∩NY is the peak window.
         $liquidity = match (true) {
-            $openCount >= 3 => 'high',
-            $openCount === 2 => 'medium',
-            $openCount === 1 => 'low',
+            $londonNy || $openCount >= 3 => 'very_high',
+            $openCount === 2 => 'high',
+            $openCount === 1 => 'medium',
             default => 'off',
         };
 
         return [
             'open_count' => $openCount,
             'overlap' => $overlap,
+            'london_ny' => $londonNy,
             'liquidity' => $liquidity,
             'liquidity_label' => match ($liquidity) {
+                'very_high' => __('agricart.pages.fx-learn.term_liq_very_high'),
                 'high' => __('agricart.pages.fx-learn.term_liq_high'),
                 'medium' => __('agricart.pages.fx-learn.term_liq_medium'),
-                'low' => __('agricart.pages.fx-learn.term_liq_low'),
                 default => __('agricart.pages.fx-learn.term_liq_off'),
             },
             'summary' => $openLabels !== []

@@ -18915,11 +18915,27 @@ html.dark .agricart-tools-reorder-settings__chip-names,
 .fxt__desk-title { margin: 0; font-size: 1.05rem; font-weight: 800; color: var(--agricart-text); letter-spacing: .01em; flex: 0 0 auto; }
 .fxt__sessions { flex: 1 1 14rem; min-width: 12rem; max-width: 28rem; display: flex; flex-direction: column; gap: .28rem; }
 .fxt__sessions-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .3rem .45rem; font-size: .62rem; font-weight: 750; }
-.fxt__sessions-liq { letter-spacing: .03em; text-transform: uppercase; color: var(--agricart-muted); }
+.fxt__sessions-liq { letter-spacing: .03em; text-transform: uppercase; color: var(--agricart-muted); font-weight: 850; }
+.fxt__sessions-liq.is-very-high { color: #15803d; background: #dcfce7; border: 1px solid #86efac; border-radius: .3rem; padding: .08rem .4rem; }
 .fxt__sessions-liq.is-high { color: #166534; }
-.fxt__sessions-liq.is-medium { color: #b45309; }
-.fxt__sessions-liq.is-low { color: #1d4ed8; }
+.fxt__sessions-liq.is-medium { color: #1d4ed8; }
 .fxt__sessions-liq.is-off { color: #b91c1c; }
+.fxt__data { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem .65rem; margin-bottom: .65rem; padding: .45rem .65rem; border: 1px solid #e5e7eb; border-radius: .75rem; background: linear-gradient(180deg, #f8fafc, #fff); }
+.fxt__data-filters { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .25rem; }
+.fxt__data-filters-label { font-size: .58rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--agricart-muted); margin-inline-end: .15rem; }
+.fxt__chip-btn { border: 1px solid #e5e7eb; background: #fff; border-radius: .4rem; padding: .2rem .45rem; font-size: .68rem; font-weight: 800; letter-spacing: .03em; cursor: pointer; color: var(--agricart-muted); }
+.fxt__chip-btn.is-on { background: color-mix(in srgb, var(--agricart-primary, #166534) 12%, #fff); border-color: color-mix(in srgb, var(--agricart-primary, #166534) 40%, #e5e7eb); color: var(--agricart-primary, #166534); }
+.fxt__data-ticker { flex: 1 1 16rem; min-width: 12rem; display: flex; flex-wrap: wrap; align-items: baseline; gap: .25rem .4rem; font-size: .82rem; font-weight: 650; color: var(--agricart-text); }
+.fxt__data-ticker--empty { color: var(--agricart-muted); font-weight: 600; }
+.fxt__data-kicker { font-size: .65rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--agricart-muted); }
+.fxt__data-count { font-variant-numeric: tabular-nums; font-size: .95rem; color: #1d4ed8; }
+.fxt__data-sep { color: #cbd5e1; }
+.fxt__data-ccy { font-weight: 850; letter-spacing: .04em; }
+.fxt__data-title { color: var(--agricart-text); }
+.fxt__data-impact { font-size: .62rem; font-weight: 850; letter-spacing: .05em; text-transform: uppercase; padding: .1rem .35rem; border-radius: .3rem; background: #f3f4f6; color: #6b7280; }
+.fxt__data-impact.is-high { background: #fee2e2; color: #b91c1c; }
+.fxt__data-impact.is-med { background: #ffedd5; color: #c2410c; }
+.fxt__data-impact.is-low { background: #e5e7eb; color: #6b7280; }
 .fxt__sessions-overlap { background: #fff7ed; color: #c2410c; border: 1px solid #fdba74; border-radius: .3rem; padding: .08rem .35rem; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
 .fxt__sessions-summary { color: var(--agricart-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 14rem; }
 .fxt__sessions-track { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .28rem; align-items: end; }

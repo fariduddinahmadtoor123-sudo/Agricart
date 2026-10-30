@@ -10,6 +10,7 @@ use App\Services\Access\ModulePageAccess;
 use App\Services\FxLearn\DemoQuoteService;
 use App\Services\FxLearn\DemoSymbolCatalog;
 use App\Services\FxLearn\DemoTerminalService;
+use App\Services\FxLearn\EconomicCalendarService;
 use App\Services\FxLearn\MarketSessionClock;
 use BackedEnum;
 use Filament\Notifications\Notification;
@@ -66,6 +67,10 @@ class TradeTerminalPage extends BaseModulePage
     public string $maxTradeLossPct = '3';
 
     public string $activePhase = '1';
+
+    public string $dataCcyFilter = 'all';
+
+    public string $dataImpactFilter = 'high';
 
     /** @var array<string, array<string, mixed>> */
     public array $quotes = [];
@@ -385,6 +390,44 @@ class TradeTerminalPage extends BaseModulePage
     public function sessionLiquidity(): array
     {
         return MarketSessionClock::liquidityStrip();
+    }
+
+    public function setDataCcyFilter(string $ccy): void
+    {
+        $this->dataCcyFilter = strtoupper($ccy) === 'USD' ? 'USD' : 'all';
+    }
+
+    public function setDataImpactFilter(string $impact): void
+    {
+        $this->dataImpactFilter = in_array($impact, ['high', 'med', 'all'], true) ? $impact : 'high';
+    }
+
+    /**
+     * Next economic print for the desk ticker (uses shared calendar cache).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function nextDataEvent(EconomicCalendarService $calendar): ?array
+    {
+        $bundle = $calendar->snapshot();
+        $events = is_array($bundle['events'] ?? null) ? $bundle['events'] : [];
+
+        $filtered = collect($events)
+            ->filter(function (array $ev): bool {
+                if ($this->dataCcyFilter === 'USD' && strtoupper((string) ($ev['ccy'] ?? '')) !== 'USD') {
+                    return false;
+                }
+
+                if ($this->dataImpactFilter !== 'all' && (string) ($ev['impact'] ?? '') !== $this->dataImpactFilter) {
+                    return false;
+                }
+
+                return true;
+            })
+            ->values()
+            ->all();
+
+        return $calendar->nextUpcoming($filtered, highOnly: false);
     }
 
     public function activeTvSymbol(): string
