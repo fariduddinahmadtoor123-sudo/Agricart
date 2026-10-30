@@ -31,6 +31,8 @@ class TradeTerminalPage extends BaseModulePage
 
     protected string $view = 'filament.pages.fx-learn.trade-terminal';
 
+    public string $category = 'forex';
+
     public string $symbol = 'eurusd';
 
     public string $side = 'buy';
@@ -44,10 +46,6 @@ class TradeTerminalPage extends BaseModulePage
     public string $historyTab = 'open';
 
     public bool $showSettings = false;
-
-    public bool $showAddSymbol = false;
-
-    public string $addCategory = 'forex';
 
     public string $chartInterval = '60';
 
@@ -73,18 +71,15 @@ class TradeTerminalPage extends BaseModulePage
     /** @var array<string, mixed> */
     public array $dash = [];
 
-    /** @var list<string> */
-    public array $watchlist = [];
-
     public function mount(DemoTerminalService $terminal, DemoQuoteService $quoteService): void
     {
         $user = $this->authUser();
         $account = $terminal->accountFor($user);
         $this->syncSettingsFromAccount($account);
-        $this->watchlist = $terminal->watchlist($account);
-        $this->symbol = in_array((string) $account->selected_symbol, $this->watchlist, true)
-            ? (string) $account->selected_symbol
-            : ($this->watchlist[0] ?? 'eurusd');
+        $selected = (string) ($account->selected_symbol ?: 'eurusd');
+        $meta = DemoSymbolCatalog::get($selected);
+        $this->symbol = $meta !== null ? $selected : 'eurusd';
+        $this->category = (string) (DemoSymbolCatalog::get($this->symbol)['category'] ?? 'forex');
         $this->quotes = $quoteService->snapshot();
         $terminal->autoCloseHits($account->fresh());
         $this->dash = $terminal->dashboard($account->fresh(), $this->quotes);
@@ -95,27 +90,36 @@ class TradeTerminalPage extends BaseModulePage
         $account = $terminal->accountFor($this->authUser());
         $this->quotes = $quoteService->refresh();
         $terminal->autoCloseHits($account);
-        $this->watchlist = $terminal->watchlist($account->fresh());
         $this->dash = $terminal->dashboard($account->fresh(), $this->quotes);
+    }
+
+    public function setCategory(string $category, DemoTerminalService $terminal): void
+    {
+        $allowed = collect(DemoSymbolCatalog::categories())->pluck('id')->all();
+
+        if (! in_array($category, $allowed, true)) {
+            return;
+        }
+
+        $this->category = $category;
+        $first = DemoSymbolCatalog::optionsForCategory($category)[0]['id'] ?? null;
+
+        if (is_string($first)) {
+            $this->setSymbol($first, $terminal);
+        }
     }
 
     public function setSymbol(string $symbol, DemoTerminalService $terminal): void
     {
-        if (DemoSymbolCatalog::get($symbol) === null) {
+        $meta = DemoSymbolCatalog::get($symbol);
+
+        if ($meta === null) {
             return;
         }
 
-        $account = $terminal->accountFor($this->authUser());
-        $list = $terminal->watchlist($account);
-
-        if (! in_array($symbol, $list, true)) {
-            $account = $terminal->addToWatchlist($account, $symbol);
-            $list = $terminal->watchlist($account);
-        }
-
         $this->symbol = $symbol;
-        $this->watchlist = $list;
-        $account->forceFill(['selected_symbol' => $symbol])->save();
+        $this->category = (string) $meta['category'];
+        $terminal->accountFor($this->authUser())->forceFill(['selected_symbol' => $symbol])->save();
         $this->stopLoss = '';
         $this->takeProfit = '';
     }
@@ -130,54 +134,15 @@ class TradeTerminalPage extends BaseModulePage
         );
     }
 
-    public function addSymbol(string $symbol, DemoTerminalService $terminal): void
-    {
-        $this->ensureCanTrade();
-
-        try {
-            $account = $terminal->addToWatchlist(
-                $terminal->accountFor($this->authUser()),
-                $symbol,
-            );
-            $this->watchlist = $terminal->watchlist($account);
-            $this->symbol = $symbol;
-            $this->showAddSymbol = false;
-            $this->stopLoss = '';
-            $this->takeProfit = '';
-
-            Notification::make()
-                ->title(__('agricart.pages.fx-learn.term_symbol_added', ['symbol' => strtoupper($symbol)]))
-                ->success()
-                ->send();
-        } catch (InvalidArgumentException $e) {
-            Notification::make()->title($e->getMessage())->danger()->send();
-        }
-    }
-
-    public function removeSymbol(string $symbol, DemoTerminalService $terminal): void
-    {
-        $this->ensureCanTrade();
-
-        try {
-            $account = $terminal->removeFromWatchlist(
-                $terminal->accountFor($this->authUser()),
-                $symbol,
-            );
-            $this->watchlist = $terminal->watchlist($account);
-            $this->symbol = (string) $account->selected_symbol;
-
-            Notification::make()
-                ->title(__('agricart.pages.fx-learn.term_symbol_removed'))
-                ->success()
-                ->send();
-        } catch (InvalidArgumentException $e) {
-            Notification::make()->title($e->getMessage())->danger()->send();
-        }
-    }
-
     public function setSide(string $side): void
     {
         $this->side = $side === 'sell' ? 'sell' : 'buy';
+    }
+
+    public function openTradeAs(string $side, DemoTerminalService $terminal): void
+    {
+        $this->side = $side === 'sell' ? 'sell' : 'buy';
+        $this->openTrade($terminal);
     }
 
     public function setChartInterval(string $interval): void
@@ -196,11 +161,14 @@ class TradeTerminalPage extends BaseModulePage
     {
         $this->ensureCanTrade();
 
-        if (DemoSymbolCatalog::get($symbol) === null) {
+        $meta = DemoSymbolCatalog::get($symbol);
+
+        if ($meta === null) {
             return;
         }
 
         $this->symbol = $symbol;
+        $this->category = (string) $meta['category'];
         $this->side = $side === 'sell' ? 'sell' : 'buy';
         $this->openTrade($terminal);
     }
@@ -230,7 +198,6 @@ class TradeTerminalPage extends BaseModulePage
                 ->send();
 
             $this->quotes = app(DemoQuoteService::class)->snapshot();
-            $this->watchlist = $terminal->watchlist($account->fresh());
             $this->dash = $terminal->dashboard($account->fresh(), $this->quotes);
         } catch (InvalidArgumentException $e) {
             Notification::make()->title($e->getMessage())->danger()->send();
@@ -313,52 +280,29 @@ class TradeTerminalPage extends BaseModulePage
     }
 
     /**
+     * All tradable symbols in the active category (auto — no manual add).
+     *
      * @return list<array{id: string, label: string, tv: string, bid: float|null, ask: float|null, digits: int, live: bool}>
      */
-    public function watchlistRows(): array
+    public function categorySymbolRows(): array
     {
         $rows = [];
 
-        foreach ($this->watchlist as $id) {
-            $meta = DemoSymbolCatalog::get($id);
-
-            if ($meta === null) {
-                continue;
-            }
-
-            $q = $this->quotes[$id] ?? null;
+        foreach (DemoSymbolCatalog::optionsForCategory($this->category) as $row) {
+            $q = $this->quotes[$row['id']] ?? null;
+            $meta = DemoSymbolCatalog::get($row['id']);
             $rows[] = [
-                'id' => $id,
-                'label' => $meta['label'],
-                'tv' => $meta['tv'],
+                'id' => $row['id'],
+                'label' => $row['label'],
+                'tv' => $row['tv'],
                 'bid' => $q['bid'] ?? null,
                 'ask' => $q['ask'] ?? null,
-                'digits' => (int) ($q['digits'] ?? $meta['digits']),
+                'digits' => (int) ($q['digits'] ?? $meta['digits'] ?? 5),
                 'live' => (bool) ($q['live'] ?? false),
             ];
         }
 
         return $rows;
-    }
-
-    /**
-     * Symbols available to add (not already on the watchlist).
-     *
-     * @return list<array{id: string, label: string, category: string, tv: string}>
-     */
-    public function addableSymbols(): array
-    {
-        $out = [];
-
-        foreach (DemoSymbolCatalog::optionsForCategory($this->addCategory) as $row) {
-            if (in_array($row['id'], $this->watchlist, true)) {
-                continue;
-            }
-
-            $out[] = $row;
-        }
-
-        return $out;
     }
 
     /**
@@ -377,6 +321,19 @@ class TradeTerminalPage extends BaseModulePage
     public function activeLabel(): string
     {
         return (string) (DemoSymbolCatalog::get($this->symbol)['label'] ?? strtoupper($this->symbol));
+    }
+
+    /** TradingView Technical Analysis interval id. */
+    public function taInterval(): string
+    {
+        return match ($this->chartInterval) {
+            '1' => '1m',
+            '5' => '5m',
+            '15' => '15m',
+            '240' => '4h',
+            'D' => '1D',
+            default => '1h',
+        };
     }
 
     /**

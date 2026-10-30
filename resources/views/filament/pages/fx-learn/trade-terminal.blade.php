@@ -5,6 +5,7 @@
     $history = $this->historyRows(app(\App\Services\FxLearn\DemoTerminalService::class));
     $tvSymbol = $this->activeTvSymbol();
     $label = $this->activeLabel();
+    $taInterval = $this->taInterval();
 @endphp
 
 <x-filament-panels::page>
@@ -18,7 +19,7 @@
                 const wrap = document.createElement('div');
                 wrap.className = 'tradingview-widget-container';
                 wrap.style.width = '100%';
-                wrap.style.height = (config.height || 480) + 'px';
+                wrap.style.height = (config.height || 420) + 'px';
                 const widget = document.createElement('div');
                 widget.className = 'tradingview-widget-container__widget';
                 widget.style.height = '100%';
@@ -49,22 +50,32 @@
             </div>
         </header>
 
-        {{-- Watchlist: add many symbols; Buy/Sell on each row --}}
+        {{-- Categories + all symbols auto --}}
         <section class="fxt__watch" aria-label="{{ __('agricart.pages.fx-learn.term_watch_label') }}">
             <div class="fxt__watch-head">
                 <div>
                     <h2 class="fxt__watch-title">{{ __('agricart.pages.fx-learn.term_watch_title') }}</h2>
                     <p class="fxt__watch-hint">{{ __('agricart.pages.fx-learn.term_watch_hint') }}</p>
                 </div>
-                <button type="button" class="fxt__btn fxt__btn--accent" wire:click="$set('showAddSymbol', true)">
-                    + {{ __('agricart.pages.fx-learn.term_add_symbol') }}
-                </button>
             </div>
-            <div class="fxt__watch-row" role="listbox">
-                @foreach ($this->watchlistRows() as $row)
+
+            <div class="fxt__cats" role="tablist" aria-label="{{ __('agricart.pages.fx-learn.term_cats_label') }}">
+                @foreach ($this->categoryOptions() as $cat)
+                    <button
+                        type="button"
+                        role="tab"
+                        wire:click="setCategory(@js($cat['id']))"
+                        aria-selected="{{ $category === $cat['id'] ? 'true' : 'false' }}"
+                        @class(['fxt__cat', 'is-on' => $category === $cat['id']])
+                    >{{ __('agricart.pages.fx-learn.term_cat_'.$cat['id']) }}</button>
+                @endforeach
+            </div>
+
+            <div class="fxt__watch-row" role="listbox" wire:key="fxt-syms-{{ $category }}">
+                @foreach ($this->categorySymbolRows() as $row)
                     <div
                         class="fxt__watch-item"
-                        wire:key="fxt-wl-{{ $row['id'] }}"
+                        wire:key="fxt-sym-{{ $row['id'] }}"
                         @class(['is-on' => $symbol === $row['id']])
                     >
                         <button
@@ -96,19 +107,11 @@
                                 @disabled(! empty($dash['failed_day']) || ! empty($dash['failed_total']) || ! $this->canTrade())
                             >SELL</button>
                         </div>
-                        <button
-                            type="button"
-                            class="fxt__watch-x"
-                            wire:click="removeSymbol(@js($row['id']))"
-                            wire:confirm="{{ __('agricart.pages.fx-learn.term_remove_confirm', ['symbol' => $row['label']]) }}"
-                            title="{{ __('agricart.pages.fx-learn.term_remove_symbol') }}"
-                        >×</button>
                     </div>
                 @endforeach
             </div>
         </section>
 
-        {{-- Account metrics: one horizontal strip under watchlist --}}
         <div class="fxt__stats" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_stats_label') }}">
             <div class="fxt__stat">
                 <span>{{ __('agricart.pages.fx-learn.term_balance') }}</span>
@@ -149,110 +152,59 @@
             <div class="fxt__alert">{{ __('agricart.pages.fx-learn.term_fail_banner') }}</div>
         @endif
 
-        <div class="fxt__stage">
-            <section class="fxt__chart-card" aria-label="{{ __('agricart.pages.fx-learn.term_chart_label') }}">
-                <div class="fxt__chart-head">
-                    <div>
-                        <p class="fxt__kicker">{{ __('agricart.pages.fx-learn.term_chart_kicker') }}</p>
-                        <h2 class="fxt__chart-title" dir="ltr">{{ $label }}</h2>
-                    </div>
-                    <div class="fxt__tf" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_tf_label') }}">
-                        @foreach (['1' => '1m', '5' => '5m', '15' => '15m', '60' => '1H', '240' => '4H', 'D' => '1D'] as $id => $tfLabel)
-                            <button
-                                type="button"
-                                wire:click="setChartInterval(@js($id))"
-                                @class(['fxt__tf-btn', 'is-on' => $chartInterval === $id])
-                            >{{ $tfLabel }}</button>
-                        @endforeach
-                    </div>
+        {{-- Order ticket: one horizontal strip --}}
+        <section class="fxt__ticket fxt__ticket--bar" aria-label="{{ __('agricart.pages.fx-learn.term_ticket_label') }}">
+            <div class="fxt__ticket-sym" dir="ltr">
+                <span>{{ __('agricart.pages.fx-learn.term_col_symbol') }}</span>
+                <strong>{{ $label }}</strong>
+            </div>
+            <div class="fxt__ticket-px" dir="ltr">
+                <div>
+                    <span>{{ __('agricart.pages.fx-learn.term_bid') }}</span>
+                    <strong class="is-bid">{{ $q ? number_format((float) $q['bid'], $digits, '.', '') : '—' }}</strong>
                 </div>
-                <div
-                    class="fxt__chart"
-                    dir="ltr"
-                    wire:key="fxt-chart-{{ $tvSymbol }}-{{ $chartInterval }}"
-                    wire:replace
-                    x-init="mountTv($el, 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js', {
-                        autosize: true,
-                        symbol: @js($tvSymbol),
-                        interval: @js($chartInterval),
-                        timezone: 'Asia/Karachi',
-                        theme: 'light',
-                        style: '1',
-                        locale: 'en',
-                        allow_symbol_change: false,
-                        calendar: false,
-                        support_host: 'https://www.tradingview.com',
-                        height: 480,
-                        hide_top_toolbar: false,
-                        hide_legend: false,
-                        save_image: false
-                    })"
-                ></div>
-            </section>
-
-            <section class="fxt__ticket" aria-label="{{ __('agricart.pages.fx-learn.term_ticket_label') }}">
-                <div class="fxt__price" dir="ltr">
-                    <div>
-                        <span>{{ __('agricart.pages.fx-learn.term_bid') }}</span>
-                        <strong>{{ $q ? number_format((float) $q['bid'], $digits, '.', '') : '—' }}</strong>
-                    </div>
-                    <div>
-                        <span>{{ __('agricart.pages.fx-learn.term_ask') }}</span>
-                        <strong>{{ $q ? number_format((float) $q['ask'], $digits, '.', '') : '—' }}</strong>
-                    </div>
-                    <span @class(['fxt__live', 'is-on' => ! empty($q['live'])])>
-                        {{ ! empty($q['live']) ? __('agricart.pages.fx-learn.term_live') : __('agricart.pages.fx-learn.term_seed') }}
-                    </span>
+                <div>
+                    <span>{{ __('agricart.pages.fx-learn.term_ask') }}</span>
+                    <strong class="is-ask">{{ $q ? number_format((float) $q['ask'], $digits, '.', '') : '—' }}</strong>
                 </div>
-
-                <div class="fxt__sides">
-                    <button type="button" wire:click="setSide('buy')" @class(['fxt__side', 'is-buy', 'is-active' => $side === 'buy'])>BUY</button>
-                    <button type="button" wire:click="setSide('sell')" @class(['fxt__side', 'is-sell', 'is-active' => $side === 'sell'])>SELL</button>
-                </div>
-
-                <div class="fxt__form">
-                    <label>
-                        <span>{{ __('agricart.pages.fx-learn.term_lots') }}</span>
-                        <input type="number" step="0.01" min="0.01" max="10" wire:model.live="lots" />
-                    </label>
-                    <label>
-                        <span>{{ __('agricart.pages.fx-learn.term_sl') }}</span>
-                        <input type="number" step="any" wire:model.live="stopLoss" placeholder="—" dir="ltr" />
-                    </label>
-                    <label>
-                        <span>{{ __('agricart.pages.fx-learn.term_tp') }}</span>
-                        <input type="number" step="any" wire:model.live="takeProfit" placeholder="—" dir="ltr" />
-                    </label>
-                </div>
-
-                <div @class(['fxt__risk', 'is-fail' => ! empty($risk['fail'])])>
-                    <div>
-                        <span>{{ __('agricart.pages.fx-learn.term_risk_usd') }}</span>
-                        <strong>${{ number_format((float) ($risk['usd'] ?? 0), 2) }}</strong>
-                    </div>
-                    <div>
-                        <span>{{ __('agricart.pages.fx-learn.term_risk_pct') }}</span>
-                        <strong>{{ number_format((float) ($risk['pct'] ?? 0), 2) }}% / {{ $maxTradeLossPct }}%</strong>
-                    </div>
-                    <div>
-                        <span>{{ __('agricart.pages.fx-learn.term_rr') }}</span>
-                        <strong>{{ isset($risk['rr']) && $risk['rr'] !== null ? number_format((float) $risk['rr'], 2) : '—' }}</strong>
-                    </div>
-                </div>
-
+                <span @class(['fxt__live', 'is-on' => ! empty($q['live'])])>
+                    {{ ! empty($q['live']) ? __('agricart.pages.fx-learn.term_live') : __('agricart.pages.fx-learn.term_seed') }}
+                </span>
+            </div>
+            <label class="fxt__ticket-field">
+                <span>{{ __('agricart.pages.fx-learn.term_lots') }}</span>
+                <input type="number" step="0.01" min="0.01" max="10" wire:model.live="lots" />
+            </label>
+            <label class="fxt__ticket-field">
+                <span>{{ __('agricart.pages.fx-learn.term_sl') }}</span>
+                <input type="number" step="any" wire:model.live="stopLoss" placeholder="—" dir="ltr" />
+            </label>
+            <label class="fxt__ticket-field">
+                <span>{{ __('agricart.pages.fx-learn.term_tp') }}</span>
+                <input type="number" step="any" wire:model.live="takeProfit" placeholder="—" dir="ltr" />
+            </label>
+            <div @class(['fxt__ticket-risk', 'is-fail' => ! empty($risk['fail'])])>
+                <span>{{ __('agricart.pages.fx-learn.term_risk_pct') }}</span>
+                <strong>{{ number_format((float) ($risk['pct'] ?? 0), 2) }}%</strong>
+                <span>R:R {{ isset($risk['rr']) && $risk['rr'] !== null ? number_format((float) $risk['rr'], 2) : '—' }}</span>
+            </div>
+            <div class="fxt__ticket-actions">
                 <button
                     type="button"
-                    class="fxt__submit"
-                    @class(['is-sell' => $side === 'sell'])
-                    wire:click="openTrade"
-                    @disabled(! empty($dash['failed_day']) || ! empty($dash['failed_total']) || ! empty($risk['fail']))
-                >
-                    {{ $side === 'sell' ? __('agricart.pages.fx-learn.term_place_sell') : __('agricart.pages.fx-learn.term_place_buy') }}
-                    · {{ $label }}
-                </button>
-            </section>
-        </div>
+                    class="fxt__submit fxt__submit--buy"
+                    wire:click="openTradeAs('buy')"
+                    @disabled(! empty($dash['failed_day']) || ! empty($dash['failed_total']) || ! empty($risk['fail']) || ! $this->canTrade())
+                >{{ __('agricart.pages.fx-learn.term_place_buy') }}</button>
+                <button
+                    type="button"
+                    class="fxt__submit fxt__submit--sell"
+                    wire:click="openTradeAs('sell')"
+                    @disabled(! empty($dash['failed_day']) || ! empty($dash['failed_total']) || ! empty($risk['fail']) || ! $this->canTrade())
+                >{{ __('agricart.pages.fx-learn.term_place_sell') }}</button>
+            </div>
+        </section>
 
+        {{-- Positions / history under ticket --}}
         <section class="fxt__book" aria-label="{{ __('agricart.pages.fx-learn.term_book_label') }}">
             <div class="fxt__tabs">
                 <button type="button" wire:click="$set('historyTab', 'open')" @class(['is-active' => $historyTab === 'open'])>
@@ -334,42 +286,75 @@
             @endif
         </section>
 
-        @if ($showAddSymbol)
-            <div class="fxt__modal" role="dialog" aria-modal="true" aria-label="{{ __('agricart.pages.fx-learn.term_add_symbol') }}">
-                <div class="fxt__modal-backdrop" wire:click="$set('showAddSymbol', false)"></div>
-                <div class="fxt__modal-card">
-                    <div class="fxt__modal-head">
-                        <h2>{{ __('agricart.pages.fx-learn.term_add_symbol') }}</h2>
-                        <button type="button" wire:click="$set('showAddSymbol', false)">×</button>
+        {{-- Chart 50% + Technical Analysis (strong buy/sell) 50% --}}
+        <section class="fxt__markets" aria-label="{{ __('agricart.pages.fx-learn.term_markets_label') }}">
+            <div class="fxt__panel">
+                <div class="fxt__panel-head">
+                    <div>
+                        <p class="fxt__kicker">{{ __('agricart.pages.fx-learn.term_chart_kicker') }}</p>
+                        <h2 class="fxt__panel-title" dir="ltr">{{ $label }}</h2>
                     </div>
-                    <p class="fxt__modal-hint">{{ __('agricart.pages.fx-learn.term_add_hint') }}</p>
-                    <div class="fxt__chips">
-                        @foreach ($this->categoryOptions() as $cat)
+                    <div class="fxt__tf" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_tf_label') }}">
+                        @foreach (['1' => '1m', '5' => '5m', '15' => '15m', '60' => '1H', '240' => '4H', 'D' => '1D'] as $id => $tfLabel)
                             <button
                                 type="button"
-                                wire:click="$set('addCategory', '{{ $cat['id'] }}')"
-                                @class(['fxt__chip', 'is-active' => $addCategory === $cat['id']])
-                            >{{ __('agricart.pages.fx-learn.term_cat_'.$cat['id']) }}</button>
+                                wire:click="setChartInterval(@js($id))"
+                                @class(['fxt__tf-btn', 'is-on' => $chartInterval === $id])
+                            >{{ $tfLabel }}</button>
                         @endforeach
                     </div>
-                    <div class="fxt__add-grid">
-                        @forelse ($this->addableSymbols() as $opt)
-                            <button
-                                type="button"
-                                class="fxt__add-item"
-                                wire:key="fxt-add-{{ $opt['id'] }}"
-                                wire:click="addSymbol(@js($opt['id']))"
-                            >
-                                <strong dir="ltr">{{ $opt['label'] }}</strong>
-                                <span dir="ltr">{{ $opt['tv'] }}</span>
-                            </button>
-                        @empty
-                            <p class="fxt__empty">{{ __('agricart.pages.fx-learn.term_add_empty') }}</p>
-                        @endforelse
+                </div>
+                <div
+                    class="fxt__chart"
+                    dir="ltr"
+                    wire:key="fxt-chart-{{ $tvSymbol }}-{{ $chartInterval }}"
+                    wire:replace
+                    x-init="mountTv($el, 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js', {
+                        autosize: true,
+                        symbol: @js($tvSymbol),
+                        interval: @js($chartInterval),
+                        timezone: 'Asia/Karachi',
+                        theme: 'light',
+                        style: '1',
+                        locale: 'en',
+                        allow_symbol_change: false,
+                        calendar: false,
+                        support_host: 'https://www.tradingview.com',
+                        height: 420,
+                        hide_top_toolbar: false,
+                        hide_legend: false,
+                        save_image: false
+                    })"
+                ></div>
+            </div>
+
+            <div class="fxt__panel">
+                <div class="fxt__panel-head">
+                    <div>
+                        <p class="fxt__kicker">{{ __('agricart.pages.fx-learn.term_ta_kicker') }}</p>
+                        <h2 class="fxt__panel-title">{{ __('agricart.pages.fx-learn.term_ta_title') }}</h2>
+                        <p class="fxt__panel-sub">{{ __('agricart.pages.fx-learn.term_ta_hint') }}</p>
                     </div>
                 </div>
+                <div
+                    class="fxt__ta"
+                    dir="ltr"
+                    wire:key="fxt-ta-{{ $tvSymbol }}-{{ $taInterval }}"
+                    wire:replace
+                    x-init="mountTv($el, 'https://s3.tradingview.com/external-embedding/embed-widget-technical-analysis.js', {
+                        interval: @js($taInterval),
+                        width: '100%',
+                        isTransparent: true,
+                        height: 420,
+                        symbol: @js($tvSymbol),
+                        showIntervalTabs: true,
+                        displayMode: 'single',
+                        locale: 'en',
+                        colorTheme: 'light'
+                    })"
+                ></div>
             </div>
-        @endif
+        </section>
 
         @if ($showSettings)
             <div class="fxt__modal" role="dialog" aria-modal="true">

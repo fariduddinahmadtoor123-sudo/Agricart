@@ -18887,9 +18887,12 @@ html.dark .agricart-tools-reorder-settings__chip-names,
 .fxt__bar > span { display: block; height: 100%; background: var(--agricart-primary, #166534); }
 .fxt__alert { border-radius: .65rem; padding: .7rem .9rem; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; font-size: .85rem; font-weight: 600; }
 .fxt__watch { border: 1px solid color-mix(in srgb, var(--agricart-border, #e5e7eb) 100%, transparent); border-radius: .85rem; background: #fff; padding: .75rem .85rem; }
-.fxt__watch-head { display: flex; justify-content: space-between; align-items: flex-start; gap: .5rem; margin-bottom: .55rem; }
+.fxt__watch-head { display: flex; justify-content: space-between; align-items: flex-start; gap: .5rem; margin-bottom: .45rem; }
 .fxt__watch-title { margin: 0; font-size: .9rem; font-weight: 800; }
-.fxt__watch-hint { margin: .25rem 0 0; font-size: .75rem; line-height: 1.4; color: var(--agricart-muted); max-width: 36rem; }
+.fxt__watch-hint { margin: .25rem 0 0; font-size: .75rem; line-height: 1.4; color: var(--agricart-muted); max-width: 40rem; }
+.fxt__cats { display: flex; flex-wrap: wrap; gap: .35rem; margin-bottom: .65rem; }
+.fxt__cat { border: 1px solid #e5e7eb; background: #fff; border-radius: .5rem; padding: .4rem .75rem; font-size: .8rem; font-weight: 800; cursor: pointer; color: var(--agricart-muted); }
+.fxt__cat.is-on { background: var(--agricart-primary, #166534); border-color: var(--agricart-primary, #166534); color: #fff; }
 .fxt__watch-row { display: flex; flex-wrap: wrap; gap: .45rem; }
 .fxt__watch-item { display: flex; align-items: stretch; border: 1px solid #e5e7eb; border-radius: .6rem; overflow: hidden; background: #fafafa; }
 .fxt__watch-item.is-on { border-color: color-mix(in srgb, var(--agricart-primary, #166534) 45%, #e5e7eb); background: color-mix(in srgb, var(--agricart-primary, #166534) 8%, #fff); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--agricart-primary, #166534) 20%, transparent); }
@@ -18909,34 +18912,36 @@ html.dark .agricart-tools-reorder-settings__chip-names,
 .fxt__dot.is-on { background: #16a34a; box-shadow: 0 0 0 3px color-mix(in srgb, #16a34a 25%, transparent); }
 .fxt__watch-x { border: 0; border-inline-start: 1px solid #e5e7eb; background: transparent; color: #9ca3af; padding: 0 .5rem; cursor: pointer; font-size: 1rem; line-height: 1; }
 .fxt__watch-x:hover { color: #b91c1c; background: #fef2f2; }
-.fxt__stage { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(16rem, .9fr); gap: .75rem; align-items: start; }
-.fxt__chart-card, .fxt__ticket, .fxt__book { border: 1px solid color-mix(in srgb, var(--agricart-border, #e5e7eb) 100%, transparent); border-radius: .85rem; background: #fff; padding: .75rem; }
-.fxt__chart-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; margin-bottom: .55rem; align-items: flex-end; }
-.fxt__chart-title { margin: .15rem 0 0; font-size: 1.1rem; font-weight: 800; }
+.fxt__book { border: 1px solid color-mix(in srgb, var(--agricart-border, #e5e7eb) 100%, transparent); border-radius: .85rem; background: #fff; padding: .75rem; }
+.fxt__ticket--bar { display: flex; flex-wrap: nowrap; align-items: end; gap: .55rem; overflow-x: auto; border: 1px solid color-mix(in srgb, var(--agricart-border, #e5e7eb) 100%, transparent); border-radius: .75rem; background: #fff; padding: .65rem .75rem; -webkit-overflow-scrolling: touch; }
+.fxt__ticket-sym, .fxt__ticket-field, .fxt__ticket-risk { display: flex; flex-direction: column; gap: .18rem; min-width: 0; }
+.fxt__ticket-sym span, .fxt__ticket-field span, .fxt__ticket-risk span, .fxt__ticket-px span { font-size: .58rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--agricart-muted); }
+.fxt__ticket-sym strong { font-size: 1rem; font-weight: 800; }
+.fxt__ticket-px { display: flex; align-items: end; gap: .45rem; flex: 0 0 auto; }
+.fxt__ticket-px strong { font-size: .95rem; font-weight: 800; font-variant-numeric: tabular-nums; display: block; }
+.fxt__ticket-px .is-bid { color: #b91c1c; }
+.fxt__ticket-px .is-ask { color: #166534; }
+.fxt__live { align-self: center; font-size: .65rem; font-weight: 800; letter-spacing: .06em; padding: .25rem .45rem; border-radius: .4rem; background: #f3f4f6; color: #6b7280; white-space: nowrap; }
+.fxt__live.is-on { background: #dcfce7; color: #166534; }
+.fxt__ticket-field { flex: 0 0 6.5rem; }
+.fxt__ticket-field input, .fxt__settings-grid input, .fxt__settings-grid select { border: 1px solid #d1d5db; border-radius: .45rem; padding: .4rem .5rem; font-size: .85rem; font-variant-numeric: tabular-nums; width: 100%; min-width: 5.5rem; }
+.fxt__ticket-risk { flex: 0 0 5.5rem; padding: .2rem .35rem; border-radius: .45rem; background: #f8fafc; }
+.fxt__ticket-risk.is-fail { background: #fef2f2; }
+.fxt__ticket-risk strong { font-size: .85rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.fxt__ticket-actions { display: flex; gap: .35rem; margin-inline-start: auto; flex: 0 0 auto; }
+.fxt__submit { border: 0; border-radius: .5rem; padding: .55rem .9rem; font-weight: 800; font-size: .82rem; cursor: pointer; color: #fff; white-space: nowrap; }
+.fxt__submit--buy { background: #166534; }
+.fxt__submit--sell { background: #b91c1c; }
+.fxt__submit:disabled { opacity: .45; cursor: not-allowed; }
+.fxt__markets { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; align-items: stretch; }
+.fxt__panel { border: 1px solid color-mix(in srgb, var(--agricart-border, #e5e7eb) 100%, transparent); border-radius: .85rem; background: #fff; padding: .75rem; min-width: 0; }
+.fxt__panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .5rem; margin-bottom: .55rem; align-items: flex-end; }
+.fxt__panel-title { margin: .15rem 0 0; font-size: 1.05rem; font-weight: 800; }
+.fxt__panel-sub { margin: .2rem 0 0; font-size: .75rem; color: var(--agricart-muted); line-height: 1.35; }
 .fxt__tf { display: flex; flex-wrap: wrap; gap: .25rem; }
 .fxt__tf-btn { border: 1px solid #e5e7eb; background: #fff; border-radius: .45rem; padding: .28rem .5rem; font-size: .72rem; font-weight: 700; cursor: pointer; color: var(--agricart-muted); }
 .fxt__tf-btn.is-on { background: var(--agricart-primary, #166534); border-color: var(--agricart-primary, #166534); color: #fff; }
-.fxt__chart { min-height: 480px; border-radius: .55rem; overflow: hidden; background: #f8fafc; }
-.fxt__price { display: grid; grid-template-columns: 1fr 1fr auto; gap: .5rem; align-items: end; margin-bottom: .7rem; }
-.fxt__price span { display: block; font-size: .65rem; font-weight: 800; text-transform: uppercase; color: var(--agricart-muted); }
-.fxt__price strong { font-size: 1.15rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-.fxt__live { align-self: center; font-size: .65rem; font-weight: 800; letter-spacing: .06em; padding: .25rem .45rem; border-radius: .4rem; background: #f3f4f6; color: #6b7280; }
-.fxt__live.is-on { background: #dcfce7; color: #166534; }
-.fxt__sides { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-bottom: .65rem; }
-.fxt__side { border: 1px solid #e5e7eb; border-radius: .55rem; padding: .55rem; font-weight: 800; cursor: pointer; background: #fff; }
-.fxt__side.is-buy.is-active { background: #166534; border-color: #166534; color: #fff; }
-.fxt__side.is-sell.is-active { background: #b91c1c; border-color: #b91c1c; color: #fff; }
-.fxt__form { display: grid; gap: .45rem; margin-bottom: .65rem; }
-.fxt__form label { display: flex; flex-direction: column; gap: .2rem; }
-.fxt__form span { font-size: .65rem; font-weight: 800; text-transform: uppercase; color: var(--agricart-muted); }
-.fxt__form input, .fxt__settings-grid input, .fxt__settings-grid select { border: 1px solid #d1d5db; border-radius: .5rem; padding: .45rem .55rem; font-size: .9rem; font-variant-numeric: tabular-nums; }
-.fxt__risk { display: grid; grid-template-columns: repeat(3, 1fr); gap: .35rem; margin-bottom: .7rem; padding: .55rem; border-radius: .55rem; background: #f8fafc; border: 1px solid #e5e7eb; }
-.fxt__risk.is-fail { background: #fef2f2; border-color: #fecaca; }
-.fxt__risk span { display: block; font-size: .6rem; font-weight: 800; text-transform: uppercase; color: var(--agricart-muted); }
-.fxt__risk strong { font-size: .82rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-.fxt__submit { width: 100%; border: 0; border-radius: .6rem; padding: .75rem; font-weight: 800; font-size: .9rem; cursor: pointer; background: #166534; color: #fff; }
-.fxt__submit.is-sell { background: #b91c1c; }
-.fxt__submit:disabled { opacity: .45; cursor: not-allowed; }
+.fxt__chart, .fxt__ta { min-height: 420px; border-radius: .55rem; overflow: hidden; background: #f8fafc; }
 .fxt__tabs { display: flex; gap: .35rem; margin-bottom: .55rem; }
 .fxt__tabs button { border: 1px solid #e5e7eb; background: #fff; border-radius: .5rem; padding: .4rem .7rem; font-size: .8rem; font-weight: 700; cursor: pointer; color: var(--agricart-muted); }
 .fxt__tabs button.is-active { background: color-mix(in srgb, var(--agricart-primary, #166534) 12%, #fff); border-color: color-mix(in srgb, var(--agricart-primary, #166534) 35%, #e5e7eb); color: var(--agricart-primary, #166534); }
@@ -18969,6 +18974,8 @@ html.dark .agricart-tools-reorder-settings__chip-names,
 .fxt__settings-grid span { font-size: .65rem; font-weight: 800; text-transform: uppercase; color: var(--agricart-muted); }
 .fxt__modal-foot { margin-top: .9rem; display: flex; flex-wrap: wrap; gap: .45rem; justify-content: flex-end; }
 @media (max-width: 960px) {
-    .fxt__stage { grid-template-columns: 1fr; }
-    .fxt__add-grid { grid-template-columns: 1fr; }
+    .fxt__markets { grid-template-columns: 1fr; }
+    .fxt__ticket--bar { flex-wrap: wrap; }
+    .fxt__ticket-actions { margin-inline-start: 0; width: 100%; }
+    .fxt__ticket-actions .fxt__submit { flex: 1; }
 }
