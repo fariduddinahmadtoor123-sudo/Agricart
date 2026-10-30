@@ -158,23 +158,30 @@
             </header>
 
             @if ($category === 'custom')
+                @php
+                    $pickerOpts = $this->customPickerOptions();
+                    $pickerGroups = collect($pickerOpts)->groupBy('group');
+                @endphp
                 <div class="fxt__custom-panel" wire:click.stop>
-                    <div class="fxt__custom-panel-head">
-                        <div>
-                            <p class="fxt__kicker">{{ __('agricart.pages.fx-learn.term_cat_custom') }}</p>
-                            <h3 class="fxt__custom-panel-title">{{ __('agricart.pages.fx-learn.term_custom_title') }}</h3>
-                            <p class="fxt__custom-hint">{{ __('agricart.pages.fx-learn.term_custom_hint') }}</p>
-                        </div>
-                        <label class="fxt__custom-add">
-                            <span>{{ __('agricart.pages.fx-learn.term_custom_add') }}</span>
-                            <select wire:model.live="customPick">
-                                <option value="">{{ __('agricart.pages.fx-learn.term_custom_pick') }}</option>
-                                @foreach ($this->customAddOptions() as $opt)
-                                    <option value="{{ $opt['id'] }}">{{ $opt['group'] }} · {{ $opt['label'] }}</option>
+                    {{-- ignore.self keeps the dropdown open while checkbox rows morph after toggle --}}
+                    <details class="fxt__custom-picker" wire:ignore.self>
+                        <summary>{{ __('agricart.pages.fx-learn.term_custom_pick') }}</summary>
+                        <div class="fxt__custom-picker-menu" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_custom_pick') }}">
+                            @foreach ($pickerGroups as $groupLabel => $groupRows)
+                                <p class="fxt__custom-picker-group">{{ $groupLabel }}</p>
+                                @foreach ($groupRows as $opt)
+                                    <label class="fxt__custom-picker-row" wire:key="fxt-pick-{{ $opt['id'] }}">
+                                        <input
+                                            type="checkbox"
+                                            @checked($opt['on'])
+                                            wire:click.stop="toggleCustomSymbol(@js($opt['id']))"
+                                        >
+                                        <span dir="ltr">{{ $opt['label'] }}</span>
+                                    </label>
                                 @endforeach
-                            </select>
-                        </label>
-                    </div>
+                            @endforeach
+                        </div>
+                    </details>
                 </div>
             @endif
 
@@ -206,9 +213,6 @@
                                     <td class="fxt__grid-sym" dir="ltr">
                                         <strong>{{ $row['label'] }}</strong>
                                         <span data-fxt-dot @class(['fxt__dot', 'is-on' => $row['live'] || filled($row['binance'])])></span>
-                                        @if ($category === 'custom' && filled($row['category'] ?? null))
-                                            <em class="fxt__grid-src">{{ __('agricart.pages.fx-learn.term_cat_'.$row['category']) }}</em>
-                                        @endif
                                     </td>
                                     <td class="fxt__grid-ask" data-fxt-ask dir="ltr">{{ $fmt($row['ask']) }}</td>
                                     <td class="fxt__grid-bid" data-fxt-bid dir="ltr">{{ $fmt($row['bid']) }}</td>
@@ -227,14 +231,6 @@
                                             wire:click="quickTrade(@js($row['id']), 'sell')"
                                             @disabled(! empty($dash['failed_day']) || ! empty($dash['failed_total']) || ! $this->canTrade())
                                         >SELL</button>
-                                        @if ($category === 'custom')
-                                            <button
-                                                type="button"
-                                                class="fxt__grid-rm"
-                                                wire:click="removeCustomSymbol(@js($row['id']))"
-                                                title="{{ __('agricart.pages.fx-learn.term_custom_remove') }}"
-                                            >×</button>
-                                        @endif
                                     </td>
                                 </tr>
                             @empty

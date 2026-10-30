@@ -70,8 +70,6 @@ class TradeTerminalPage extends BaseModulePage
 
     public string $dataImpactFilter = 'high';
 
-    public string $customPick = '';
-
     /** @var array<string, array<string, mixed>> */
     public array $quotes = [];
 
@@ -155,25 +153,39 @@ class TradeTerminalPage extends BaseModulePage
         $this->dispatch('fx-learn-terminal-filters-sync', category: $this->category);
     }
 
-    public function updatedCustomPick(DemoTerminalService $terminal): void
+    /**
+     * Tick = add to Custom watchlist; untick = remove. Soft-fails without aborting Livewire.
+     */
+    public function toggleCustomSymbol(string $symbol, DemoTerminalService $terminal): void
     {
-        $symbol = trim($this->customPick);
-        $this->customPick = '';
-
-        if ($symbol === '') {
+        if (! $this->ensureCanTrade()) {
             return;
         }
 
-        $this->addCustomSymbol($symbol, $terminal);
-    }
+        $symbol = trim($symbol);
 
-    public function addCustomSymbol(string $symbol, DemoTerminalService $terminal): void
-    {
-        $this->ensureCanTrade();
+        if ($symbol === '' || DemoSymbolCatalog::get($symbol) === null) {
+            return;
+        }
 
         try {
             $account = $terminal->accountFor($this->authUser());
+            $have = $terminal->watchlist($account);
             $this->category = 'custom';
+
+            if (in_array($symbol, $have, true)) {
+                $account = $terminal->removeFromWatchlist($account, $symbol);
+                $this->symbol = (string) $account->selected_symbol;
+                $this->dash = $terminal->dashboard($account, $this->quotes);
+                $this->dispatchRiskSync();
+                Notification::make()
+                    ->title(__('agricart.pages.fx-learn.term_custom_removed'))
+                    ->success()
+                    ->send();
+
+                return;
+            }
+
             $terminal->addToWatchlist($account, $symbol);
             $this->setSymbol($symbol, $terminal);
             $this->category = 'custom';
@@ -181,26 +193,6 @@ class TradeTerminalPage extends BaseModulePage
             $this->dispatchRiskSync();
             Notification::make()
                 ->title(__('agricart.pages.fx-learn.term_custom_added'))
-                ->success()
-                ->send();
-        } catch (InvalidArgumentException $e) {
-            Notification::make()->title($e->getMessage())->danger()->send();
-        }
-    }
-
-    public function removeCustomSymbol(string $symbol, DemoTerminalService $terminal): void
-    {
-        $this->ensureCanTrade();
-
-        try {
-            $account = $terminal->accountFor($this->authUser());
-            $account = $terminal->removeFromWatchlist($account, $symbol);
-            $this->category = 'custom';
-            $this->symbol = (string) $account->selected_symbol;
-            $this->dash = $terminal->dashboard($account, $this->quotes);
-            $this->dispatchRiskSync();
-            Notification::make()
-                ->title(__('agricart.pages.fx-learn.term_custom_removed'))
                 ->success()
                 ->send();
         } catch (InvalidArgumentException $e) {
@@ -265,7 +257,9 @@ class TradeTerminalPage extends BaseModulePage
      */
     public function quickTrade(string $symbol, string $side, DemoTerminalService $terminal): void
     {
-        $this->ensureCanTrade();
+        if (! $this->ensureCanTrade()) {
+            return;
+        }
 
         $meta = DemoSymbolCatalog::get($symbol);
 
@@ -274,14 +268,18 @@ class TradeTerminalPage extends BaseModulePage
         }
 
         $this->symbol = $symbol;
-        $this->category = (string) $meta['category'];
+        if ($this->category !== 'custom') {
+            $this->category = (string) $meta['category'];
+        }
         $this->side = $side === 'sell' ? 'sell' : 'buy';
         $this->openTrade($terminal);
     }
 
     public function openTrade(DemoTerminalService $terminal): void
     {
-        $this->ensureCanTrade();
+        if (! $this->ensureCanTrade()) {
+            return;
+        }
 
         try {
             $account = $terminal->accountFor($this->authUser());
@@ -313,7 +311,9 @@ class TradeTerminalPage extends BaseModulePage
 
     public function closeTrade(int $id, DemoTerminalService $terminal): void
     {
-        $this->ensureCanTrade();
+        if (! $this->ensureCanTrade()) {
+            return;
+        }
 
         try {
             $account = $terminal->accountFor($this->authUser());
@@ -342,7 +342,9 @@ class TradeTerminalPage extends BaseModulePage
 
     private function persistSettings(DemoTerminalService $terminal, bool $resetBalance): void
     {
-        $this->ensureCanTrade();
+        if (! $this->ensureCanTrade()) {
+            return;
+        }
 
         $account = $terminal->accountFor($this->authUser());
         $account = $terminal->updateRules($account, [
@@ -515,27 +517,24 @@ class TradeTerminalPage extends BaseModulePage
     }
 
     /**
-     * Symbols not yet on the Custom watchlist (for the add picker).
+     * All catalog symbols for the Custom checkbox picker (grouped).
      *
-     * @return list<array{id: string, label: string, category: string, group: string}>
+     * @return list<array{id: string, label: string, category: string, group: string, on: bool}>
      */
-    public function customAddOptions(): array
+    public function customPickerOptions(): array
     {
         $terminal = app(DemoTerminalService::class);
         $have = $terminal->watchlist($terminal->accountFor($this->authUser()));
         $out = [];
 
         foreach (DemoSymbolCatalog::pickerOptions() as $row) {
-            if (in_array($row['id'], $have, true)) {
-                continue;
-            }
-
             $cat = (string) $row['category'];
             $out[] = [
                 'id' => $row['id'],
                 'label' => $row['label'],
                 'category' => $cat,
                 'group' => __('agricart.pages.fx-learn.term_cat_'.$cat),
+                'on' => in_array($row['id'], $have, true),
             ];
         }
 
@@ -710,10 +709,13 @@ class TradeTerminalPage extends BaseModulePage
         return $user;
     }
 
-    private function ensureCanTrade(): void
+    /**
+     * Soft-deny edits: never abort(403) — Livewire treats HTML error pages as corrupt payloads.
+     */
+    private function ensureCanTrade(): bool
     {
         if ($this->canTrade()) {
-            return;
+            return true;
         }
 
         Notification::make()
@@ -721,7 +723,7 @@ class TradeTerminalPage extends BaseModulePage
             ->danger()
             ->send();
 
-        abort(403, __('agricart.pages.fx-learn.term_err_no_edit'));
+        return false;
     }
 
     private function syncSettingsFromAccount(FxLearnDemoAccount $account): void
