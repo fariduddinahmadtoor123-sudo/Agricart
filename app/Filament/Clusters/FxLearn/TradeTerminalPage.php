@@ -189,6 +189,22 @@ class TradeTerminalPage extends BaseModulePage
         }
     }
 
+    /**
+     * One-click Buy/Sell from a watchlist row (uses current lots + optional SL/TP fields).
+     */
+    public function quickTrade(string $symbol, string $side, DemoTerminalService $terminal): void
+    {
+        $this->ensureCanTrade();
+
+        if (DemoSymbolCatalog::get($symbol) === null) {
+            return;
+        }
+
+        $this->symbol = $symbol;
+        $this->side = $side === 'sell' ? 'sell' : 'buy';
+        $this->openTrade($terminal);
+    }
+
     public function openTrade(DemoTerminalService $terminal): void
     {
         $this->ensureCanTrade();

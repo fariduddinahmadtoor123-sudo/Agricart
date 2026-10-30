@@ -49,6 +49,66 @@
             </div>
         </header>
 
+        {{-- Watchlist: add many symbols; Buy/Sell on each row --}}
+        <section class="fxt__watch" aria-label="{{ __('agricart.pages.fx-learn.term_watch_label') }}">
+            <div class="fxt__watch-head">
+                <div>
+                    <h2 class="fxt__watch-title">{{ __('agricart.pages.fx-learn.term_watch_title') }}</h2>
+                    <p class="fxt__watch-hint">{{ __('agricart.pages.fx-learn.term_watch_hint') }}</p>
+                </div>
+                <button type="button" class="fxt__btn fxt__btn--accent" wire:click="$set('showAddSymbol', true)">
+                    + {{ __('agricart.pages.fx-learn.term_add_symbol') }}
+                </button>
+            </div>
+            <div class="fxt__watch-row" role="listbox">
+                @foreach ($this->watchlistRows() as $row)
+                    <div
+                        class="fxt__watch-item"
+                        wire:key="fxt-wl-{{ $row['id'] }}"
+                        @class(['is-on' => $symbol === $row['id']])
+                    >
+                        <button
+                            type="button"
+                            class="fxt__watch-main"
+                            role="option"
+                            aria-selected="{{ $symbol === $row['id'] ? 'true' : 'false' }}"
+                            wire:click="setSymbol(@js($row['id']))"
+                            title="{{ __('agricart.pages.fx-learn.term_watch_select') }}"
+                        >
+                            <span class="fxt__watch-sym" dir="ltr">{{ $row['label'] }}</span>
+                            <span class="fxt__watch-px" dir="ltr">
+                                <span class="fxt__watch-bid">{{ $row['bid'] !== null ? number_format((float) $row['bid'], $row['digits'], '.', '') : '—' }}</span>
+                                <span class="fxt__watch-ask">{{ $row['ask'] !== null ? number_format((float) $row['ask'], $row['digits'], '.', '') : '—' }}</span>
+                            </span>
+                            <span @class(['fxt__dot', 'is-on' => $row['live']])></span>
+                        </button>
+                        <div class="fxt__watch-trade">
+                            <button
+                                type="button"
+                                class="fxt__watch-buy"
+                                wire:click="quickTrade(@js($row['id']), 'buy')"
+                                @disabled(! empty($dash['failed_day']) || ! empty($dash['failed_total']) || ! $this->canTrade())
+                            >BUY</button>
+                            <button
+                                type="button"
+                                class="fxt__watch-sell"
+                                wire:click="quickTrade(@js($row['id']), 'sell')"
+                                @disabled(! empty($dash['failed_day']) || ! empty($dash['failed_total']) || ! $this->canTrade())
+                            >SELL</button>
+                        </div>
+                        <button
+                            type="button"
+                            class="fxt__watch-x"
+                            wire:click="removeSymbol(@js($row['id']))"
+                            wire:confirm="{{ __('agricart.pages.fx-learn.term_remove_confirm', ['symbol' => $row['label']]) }}"
+                            title="{{ __('agricart.pages.fx-learn.term_remove_symbol') }}"
+                        >×</button>
+                    </div>
+                @endforeach
+            </div>
+        </section>
+
+        {{-- Account metrics: one horizontal strip under watchlist --}}
         <div class="fxt__stats" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_stats_label') }}">
             <div class="fxt__stat">
                 <span>{{ __('agricart.pages.fx-learn.term_balance') }}</span>
@@ -78,7 +138,7 @@
                 <span>{{ __('agricart.pages.fx-learn.term_total_dd') }}</span>
                 <strong>{{ number_format((float) ($dash['total_loss_pct'] ?? 0), 2) }}% / {{ $maxTotalLossPct }}%</strong>
             </div>
-            <div class="fxt__stat fxt__stat--wide">
+            <div class="fxt__stat fxt__stat--phase">
                 <span>{{ __('agricart.pages.fx-learn.term_phase_left') }}</span>
                 <strong>${{ number_format((float) ($dash['phase_remaining_usd'] ?? 0), 2) }}</strong>
                 <div class="fxt__bar"><span style="width: {{ number_format((float) ($dash['phase_progress_pct'] ?? 0), 1) }}%"></span></div>
@@ -88,46 +148,6 @@
         @if (! empty($dash['failed_day']) || ! empty($dash['failed_total']))
             <div class="fxt__alert">{{ __('agricart.pages.fx-learn.term_fail_banner') }}</div>
         @endif
-
-        {{-- Watchlist: only symbols you added --}}
-        <section class="fxt__watch" aria-label="{{ __('agricart.pages.fx-learn.term_watch_label') }}">
-            <div class="fxt__watch-head">
-                <h2 class="fxt__watch-title">{{ __('agricart.pages.fx-learn.term_watch_title') }}</h2>
-                <button type="button" class="fxt__btn fxt__btn--accent" wire:click="$set('showAddSymbol', true)">
-                    + {{ __('agricart.pages.fx-learn.term_add_symbol') }}
-                </button>
-            </div>
-            <div class="fxt__watch-row" role="listbox">
-                @foreach ($this->watchlistRows() as $row)
-                    <div
-                        class="fxt__watch-item"
-                        wire:key="fxt-wl-{{ $row['id'] }}"
-                        @class(['is-on' => $symbol === $row['id']])
-                    >
-                        <button
-                            type="button"
-                            class="fxt__watch-main"
-                            role="option"
-                            aria-selected="{{ $symbol === $row['id'] ? 'true' : 'false' }}"
-                            wire:click="setSymbol(@js($row['id']))"
-                        >
-                            <span class="fxt__watch-sym" dir="ltr">{{ $row['label'] }}</span>
-                            <span class="fxt__watch-px" dir="ltr">
-                                {{ $row['bid'] !== null ? number_format((float) $row['bid'], $row['digits'], '.', '') : '—' }}
-                            </span>
-                            <span @class(['fxt__dot', 'is-on' => $row['live']])></span>
-                        </button>
-                        <button
-                            type="button"
-                            class="fxt__watch-x"
-                            wire:click="removeSymbol(@js($row['id']))"
-                            wire:confirm="{{ __('agricart.pages.fx-learn.term_remove_confirm', ['symbol' => $row['label']]) }}"
-                            title="{{ __('agricart.pages.fx-learn.term_remove_symbol') }}"
-                        >×</button>
-                    </div>
-                @endforeach
-            </div>
-        </section>
 
         <div class="fxt__stage">
             <section class="fxt__chart-card" aria-label="{{ __('agricart.pages.fx-learn.term_chart_label') }}">

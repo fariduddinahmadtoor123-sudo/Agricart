@@ -18875,27 +18875,37 @@ html.dark .agricart-tools-reorder-settings__chip-names,
 .fxt__btn:hover { background: color-mix(in srgb, var(--agricart-primary, #166534) 8%, #fff); }
 .fxt__btn--accent { background: color-mix(in srgb, var(--agricart-primary, #166534) 12%, #fff); border-color: color-mix(in srgb, var(--agricart-primary, #166534) 35%, #d1d5db); color: var(--agricart-primary, #166534); }
 .fxt__btn--danger { border-color: #fca5a5; color: #b91c1c; }
-.fxt__stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: .55rem; }
-.fxt__stat { background: linear-gradient(180deg, #f8faf8, #fff); border: 1px solid color-mix(in srgb, var(--agricart-border, #e5e7eb) 100%, transparent); border-radius: .7rem; padding: .65rem .75rem; display: flex; flex-direction: column; gap: .2rem; }
-.fxt__stat span { font-size: .65rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--agricart-muted); }
-.fxt__stat strong { font-size: 1rem; font-weight: 800; color: var(--agricart-text); font-variant-numeric: tabular-nums; }
+.fxt__stats { display: flex; flex-wrap: nowrap; gap: .4rem; overflow-x: auto; padding-bottom: .15rem; -webkit-overflow-scrolling: touch; }
+.fxt__stat { flex: 1 1 0; min-width: 7.25rem; background: linear-gradient(180deg, #f8faf8, #fff); border: 1px solid color-mix(in srgb, var(--agricart-border, #e5e7eb) 100%, transparent); border-radius: .55rem; padding: .45rem .55rem; display: flex; flex-direction: column; gap: .12rem; }
+.fxt__stat span { font-size: .58rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--agricart-muted); white-space: nowrap; }
+.fxt__stat strong { font-size: .88rem; font-weight: 800; color: var(--agricart-text); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .fxt__stat strong.is-pos, .fxt__table .is-pos { color: #15803d; }
 .fxt__stat strong.is-neg, .fxt__table .is-neg { color: #b91c1c; }
 .fxt__stat.is-fail { border-color: #fca5a5; background: #fef2f2; }
-.fxt__stat--wide { grid-column: span 2; }
-.fxt__bar { margin-top: .35rem; height: .35rem; border-radius: 999px; background: #e5e7eb; overflow: hidden; }
+.fxt__stat--phase { min-width: 9.5rem; flex: 1.2 1 0; }
+.fxt__bar { margin-top: .25rem; height: .3rem; border-radius: 999px; background: #e5e7eb; overflow: hidden; }
 .fxt__bar > span { display: block; height: 100%; background: var(--agricart-primary, #166534); }
 .fxt__alert { border-radius: .65rem; padding: .7rem .9rem; background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; font-size: .85rem; font-weight: 600; }
 .fxt__watch { border: 1px solid color-mix(in srgb, var(--agricart-border, #e5e7eb) 100%, transparent); border-radius: .85rem; background: #fff; padding: .75rem .85rem; }
-.fxt__watch-head { display: flex; justify-content: space-between; align-items: center; gap: .5rem; margin-bottom: .55rem; }
+.fxt__watch-head { display: flex; justify-content: space-between; align-items: flex-start; gap: .5rem; margin-bottom: .55rem; }
 .fxt__watch-title { margin: 0; font-size: .9rem; font-weight: 800; }
-.fxt__watch-row { display: flex; flex-wrap: wrap; gap: .4rem; }
+.fxt__watch-hint { margin: .25rem 0 0; font-size: .75rem; line-height: 1.4; color: var(--agricart-muted); max-width: 36rem; }
+.fxt__watch-row { display: flex; flex-wrap: wrap; gap: .45rem; }
 .fxt__watch-item { display: flex; align-items: stretch; border: 1px solid #e5e7eb; border-radius: .6rem; overflow: hidden; background: #fafafa; }
 .fxt__watch-item.is-on { border-color: color-mix(in srgb, var(--agricart-primary, #166534) 45%, #e5e7eb); background: color-mix(in srgb, var(--agricart-primary, #166534) 8%, #fff); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--agricart-primary, #166534) 20%, transparent); }
-.fxt__watch-main { display: flex; align-items: center; gap: .45rem; border: 0; background: transparent; padding: .45rem .55rem; cursor: pointer; text-align: start; }
+.fxt__watch-main { display: flex; align-items: center; gap: .45rem; border: 0; background: transparent; padding: .4rem .5rem; cursor: pointer; text-align: start; }
 .fxt__watch-sym { font-weight: 800; font-size: .82rem; color: var(--agricart-text); }
-.fxt__watch-px { font-size: .78rem; font-variant-numeric: tabular-nums; color: var(--agricart-muted); }
-.fxt__dot { width: .45rem; height: .45rem; border-radius: 50%; background: #d1d5db; }
+.fxt__watch-px { display: flex; flex-direction: column; gap: .05rem; font-size: .7rem; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.fxt__watch-bid { color: #b91c1c; }
+.fxt__watch-ask { color: #166534; }
+.fxt__watch-trade { display: flex; flex-direction: column; border-inline-start: 1px solid #e5e7eb; }
+.fxt__watch-buy, .fxt__watch-sell { border: 0; padding: .28rem .55rem; font-size: .65rem; font-weight: 800; letter-spacing: .04em; cursor: pointer; line-height: 1; }
+.fxt__watch-buy { background: #166534; color: #fff; }
+.fxt__watch-buy:hover { background: #14532d; }
+.fxt__watch-sell { background: #b91c1c; color: #fff; }
+.fxt__watch-sell:hover { background: #991b1b; }
+.fxt__watch-buy:disabled, .fxt__watch-sell:disabled { opacity: .4; cursor: not-allowed; }
+.fxt__dot { width: .45rem; height: .45rem; border-radius: 50%; background: #d1d5db; flex-shrink: 0; }
 .fxt__dot.is-on { background: #16a34a; box-shadow: 0 0 0 3px color-mix(in srgb, #16a34a 25%, transparent); }
 .fxt__watch-x { border: 0; border-inline-start: 1px solid #e5e7eb; background: transparent; color: #9ca3af; padding: 0 .5rem; cursor: pointer; font-size: 1rem; line-height: 1; }
 .fxt__watch-x:hover { color: #b91c1c; background: #fef2f2; }
@@ -18960,6 +18970,5 @@ html.dark .agricart-tools-reorder-settings__chip-names,
 .fxt__modal-foot { margin-top: .9rem; display: flex; flex-wrap: wrap; gap: .45rem; justify-content: flex-end; }
 @media (max-width: 960px) {
     .fxt__stage { grid-template-columns: 1fr; }
-    .fxt__stat--wide { grid-column: span 1; }
     .fxt__add-grid { grid-template-columns: 1fr; }
 }
