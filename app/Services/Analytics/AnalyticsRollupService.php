@@ -60,11 +60,14 @@ class AnalyticsRollupService
             }
 
             foreach (['product', 'category'] as $type) {
+                // Group by entity_id only — the unique key is dimension_key (= entity id).
+                // Grouping by slug too produced duplicate inserts when the same id had multiple slugs.
                 $rows = $this->views($start, $end)
                     ->where('page_type', $type)
                     ->whereNotNull('entity_id')
-                    ->groupBy(['entity_id', 'entity_slug'])
-                    ->select(['entity_id', 'entity_slug'])
+                    ->groupBy('entity_id')
+                    ->select(['entity_id'])
+                    ->selectRaw('MAX(entity_slug) as entity_slug')
                     ->selectRaw('COUNT(*) as page_views')
                     ->selectRaw('COUNT(DISTINCT visitor_id) as visitors')
                     ->selectRaw('COUNT(DISTINCT session_id) as sessions')
@@ -100,7 +103,7 @@ class AnalyticsRollupService
         string $dimensionLabel,
         array $metrics,
     ): void {
-        DB::table('analytics_rollups')->insert([
+        $payload = [
             'grain' => $grain,
             'period_start' => $periodStart->toDateString(),
             'dimension_type' => $dimensionType,
@@ -109,6 +112,12 @@ class AnalyticsRollupService
             ...$metrics,
             'created_at' => now(),
             'updated_at' => now(),
-        ]);
+        ];
+
+        DB::table('analytics_rollups')->upsert(
+            [$payload],
+            ['grain', 'period_start', 'dimension_type', 'dimension_key'],
+            ['dimension_label', 'page_views', 'visitors', 'sessions', 'new_visitors', 'updated_at'],
+        );
     }
 }

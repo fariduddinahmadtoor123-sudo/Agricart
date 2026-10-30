@@ -20,7 +20,7 @@ class OnlineOrderShippedNotification extends Notification
     {
         $channels = [];
 
-        if (config('agricart.online_store.order_notifications.email', true) && filled($notifiable->email ?? null)) {
+        if (config('agricart.online_store.order_notifications.email', true) && $this->mailAddress($notifiable) !== null) {
             $channels[] = 'mail';
         }
 
@@ -33,7 +33,18 @@ class OnlineOrderShippedNotification extends Notification
 
     public function toMail(Customer $notifiable): OnlineOrderShippedMail
     {
-        return new OnlineOrderShippedMail($this->order);
+        $mailable = new OnlineOrderShippedMail($this->order);
+        $address = $this->mailAddress($notifiable);
+
+        // MailChannel does not attach the notifiable address when toMail() returns a Mailable.
+        return $address === null ? $mailable : $mailable->to($address);
+    }
+
+    private function mailAddress(object $notifiable): ?string
+    {
+        $email = trim((string) ($notifiable->email ?? ''));
+
+        return filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : null;
     }
 
     public function toSms(Customer $notifiable): string
