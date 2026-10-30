@@ -286,7 +286,7 @@
                             interval: @js($taInterval),
                             width: '100%',
                             isTransparent: true,
-                            height: 380,
+                            height: 280,
                             symbol: @js($tvSymbol),
                             showIntervalTabs: false,
                             displayMode: 'single',

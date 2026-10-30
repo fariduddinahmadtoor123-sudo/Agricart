@@ -19110,14 +19110,14 @@ html.dark .agricart-tools-reorder-settings__chip-names,
 .fxt__desk-metric strong.is-neg { color: #b91c1c; }
 .fxt__stats--risk .fxt__stat { flex: 1 1 0; }
 .fxt__ws { display: none !important; }
-.fxt__board { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(11.5rem, 13.5rem) minmax(14rem, .8fr); gap: .55rem; align-items: stretch; }
-.fxt__grid-wrap { overflow-x: auto; border: 1px solid #e5e7eb; border-radius: .55rem; background: #fff; min-width: 0; }
+.fxt__board { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(11.5rem, 13.5rem) minmax(14rem, .8fr); gap: .55rem; align-items: start; }
+.fxt__grid-wrap { overflow-x: auto; border: 1px solid #e5e7eb; border-radius: .55rem; background: #fff; min-width: 0; height: fit-content; }
 .fxt__grid { width: 100%; min-width: 32rem; border-collapse: collapse; table-layout: fixed; font-size: .78rem; }
-.fxt__panel--gauge { display: flex; flex-direction: column; min-width: 0; }
-.fxt__panel--gauge .fxt__panel-head { flex-direction: column; align-items: stretch; gap: .3rem; margin-bottom: .35rem; }
+.fxt__panel--gauge { display: flex; flex-direction: column; min-width: 0; height: fit-content; padding: .55rem .6rem; }
+.fxt__panel--gauge .fxt__panel-head { flex-direction: column; align-items: stretch; gap: .3rem; margin-bottom: .3rem; }
 .fxt__panel--gauge .fxt__panel-title { font-size: .95rem; }
 .fxt__panel--gauge .fxt__tf { flex-wrap: wrap; }
-.fxt__ta--desk { min-height: 340px; flex: 1; }
+.fxt__ta--desk { min-height: 0 !important; height: 280px; flex: none; }
 .fxt__grid thead th { text-align: start; font-size: .58rem; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; color: var(--agricart-muted); background: #f8faf9; border-bottom: 1px solid #e5e7eb; padding: .32rem .4rem; white-space: nowrap; }
 .fxt__grid tbody td { border-bottom: 1px solid #eef0f2; padding: .28rem .4rem; font-variant-numeric: tabular-nums; vertical-align: middle; }
 .fxt__grid tbody tr { cursor: pointer; transition: background .12s ease; }
@@ -19160,12 +19160,13 @@ html.dark .agricart-tools-reorder-settings__chip-names,
 .fxt__ticket--rail {
     display: flex;
     flex-direction: column;
-    gap: .55rem;
+    gap: .45rem;
     min-width: 0;
+    height: fit-content;
     border: 1px solid color-mix(in srgb, var(--agricart-border, #e5e7eb) 100%, transparent);
     border-radius: .65rem;
     background: #fff;
-    padding: .65rem .7rem;
+    padding: .55rem .65rem;
 }
 .fxt__ticket-sym, .fxt__ticket-field, .fxt__ticket-risk { display: flex; flex-direction: column; gap: .14rem; min-width: 0; }
 .fxt__ticket-sym span, .fxt__ticket-field span, .fxt__ticket-risk span, .fxt__ticket-px span { font-size: .55rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; color: var(--agricart-muted); }
@@ -19181,7 +19182,7 @@ html.dark .agricart-tools-reorder-settings__chip-names,
 .fxt__ticket-risk { padding: .35rem .4rem; border-radius: .4rem; background: #f8fafc; }
 .fxt__ticket-risk.is-fail { background: #fef2f2; }
 .fxt__ticket-risk strong { font-size: .82rem; font-weight: 800; font-variant-numeric: tabular-nums; }
-.fxt__ticket-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; margin-top: auto; }
+.fxt__ticket-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; margin-top: .15rem; }
 .fxt__submit { border: 0; border-radius: .45rem; padding: .48rem .4rem; font-weight: 800; font-size: .78rem; cursor: pointer; color: #fff; white-space: nowrap; width: 100%; }
 .fxt__submit--buy { background: #166534; }
 .fxt__submit--sell { background: #b91c1c; }
