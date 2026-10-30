@@ -82,7 +82,59 @@ class DemoSymbolCatalog
             ['id' => 'commodities', 'label' => 'Commodities'],
             ['id' => 'indices', 'label' => 'Indices'],
             ['id' => 'crypto', 'label' => 'Crypto'],
+            ['id' => 'custom', 'label' => 'Custom'],
         ];
+    }
+
+    /**
+     * @param  list<string>  $ids
+     * @return list<array{id: string, label: string, category: string, tv: string, binance: ?string}>
+     */
+    public static function optionsForIds(array $ids): array
+    {
+        $out = [];
+
+        foreach ($ids as $id) {
+            if (! is_string($id)) {
+                continue;
+            }
+
+            $meta = self::get($id);
+
+            if ($meta === null) {
+                continue;
+            }
+
+            $out[] = [
+                'id' => $id,
+                'label' => (string) $meta['label'],
+                'category' => (string) $meta['category'],
+                'tv' => (string) $meta['tv'],
+                'binance' => isset($meta['binance']) ? (string) $meta['binance'] : null,
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * All catalog symbols grouped for the Custom picker.
+     *
+     * @return list<array{id: string, label: string, category: string}>
+     */
+    public static function pickerOptions(): array
+    {
+        $out = [];
+
+        foreach (self::all() as $id => $meta) {
+            $out[] = [
+                'id' => $id,
+                'label' => (string) $meta['label'],
+                'category' => (string) $meta['category'],
+            ];
+        }
+
+        return $out;
     }
 
     /**

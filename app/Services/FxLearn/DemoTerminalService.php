@@ -31,6 +31,7 @@ class DemoTerminalService
                 'max_trade_loss_pct' => 3,
                 'active_phase' => 1,
                 'selected_symbol' => 'eurusd',
+                'desk_category' => 'forex',
                 'watchlist' => DemoSymbolCatalog::defaultWatchlist(),
             ],
         );
@@ -89,6 +90,7 @@ class DemoTerminalService
         $account->forceFill([
             'watchlist' => $list,
             'selected_symbol' => $symbol,
+            'desk_category' => 'custom',
         ])->save();
 
         return $account->fresh();
@@ -110,7 +112,21 @@ class DemoTerminalService
         $account->forceFill([
             'watchlist' => $list,
             'selected_symbol' => $selected,
+            'desk_category' => 'custom',
         ])->save();
+
+        return $account->fresh();
+    }
+
+    public function setDeskCategory(FxLearnDemoAccount $account, string $category): FxLearnDemoAccount
+    {
+        $allowed = collect(DemoSymbolCatalog::categories())->pluck('id')->all();
+
+        if (! in_array($category, $allowed, true)) {
+            return $account;
+        }
+
+        $account->forceFill(['desk_category' => $category])->save();
 
         return $account->fresh();
     }

@@ -143,6 +143,7 @@
                         'commodities' => __('agricart.pages.fx-learn.term_cat_commodities'),
                         'indices' => __('agricart.pages.fx-learn.term_cat_indices'),
                         'crypto' => __('agricart.pages.fx-learn.term_cat_crypto'),
+                        'custom' => __('agricart.pages.fx-learn.term_cat_custom'),
                     ] as $catId => $catLabel)
                         <button
                             type="button"
@@ -154,6 +155,20 @@
                         >{{ $catLabel }}</button>
                     @endforeach
                 </div>
+                @if ($category === 'custom')
+                    <div class="fxt__custom-bar" wire:click.stop>
+                        <label class="fxt__custom-add">
+                            <span>{{ __('agricart.pages.fx-learn.term_custom_add') }}</span>
+                            <select wire:model.live="customPick">
+                                <option value="">{{ __('agricart.pages.fx-learn.term_custom_pick') }}</option>
+                                @foreach ($this->customAddOptions() as $opt)
+                                    <option value="{{ $opt['id'] }}">{{ $opt['group'] }} · {{ $opt['label'] }}</option>
+                                @endforeach
+                            </select>
+                        </label>
+                        <p class="fxt__custom-hint">{{ __('agricart.pages.fx-learn.term_custom_hint') }}</p>
+                    </div>
+                @endif
             </header>
 
             {{-- Rates grid + TradingView TA gauge (official embed — click symbol / pick TF) --}}
@@ -184,6 +199,9 @@
                                     <td class="fxt__grid-sym" dir="ltr">
                                         <strong>{{ $row['label'] }}</strong>
                                         <span data-fxt-dot @class(['fxt__dot', 'is-on' => $row['live'] || filled($row['binance'])])></span>
+                                        @if ($category === 'custom' && filled($row['category'] ?? null))
+                                            <em class="fxt__grid-src">{{ __('agricart.pages.fx-learn.term_cat_'.$row['category']) }}</em>
+                                        @endif
                                     </td>
                                     <td class="fxt__grid-ask" data-fxt-ask dir="ltr">{{ $fmt($row['ask']) }}</td>
                                     <td class="fxt__grid-bid" data-fxt-bid dir="ltr">{{ $fmt($row['bid']) }}</td>
@@ -202,6 +220,14 @@
                                             wire:click="quickTrade(@js($row['id']), 'sell')"
                                             @disabled(! empty($dash['failed_day']) || ! empty($dash['failed_total']) || ! $this->canTrade())
                                         >SELL</button>
+                                        @if ($category === 'custom')
+                                            <button
+                                                type="button"
+                                                class="fxt__grid-rm"
+                                                wire:click="removeCustomSymbol(@js($row['id']))"
+                                                title="{{ __('agricart.pages.fx-learn.term_custom_remove') }}"
+                                            >×</button>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach

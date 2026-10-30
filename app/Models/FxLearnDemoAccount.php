@@ -24,6 +24,7 @@ class FxLearnDemoAccount extends Model
         'day_anchor_equity',
         'day_anchor_date',
         'selected_symbol',
+        'desk_category',
         'watchlist',
     ];
 

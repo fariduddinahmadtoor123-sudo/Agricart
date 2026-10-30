@@ -70,6 +70,8 @@ class TradeTerminalPage extends BaseModulePage
 
     public string $dataImpactFilter = 'high';
 
+    public string $customPick = '';
+
     /** @var array<string, array<string, mixed>> */
     public array $quotes = [];
 
@@ -84,7 +86,11 @@ class TradeTerminalPage extends BaseModulePage
         $selected = (string) ($account->selected_symbol ?: 'eurusd');
         $meta = DemoSymbolCatalog::get($selected);
         $this->symbol = $meta !== null ? $selected : 'eurusd';
-        $this->category = (string) (DemoSymbolCatalog::get($this->symbol)['category'] ?? 'forex');
+        $deskCat = (string) ($account->desk_category ?: '');
+        $allowedCats = collect(DemoSymbolCatalog::categories())->pluck('id')->all();
+        $this->category = in_array($deskCat, $allowedCats, true)
+            ? $deskCat
+            : (string) (DemoSymbolCatalog::get($this->symbol)['category'] ?? 'forex');
         $this->quotes = $quoteService->snapshot();
         $terminal->autoCloseHits($account->fresh());
         $this->dash = $terminal->dashboard($account->fresh(), $this->quotes);
@@ -131,14 +137,72 @@ class TradeTerminalPage extends BaseModulePage
             return;
         }
 
+        $account = $terminal->setDeskCategory($terminal->accountFor($this->authUser()), $category);
         $this->category = $category;
-        $first = DemoSymbolCatalog::optionsForCategory($category)[0]['id'] ?? null;
+
+        if ($category === 'custom') {
+            $first = $terminal->watchlist($account)[0] ?? null;
+        } else {
+            $first = DemoSymbolCatalog::optionsForCategory($category)[0]['id'] ?? null;
+        }
 
         if (is_string($first)) {
             $this->setSymbol($first, $terminal);
         }
 
         $this->dispatch('fx-learn-terminal-filters-sync', category: $this->category);
+    }
+
+    public function updatedCustomPick(DemoTerminalService $terminal): void
+    {
+        $symbol = trim($this->customPick);
+        $this->customPick = '';
+
+        if ($symbol === '') {
+            return;
+        }
+
+        $this->addCustomSymbol($symbol, $terminal);
+    }
+
+    public function addCustomSymbol(string $symbol, DemoTerminalService $terminal): void
+    {
+        $this->ensureCanTrade();
+
+        try {
+            $account = $terminal->accountFor($this->authUser());
+            $terminal->addToWatchlist($account, $symbol);
+            $this->category = 'custom';
+            $this->setSymbol($symbol, $terminal);
+            $this->dash = $terminal->dashboard($account->fresh(), $this->quotes);
+            $this->dispatchRiskSync();
+            Notification::make()
+                ->title(__('agricart.pages.fx-learn.term_custom_added'))
+                ->success()
+                ->send();
+        } catch (InvalidArgumentException $e) {
+            Notification::make()->title($e->getMessage())->danger()->send();
+        }
+    }
+
+    public function removeCustomSymbol(string $symbol, DemoTerminalService $terminal): void
+    {
+        $this->ensureCanTrade();
+
+        try {
+            $account = $terminal->accountFor($this->authUser());
+            $account = $terminal->removeFromWatchlist($account, $symbol);
+            $this->category = 'custom';
+            $this->symbol = (string) $account->selected_symbol;
+            $this->dash = $terminal->dashboard($account, $this->quotes);
+            $this->dispatchRiskSync();
+            Notification::make()
+                ->title(__('agricart.pages.fx-learn.term_custom_removed'))
+                ->success()
+                ->send();
+        } catch (InvalidArgumentException $e) {
+            Notification::make()->title($e->getMessage())->danger()->send();
+        }
     }
 
     public function setSymbol(string $symbol, DemoTerminalService $terminal): void
@@ -391,15 +455,23 @@ class TradeTerminalPage extends BaseModulePage
     }
 
     /**
-     * All tradable symbols in the active category (auto — no manual add).
+     * Symbols for the active desk category (or saved Custom watchlist).
      *
-     * @return list<array{id: string, label: string, tv: string, binance: ?string, bid: float|null, ask: float|null, mid: float|null, high: float|null, low: float|null, digits: int, live: bool, time: string}>
+     * @return list<array{id: string, label: string, category: string, tv: string, binance: ?string, bid: float|null, ask: float|null, mid: float|null, high: float|null, low: float|null, digits: int, live: bool, time: string}>
      */
     public function categorySymbolRows(): array
     {
         $rows = [];
+        if ($this->category === 'custom') {
+            $terminal = app(DemoTerminalService::class);
+            $options = DemoSymbolCatalog::optionsForIds(
+                $terminal->watchlist($terminal->accountFor($this->authUser()))
+            );
+        } else {
+            $options = DemoSymbolCatalog::optionsForCategory($this->category);
+        }
 
-        foreach (DemoSymbolCatalog::optionsForCategory($this->category) as $row) {
+        foreach ($options as $row) {
             $q = $this->quotes[$row['id']] ?? null;
             $meta = DemoSymbolCatalog::get($row['id']);
             $digits = (int) ($q['digits'] ?? $meta['digits'] ?? 5);
@@ -415,6 +487,7 @@ class TradeTerminalPage extends BaseModulePage
             $rows[] = [
                 'id' => $row['id'],
                 'label' => $row['label'],
+                'category' => (string) ($row['category'] ?? $meta['category'] ?? ''),
                 'tv' => $row['tv'],
                 'binance' => $hasStream ? $binance : null,
                 'bid' => $q['bid'] ?? null,
@@ -429,6 +502,34 @@ class TradeTerminalPage extends BaseModulePage
         }
 
         return $rows;
+    }
+
+    /**
+     * Symbols not yet on the Custom watchlist (for the add picker).
+     *
+     * @return list<array{id: string, label: string, category: string, group: string}>
+     */
+    public function customAddOptions(): array
+    {
+        $terminal = app(DemoTerminalService::class);
+        $have = $terminal->watchlist($terminal->accountFor($this->authUser()));
+        $out = [];
+
+        foreach (DemoSymbolCatalog::pickerOptions() as $row) {
+            if (in_array($row['id'], $have, true)) {
+                continue;
+            }
+
+            $cat = (string) $row['category'];
+            $out[] = [
+                'id' => $row['id'],
+                'label' => $row['label'],
+                'category' => $cat,
+                'group' => __('agricart.pages.fx-learn.term_cat_'.$cat),
+            ];
+        }
+
+        return $out;
     }
 
     /**
