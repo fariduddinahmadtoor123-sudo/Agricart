@@ -464,6 +464,7 @@ return [
             'term_tab_open' => 'اوپن پوزیشنز',
             'term_tab_history' => 'ہسٹری',
             'term_col_symbol' => 'سمبل',
+            'term_col_trade' => 'ٹریڈ',
             'term_col_side' => 'سائیڈ',
             'term_col_entry' => 'انٹری',
             'term_col_exit' => 'ایگزٹ',

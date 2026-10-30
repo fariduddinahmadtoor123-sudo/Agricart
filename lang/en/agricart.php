@@ -465,6 +465,7 @@ return [
             'term_tab_open' => 'Open positions',
             'term_tab_history' => 'History',
             'term_col_symbol' => 'Symbol',
+            'term_col_trade' => 'Trade',
             'term_col_side' => 'Side',
             'term_col_entry' => 'Entry',
             'term_col_exit' => 'Exit',
