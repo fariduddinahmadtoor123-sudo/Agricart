@@ -34,62 +34,67 @@
             }
         }"
     >
-        {{-- Temporary: settings/refresh on page until we place them in chrome later --}}
-        <div class="fxt__page-tools">
-            <button type="button" class="fxt__btn" wire:click="$toggle('showSettings')">
-                {{ __('agricart.pages.fx-learn.term_settings') }}
-            </button>
-            <button type="button" class="fxt__btn" wire:click="refreshQuotes" wire:loading.attr="disabled">
-                {{ __('agricart.pages.fx-learn.term_refresh') }}
-            </button>
-        </div>
-
-        {{-- Selected market desk (Forex / Commodities / …) — everything for that market --}}
+        {{-- Selected market desk (Forex / Commodities / …) --}}
         <section class="fxt__desk" wire:key="fxt-desk-{{ $category }}" aria-label="{{ __('agricart.pages.fx-learn.term_desk_label', ['market' => __('agricart.pages.fx-learn.term_cat_'.$category)]) }}">
             <header class="fxt__desk-head">
                 <h2 class="fxt__desk-title">{{ __('agricart.pages.fx-learn.term_desk_title', ['market' => __('agricart.pages.fx-learn.term_cat_'.$category)]) }}</h2>
             </header>
 
-            <div class="fxt__watch" aria-label="{{ __('agricart.pages.fx-learn.term_watch_label') }}">
-                <div class="fxt__watch-row" role="listbox" wire:key="fxt-syms-{{ $category }}">
-                    @foreach ($this->categorySymbolRows() as $row)
-                        <div
-                            class="fxt__watch-item"
-                            wire:key="fxt-sym-{{ $row['id'] }}"
-                            @class(['is-on' => $symbol === $row['id']])
-                        >
-                            <button
-                                type="button"
-                                class="fxt__watch-main"
-                                role="option"
-                                aria-selected="{{ $symbol === $row['id'] ? 'true' : 'false' }}"
-                                wire:click="setSymbol(@js($row['id']))"
-                                title="{{ __('agricart.pages.fx-learn.term_watch_select') }}"
-                            >
-                                <span class="fxt__watch-sym" dir="ltr">{{ $row['label'] }}</span>
-                                <span class="fxt__watch-px" dir="ltr">
-                                    <span class="fxt__watch-bid">{{ $row['bid'] !== null ? number_format((float) $row['bid'], $row['digits'], '.', '') : '—' }}</span>
-                                    <span class="fxt__watch-ask">{{ $row['ask'] !== null ? number_format((float) $row['ask'], $row['digits'], '.', '') : '—' }}</span>
-                                </span>
-                                <span @class(['fxt__dot', 'is-on' => $row['live']])></span>
-                            </button>
-                            <div class="fxt__watch-trade">
-                                <button
-                                    type="button"
-                                    class="fxt__watch-buy"
-                                    wire:click="quickTrade(@js($row['id']), 'buy')"
-                                    @disabled(! empty($dash['failed_day']) || ! empty($dash['failed_total']) || ! $this->canTrade())
-                                >BUY</button>
-                                <button
-                                    type="button"
-                                    class="fxt__watch-sell"
-                                    wire:click="quickTrade(@js($row['id']), 'sell')"
-                                    @disabled(! empty($dash['failed_day']) || ! empty($dash['failed_total']) || ! $this->canTrade())
-                                >SELL</button>
+            <div
+                class="fxt__board"
+                role="list"
+                aria-label="{{ __('agricart.pages.fx-learn.term_watch_label') }}"
+                wire:key="fxt-board-{{ $category }}"
+            >
+                @foreach ($this->categorySymbolRows() as $row)
+                    @php
+                        $fmt = static fn ($v) => $v !== null ? number_format((float) $v, $row['digits'], '.', '') : '—';
+                    @endphp
+                    <article
+                        class="fxt__card"
+                        role="listitem"
+                        wire:key="fxt-card-{{ $row['id'] }}"
+                        @class(['is-on' => $symbol === $row['id']])
+                        wire:click="setSymbol(@js($row['id']))"
+                    >
+                        <div class="fxt__card-top">
+                            <strong class="fxt__card-sym" dir="ltr">{{ $row['label'] }}</strong>
+                            <span @class(['fxt__dot', 'is-on' => $row['live']])></span>
+                        </div>
+                        <div class="fxt__card-mid" dir="ltr">
+                            <div class="fxt__card-metric">
+                                <span>{{ __('agricart.pages.fx-learn.term_card_high') }}</span>
+                                <strong>{{ $fmt($row['high']) }}</strong>
+                            </div>
+                            <div class="fxt__card-metric">
+                                <span>{{ __('agricart.pages.fx-learn.term_card_low') }}</span>
+                                <strong>{{ $fmt($row['low']) }}</strong>
+                            </div>
+                            <div class="fxt__card-metric fxt__card-metric--current">
+                                <span>{{ __('agricart.pages.fx-learn.term_card_current') }}</span>
+                                <strong>{{ $fmt($row['mid'] ?? $row['ask']) }}</strong>
+                            </div>
+                            <div class="fxt__card-metric">
+                                <span>{{ __('agricart.pages.fx-learn.term_card_time') }}</span>
+                                <strong>{{ $row['time'] }}</strong>
                             </div>
                         </div>
-                    @endforeach
-                </div>
+                        <div class="fxt__card-actions" wire:click.stop>
+                            <button
+                                type="button"
+                                class="fxt__card-buy"
+                                wire:click="quickTrade(@js($row['id']), 'buy')"
+                                @disabled(! empty($dash['failed_day']) || ! empty($dash['failed_total']) || ! $this->canTrade())
+                            >BUY</button>
+                            <button
+                                type="button"
+                                class="fxt__card-sell"
+                                wire:click="quickTrade(@js($row['id']), 'sell')"
+                                @disabled(! empty($dash['failed_day']) || ! empty($dash['failed_total']) || ! $this->canTrade())
+                            >SELL</button>
+                        </div>
+                    </article>
+                @endforeach
             </div>
 
         <div class="fxt__stats" role="group" aria-label="{{ __('agricart.pages.fx-learn.term_stats_label') }}">
@@ -336,6 +341,15 @@
             </div>
         </section>
         </section>{{-- /.fxt__desk --}}
+
+        <div class="fxt__page-tools fxt__page-tools--foot">
+            <button type="button" class="fxt__btn" wire:click="$toggle('showSettings')">
+                {{ __('agricart.pages.fx-learn.term_settings') }}
+            </button>
+            <button type="button" class="fxt__btn" wire:click="refreshQuotes" wire:loading.attr="disabled">
+                {{ __('agricart.pages.fx-learn.term_refresh') }}
+            </button>
+        </div>
 
         @if ($showSettings)
             <div class="fxt__modal" role="dialog" aria-modal="true">

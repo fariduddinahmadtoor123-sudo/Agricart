@@ -299,7 +299,7 @@ class TradeTerminalPage extends BaseModulePage
     /**
      * All tradable symbols in the active category (auto — no manual add).
      *
-     * @return list<array{id: string, label: string, tv: string, bid: float|null, ask: float|null, digits: int, live: bool}>
+     * @return list<array{id: string, label: string, tv: string, bid: float|null, ask: float|null, mid: float|null, high: float|null, low: float|null, digits: int, live: bool, time: string}>
      */
     public function categorySymbolRows(): array
     {
@@ -308,14 +308,24 @@ class TradeTerminalPage extends BaseModulePage
         foreach (DemoSymbolCatalog::optionsForCategory($this->category) as $row) {
             $q = $this->quotes[$row['id']] ?? null;
             $meta = DemoSymbolCatalog::get($row['id']);
+            $digits = (int) ($q['digits'] ?? $meta['digits'] ?? 5);
+            $quotedAt = $q['quoted_at'] ?? null;
+            $time = is_string($quotedAt) && $quotedAt !== ''
+                ? agricart_datetime(\Carbon\CarbonImmutable::parse($quotedAt), 'H:i:s', true)
+                : '—';
+
             $rows[] = [
                 'id' => $row['id'],
                 'label' => $row['label'],
                 'tv' => $row['tv'],
                 'bid' => $q['bid'] ?? null,
                 'ask' => $q['ask'] ?? null,
-                'digits' => (int) ($q['digits'] ?? $meta['digits'] ?? 5),
+                'mid' => $q['mid'] ?? null,
+                'high' => $q['high'] ?? null,
+                'low' => $q['low'] ?? null,
+                'digits' => $digits,
                 'live' => (bool) ($q['live'] ?? false),
+                'time' => $time,
             ];
         }
 

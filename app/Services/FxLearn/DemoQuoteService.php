@@ -10,40 +10,72 @@ use Throwable;
 class DemoQuoteService
 {
     /**
-     * @return array<string, array{bid: float, ask: float, mid: float, live: bool, digits: int, label: string, category: string, contract: float, tv: string}>
+     * @return array<string, array{
+     *   bid: float,
+     *   ask: float,
+     *   mid: float,
+     *   high: float,
+     *   low: float,
+     *   live: bool,
+     *   digits: int,
+     *   label: string,
+     *   category: string,
+     *   contract: float,
+     *   tv: string,
+     *   quoted_at: string|null
+     * }>
      */
     public function snapshot(): array
     {
-        return Cache::remember('fxlearn.demo.quotes.v2', 20, function (): array {
+        return Cache::remember('fxlearn.demo.quotes.v3', 20, function (): array {
             return $this->fetchFresh();
         });
     }
 
     /**
-     * @return array<string, array{bid: float, ask: float, mid: float, live: bool, digits: int, label: string, category: string, contract: float, tv: string}>
+     * @return array<string, array{
+     *   bid: float,
+     *   ask: float,
+     *   mid: float,
+     *   high: float,
+     *   low: float,
+     *   live: bool,
+     *   digits: int,
+     *   label: string,
+     *   category: string,
+     *   contract: float,
+     *   tv: string,
+     *   quoted_at: string|null
+     * }>
      */
     public function refresh(): array
     {
-        Cache::forget('fxlearn.demo.quotes.v2');
+        Cache::forget('fxlearn.demo.quotes.v3');
 
         return $this->snapshot();
     }
 
     /**
-     * @return array<string, array{bid: float, ask: float, mid: float, live: bool, digits: int, label: string, category: string, contract: float, tv: string}>
+     * @return array<string, array<string, mixed>>
      */
     private function fetchFresh(): array
     {
         $catalog = DemoSymbolCatalog::all();
-        $prices = $this->fetchAllPrices($catalog);
+        $ticks = $this->fetchAllTicks($catalog);
         $out = [];
 
         foreach ($catalog as $key => $meta) {
-            $fetched = $prices[$key] ?? null;
-            $live = $fetched !== null;
-            $price = $fetched ?? (float) $meta['seed'];
+            $tick = $ticks[$key] ?? null;
+            $live = is_array($tick);
+            $price = $live ? (float) $tick['mid'] : (float) $meta['seed'];
             $half = $this->halfSpread($key, $price);
             $digits = (int) $meta['digits'];
+            $high = $live && isset($tick['high']) ? (float) $tick['high'] : round($price * 1.002, $digits);
+            $low = $live && isset($tick['low']) ? (float) $tick['low'] : round($price * 0.998, $digits);
+
+            if ($high < $low) {
+                [$high, $low] = [$low, $high];
+            }
 
             $out[$key] = [
                 'label' => $meta['label'],
@@ -54,7 +86,10 @@ class DemoQuoteService
                 'mid' => round($price, $digits),
                 'bid' => round($price - $half, $digits),
                 'ask' => round($price + $half, $digits),
+                'high' => round($high, $digits),
+                'low' => round($low, $digits),
                 'live' => $live,
+                'quoted_at' => $live ? ($tick['quoted_at'] ?? now()->toIso8601String()) : null,
             ];
         }
 
@@ -63,11 +98,11 @@ class DemoQuoteService
 
     /**
      * @param  array<string, array<string, mixed>>  $catalog
-     * @return array<string, float>
+     * @return array<string, array{mid: float, high?: float, low?: float, quoted_at?: string}>
      */
-    private function fetchAllPrices(array $catalog): array
+    private function fetchAllTicks(array $catalog): array
     {
-        $prices = [];
+        $ticks = [];
 
         try {
             $responses = Http::pool(function ($pool) use ($catalog) {
@@ -91,7 +126,7 @@ class DemoQuoteService
                         $requests[$key] = $pool->as($key)
                             ->timeout(8)
                             ->withHeaders(['User-Agent' => 'Agricart-FXLearn/1.0'])
-                            ->get('https://api.binance.com/api/v3/ticker/bookTicker', [
+                            ->get('https://api.binance.com/api/v3/ticker/24hr', [
                                 'symbol' => (string) $meta['binance'],
                             ]);
                     }
@@ -108,11 +143,10 @@ class DemoQuoteService
                 }
 
                 if (($meta['feed'] ?? '') === 'binance') {
-                    $bid = (float) $response->json('bidPrice');
-                    $ask = (float) $response->json('askPrice');
+                    $parsed = $this->parseBinancePayload($response->json());
 
-                    if ($bid > 0 && $ask > 0) {
-                        $prices[$key] = ($bid + $ask) / 2;
+                    if ($parsed !== null) {
+                        $ticks[$key] = $parsed;
                     }
 
                     continue;
@@ -121,17 +155,21 @@ class DemoQuoteService
                 $parsed = $this->parseYahooPayload($response->json());
 
                 if ($parsed !== null) {
-                    $prices[$key] = $parsed;
+                    $ticks[$key] = $parsed;
                 }
             }
         } catch (Throwable $e) {
             Log::warning('FX Learn quote pool failed', ['error' => $e->getMessage()]);
         }
 
-        return $prices;
+        return $ticks;
     }
 
-    private function parseYahooPayload(mixed $json): ?float
+    /**
+     * @param  mixed  $json
+     * @return array{mid: float, high: float, low: float, quoted_at: string}|null
+     */
+    private function parseYahooPayload(mixed $json): ?array
     {
         if (! is_array($json)) {
             return null;
@@ -163,7 +201,99 @@ class DemoQuoteService
             }
         }
 
-        return $price > 0 ? $price : null;
+        if ($price <= 0) {
+            return null;
+        }
+
+        $high = (float) ($meta['regularMarketDayHigh'] ?? 0);
+        $low = (float) ($meta['regularMarketDayLow'] ?? 0);
+
+        if ($high <= 0 || $low <= 0) {
+            $highs = data_get($result, 'indicators.quote.0.high', []);
+            $lows = data_get($result, 'indicators.quote.0.low', []);
+            $high = $this->extremeFromSeries($highs, true) ?? $price;
+            $low = $this->extremeFromSeries($lows, false) ?? $price;
+        }
+
+        $ts = (int) ($meta['regularMarketTime'] ?? data_get($result, 'timestamp.'.(count((array) data_get($result, 'timestamp', [])) - 1), 0));
+        $quotedAt = $ts > 0
+            ? \Carbon\CarbonImmutable::createFromTimestamp($ts, 'UTC')->setTimezone(agricart_display_timezone())->toIso8601String()
+            : now(agricart_display_timezone())->toIso8601String();
+
+        return [
+            'mid' => $price,
+            'high' => $high > 0 ? $high : $price,
+            'low' => $low > 0 ? $low : $price,
+            'quoted_at' => $quotedAt,
+        ];
+    }
+
+    /**
+     * @param  mixed  $json
+     * @return array{mid: float, high: float, low: float, quoted_at: string}|null
+     */
+    private function parseBinancePayload(mixed $json): ?array
+    {
+        if (! is_array($json)) {
+            return null;
+        }
+
+        $last = (float) ($json['lastPrice'] ?? 0);
+        $bid = (float) ($json['bidPrice'] ?? 0);
+        $ask = (float) ($json['askPrice'] ?? 0);
+        $mid = $last > 0 ? $last : (($bid > 0 && $ask > 0) ? (($bid + $ask) / 2) : 0);
+
+        if ($mid <= 0) {
+            return null;
+        }
+
+        $high = (float) ($json['highPrice'] ?? $mid);
+        $low = (float) ($json['lowPrice'] ?? $mid);
+        $closeMs = (int) ($json['closeTime'] ?? 0);
+        $quotedAt = $closeMs > 0
+            ? \Carbon\CarbonImmutable::createFromTimestampMs($closeMs, 'UTC')->setTimezone(agricart_display_timezone())->toIso8601String()
+            : now(agricart_display_timezone())->toIso8601String();
+
+        return [
+            'mid' => $mid,
+            'high' => $high > 0 ? $high : $mid,
+            'low' => $low > 0 ? $low : $mid,
+            'quoted_at' => $quotedAt,
+        ];
+    }
+
+    /**
+     * @param  mixed  $series
+     */
+    private function extremeFromSeries(mixed $series, bool $max): ?float
+    {
+        if (! is_array($series) || $series === []) {
+            return null;
+        }
+
+        $best = null;
+
+        foreach ($series as $value) {
+            if (! is_numeric($value)) {
+                continue;
+            }
+
+            $n = (float) $value;
+
+            if ($n <= 0) {
+                continue;
+            }
+
+            if ($best === null) {
+                $best = $n;
+
+                continue;
+            }
+
+            $best = $max ? max($best, $n) : min($best, $n);
+        }
+
+        return $best;
     }
 
     private function halfSpread(string $key, float $price): float
@@ -172,9 +302,9 @@ class DemoQuoteService
             'xauusd' => 0.15,
             'xagusd' => 0.025,
             'usoil' => 0.03,
-            'eurusd', 'usdchf', 'audusd', 'nzdusd', 'usdcad' => 0.00008,
-            'gbpusd' => 0.0001,
-            'usdjpy' => 0.008,
+            'eurusd', 'usdchf', 'audusd', 'nzdusd', 'usdcad', 'eurchf', 'euraud' => 0.00008,
+            'gbpusd', 'eurgbp' => 0.0001,
+            'usdjpy', 'gbpjpy', 'audjpy' => 0.008,
             'btcusdt' => 2.5,
             'ethusdt' => 0.35,
             'us30' => 1.2,
