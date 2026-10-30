@@ -321,14 +321,14 @@ class TradeTerminalPage extends BaseModulePage
         return [
             'day' => [
                 'label' => __('agricart.pages.fx-learn.term_tb_day'),
-                'value' => number_format($dayPct, 1).'% / '.number_format((float) $this->maxDayLossPct, 0).'%',
+                'value' => number_format($dayPct, 1).'%',
                 'fill' => min(100.0, round(($dayPct / $dayCap) * 100, 1)),
                 'fail' => ! empty($this->dash['failed_day']),
                 'tone' => 'loss',
             ],
             'overall_loss' => [
                 'label' => __('agricart.pages.fx-learn.term_tb_dd'),
-                'value' => number_format($totalPct, 1).'% / '.number_format((float) $this->maxTotalLossPct, 0).'%',
+                'value' => number_format($totalPct, 1).'%',
                 'fill' => min(100.0, round(($totalPct / $totalCap) * 100, 1)),
                 'fail' => ! empty($this->dash['failed_total']),
                 'tone' => 'loss',
@@ -339,7 +339,7 @@ class TradeTerminalPage extends BaseModulePage
                     : __('agricart.pages.fx-learn.term_tb_overall_loss'),
                 'value' => $profitMode
                     ? number_format($phaseFill, 1).'%'
-                    : number_format($totalPct, 1).'% / '.number_format((float) $this->maxTotalLossPct, 0).'%',
+                    : number_format($totalPct, 1).'%',
                 'fill' => $profitMode
                     ? min(100.0, round($phaseFill, 1))
                     : min(100.0, round(($totalPct / $totalCap) * 100, 1)),

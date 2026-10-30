@@ -274,7 +274,7 @@
                             const h = Math.floor(abs / 3600);
                             const m = Math.floor((abs % 3600) / 60);
                             const s = abs % 60;
-                            if (h > 0) return h + 'h ' + m + 'm';
+                            if (h > 0) return h + 'h' + m + 'm';
                             if (m > 0) return m + 'm';
                             return Math.max(1, s) + 's';
                         },
@@ -312,14 +312,12 @@
                     }"
                     x-on:remove="destroy()"
                 >
-                    <div
-                        class="agricart-fxt-sessions__chip"
+                    <span
+                        class="agricart-fxt-sessions__liq"
                         :class="liqClass()"
                         :title="pack?.summary || ''"
-                    >
-                        <span class="agricart-fxt-sessions__liq" x-text="pack?.liquidity_label || ''"></span>
-                        <span class="agricart-fxt-sessions__overlap" x-show="overlap" x-cloak>{{ __('agricart.pages.fx-learn.term_session_overlap') }}</span>
-                    </div>
+                        x-text="pack?.liquidity_label || ''"
+                    ></span>
                     <template x-for="row in rows" :key="row.id">
                         <div
                             class="agricart-fxt-sessions__item"
@@ -330,8 +328,10 @@
                             }"
                             :title="row.label"
                         >
-                            <span class="agricart-fxt-sessions__code" x-text="row.short"></span>
-                            <strong class="agricart-fxt-sessions__until" dir="ltr" x-text="row.until || '—'"></strong>
+                            <div class="agricart-fxt-sessions__top">
+                                <span class="agricart-fxt-sessions__code" x-text="row.short"></span>
+                                <strong class="agricart-fxt-sessions__until" dir="ltr" x-text="row.until || '—'"></strong>
+                            </div>
                             <span class="agricart-fxt-sessions__bar" aria-hidden="true">
                                 <span class="agricart-fxt-sessions__fill" :style="'width:' + (row.progress || 0) + '%'"></span>
                             </span>
@@ -394,8 +394,10 @@
                                 'is-loss': risk?.[key]?.tone === 'loss'
                             }"
                         >
-                            <span class="agricart-fxt-risk__label" x-text="risk?.[key]?.label || ''"></span>
-                            <strong class="agricart-fxt-risk__value" dir="ltr" x-text="risk?.[key]?.value || '—'"></strong>
+                            <div class="agricart-fxt-risk__top">
+                                <span class="agricart-fxt-risk__label" x-text="risk?.[key]?.label || ''"></span>
+                                <strong class="agricart-fxt-risk__value" dir="ltr" x-text="risk?.[key]?.value || '—'"></strong>
+                            </div>
                             <span class="agricart-fxt-risk__bar" aria-hidden="true">
                                 <span class="agricart-fxt-risk__fill" :style="'width:' + fill(key) + '%'"></span>
                             </span>
