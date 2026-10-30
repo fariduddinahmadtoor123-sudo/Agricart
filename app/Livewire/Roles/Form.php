@@ -139,15 +139,24 @@ class Form extends Component
         }
     }
 
+    public function canAssignPermissions(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof \App\Models\User && $user->isSuperAdmin();
+    }
+
     public function isReadonly(): bool
     {
-        return $this->mode === 'view' || $this->isSystem;
+        // Role permission pivots are super-admin only (RoleService) — keep UI honest.
+        return $this->mode === 'view' || $this->isSystem || ! $this->canAssignPermissions();
     }
 
     public function render(): View
     {
         return view('livewire.roles.form', [
             'permissionGroups' => PermissionRegistry::groupsForForm(),
+            'canAssignPermissions' => $this->canAssignPermissions(),
         ]);
     }
 

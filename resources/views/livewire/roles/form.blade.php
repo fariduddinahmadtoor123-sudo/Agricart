@@ -27,6 +27,10 @@
         <p class="agricart-form-panel__hint agricart-role-form__system-note">{{ __('agricart.roles.hints.super_admin_locked') }}</p>
     @endif
 
+    @if (! $canAssignPermissions && ! $isSystem)
+        <p class="agricart-form-panel__hint agricart-role-form__system-note">{{ __('agricart.roles.messages.permissions_super_admin_only') }}</p>
+    @endif
+
     <section class="agricart-form-panel__section agricart-user-form__section">
         <div class="agricart-role-form__meta">
             <div class="agricart-form-panel__field">
