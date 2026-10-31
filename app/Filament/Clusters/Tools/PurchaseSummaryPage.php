@@ -1791,6 +1791,8 @@ class PurchaseSummaryPage extends BaseModulePage
             if (! $this->cellIsFilled($row)) {
                 continue;
             }
+            // Always encode plain digit amounts on save (blur/autosave can skip updated()).
+            $row['payment'] = $this->encodePaymentValue($row['payment']);
             $out[(string) $key] = $row;
         }
 
@@ -1816,7 +1818,11 @@ class PurchaseSummaryPage extends BaseModulePage
             if ($date === '') {
                 $date = $this->defaultPaymentSourceDate();
             }
-            $out[] = ['label' => $label, 'amount' => $amount, 'date' => $date];
+            $out[] = [
+                'label' => $label,
+                'amount' => $this->encodePaymentValue($amount),
+                'date' => $date,
+            ];
         }
 
         return $out;
