@@ -1370,7 +1370,7 @@ class ReOrderPage extends BaseModulePage
         }
 
         $order->update([
-            'cells' => $this->cellsPayloadForSave(),
+            'cells' => $this->cellsPayloadForUpdate($order->cells),
         ]);
     }
 
@@ -1391,6 +1391,55 @@ class ReOrderPage extends BaseModulePage
         $out['_pageCount'] = max(1, min(20, $this->pageCount));
 
         return $out;
+    }
+
+    /**
+     * Never replace a stored grid with an empty Livewire snapshot (autosave / remount race).
+     *
+     * @param  array<string, mixed>|null  $incoming
+     * @return array<string, mixed>
+     */
+    protected function cellsPayloadForUpdate(mixed $existing, ?array $incoming = null): array
+    {
+        $incoming ??= $this->cellsPayloadForSave();
+        $existingArr = is_array($existing) ? $existing : [];
+        $incomingFilled = $this->countFilledCells($incoming);
+        $existingFilled = $this->countFilledCells($existingArr);
+
+        if ($incomingFilled === 0 && $existingFilled > 0) {
+            $kept = $existingArr;
+            if (isset($incoming['_pageCount'])) {
+                $kept['_pageCount'] = $incoming['_pageCount'];
+            }
+            if (isset($incoming['_pending'])) {
+                $kept['_pending'] = $incoming['_pending'];
+            }
+            if (isset($incoming['_returns'])) {
+                $kept['_returns'] = $incoming['_returns'];
+            }
+
+            return $kept;
+        }
+
+        return $incoming;
+    }
+
+    /**
+     * @param  array<string, mixed>  $cells
+     */
+    protected function countFilledCells(array $cells): int
+    {
+        $count = 0;
+        foreach ($cells as $key => $value) {
+            if (! ctype_digit((string) $key)) {
+                continue;
+            }
+            if ($this->cellIsFilled($this->normalizeCellValue($value))) {
+                $count++;
+            }
+        }
+
+        return $count;
     }
 
     /**
@@ -1537,6 +1586,10 @@ class ReOrderPage extends BaseModulePage
                 if ($preferDraft && (string) $order->status === 'saved') {
                     unset($payload['status']);
                 }
+                $payload['cells'] = $this->cellsPayloadForUpdate(
+                    $order->cells,
+                    is_array($payload['cells'] ?? null) ? $payload['cells'] : null,
+                );
                 $order->update($payload);
 
                 return $order->fresh() ?? $order;

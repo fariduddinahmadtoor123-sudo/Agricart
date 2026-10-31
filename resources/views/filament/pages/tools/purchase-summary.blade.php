@@ -98,7 +98,11 @@
                         <div class="agricart-ro-meta">
                             <div class="agricart-ro-meta__item">
                                 <span class="agricart-ro-meta__k">{{ __('agricart.pages.tools.ps_form_date', [], $tLocale) }}</span>
-                                <span class="agricart-ro-meta__v" dir="ltr">{{ $summaryDate }}</span>
+                                @if ($this->isViewMode())
+                                    <span class="agricart-ro-meta__v" dir="ltr">{{ $summaryDate }}</span>
+                                @else
+                                    <input type="text" class="agricart-ro-meta__v agricart-ro-grid__inp" style="width:7.5rem" wire:model.blur="summaryDate" dir="ltr" placeholder="dd-mm-yyyy" />
+                                @endif
                             </div>
                             <div class="agricart-ro-meta__item">
                                 <span class="agricart-ro-meta__k">{{ __('agricart.pages.tools.ps_form_summary_no', [], $tLocale) }}</span>
@@ -405,7 +409,18 @@
                 .agricart-ro-list__actions{display:flex;gap:.35rem;justify-content:flex-end;flex-wrap:wrap}
                 .agricart-ro-list__empty{padding:1.5rem;text-align:center;color:#64748b}
             </style>
-            <p class="agricart-ro-list__hint">{{ __('agricart.pages.tools.ps_list_hint') }}</p>
+            <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.65rem 1rem">
+                <p class="agricart-ro-list__hint" style="margin:0">{{ __('agricart.pages.tools.ps_list_hint') }}</p>
+                @if ($this->canUnlockClosed())
+                    <x-filament::button
+                        size="sm"
+                        color="danger"
+                        outlined
+                        wire:click="purgeEmptySummaries"
+                        wire:confirm="{{ __('agricart.pages.tools.ps_purge_confirm') }}"
+                    >{{ __('agricart.pages.tools.ps_purge_empty') }}</x-filament::button>
+                @endif
+            </div>
             <div class="agricart-ro-list__table-wrap">
                 @if ($summaries->isEmpty())
                     <div class="agricart-ro-list__empty">{{ __('agricart.pages.tools.ps_list_empty') }}</div>
@@ -426,6 +441,7 @@
                             @foreach ($summaries as $summary)
                                 @php
                                     $isClosed = (string) $summary->status === 'closed';
+                                    $filledLines = $this->countFilledCells(is_array($summary->cells) ? $summary->cells : []);
                                     $unresolved = $isClosed ? 0 : $this->unresolvedFilledLineCount(is_array($summary->cells) ? $summary->cells : []);
                                     $money = $this->listMoneySummary($summary);
                                 @endphp
@@ -435,6 +451,9 @@
                                     <td>
                                         @if ($isClosed)
                                             {{ __('agricart.pages.tools.ps_status_closed') }}
+                                            @if ($filledLines === 0)
+                                                <span style="display:block;font-size:11px;color:#b45309">{{ __('agricart.pages.tools.ps_list_empty_body') }}</span>
+                                            @endif
                                         @elseif ($unresolved > 0)
                                             {{ __('agricart.pages.tools.ps_status_saved') }}
                                             <span style="display:block;font-size:11px;color:#b45309">{{ __('agricart.pages.tools.ps_line_unresolved', ['count' => $unresolved]) }}</span>
@@ -450,16 +469,21 @@
                                         @if ($money['pending_count'] > 0)
                                             <span>{{ __('agricart.pages.tools.ps_list_money_pending', ['count' => $money['pending_count']]) }}</span>
                                         @endif
+                                        <span style="display:block;font-size:11px;color:#64748b">{{ __('agricart.pages.tools.ps_list_lines', ['count' => $filledLines]) }}</span>
                                     </td>
                                     <td>{{ $summary->prepared_by ?: '—' }}</td>
                                     <td dir="ltr">{{ optional($summary->updated_at)->timezone(config('app.display_timezone', config('app.timezone')))->format('d-m-Y H:i') }}</td>
                                     <td>
                                         <div class="agricart-ro-list__actions">
                                             <x-filament::button size="sm" color="gray" outlined wire:click="openSummary({{ $summary->id }})">{{ __('agricart.pages.tools.ps_list_open') }}</x-filament::button>
-                                            @unless ($isClosed)
+                                            @if ($isClosed)
+                                                @if ($this->canUnlockClosed())
+                                                    <x-filament::button size="sm" color="warning" wire:click="unlockClosedSummary({{ $summary->id }})" wire:confirm="{{ __('agricart.pages.tools.ps_unlock_confirm') }}">{{ __('agricart.pages.tools.ps_list_unlock') }}</x-filament::button>
+                                                @endif
+                                            @else
                                                 <x-filament::button size="sm" color="primary" wire:click="editSummary({{ $summary->id }})">{{ __('agricart.pages.tools.ps_list_edit') }}</x-filament::button>
                                                 <x-filament::button size="sm" color="warning" outlined wire:click="closeListedSummary({{ $summary->id }})" wire:confirm="{{ __('agricart.pages.tools.ps_list_close_confirm') }}">{{ __('agricart.pages.tools.ps_list_close') }}</x-filament::button>
-                                            @endunless
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

@@ -45,7 +45,14 @@
                 const empty = !(data.entryText || '').trim() && cellKeys.length === 0;
                 if (! empty) localStorage.setItem(this.key, JSON.stringify(data));
             } catch (e) {}
-            if (serverToo) { try { $wire.autoSaveDraft(); } catch (e) {} }
+            if (serverToo) {
+                try {
+                    // Never push an empty/partial snapshot over a closed view sheet.
+                    if ($wire.screen === 'form' && ! $wire.isViewMode()) {
+                        $wire.autoSaveDraft();
+                    }
+                } catch (e) {}
+            }
         },
         clear() { try { localStorage.removeItem(this.key); } catch (e) {} },
         tryRestore() {

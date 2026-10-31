@@ -928,7 +928,11 @@
                         }
                     } catch (e) {}
                     if (serverToo) {
-                        try { $wire.autoSaveDraft(); } catch (e) {}
+                        try {
+                            if ($wire.screen === 'form' && ! $wire.isViewMode()) {
+                                $wire.autoSaveDraft();
+                            }
+                        } catch (e) {}
                     }
                 },
 

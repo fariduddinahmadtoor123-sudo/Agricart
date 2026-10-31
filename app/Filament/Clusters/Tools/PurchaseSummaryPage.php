@@ -6,6 +6,7 @@ use App\Filament\Clusters\ToolsCluster;
 use App\Filament\Pages\BaseModulePage;
 use App\Livewire\Tools\ReOrderSettingsForm;
 use App\Models\ToolsPurchaseSummary;
+use App\Models\User;
 use App\Services\Access\ModulePageAccess;
 use App\Services\PricingControls\SecretCodingEngine;
 use App\Services\Tools\PurchaseSummarySettingsService;
@@ -88,6 +89,9 @@ class PurchaseSummaryPage extends BaseModulePage
     /** edit | view */
     public string $formMode = 'edit';
 
+    /** Super Admin may temporarily edit a closed summary without reopening the workflow. */
+    public bool $closedUnlocked = false;
+
     #[On('tools-purchase-summary-search')]
     public function updateSearch(string $query): void
     {
@@ -96,7 +100,18 @@ class PurchaseSummaryPage extends BaseModulePage
 
     public function isViewMode(): bool
     {
-        return $this->formMode === 'view' || $this->persistStatus === 'closed';
+        if ($this->formMode === 'view') {
+            return true;
+        }
+
+        return $this->persistStatus === 'closed' && ! $this->closedUnlocked;
+    }
+
+    public function canUnlockClosed(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof User && $user->isSuperAdmin();
     }
 
     #[On('tools-purchase-summary-action')]
@@ -227,6 +242,30 @@ class PurchaseSummaryPage extends BaseModulePage
             ->firstOrFail();
 
         if ((string) $summary->status === 'closed') {
+            if (! $this->canUnlockClosed()) {
+                Notification::make()
+                    ->title(__('agricart.pages.tools.ps_closed_locked'))
+                    ->warning()
+                    ->send();
+
+                return;
+            }
+
+            $this->loadSummaryIntoForm($id, 'edit', unlockClosed: true);
+            Notification::make()
+                ->title(__('agricart.pages.tools.ps_closed_unlocked'))
+                ->success()
+                ->send();
+
+            return;
+        }
+
+        $this->loadSummaryIntoForm($id, 'edit');
+    }
+
+    public function unlockClosedSummary(int $id): void
+    {
+        if (! $this->canUnlockClosed()) {
             Notification::make()
                 ->title(__('agricart.pages.tools.ps_closed_locked'))
                 ->warning()
@@ -235,7 +274,18 @@ class PurchaseSummaryPage extends BaseModulePage
             return;
         }
 
-        $this->loadSummaryIntoForm($id, 'edit');
+        $summary = ToolsPurchaseSummary::query()
+            ->where('user_id', auth()->id())
+            ->whereKey($id)
+            ->where('status', 'closed')
+            ->firstOrFail();
+
+        $this->loadSummaryIntoForm((int) $summary->id, 'edit', unlockClosed: true);
+
+        Notification::make()
+            ->title(__('agricart.pages.tools.ps_closed_unlocked'))
+            ->success()
+            ->send();
     }
 
     public function closeListedSummary(int $id): void
@@ -296,11 +346,11 @@ class PurchaseSummaryPage extends BaseModulePage
     {
         $this->authorizeCreate();
 
-        if ($this->persistStatus === 'closed') {
+        if ($this->persistStatus === 'closed' && ! $this->closedUnlocked) {
             return;
         }
 
-        if (! in_array($this->persistStatus, ['saved', 'draft'], true)) {
+        if (! in_array($this->persistStatus, ['saved', 'draft', 'closed'], true)) {
             return;
         }
 
@@ -346,8 +396,8 @@ class PurchaseSummaryPage extends BaseModulePage
             $this->addToPendingBills($label);
         }
 
-        if ($this->persistStatus === 'saved') {
-            $this->persistSavedSummaryCells();
+        if ($this->persistStatus === 'saved' || ($this->persistStatus === 'closed' && $this->closedUnlocked)) {
+            $this->persistEditableSummaryCells();
         } else {
             // Must re-render so green/red dots update on screen.
             $this->autoSaveDraft(skipRender: false);
@@ -356,6 +406,10 @@ class PurchaseSummaryPage extends BaseModulePage
 
     public function canMarkLineStatus(): bool
     {
+        if ($this->persistStatus === 'closed') {
+            return $this->closedUnlocked;
+        }
+
         return in_array($this->persistStatus, ['saved', 'draft'], true);
     }
 
@@ -364,7 +418,7 @@ class PurchaseSummaryPage extends BaseModulePage
         return $this->unresolvedFilledLineCount($this->cells);
     }
 
-    protected function loadSummaryIntoForm(int $id, string $mode): void
+    protected function loadSummaryIntoForm(int $id, string $mode, bool $unlockClosed = false): void
     {
         $this->authorizeCreate();
 
@@ -373,10 +427,11 @@ class PurchaseSummaryPage extends BaseModulePage
             ->whereKey($id)
             ->firstOrFail();
 
+        $this->closedUnlocked = $unlockClosed && $this->canUnlockClosed() && (string) $summary->status === 'closed';
         $this->applySummaryRecord($summary);
         $status = (string) $summary->status;
         $this->persistStatus = in_array($status, ['saved', 'draft', 'closed'], true) ? $status : 'draft';
-        $this->formMode = $mode === 'view' || $status === 'closed' ? 'view' : 'edit';
+        $this->formMode = $mode === 'view' || ($status === 'closed' && ! $this->closedUnlocked) ? 'view' : 'edit';
         $this->screen = 'form';
         $this->draftFlash = '';
         $this->shopkeepersTick++;
@@ -517,6 +572,7 @@ class PurchaseSummaryPage extends BaseModulePage
         $this->clearedPendingBills = [];
         $this->pageCount = 1;
         $this->draftFlash = '';
+        $this->closedUnlocked = false;
     }
 
     protected function applySummaryRecord(ToolsPurchaseSummary $summary): void
@@ -532,8 +588,9 @@ class PurchaseSummaryPage extends BaseModulePage
         $this->paymentSources = $this->normalizePaymentSources($summary->payment_sources);
         $this->pendingBills = $this->normalizePendingBillsList($summary->pending_bills);
         $this->clearedPendingBills = [];
+        $this->pageCount = 1;
         $this->normalizeCellsInPlace();
-        $this->pageCount = max($this->pageCount, $this->pageCountForFilledRows($this->maxFilledRow()));
+        $this->pageCount = max(1, $this->pageCount, $this->pageCountForFilledRows($this->maxFilledRow()));
     }
 
     /**
@@ -651,6 +708,19 @@ class PurchaseSummaryPage extends BaseModulePage
         $this->js(
             'window.dispatchEvent(new CustomEvent("tools-purchase-summary-screen",{detail:{screen:'.json_encode($screen).',formMode:'.json_encode($mode).'}}))'
         );
+    }
+
+    public function updatedSummaryDate(): void
+    {
+        if ($this->isViewMode()) {
+            return;
+        }
+
+        if ($this->persistStatus === 'saved' || ($this->persistStatus === 'closed' && $this->closedUnlocked)) {
+            $this->persistEditableSummaryCells();
+        } elseif ($this->persistStatus === 'draft' && $this->draftHasContent()) {
+            $this->autoSaveDraft();
+        }
     }
 
     public function clearEntry(): void
@@ -1097,6 +1167,27 @@ class PurchaseSummaryPage extends BaseModulePage
 
         $this->authorizeCreate();
 
+        // Super Admin unlock: keep Closed status, only persist edits (date/lines/money).
+        if ($this->persistStatus === 'closed' && $this->closedUnlocked) {
+            $this->persistEditableSummaryCells();
+            $this->js('window.dispatchEvent(new CustomEvent("tools-purchase-summary-clear-local-draft"))');
+            $this->closedUnlocked = false;
+            $this->editingSummaryId = null;
+            $this->persistStatus = 'draft';
+            $this->formMode = 'edit';
+            $this->screen = 'list';
+            $this->entryText = '';
+            $this->forwardTo = '';
+            $this->draftFlash = '';
+            $this->cells = [];
+            $this->paymentSources = [];
+            $this->pendingBills = $this->emptyPendingSlots();
+            $this->clearedPendingBills = [];
+            $this->emitSummaryScreen('list');
+
+            return;
+        }
+
         $service = app(PurchaseSummarySettingsService::class);
         $payload = $this->summaryPayload('saved');
         $peeked = $service->peekSummaryNumber();
@@ -1166,8 +1257,8 @@ class PurchaseSummaryPage extends BaseModulePage
             'date' => $date,
         ];
 
-        if ($this->persistStatus === 'saved') {
-            $this->persistSavedSummaryCells();
+        if ($this->persistStatus === 'saved' || ($this->persistStatus === 'closed' && $this->closedUnlocked)) {
+            $this->persistEditableSummaryCells();
         } else {
             $this->autoSaveDraft(skipRender: false);
         }
@@ -1444,16 +1535,25 @@ class PurchaseSummaryPage extends BaseModulePage
         ]);
     }
 
-    protected function persistSavedSummaryCells(): void
+    protected function persistEditableSummaryCells(): void
     {
-        if (! $this->editingSummaryId || $this->persistStatus !== 'saved') {
+        if (! $this->editingSummaryId) {
+            return;
+        }
+
+        $allowed = ['saved'];
+        if ($this->closedUnlocked) {
+            $allowed[] = 'closed';
+        }
+
+        if (! in_array($this->persistStatus, $allowed, true)) {
             return;
         }
 
         $summary = ToolsPurchaseSummary::query()
             ->where('user_id', auth()->id())
             ->whereKey($this->editingSummaryId)
-            ->where('status', 'saved')
+            ->whereIn('status', $allowed)
             ->first();
 
         if (! $summary) {
@@ -1461,9 +1561,12 @@ class PurchaseSummaryPage extends BaseModulePage
         }
 
         $summary->update([
-            'cells' => $this->cellsPayloadForSave(),
-            'payment_sources' => $this->normalizedPaymentSourcesForSave(),
-            'pending_bills' => $this->normalizedPendingBillsForSave(),
+            'summary_date' => trim($this->summaryDate) !== '' ? trim($this->summaryDate) : $summary->summary_date,
+            'prepared_by' => trim($this->preparedBy),
+            'lang' => $this->formLang,
+            'cells' => $this->cellsPayloadForUpdate($summary->cells),
+            'payment_sources' => $this->paymentSourcesPayloadForUpdate($summary->payment_sources),
+            'pending_bills' => $this->pendingBillsPayloadForUpdate($summary->pending_bills),
         ]);
     }
 
@@ -1480,6 +1583,163 @@ class PurchaseSummaryPage extends BaseModulePage
         }
 
         return $out;
+    }
+
+    /**
+     * Never replace a stored grid with an empty Livewire snapshot (autosave / remount race).
+     *
+     * @param  array<string, mixed>|null  $incoming
+     * @return array<string, mixed>
+     */
+    protected function cellsPayloadForUpdate(mixed $existing, ?array $incoming = null): array
+    {
+        $incoming ??= $this->cellsPayloadForSave();
+        $existingArr = is_array($existing) ? $existing : [];
+        $incomingFilled = $this->countFilledCells($incoming);
+        $existingFilled = $this->countFilledCells($existingArr);
+        $existingCleared = $this->normalizeClearedPendingList($existingArr['_clearedPending'] ?? []);
+        $incomingCleared = $this->normalizeClearedPendingList($incoming['_clearedPending'] ?? []);
+
+        // Empty Livewire remount must not wipe real lines OR cleared-pending history.
+        if ($incomingFilled === 0 && $existingFilled > 0) {
+            $kept = $existingArr;
+            if (isset($incoming['_pageCount'])) {
+                $kept['_pageCount'] = $incoming['_pageCount'];
+            }
+            if ($incomingCleared !== []) {
+                $kept['_clearedPending'] = $incomingCleared;
+            }
+
+            return $kept;
+        }
+
+        if ($incomingFilled === 0 && $existingFilled === 0 && $incomingCleared === [] && $existingCleared !== []) {
+            $kept = $existingArr;
+            if (isset($incoming['_pageCount'])) {
+                $kept['_pageCount'] = $incoming['_pageCount'];
+            }
+
+            return $kept;
+        }
+
+        return $incoming;
+    }
+
+    /**
+     * @param  array<string, mixed>|null  $incoming
+     * @return list<array{label: string, amount: string, date: string}>
+     */
+    protected function paymentSourcesPayloadForUpdate(mixed $existing, ?array $incoming = null): array
+    {
+        $incoming ??= $this->normalizedPaymentSourcesForSave();
+        $existingList = $this->normalizePaymentSources($existing);
+        if ($incoming === [] && $existingList !== []) {
+            return $this->normalizedPaymentSourcesForSaveFrom($existingList);
+        }
+
+        return $incoming;
+    }
+
+    /**
+     * @param  list<array{label: string, amount: string, date: string}>  $rows
+     * @return list<array{label: string, amount: string, date: string}>
+     */
+    protected function normalizedPaymentSourcesForSaveFrom(array $rows): array
+    {
+        $out = [];
+        foreach ($rows as $row) {
+            $label = trim((string) ($row['label'] ?? ''));
+            $amount = trim((string) ($row['amount'] ?? ''));
+            $date = trim((string) ($row['date'] ?? ''));
+            if ($label === '' && $amount === '') {
+                continue;
+            }
+            $out[] = [
+                'label' => $label,
+                'amount' => $amount,
+                'date' => $date !== '' ? $date : $this->defaultPaymentSourceDate(),
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param  list<string>|null  $incoming
+     * @return list<string>
+     */
+    protected function pendingBillsPayloadForUpdate(mixed $existing, ?array $incoming = null): array
+    {
+        $incoming ??= $this->normalizedPendingBillsForSave();
+        $existingList = $this->normalizePendingBillsList($existing);
+        $incomingFilled = collect($incoming)->contains(fn ($v) => trim((string) $v) !== '');
+        $existingFilled = collect($existingList)->contains(fn ($v) => trim((string) $v) !== '');
+        if (! $incomingFilled && $existingFilled) {
+            return $existingList;
+        }
+
+        return $incoming;
+    }
+
+    /**
+     * @param  array<string, mixed>  $cells
+     */
+    public function countFilledCells(array $cells): int
+    {
+        $count = 0;
+        foreach ($cells as $key => $value) {
+            if (! ctype_digit((string) $key)) {
+                continue;
+            }
+            if ($this->cellIsFilled($this->normalizeCellValue($value))) {
+                $count++;
+            }
+        }
+
+        return $count;
+    }
+
+    /**
+     * Super Admin: remove empty leftover sheets (no lines, no money sources, no pending bills).
+     */
+    public function purgeEmptySummaries(): void
+    {
+        if (! $this->canUnlockClosed()) {
+            Notification::make()
+                ->title(__('agricart.pages.tools.ps_purge_forbidden'))
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $deleted = 0;
+        $query = ToolsPurchaseSummary::query()->where('user_id', auth()->id());
+
+        foreach ($query->cursor() as $summary) {
+            $cells = is_array($summary->cells) ? $summary->cells : [];
+            $money = $this->listMoneySummary($summary);
+            $pendingFilled = collect($this->normalizePendingBillsList($summary->pending_bills))
+                ->contains(fn ($v) => trim((string) $v) !== '');
+
+            if ($this->countFilledCells($cells) > 0) {
+                continue;
+            }
+            if ((float) ($money['sources'] ?? 0) > 0.00001 || (float) ($money['spent'] ?? 0) > 0.00001) {
+                continue;
+            }
+            if ($pendingFilled) {
+                continue;
+            }
+
+            $summary->delete();
+            $deleted++;
+        }
+
+        Notification::make()
+            ->title(__('agricart.pages.tools.ps_purge_done', ['count' => $deleted]))
+            ->success()
+            ->send();
     }
 
     /**
@@ -1699,7 +1959,7 @@ class PurchaseSummaryPage extends BaseModulePage
                 ->first();
 
             if ($row !== null) {
-                if ((string) $row->status === 'closed' && $preferDraft) {
+                if ((string) $row->status === 'closed' && $preferDraft && ! $this->closedUnlocked) {
                     $summaryNo = $service->nextSummaryNumber();
                     $payload['summary_no'] = $summaryNo;
                     $payload['status'] = 'draft';
@@ -1710,9 +1970,18 @@ class PurchaseSummaryPage extends BaseModulePage
                 }
 
                 $payload['summary_no'] = (string) $row->summary_no;
-                if ($preferDraft && (string) $row->status === 'saved') {
+                if ($preferDraft && in_array((string) $row->status, ['saved', 'closed'], true)) {
                     unset($payload['status']);
                 }
+                $payload['cells'] = $this->cellsPayloadForUpdate($row->cells, is_array($payload['cells'] ?? null) ? $payload['cells'] : null);
+                $payload['payment_sources'] = $this->paymentSourcesPayloadForUpdate(
+                    $row->payment_sources,
+                    is_array($payload['payment_sources'] ?? null) ? $payload['payment_sources'] : null,
+                );
+                $payload['pending_bills'] = $this->pendingBillsPayloadForUpdate(
+                    $row->pending_bills,
+                    is_array($payload['pending_bills'] ?? null) ? $payload['pending_bills'] : null,
+                );
                 $row->update($payload);
 
                 return $row->fresh() ?? $row;
