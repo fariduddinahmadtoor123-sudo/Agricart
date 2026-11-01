@@ -1837,8 +1837,13 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
     }
 
     .agricart-catalog-toolbar--expenses > .agricart-catalog-toolbar__actions {
+        display: inline-flex;
+        flex-direction: row;
         flex: 0 0 auto;
         flex-wrap: nowrap;
+        width: auto;
+        justify-content: flex-end;
+        gap: 0.5rem;
     }
 }
 
@@ -1923,6 +1928,153 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
     width: 100%;
     font-family: Arial, sans-serif !important;
     font-size: 0.8125rem;
+}
+
+.agricart-catalog-toolbar__actions {
+    display: inline-flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    flex: 0 0 auto;
+    width: auto;
+}
+
+.agricart-catalog-toolbar__actions > .fi-btn,
+.agricart-catalog-toolbar__action {
+    display: inline-flex;
+    width: auto;
+    flex: 0 0 auto;
+    white-space: nowrap;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.agricart-catalog-toolbar__action--compact-label {
+    font-size: 0.6875rem;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+}
+
+/* Toolbar dropdown panels (filter / columns) */
+.agricart-toolbar-dropdown {
+    position: relative;
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    width: auto;
+}
+
+.agricart-toolbar-dropdown > .fi-btn {
+    display: inline-flex;
+    width: auto;
+    flex: 0 0 auto;
+}
+
+.agricart-toolbar-dropdown__panel {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    inset-inline-end: 0;
+    z-index: 30;
+    width: min(20rem, calc(100vw - 2rem));
+    background-color: var(--agricart-surface);
+    border: 1px solid var(--agricart-border);
+    box-shadow: 0 12px 24px rgb(15 23 42 / 0.08);
+}
+
+.agricart-toolbar-dropdown__panel--enter-start,
+.agricart-toolbar-dropdown__panel--leave-end {
+    opacity: 0;
+}
+
+.agricart-toolbar-dropdown__panel-search {
+    padding: 0.75rem;
+    border-block-end: 1px solid var(--agricart-border);
+}
+
+.agricart-toolbar-dropdown__panel-search .fi-input-wrp {
+    width: 100%;
+}
+
+.agricart-toolbar-dropdown__panel-body {
+    max-height: 16rem;
+    overflow: auto;
+}
+
+.agricart-toolbar-dropdown__list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.agricart-toolbar-dropdown__option {
+    display: block;
+    width: 100%;
+    padding: 0.625rem 0.75rem;
+    border: 0;
+    background: transparent;
+    color: var(--agricart-text);
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    text-align: start;
+    cursor: pointer;
+}
+
+.agricart-toolbar-dropdown__option:hover,
+.agricart-toolbar-dropdown__option:focus-visible {
+    background-color: color-mix(in oklab, var(--agricart-primary) 8%, transparent);
+    color: var(--agricart-primary);
+    outline: none;
+}
+
+.agricart-toolbar-dropdown__option--clear {
+    width: 100%;
+    margin-bottom: 0.375rem;
+    border-bottom: 1px solid var(--agricart-border);
+    font-weight: 700;
+}
+
+.agricart-toolbar-dropdown__group-label {
+    margin: 0.5rem 0.75rem 0.25rem;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--agricart-muted);
+}
+
+.agricart-toolbar-dropdown__list--columns .agricart-toolbar-dropdown__column-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.75rem;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    color: var(--agricart-text);
+    cursor: pointer;
+}
+
+.agricart-toolbar-dropdown__list--columns .agricart-toolbar-dropdown__column-option:hover {
+    background-color: color-mix(in oklab, var(--agricart-primary) 6%, transparent);
+}
+
+.agricart-toolbar-dropdown__column-option input[type='checkbox'] {
+    width: 0.875rem;
+    height: 0.875rem;
+    margin: 0;
+    accent-color: var(--agricart-primary);
+}
+
+.agricart-toolbar-dropdown__empty {
+    margin: 0;
+    padding: 0.75rem;
+    font-family: Arial, sans-serif !important;
+    font-size: 0.8125rem;
+    color: var(--agricart-muted);
 }
 
 /* ── FX Learn Economic Radar ── */
