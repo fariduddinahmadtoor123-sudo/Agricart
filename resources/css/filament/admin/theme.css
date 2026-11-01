@@ -1799,31 +1799,46 @@ html.fi .agricart-placeholder--coming-soon .agricart-placeholder__message {
         justify-content: flex-end;
     }
 
+    /* Keep Expenses search + dates + filters + actions on one row (no column stack). */
+    .agricart-catalog-toolbar--expenses {
+        flex-wrap: nowrap;
+        align-items: center;
+    }
+
     .agricart-catalog-toolbar--expenses .agricart-catalog-toolbar__search--expense-estimate {
-        flex-wrap: wrap;
-        flex: 1 1 100%;
-        width: 100%;
+        flex-wrap: nowrap;
+        flex: 1 1 auto;
+        min-width: 0;
+        width: auto;
     }
 
     .agricart-catalog-toolbar--expenses .agricart-catalog-toolbar__search--expense-estimate > .fi-input-wrp {
-        flex: 1 1 100%;
-        max-width: none;
-        width: 100% !important;
+        flex: 0 1 9rem;
+        max-width: 12rem;
+        min-width: 6rem;
+        width: auto !important;
     }
 
     .agricart-expense-estimate-toolbar {
-        flex: 1 1 100%;
-        width: 100%;
-    }
-
-    .agricart-expense-estimate-toolbar__date {
-        flex: 1 1 0;
+        flex: 0 1 auto;
         width: auto;
         min-width: 0;
     }
 
+    .agricart-expense-estimate-toolbar__date {
+        flex: 0 1 7.5rem;
+        width: auto;
+        min-width: 6.5rem;
+    }
+
     .agricart-expense-estimate-toolbar__total {
-        margin-inline-start: auto;
+        margin-inline-start: 0;
+        flex: 0 0 auto;
+    }
+
+    .agricart-catalog-toolbar--expenses > .agricart-catalog-toolbar__actions {
+        flex: 0 0 auto;
+        flex-wrap: nowrap;
     }
 }
 

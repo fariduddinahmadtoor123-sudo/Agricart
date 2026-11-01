@@ -1,18 +1,23 @@
 {{-- Screen-only: make External Apps A4 sheets usable on phones. Print CSS stays A4. --}}
 <style>
     @media screen and (max-width: 900px) {
-        /* Toolbar / entry chrome */
+        /*
+         * Do NOT wrap the catalog toolbar (search + filters + actions) into a column —
+         * that row must stay one line. Only wrap the in-sheet entry chrome fields.
+         */
         .agricart-catalog-toolbar--tools-reorder,
         .agricart-catalog-toolbar--tools-ps,
-        .agricart-catalog-toolbar--tools-pp {
-            flex-wrap: wrap !important;
+        .agricart-catalog-toolbar--tools-pp,
+        .agricart-catalog-toolbar--tools-he {
+            flex-wrap: nowrap !important;
+            align-items: center !important;
         }
         .agricart-ro-toolbar-slot,
         .agricart-ps-toolbar-slot,
-        .agricart-pp-toolbar-slot {
-            flex: 1 1 100% !important;
+        .agricart-pp-toolbar-slot,
+        .agricart-he-toolbar-slot {
+            flex: 1 1 auto !important;
             min-width: 0 !important;
-            max-width: none !important;
         }
         .agricart-ro-chrome,
         .agricart-pp-chrome {
