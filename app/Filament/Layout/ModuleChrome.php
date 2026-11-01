@@ -137,6 +137,13 @@ class ModuleChrome
                 'toolbar' => FxLearnPageToolbar::class,
                 'navLabel' => 'FX Learn',
             ],
+            [
+                'key' => 'vault',
+                'path' => 'admin/vault',
+                'subNavigation' => VaultSubNavigation::class,
+                'toolbar' => VaultPageToolbar::class,
+                'navLabel' => 'Personal Vault',
+            ],
         ];
 
         return array_map(

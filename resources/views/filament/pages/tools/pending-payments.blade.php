@@ -1,5 +1,6 @@
 <x-filament-panels::page>
     @include('filament.pages.tools.partials.pending-payments-styles')
+    @include('filament.pages.tools.partials.tools-a4-mobile')
 
     @if ($screen === 'form')
         @php

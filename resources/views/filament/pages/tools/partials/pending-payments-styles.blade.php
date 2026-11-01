@@ -44,6 +44,7 @@
     .agricart-pp-paybox input{border:1px solid #cbd5e1;border-radius:5px;padding:4px 6px;font-size:12px}
     @media print{
         @page{size:A4;margin:4mm}
+        .agricart-pp-sheet{width:100%!important;max-width:none!important;min-width:0!important}
         html,body{background:#fff!important}
         .fi-sidebar,.fi-sidebar-close-overlay,.fi-topbar,.fi-topbar-ctn,.fi-header,.fi-breadcrumbs,.fi-page-header,
         .fi-page-sub-navigation-tabs,.fi-global-search,.fi-notifications,.fi-modal,.agricart-catalog-subnav,

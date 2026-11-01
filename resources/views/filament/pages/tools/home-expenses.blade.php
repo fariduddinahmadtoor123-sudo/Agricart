@@ -52,6 +52,11 @@
             position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:1rem
         }
         .agricart-he__modal-backdrop{position:absolute;inset:0;z-index:0;background:rgba(15,23,42,.45);backdrop-filter:blur(2px)}
+        @media screen and (max-width:640px){
+            .agricart-he__modal-card{width:min(100vw - 1rem,28rem)!important;max-height:90vh}
+            .agricart-he__totals{flex-direction:column;align-items:flex-start}
+            .agricart-ro-list__actions{justify-content:flex-start!important}
+        }
         .agricart-he__modal-card{
             position:relative;z-index:1;width:min(100%,24rem);max-height:min(92vh,34rem);
             display:flex;flex-direction:column;border-radius:1rem;background:#fff;

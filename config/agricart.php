@@ -55,6 +55,32 @@ return [
         'service',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Personal Vault (private per-user file box)
+    |--------------------------------------------------------------------------
+    */
+    'personal_vault' => [
+        'default_quota_mb' => (int) env('AGRICART_VAULT_QUOTA_MB', 100),
+        'max_file_mb' => (int) env('AGRICART_VAULT_MAX_FILE_MB', 8),
+        'max_files' => (int) env('AGRICART_VAULT_MAX_FILES', 50),
+        'max_secrets' => (int) env('AGRICART_VAULT_MAX_SECRETS', 100),
+        /** Days before valid_until to show renew reminder (licence, CNIC, etc.) */
+        'reminder_days' => (int) env('AGRICART_VAULT_REMINDER_DAYS', 30),
+        'allowed_extensions' => ['jpg', 'jpeg', 'png', 'webp', 'gif', 'pdf', 'doc', 'docx', 'xls', 'xlsx'],
+        'allowed_mimes' => [
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+            'image/gif',
+            'application/pdf',
+            'application/msword',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.ms-excel',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ],
+    ],
+
     'sms' => [
         'driver' => env('AGRICART_SMS_DRIVER', 'log'),
     ],

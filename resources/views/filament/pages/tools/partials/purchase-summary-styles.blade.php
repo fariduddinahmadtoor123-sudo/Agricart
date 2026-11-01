@@ -105,6 +105,8 @@
     .agricart-ro-phrasepick__opt:hover,.agricart-ro-phrasepick__opt.is-active{background:#e2e8f0}
     @media print{
         @page{size:A4;margin:4mm}
+        .agricart-ro-sheet__body{flex-direction:row!important;gap:0!important}
+        .agricart-ro-sheet,.agricart-ro-fulfill-banner{width:100%!important;max-width:none!important;min-width:0!important}
         html,body{background:#fff!important}
         .fi-sidebar,.fi-sidebar-close-overlay,.fi-topbar,.fi-topbar-ctn,.fi-header,.fi-breadcrumbs,.fi-page-header,
         .fi-page-sub-navigation-tabs,.fi-page-sub-navigation-sidebar-ctn,.fi-page-sub-navigation-dropdown,

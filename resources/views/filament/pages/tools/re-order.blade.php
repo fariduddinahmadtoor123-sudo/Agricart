@@ -1,4 +1,5 @@
 <x-filament-panels::page>
+    @include('filament.pages.tools.partials.tools-a4-mobile')
     <style>
         /* Toolbar (works without Vite rebuild) */
         .agricart-catalog-toolbar--tools-reorder{flex-wrap:nowrap;gap:.5rem .65rem;align-items:center}
@@ -271,14 +272,7 @@
             font:inherit;font-size:11px;line-height:1.3;color:#111;
             padding:2px 0;margin:0;min-height:1.4em;box-sizing:border-box;
         }
-        @media (max-width:820px){
-            .agricart-ro-meta{gap:4px 0}
-            .agricart-ro-meta__item{border-inline-end:0;padding:0 8px 0 0}
-            .agricart-ro-meta__item:last-child{margin-inline-start:0;text-align:start}
-            .agricart-ro-entry{flex-wrap:wrap}
-            .agricart-ro-entry__input{flex:1 1 100%}
-            .agricart-ro-sheet{min-height:0}
-        }
+        {{-- Mobile A4 behaviour: tools/partials/tools-a4-mobile.blade.php --}}
         @media print{
             @page{size:A4;margin:4mm}
             html,body{background:#fff !important}
@@ -334,7 +328,8 @@
                 print-color-adjust:exact;-webkit-print-color-adjust:exact;
             }
             .agricart-ro-sheet:last-child{page-break-after:auto;break-after:auto}
-            .agricart-ro-sheet__body{flex:1 1 auto !important;min-height:0 !important}
+            .agricart-ro-sheet__body{flex:1 1 auto !important;min-height:0 !important;flex-direction:row !important;gap:0 !important}
+            .agricart-ro-grid-col{width:auto !important}
             .agricart-ro-grid th,.agricart-ro-grid td,
             .agricart-ro-grid tbody tr{height:8.4mm !important}
             .agricart-ro-grid thead th{height:6mm !important}

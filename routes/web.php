@@ -29,6 +29,7 @@ use App\Http\Controllers\Admin\StaffMessengerController;
 use App\Http\Middleware\ReleaseSessionLockForPolling;
 use App\Http\Controllers\Admin\TopbarNotificationController;
 use App\Http\Controllers\Admin\TopbarSearchController;
+use App\Http\Controllers\Admin\PersonalVaultFileController;
 use App\Http\Controllers\Admin\UserDocumentController;
 use App\Http\Controllers\Admin\VisitorAnalyticsExportController;
 use App\Http\Controllers\SchedulerRunController;
@@ -248,6 +249,9 @@ Route::middleware(['web', 'auth', AuthenticateSession::class, EnsureActiveAdminU
     Route::get('/users/{user}/documents/{side}', UserDocumentController::class)
         ->whereIn('side', ['front', 'back'])
         ->name('admin.users.documents.show');
+    Route::get('/vault/files/{file}', PersonalVaultFileController::class)
+        ->whereNumber('file')
+        ->name('admin.vault.files.show');
     Route::get('/store/visitor-analytics/export', VisitorAnalyticsExportController::class)
         ->name('admin.store.visitor-analytics.export');
     Route::get('/backups/{backupId}/download', [BackupDownloadController::class, 'download'])

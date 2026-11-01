@@ -31,6 +31,7 @@ class PermissionRegistry
             'docs' => ['Docs', 'دستاویزات'],
             'tools' => ['External Apps', 'بیرونی ایپس'],
             'fx-learn' => ['FX Learn', 'FX Learn'],
+            'vault' => ['Personal Vault', 'پرسنل والٹ'],
         ];
 
         $moduleHints = [
@@ -101,6 +102,10 @@ class PermissionRegistry
             'fx-learn' => [
                 'en' => 'Grant each FX Learn page separately. Economic Radar Edit = AI analyze. Trade Terminal Edit = demo trades + multi-account switch/create. Account Types Edit = challenge sizes/rules. Account History Edit = see all users’ demo accounts. Strategies and Learning Course are view-only for now.',
                 'ur' => 'FX Learn کا ہر صفحہ الگ دیں۔ Economic Radar Edit = AI تجزیہ۔ Trade Terminal Edit = ڈیمو ٹریڈ + ملٹی اکاؤنٹ۔ Account Types Edit = چیلنج رولز۔ Account History Edit = تمام یوزرز کے اکاؤنٹس۔ Strategies / Learning Course ابھی صرف View۔',
+            ],
+            'vault' => [
+                'en' => 'My Box is each user’s private files (quota limited). All Boxes is Super Admin only — viewing every staff vault.',
+                'ur' => 'My Box ہر یوزر کی ذاتی فائلیں (کوٹہ حد)۔ All Boxes صرف سپر ایڈمن — سب کے باکس دیکھنا۔',
             ],
         ];
 
@@ -348,6 +353,11 @@ class PermissionRegistry
                 'strategies' => ['label_en' => 'Strategies', 'label_ur' => 'سٹریٹجیز', 'actions' => $viewOnly],
                 'learning-course' => ['label_en' => 'Learning Course', 'label_ur' => 'لرننگ کورس', 'actions' => $viewOnly],
                 'account-history' => ['label_en' => 'Account History', 'label_ur' => 'اکاؤنٹ ہسٹری', 'actions' => $viewEdit],
+            ],
+            'vault' => [
+                'my-box' => ['label_en' => 'My Box', 'label_ur' => 'میرا باکس', 'actions' => $crud],
+                // Super Admin gate in page canAccess(); still listed for Roles clarity (view = open page).
+                'all-boxes' => ['label_en' => 'All Boxes', 'label_ur' => 'تمام باکسز', 'actions' => $viewOnly, 'form' => false],
             ],
         ];
     }

@@ -14,7 +14,8 @@ class PrivateDocumentStorage
         $path = ltrim(str_replace('\\', '/', $path), '/');
 
         return str_starts_with($path, 'users/cnic/')
-            || str_starts_with($path, 'online-orders/customer-receipts/');
+            || str_starts_with($path, 'online-orders/customer-receipts/')
+            || str_starts_with($path, 'personal-vault/');
     }
 
     /**

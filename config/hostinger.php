@@ -33,7 +33,7 @@ return [
         trim(...),
         explode(',', env(
             'HOSTINGER_STORAGE_MIRROR_EXCLUSIONS',
-            'private,livewire-tmp,users/cnic,online-orders/customer-receipts,online-orders/payment-proofs,online-orders/shipping-proofs',
+            'private,livewire-tmp,users/cnic,personal-vault,online-orders/customer-receipts,online-orders/payment-proofs,online-orders/shipping-proofs',
         ))
     ))),
 
