@@ -15,8 +15,9 @@ return [
                 'type' => 'purpose',
                 'heading' => 'Purpose',
                 'paragraphs' => [
-                    'Docs Overview is the central entry point for documentation covering all 15 modules. Status dots distinguish simple briefs, detailed guides, live pages, and planned pages.',
+                    'Docs Overview is the central entry point for documentation covering all Agricart modules. Status dots distinguish simple briefs, detailed guides, live pages, and planned pages.',
                     'Simple briefs serve owners, new staff, and AI handoffs. Detailed guides preserve routes, permissions, fields, services, and code-verified behaviour for developers.',
+                    'A plain-language full menu map (Urdu) is at docs/drops/agricart-general-map-ur.md — copy and keep it locally.',
                 ],
             ],
             [
