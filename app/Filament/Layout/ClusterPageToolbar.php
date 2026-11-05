@@ -134,6 +134,7 @@ abstract class ClusterPageToolbar
             'sales-quotations' => 'sale-quotations',
             'sales-returns' => 'sale-returns',
             'online-quotations' => 'online-orders',
+            'cancelled-quotations' => 'online-orders',
             'online-orders' => 'online-orders',
             'order-dispatch' => 'online-orders',
             'forwarded-orders' => 'online-orders',

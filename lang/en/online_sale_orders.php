@@ -109,8 +109,10 @@ return [
     'filters' => [
         'order' => 'Order status',
         'queue' => 'Queue status',
+        'cancel_source' => 'Cancelled via',
         'active_order_status' => 'Status: :status',
         'active_queue_status' => 'Queue: :status',
+        'active_cancel_source' => 'Via: :source',
     ],
 
     'queue_statuses' => [
@@ -149,6 +151,8 @@ return [
         'quotations_note' => 'These are online quotations (checkout before invoice). After you verify payment and Convert into Invoice, they appear in Online Orders in Queue for forwarding.',
         'quotations_empty' => 'No online quotations yet.',
         'quotations_empty_hint' => 'Quotations appear when a customer completes checkout on the store.',
+        'cancelled_empty' => 'No cancelled quotations yet.',
+        'cancelled_empty_hint' => 'Cancelled quotations keep their order numbers here for history. They are not deleted.',
         'invoices_note' => 'Paid invoices waiting for the dispatch queue. Permanent records stay on Sales & POS. Use Send Invoice to Queue or Send Packing List to Queue when ready.',
         'invoices_empty' => 'No invoices waiting for the queue.',
         'invoices_empty_hint' => 'Convert a quotation into an invoice from Online Quotations after payment is verified.',
@@ -165,6 +169,10 @@ return [
         'col_queue_status' => 'Queue',
         'col_queue_document' => 'Queue document',
         'col_customer_payment' => 'Customer payment',
+        'col_cancel_source' => 'Cancelled via',
+        'col_cancelled_by' => 'Cancelled by',
+        'col_cancel_reason' => 'Reason',
+        'col_cancelled_at' => 'Cancelled at',
         'col_order_date' => 'Order date',
         'col_created' => 'Placed at',
         'col_actions' => 'Actions',

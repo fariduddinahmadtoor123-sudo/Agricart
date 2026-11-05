@@ -676,6 +676,7 @@ class Form extends Component
             $this->loadOrder($this->orderId);
             $this->dispatch('online-sale-orders-saved');
             $this->dispatch('online-quotations-saved');
+            $this->dispatch('cancelled-quotations-saved');
         } catch (ValidationException $exception) {
             $message = collect($exception->errors())->flatten()->first() ?? __('online_sale_orders.messages.save_failed');
             $this->setStatus((string) $message, 'error');

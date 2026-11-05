@@ -143,6 +143,7 @@ class ListOnlineSaleQuotations extends Component
     {
         $order = OnlineSaleOrder::query()
             ->where('order_status', '!=', OnlineSaleOrder::STATUS_CONVERTED)
+            ->where('order_status', '!=', OnlineSaleOrder::STATUS_CANCELLED)
             ->find($orderId);
 
         if ($order === null) {
@@ -166,6 +167,7 @@ class ListOnlineSaleQuotations extends Component
         $orders = OnlineSaleOrder::query()
             ->with(['customer', 'sale'])
             ->where('order_status', '!=', OnlineSaleOrder::STATUS_CONVERTED)
+            ->where('order_status', '!=', OnlineSaleOrder::STATUS_CANCELLED)
             ->when(filled($this->search), function ($query): void {
                 $needle = '%' . $this->search . '%';
                 $query->where(function ($inner) use ($needle): void {

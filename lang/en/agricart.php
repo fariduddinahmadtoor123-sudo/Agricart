@@ -355,7 +355,7 @@ return [
         ],
         'sales' => [
             'overview' => 'Overview', 'pos-sales' => 'Sales & POS',
-            'online-quotations' => 'Online Quotations', 'online-orders' => 'Ready for Queue', 'order-dispatch' => 'Online Orders in Queue', 'forwarded-orders' => 'Forwarded', 'sales-quotations' => 'Sale Quotations', 'sales-returns' => 'Sale Returns', 'inbox' => 'Staff Inbox', 'tasks' => 'Tasks',
+            'online-quotations' => 'Online Quotations', 'cancelled-quotations' => 'Cancelled Quotations', 'online-orders' => 'Ready for Queue', 'order-dispatch' => 'Online Orders in Queue', 'forwarded-orders' => 'Forwarded', 'sales-quotations' => 'Sale Quotations', 'sales-returns' => 'Sale Returns', 'inbox' => 'Staff Inbox', 'tasks' => 'Tasks',
         ],
         'store' => ['overview' => 'Overview', 'top-bar' => 'Top Bar', 'ticker' => 'Ticker', 'header' => 'Header', 'menu' => 'Menu', 'hero-slider' => 'Hero Slider', 'pages' => 'Pages', 'footer' => 'Footer', 'items' => 'Items', 'messages' => 'Agricart Inbox', 'reviews' => 'Reviews', 'testimonials' => 'Testimonials', 'blog' => 'Blog', 'visitor-analytics' => 'Visitor Analytics', 'seo' => 'SEO', 'about' => 'About', 'registration' => 'Registration', 'brand-reviews' => 'Brand Reviews'],
         'logistics' => ['overview' => 'Overview', 'delivery-methods' => 'Delivery Methods', 'shipments' => 'Pending', 'shipped' => 'Shipped', 'delivered' => 'Delivered'],

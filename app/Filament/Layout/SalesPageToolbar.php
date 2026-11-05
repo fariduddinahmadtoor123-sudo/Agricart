@@ -134,6 +134,28 @@ class SalesPageToolbar extends ClusterPageToolbar
                     ['label' => __('online_sale_orders.list.col_created'), 'value' => 'created_at', 'visible' => true],
                 ],
             ],
+            'cancelled-quotations' => [
+                ...$config,
+                'livewirePrefix' => 'cancelled-quotations',
+                'columnDataAttr' => 'data-cancelled-quotation-column',
+                'interactive' => true,
+                'formKey' => 'online-orders',
+                'addLabel' => null,
+                'compactAddButton' => false,
+                'filterGroups' => static::cancelledQuotationFilterGroups(),
+                'filters' => [],
+                'columns' => [
+                    ['label' => __('online_sale_orders.list.col_number'), 'value' => 'order_number', 'visible' => true],
+                    ['label' => __('online_sale_orders.list.col_customer'), 'value' => 'customer', 'visible' => true],
+                    ['label' => __('online_sale_orders.list.col_total'), 'value' => 'total_amount', 'visible' => true],
+                    ['label' => __('online_sale_orders.list.col_cancel_source'), 'value' => 'cancellation_source', 'visible' => true],
+                    ['label' => __('online_sale_orders.list.col_cancelled_by'), 'value' => 'cancelled_by', 'visible' => true],
+                    ['label' => __('online_sale_orders.list.col_cancel_reason'), 'value' => 'cancellation_reason', 'visible' => true],
+                    ['label' => __('online_sale_orders.list.col_cancelled_at'), 'value' => 'cancelled_at', 'visible' => true],
+                    ['label' => __('online_sale_orders.list.col_order_date'), 'value' => 'order_date', 'visible' => true],
+                    ['label' => __('online_sale_orders.list.col_created'), 'value' => 'created_at', 'visible' => true],
+                ],
+            ],
             'online-orders' => [
                 ...$config,
                 'livewirePrefix' => 'online-orders',
@@ -406,7 +428,7 @@ class SalesPageToolbar extends ClusterPageToolbar
     {
         $orderFilters = [];
         foreach (OnlineSaleOrder::STATUSES as $status) {
-            if ($status === OnlineSaleOrder::STATUS_CONVERTED) {
+            if (in_array($status, [OnlineSaleOrder::STATUS_CONVERTED, OnlineSaleOrder::STATUS_CANCELLED], true)) {
                 continue;
             }
 
@@ -432,6 +454,27 @@ class SalesPageToolbar extends ClusterPageToolbar
             [
                 'label' => __('pos.filters.payment'),
                 'filters' => $paymentFilters,
+            ],
+        ];
+    }
+
+    /**
+     * @return list<array{label: string, filters: list<array{label: string, value: string}>}>
+     */
+    protected static function cancelledQuotationFilterGroups(): array
+    {
+        $sourceFilters = [];
+        foreach (OnlineSaleOrder::CANCEL_SOURCES as $source) {
+            $sourceFilters[] = [
+                'label' => __('online_sale_orders.cancel.sources.'.$source),
+                'value' => 'source:'.$source,
+            ];
+        }
+
+        return [
+            [
+                'label' => __('online_sale_orders.filters.cancel_source'),
+                'filters' => $sourceFilters,
             ],
         ];
     }

@@ -116,8 +116,10 @@ return [
     'filters' => [
         'order' => 'آرڈر سٹیٹس',
         'queue' => 'کیو سٹیٹس',
+        'cancel_source' => 'کینسل ذریعہ',
         'active_order_status' => 'سٹیٹس: :status',
         'active_queue_status' => 'کیو: :status',
+        'active_cancel_source' => 'ذریعہ: :source',
     ],
 
     'queue_statuses' => [
@@ -156,6 +158,8 @@ return [
         'quotations_note' => 'یہ آن لائن کوٹیشنز ہیں (انوائس سے پہلے چیک آؤٹ)۔ ادائیگی تصدیق اور Convert into Invoice کے بعد یہ Online Orders in Queue پر فارورڈ کے لیے آ جاتی ہیں۔',
         'quotations_empty' => 'ابھی کوئی آن لائن کوٹیشن نہیں۔',
         'quotations_empty_hint' => 'گاہک سٹور پر چیک آؤٹ مکمل کرے تو کوٹیشن یہاں آئے گی۔',
+        'cancelled_empty' => 'ابھی کوئی کینسلڈ کوٹیشن نہیں۔',
+        'cancelled_empty_hint' => 'کینسلڈ کوٹیشنز کا نمبر تاریخ کے لیے یہاں محفوظ رہتا ہے — انہیں ڈیلیٹ نہیں کیا جاتا۔',
         'invoices_note' => 'ادا شدہ انوائسز جو کیو کے انتظار میں ہیں۔ مستقل ریکارڈ Sales & POS پر۔ تیار ہوں تو Send Invoice to Queue یا Send Packing List to Queue استعمال کریں۔',
         'invoices_empty' => 'کیو کے انتظار میں کوئی انوائس نہیں۔',
         'invoices_empty_hint' => 'Online Quotations سے ادائیگی تصدیق کے بعد Convert into Invoice کریں۔',
@@ -172,6 +176,10 @@ return [
         'col_queue_status' => 'کیو',
         'col_queue_document' => 'کیو دستاویز',
         'col_customer_payment' => 'گاہک کی ادائیگی',
+        'col_cancel_source' => 'کینسل ذریعہ',
+        'col_cancelled_by' => 'کینسل کنندہ',
+        'col_cancel_reason' => 'وجہ',
+        'col_cancelled_at' => 'کینسل وقت',
         'col_order_date' => 'آرڈر تاریخ',
         'col_created' => 'وقت',
         'col_actions' => 'عمل',

@@ -201,6 +201,7 @@ class ModuleNotificationService
     {
         return OnlineSaleOrder::query()
             ->where('order_status', '!=', OnlineSaleOrder::STATUS_CONVERTED)
+            ->where('order_status', '!=', OnlineSaleOrder::STATUS_CANCELLED)
             ->where(function ($query): void {
                 $query
                     ->where('order_status', OnlineSaleOrder::STATUS_PENDING)

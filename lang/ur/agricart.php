@@ -354,7 +354,7 @@ return [
         ],
         'sales' => [
             'overview' => 'جائزہ', 'pos-sales' => 'سیلز اینڈ پی او ایس',
-            'online-quotations' => 'آن لائن کوٹیشنز', 'online-orders' => 'Ready for Queue', 'order-dispatch' => 'آن لائن آرڈرز ان کیو', 'forwarded-orders' => 'فارورڈڈ', 'sales-quotations' => 'سیل کوٹیشنز', 'sales-returns' => 'سیل ریٹرنز', 'inbox' => 'اسٹاف ان باکس', 'tasks' => 'ٹاسکس',
+            'online-quotations' => 'آن لائن کوٹیشنز', 'cancelled-quotations' => 'کینسلڈ کوٹیشنز', 'online-orders' => 'Ready for Queue', 'order-dispatch' => 'آن لائن آرڈرز ان کیو', 'forwarded-orders' => 'فارورڈڈ', 'sales-quotations' => 'سیل کوٹیشنز', 'sales-returns' => 'سیل ریٹرنز', 'inbox' => 'اسٹاف ان باکس', 'tasks' => 'ٹاسکس',
         ],
         'store' => ['overview' => 'جائزہ', 'top-bar' => 'اوپر پٹی', 'ticker' => 'ٹکر', 'header' => 'ہیڈر', 'menu' => 'مینیو', 'hero-slider' => 'ہیرو سلائیڈر', 'pages' => 'صفحات', 'footer' => 'فٹر', 'items' => 'اشیاء', 'messages' => 'ایگری کارٹ ان باکس', 'reviews' => 'ریویوز', 'testimonials' => 'Testimonials', 'blog' => 'بلاگ', 'visitor-analytics' => 'وزیٹر اینالیٹکس', 'seo' => 'SEO', 'about' => 'About', 'registration' => 'رجسٹریشن نوٹس', 'brand-reviews' => 'Brand Reviews'],
         'logistics' => ['overview' => 'جائزہ', 'delivery-methods' => 'ڈیلیوری طریقے', 'shipments' => 'زیر التوا', 'shipped' => 'بھیجے گئے', 'delivered' => 'ڈلیورڈ'],
