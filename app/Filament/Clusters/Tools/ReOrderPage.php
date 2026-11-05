@@ -97,9 +97,13 @@ class ReOrderPage extends BaseModulePage
     public string $formMode = 'edit';
 
     #[On('tools-reorder-search')]
-    public function updateSearch(string $query): void
+    public function updateSearch(mixed $query = ''): void
     {
-        $this->search = $query;
+        if (is_array($query)) {
+            $query = $query['query'] ?? $query[0] ?? '';
+        }
+
+        $this->search = trim((string) $query);
     }
 
     public function isViewMode(): bool
@@ -668,9 +672,10 @@ class ReOrderPage extends BaseModulePage
     protected function emitReorderScreen(string $screen): void
     {
         $mode = $screen === 'form' ? $this->formMode : 'edit';
-        $this->dispatch('tools-reorder-screen', screen: $screen, formMode: $mode);
+        $lang = $this->formLang;
+        $this->dispatch('tools-reorder-screen', screen: $screen, formMode: $mode, formLang: $lang);
         $this->js(
-            'window.dispatchEvent(new CustomEvent("tools-reorder-screen",{detail:{screen:'.json_encode($screen).',formMode:'.json_encode($mode).'}}))'
+            'window.dispatchEvent(new CustomEvent("tools-reorder-screen",{detail:{screen:'.json_encode($screen).',formMode:'.json_encode($mode).',formLang:'.json_encode($lang).'}}))'
         );
     }
 

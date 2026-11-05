@@ -17,6 +17,7 @@ return [
         'view_customer_receipt' => 'گاہک کی رسید دیکھیں',
         'verify_payment' => 'ادائیگی تصدیق کریں',
         'reject_payment' => 'مسترد',
+        'cancel_order' => 'کوٹیشن کینسل کریں',
     ],
 
     'forward' => [
@@ -63,6 +64,9 @@ return [
         'pos_invoice' => 'POS انوائس',
         'converted_by' => 'کنورٹ کرنے والا',
         'converted_at' => 'کنورٹ وقت',
+        'cancelled_by' => 'کینسل کرنے والا',
+        'cancellation_reason' => 'کینسل کی وجہ',
+        'cancellation_source' => 'کینسل کا طریقہ',
         'queue_status' => 'کیو',
         'customer_payment_method' => 'گاہک نے بتایا',
         'customer_payment_reference' => 'ٹرانزیکشن حوالہ',
@@ -81,6 +85,16 @@ return [
         'shipping' => 'ڈیلیوری',
         'customer_payment' => 'ادائیگی (گاہک نے بتائی)',
         'admin_payment' => 'ادائیگی کی تصدیق (ایڈمن)',
+        'cancellation' => 'کوٹیشن کینسل',
+    ],
+
+    'cancel' => [
+        'auto_reason' => 'ادائیگی مقررہ مدت میں موصول نہ ہونے کی وجہ سے خودکار طور پر کینسل کر دی گئی۔',
+        'system_actor' => 'سسٹم (خودکار)',
+        'sources' => [
+            'manual' => 'مینوئل (اسٹاف)',
+            'automatic' => 'خودکار (غیر ادا شدہ ٹائم آؤٹ)',
+        ],
     ],
 
     'columns' => [
@@ -123,6 +137,9 @@ return [
         'reject_payment_note' => 'گاہک کے لیے وجہ (اختیاری)',
         'amount_received' => 'بینک میں اصل موصول رقم لکھیں (کل سے کم بھی ہو سکتی ہے)',
         'pending_payment' => 'ادائیگی زیر التوا',
+        'cancel_order' => 'اس غیر ادا شدہ کوٹیشن کو کینسل کریں۔ وجہ لازمی ہے اور آپ کے یوزر کے ساتھ محفوظ ہو گی۔',
+        'cancellation_reason' => 'کینسل کی وجہ (لازمی)',
+        'cancel_confirm' => 'یہ کوٹیشن کینسل کریں؟ گاہک کو Agricart ان باکس میں اطلاع جائے گی۔',
     ],
 
     'payment_proof_statuses' => [
@@ -176,11 +193,17 @@ return [
         'proof_not_submitted' => 'جائزے کے لیے کوئی رسید زیر التوا نہیں۔',
         'proof_verified' => 'گاہک کی ادائیگی تصدیق ہو گئی۔',
         'proof_rejected' => 'گاہک کی رسید مسترد کر دی گئی۔',
+        'cancelled' => 'کوٹیشن :number کینسل ہو گئی۔',
     ],
 
     'validation' => [
         'items_required' => 'کم از کم ایک پروڈکٹ ضروری ہے۔',
         'converted_locked' => 'یہ آرڈر پہلے ہی سیل میں تبدیل ہو چکا ہے۔',
+        'already_cancelled' => 'یہ کوٹیشن پہلے ہی کینسل ہو چکی ہے۔',
+        'use_cancel_action' => 'کوٹیشن کینسل کرنے کے لیے Cancel بٹن استعمال کریں اور وجہ لکھیں۔',
+        'cancellation_reason_required' => 'کینسل کی وجہ لکھیں (کم از کم ۳ حروف)۔',
+        'cancellation_reason_max' => 'کینسل کی وجہ بہت لمبی ہے۔',
+        'not_eligible_auto_cancel' => 'یہ کوٹیشن خودکار غیر ادا شدہ کینسل کے لیے اہل نہیں۔',
         'fulfillment_requires_invoice' => 'فلфилمنٹ صرف Convert into Invoice کے بعد اپ ڈیٹ ہو سکتی ہے۔',
         'fulfillment_requires_queue' => 'فلфилمنٹ صرف Send to Queue کے بعد اپ ڈیٹ ہو سکتی ہے۔',
         'queue_requires_invoice' => 'صرف کنورٹ شدہ انوائسز ڈسپیچ کیو میں بھیجی جا سکتی ہیں۔',

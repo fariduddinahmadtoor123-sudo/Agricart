@@ -17,6 +17,7 @@ return [
         'view_customer_receipt' => 'View customer receipt',
         'verify_payment' => 'Verify payment',
         'reject_payment' => 'Reject',
+        'cancel_order' => 'Cancel quotation',
     ],
 
     'forward' => [
@@ -56,6 +57,9 @@ return [
         'pos_invoice' => 'POS Invoice',
         'converted_by' => 'Converted by',
         'converted_at' => 'Converted at',
+        'cancelled_by' => 'Cancelled by',
+        'cancellation_reason' => 'Cancellation reason',
+        'cancellation_source' => 'Cancelled via',
         'queue_status' => 'Queue',
         'customer_payment_method' => 'Customer selected',
         'customer_payment_reference' => 'Transaction reference',
@@ -74,6 +78,16 @@ return [
         'shipping' => 'Delivery',
         'customer_payment' => 'Payment (customer declared)',
         'admin_payment' => 'Payment verification (admin)',
+        'cancellation' => 'Cancel quotation',
+    ],
+
+    'cancel' => [
+        'auto_reason' => 'Automatically cancelled because payment was not received within the waiting period.',
+        'system_actor' => 'System (automatic)',
+        'sources' => [
+            'manual' => 'Manual (staff)',
+            'automatic' => 'Automatic (unpaid timeout)',
+        ],
     ],
 
     'columns' => [
@@ -116,6 +130,9 @@ return [
         'reject_payment_note' => 'Reason for customer (optional)',
         'amount_received' => 'Enter what actually landed in the bank (can be less than total)',
         'pending_payment' => 'Pending payment',
+        'cancel_order' => 'Cancel this unpaid quotation. A reason is required and will be stored with your user history.',
+        'cancellation_reason' => 'Reason for cancellation (required)',
+        'cancel_confirm' => 'Cancel this quotation? The customer will be notified in their Agricart inbox.',
     ],
 
     'payment_proof_statuses' => [
@@ -169,11 +186,17 @@ return [
         'proof_not_submitted' => 'No customer receipt is pending review.',
         'proof_verified' => 'Customer payment verified.',
         'proof_rejected' => 'Customer payment proof rejected.',
+        'cancelled' => 'Quotation :number cancelled.',
     ],
 
     'validation' => [
         'items_required' => 'Add at least one product.',
         'converted_locked' => 'This order is already converted to a sale.',
+        'already_cancelled' => 'This quotation is already cancelled.',
+        'use_cancel_action' => 'Use the Cancel quotation action and provide a reason.',
+        'cancellation_reason_required' => 'Enter a cancellation reason (at least 3 characters).',
+        'cancellation_reason_max' => 'Cancellation reason is too long.',
+        'not_eligible_auto_cancel' => 'This quotation is not eligible for automatic unpaid cancellation.',
         'fulfillment_requires_invoice' => 'Fulfillment can only be updated after Convert into Invoice.',
         'fulfillment_requires_queue' => 'Fulfillment can only be updated after Send to Queue.',
         'queue_requires_invoice' => 'Only converted invoices can be sent to the dispatch queue.',

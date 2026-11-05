@@ -93,9 +93,13 @@ class PurchaseSummaryPage extends BaseModulePage
     public bool $closedUnlocked = false;
 
     #[On('tools-purchase-summary-search')]
-    public function updateSearch(string $query): void
+    public function updateSearch(mixed $query = ''): void
     {
-        $this->search = $query;
+        if (is_array($query)) {
+            $query = $query['query'] ?? $query[0] ?? '';
+        }
+
+        $this->search = trim((string) $query);
     }
 
     public function isViewMode(): bool
@@ -112,6 +116,33 @@ class PurchaseSummaryPage extends BaseModulePage
         $user = auth()->user();
 
         return $user instanceof User && $user->isSuperAdmin();
+    }
+
+    public function canBrowseTeamSummaries(): bool
+    {
+        return $this->canUnlockClosed();
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder<ToolsPurchaseSummary>
+     */
+    protected function ownedSummariesQuery()
+    {
+        return ToolsPurchaseSummary::query()->where('user_id', auth()->id());
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder<ToolsPurchaseSummary>
+     */
+    protected function accessibleSummariesQuery()
+    {
+        $query = ToolsPurchaseSummary::query();
+
+        if (! $this->canBrowseTeamSummaries()) {
+            $query->where('user_id', auth()->id());
+        }
+
+        return $query;
     }
 
     #[On('tools-purchase-summary-action')]
@@ -225,19 +256,15 @@ class PurchaseSummaryPage extends BaseModulePage
 
     public function openSummary(int $id): void
     {
-        $summary = ToolsPurchaseSummary::query()
-            ->where('user_id', auth()->id())
-            ->whereKey($id)
-            ->firstOrFail();
-
-        $mode = (string) $summary->status === 'closed' ? 'view' : 'edit';
+        $summary = $this->accessibleSummariesQuery()->whereKey($id)->firstOrFail();
+        $isOwner = (int) $summary->user_id === (int) auth()->id();
+        $mode = ((string) $summary->status === 'closed' || ! $isOwner) ? 'view' : 'edit';
         $this->loadSummaryIntoForm($id, $mode);
     }
 
     public function editSummary(int $id): void
     {
-        $summary = ToolsPurchaseSummary::query()
-            ->where('user_id', auth()->id())
+        $summary = $this->ownedSummariesQuery()
             ->whereKey($id)
             ->firstOrFail();
 
@@ -274,8 +301,7 @@ class PurchaseSummaryPage extends BaseModulePage
             return;
         }
 
-        $summary = ToolsPurchaseSummary::query()
-            ->where('user_id', auth()->id())
+        $summary = $this->ownedSummariesQuery()
             ->whereKey($id)
             ->where('status', 'closed')
             ->firstOrFail();
@@ -292,8 +318,7 @@ class PurchaseSummaryPage extends BaseModulePage
     {
         $this->authorizeCreate();
 
-        $summary = ToolsPurchaseSummary::query()
-            ->where('user_id', auth()->id())
+        $summary = $this->ownedSummariesQuery()
             ->whereKey($id)
             ->where('status', 'saved')
             ->firstOrFail();
@@ -420,18 +445,21 @@ class PurchaseSummaryPage extends BaseModulePage
 
     protected function loadSummaryIntoForm(int $id, string $mode, bool $unlockClosed = false): void
     {
-        $this->authorizeCreate();
+        $summary = $this->accessibleSummariesQuery()->whereKey($id)->firstOrFail();
+        $isOwner = (int) $summary->user_id === (int) auth()->id();
 
-        $summary = ToolsPurchaseSummary::query()
-            ->where('user_id', auth()->id())
-            ->whereKey($id)
-            ->firstOrFail();
+        if ($mode === 'edit') {
+            $this->authorizeCreate();
+            if (! $isOwner) {
+                $mode = 'view';
+            }
+        }
 
-        $this->closedUnlocked = $unlockClosed && $this->canUnlockClosed() && (string) $summary->status === 'closed';
+        $this->closedUnlocked = $unlockClosed && $isOwner && $this->canUnlockClosed() && (string) $summary->status === 'closed';
         $this->applySummaryRecord($summary);
         $status = (string) $summary->status;
         $this->persistStatus = in_array($status, ['saved', 'draft', 'closed'], true) ? $status : 'draft';
-        $this->formMode = $mode === 'view' || ($status === 'closed' && ! $this->closedUnlocked) ? 'view' : 'edit';
+        $this->formMode = $mode === 'view' || ! $isOwner || ($status === 'closed' && ! $this->closedUnlocked) ? 'view' : 'edit';
         $this->screen = 'form';
         $this->draftFlash = '';
         $this->shopkeepersTick++;
@@ -443,8 +471,8 @@ class PurchaseSummaryPage extends BaseModulePage
      */
     public function listedSummaries()
     {
-        $query = ToolsPurchaseSummary::query()
-            ->where('user_id', auth()->id())
+        $query = $this->accessibleSummariesQuery()
+            ->with('user')
             ->whereIn('status', ['saved', 'closed'])
             ->latest('updated_at');
 
@@ -455,7 +483,8 @@ class PurchaseSummaryPage extends BaseModulePage
                 $q->where('summary_no', 'like', $like)
                     ->orWhere('summary_date', 'like', $like)
                     ->orWhere('prepared_by', 'like', $like)
-                    ->orWhere('shop_name', 'like', $like);
+                    ->orWhere('shop_name', 'like', $like)
+                    ->orWhereHas('user', fn ($user) => $user->where('name', 'like', $like));
             });
         }
 
@@ -704,9 +733,10 @@ class PurchaseSummaryPage extends BaseModulePage
     protected function emitSummaryScreen(string $screen): void
     {
         $mode = $screen === 'form' ? $this->formMode : 'edit';
-        $this->dispatch('tools-purchase-summary-screen', screen: $screen, formMode: $mode);
+        $lang = $this->formLang;
+        $this->dispatch('tools-purchase-summary-screen', screen: $screen, formMode: $mode, formLang: $lang);
         $this->js(
-            'window.dispatchEvent(new CustomEvent("tools-purchase-summary-screen",{detail:{screen:'.json_encode($screen).',formMode:'.json_encode($mode).'}}))'
+            'window.dispatchEvent(new CustomEvent("tools-purchase-summary-screen",{detail:{screen:'.json_encode($screen).',formMode:'.json_encode($mode).',formLang:'.json_encode($lang).'}}))'
         );
     }
 

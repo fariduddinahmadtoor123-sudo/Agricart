@@ -136,6 +136,33 @@ class ActivityLogger
         ]);
     }
 
+    public function onlineQuotationCancelled(
+        OnlineSaleOrder $order,
+        ?User $actor,
+        string $source,
+        string $reason,
+    ): ?ActivityLog {
+        $orderLabel = filled($order->order_number) ? (string) $order->order_number : '#'.$order->getKey();
+
+        $sourceLabel = __('online_sale_orders.cancel.sources.'.$source);
+
+        return $this->write(ActivityEvent::Cancelled, $actor, [
+            'description' => __('agricart.activity.descriptions.cancelled', [
+                'order' => $orderLabel,
+                'source' => $sourceLabel,
+            ]),
+            'subject' => $order,
+            'subject_label' => $orderLabel,
+            'user_id' => $actor?->id,
+            'properties' => [
+                'order_number' => $orderLabel,
+                'cancellation_source' => $source,
+                'cancellation_reason' => $reason,
+                'cancelled_by' => $actor?->name,
+            ],
+        ]);
+    }
+
     /**
      * @param  array<string, mixed>  $properties
      */

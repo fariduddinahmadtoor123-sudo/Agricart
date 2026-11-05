@@ -11,6 +11,7 @@ enum ActivityEvent: string
     case Updated = 'updated';
     case Deleted = 'deleted';
     case Converted = 'converted';
+    case Cancelled = 'cancelled';
 
     public function label(): string
     {

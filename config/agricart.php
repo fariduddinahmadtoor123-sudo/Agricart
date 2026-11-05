@@ -111,5 +111,7 @@ return [
             'email' => filter_var(env('AGRICART_ORDER_EMAIL_NOTIFY', true), FILTER_VALIDATE_BOOL),
             'sms' => filter_var(env('AGRICART_ORDER_SMS_NOTIFY', true), FILTER_VALIDATE_BOOL),
         ],
+        /** Unpaid online quotations older than this many days are auto-cancelled. */
+        'unpaid_cancel_days' => max(1, (int) env('AGRICART_ONLINE_UNPAID_CANCEL_DAYS', 7)),
     ],
 ];

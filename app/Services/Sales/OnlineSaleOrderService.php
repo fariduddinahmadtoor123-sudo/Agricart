@@ -578,12 +578,21 @@ class OnlineSaleOrderService
             ]);
         }
 
+        if ($order->order_status === OnlineSaleOrder::STATUS_CANCELLED) {
+            throw ValidationException::withMessages([
+                'order' => [__('online_sale_orders.validation.already_cancelled')],
+            ]);
+        }
+
         if (array_key_exists('amount_paid', $payload)) {
             $payload['amount_paid'] = $this->saleService->numeric((string) ($payload['amount_paid'] ?? '0'));
         }
 
         $validated = validator($payload, [
-            'order_status' => ['required', 'string', Rule::in(OnlineSaleOrder::STATUSES)],
+            'order_status' => ['required', 'string', Rule::in(array_values(array_filter(
+                OnlineSaleOrder::STATUSES,
+                static fn (string $status): bool => $status !== OnlineSaleOrder::STATUS_CANCELLED,
+            )))],
             'fulfillment_status' => ['nullable', 'string', Rule::in(OnlineSaleOrder::FULFILLMENT_STATUSES)],
             'assigned_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'payment_status' => ['required', 'string', Rule::in(SaleService::PAYMENT_STATUSES)],
@@ -674,12 +683,152 @@ class OnlineSaleOrderService
         return $order;
     }
 
+    public function cancelManually(OnlineSaleOrder $order, User $actor, string $reason): OnlineSaleOrder
+    {
+        $reason = trim($reason);
+
+        if ($reason === '' || mb_strlen($reason) < 3) {
+            throw ValidationException::withMessages([
+                'cancellation_reason' => [__('online_sale_orders.validation.cancellation_reason_required')],
+            ]);
+        }
+
+        if (mb_strlen($reason) > 2000) {
+            throw ValidationException::withMessages([
+                'cancellation_reason' => [__('online_sale_orders.validation.cancellation_reason_max')],
+            ]);
+        }
+
+        return $this->applyCancellation(
+            $order,
+            OnlineSaleOrder::CANCEL_SOURCE_MANUAL,
+            $reason,
+            $actor,
+        );
+    }
+
+    public function cancelUnpaidAutomatically(OnlineSaleOrder $order, ?int $days = null): OnlineSaleOrder
+    {
+        if (! $order->isEligibleForUnpaidAutoCancel($days)) {
+            throw ValidationException::withMessages([
+                'order' => [__('online_sale_orders.validation.not_eligible_auto_cancel')],
+            ]);
+        }
+
+        $previousLocale = app()->getLocale();
+        $orderLocale = in_array((string) $order->locale, self::LOCALES, true)
+            ? (string) $order->locale
+            : 'en';
+
+        try {
+            app()->setLocale($orderLocale);
+            $reason = __('online_sale_orders.cancel.auto_reason');
+        } finally {
+            app()->setLocale($previousLocale);
+        }
+
+        return $this->applyCancellation(
+            $order,
+            OnlineSaleOrder::CANCEL_SOURCE_AUTOMATIC,
+            $reason,
+            null,
+        );
+    }
+
+    /**
+     * Cancel unpaid pending quotations older than the configured window.
+     *
+     * @return int Number of orders cancelled
+     */
+    public function cancelUnpaidOlderThan(?int $days = null): int
+    {
+        $days = max(1, $days ?? (int) config('agricart.online_store.unpaid_cancel_days', 7));
+        $cutoff = now()->subDays($days);
+        $cancelled = 0;
+
+        OnlineSaleOrder::query()
+            ->where('order_status', OnlineSaleOrder::STATUS_PENDING)
+            ->where('payment_status', 'unpaid')
+            ->whereNull('sale_id')
+            ->where('created_at', '<=', $cutoff)
+            ->where(function ($query): void {
+                $query->whereNull('customer_payment_proof_status')
+                    ->orWhereNotIn('customer_payment_proof_status', [
+                        OnlineSaleOrder::PROOF_SUBMITTED,
+                        OnlineSaleOrder::PROOF_VERIFIED,
+                    ]);
+            })
+            ->orderBy('id')
+            ->chunkById(50, function ($orders) use (&$cancelled, $days): void {
+                foreach ($orders as $order) {
+                    if (! $order instanceof OnlineSaleOrder || ! $order->isEligibleForUnpaidAutoCancel($days)) {
+                        continue;
+                    }
+
+                    try {
+                        $this->cancelUnpaidAutomatically($order, $days);
+                        $cancelled++;
+                    } catch (ValidationException) {
+                        // Skip races / already-changed rows.
+                    }
+                }
+            });
+
+        return $cancelled;
+    }
+
+    private function applyCancellation(
+        OnlineSaleOrder $order,
+        string $source,
+        string $reason,
+        ?User $actor,
+    ): OnlineSaleOrder {
+        return DB::transaction(function () use ($order, $source, $reason, $actor): OnlineSaleOrder {
+            $order = OnlineSaleOrder::query()->lockForUpdate()->findOrFail($order->id);
+
+            if (! $order->canBeCancelled()) {
+                throw ValidationException::withMessages([
+                    'order' => [$order->isLocked()
+                        ? __('online_sale_orders.validation.converted_locked')
+                        : __('online_sale_orders.validation.already_cancelled')],
+                ]);
+            }
+
+            if (! in_array($source, OnlineSaleOrder::CANCEL_SOURCES, true)) {
+                throw ValidationException::withMessages([
+                    'order' => [__('online_sale_orders.messages.save_failed')],
+                ]);
+            }
+
+            $order->fill([
+                'order_status' => OnlineSaleOrder::STATUS_CANCELLED,
+                'cancelled_at' => now(),
+                'cancelled_by_id' => $actor?->id,
+                'cancellation_reason' => $reason,
+                'cancellation_source' => $source,
+            ]);
+            $order->save();
+
+            $order = $order->fresh(['items', 'customer', 'cancelledBy']);
+
+            app(ActivityLogger::class)->onlineQuotationCancelled($order, $actor, $source, $reason);
+
+            try {
+                app(\App\Services\Store\AgricartInboxService::class)->notifyOrderCancelled($order);
+            } catch (\Throwable) {
+                // Inbox notify must not roll back the cancellation.
+            }
+
+            return $order;
+        });
+    }
+
     /**
      * @return array<string, mixed>
      */
     public function toFormState(OnlineSaleOrder $order): array
     {
-        $order->loadMissing(['items', 'customer', 'sale', 'convertedBy', 'supplierAssignments']);
+        $order->loadMissing(['items', 'customer', 'sale', 'convertedBy', 'cancelledBy', 'supplierAssignments']);
 
         $rows = [];
 
@@ -735,6 +884,10 @@ class OnlineSaleOrderService
             'sale_number' => $order->sale?->sale_number ?? '',
             'converted_by_name' => (string) ($order->convertedBy?->name ?? ''),
             'converted_at' => $order->converted_at ? agricart_datetime($order->converted_at) : '',
+            'cancelled_by_name' => (string) ($order->cancelledBy?->name ?? ''),
+            'cancelled_at' => $order->cancelled_at ? agricart_datetime($order->cancelled_at) : '',
+            'cancellation_reason' => (string) ($order->cancellation_reason ?? ''),
+            'cancellation_source' => (string) ($order->cancellation_source ?? ''),
             'queued_at' => $order->queued_at ? agricart_datetime($order->queued_at) : '',
             'queue_document' => (string) ($order->queue_document ?? ''),
             'supplier_assignment_ids' => $order->supplierAssignments->pluck('supplier_id')->all(),

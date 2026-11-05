@@ -42,6 +42,7 @@
             x-data="{
                 screen: 'list',
                 formMode: 'edit',
+                formLang: 'en',
                 syncScreen(payload) {
                     const data = Array.isArray(payload) ? (payload[0] ?? {}) : (payload ?? {});
                     if (data.screen) {
@@ -49,15 +50,26 @@
                     }
                     if (data.formMode) {
                         this.formMode = data.formMode;
+                    }
+                    if (data.formLang) {
+                        this.formLang = data.formLang;
+                    }
+                },
+                syncLang(payload) {
+                    const data = Array.isArray(payload) ? (payload[0] ?? {}) : (payload ?? {});
+                    if (data.lang) {
+                        this.formLang = data.lang;
                     }
                 },
             }"
             x-on:tools-reorder-screen.window="syncScreen($event.detail)"
-            x-on:livewire:init="Livewire.on('tools-reorder-screen', (payload) => syncScreen(payload))"
+            x-on:tools-reorder-lang-changed.window="syncLang($event.detail)"
+            x-on:livewire:init="Livewire.on('tools-reorder-screen', (payload) => syncScreen(payload)); Livewire.on('tools-reorder-lang-changed', (payload) => syncLang(payload))"
         @elseif (! empty($toolbar['toolsPurchaseSummaryChrome']))
             x-data="{
                 screen: 'list',
                 formMode: 'edit',
+                formLang: 'en',
                 syncScreen(payload) {
                     const data = Array.isArray(payload) ? (payload[0] ?? {}) : (payload ?? {});
                     if (data.screen) {
@@ -65,15 +77,26 @@
                     }
                     if (data.formMode) {
                         this.formMode = data.formMode;
+                    }
+                    if (data.formLang) {
+                        this.formLang = data.formLang;
+                    }
+                },
+                syncLang(payload) {
+                    const data = Array.isArray(payload) ? (payload[0] ?? {}) : (payload ?? {});
+                    if (data.lang) {
+                        this.formLang = data.lang;
                     }
                 },
             }"
             x-on:tools-purchase-summary-screen.window="syncScreen($event.detail)"
-            x-on:livewire:init="Livewire.on('tools-purchase-summary-screen', (payload) => syncScreen(payload))"
+            x-on:tools-purchase-summary-lang-changed.window="syncLang($event.detail)"
+            x-on:livewire:init="Livewire.on('tools-purchase-summary-screen', (payload) => syncScreen(payload)); Livewire.on('tools-purchase-summary-lang-changed', (payload) => syncLang(payload))"
         @elseif (! empty($toolbar['toolsPendingPaymentsChrome']))
             x-data="{
                 screen: 'list',
                 formMode: 'edit',
+                formLang: 'en',
                 syncScreen(payload) {
                     const data = Array.isArray(payload) ? (payload[0] ?? {}) : (payload ?? {});
                     if (data.screen) {
@@ -82,10 +105,20 @@
                     if (data.formMode) {
                         this.formMode = data.formMode;
                     }
+                    if (data.formLang) {
+                        this.formLang = data.formLang;
+                    }
+                },
+                syncLang(payload) {
+                    const data = Array.isArray(payload) ? (payload[0] ?? {}) : (payload ?? {});
+                    if (data.lang) {
+                        this.formLang = data.lang;
+                    }
                 },
             }"
             x-on:tools-pending-payments-screen.window="syncScreen($event.detail)"
-            x-on:livewire:init="Livewire.on('tools-pending-payments-screen', (payload) => syncScreen(payload))"
+            x-on:tools-pending-payments-lang-changed.window="syncLang($event.detail)"
+            x-on:livewire:init="Livewire.on('tools-pending-payments-screen', (payload) => syncScreen(payload)); Livewire.on('tools-pending-payments-lang-changed', (payload) => syncLang(payload))"
         @elseif (! empty($toolbar['toolsBillPrintingChrome']))
             x-data="{
                 screen: 'list',
@@ -468,12 +501,18 @@
         @endif
 
         @if (empty($toolbar['hideSearch']))
-            <div @class([
-                'agricart-catalog-toolbar__search',
-                'agricart-catalog-toolbar__search--segments' => ! empty($toolbar['segments']),
-                'agricart-catalog-toolbar__search--expense-estimate' => ($toolbar['resourceSlug'] ?? '') === 'expenses',
-                'agricart-catalog-toolbar__search--fx-center' => ! empty($toolbar['fxLearnRadarChrome']),
-            ])>
+            <div
+                @class([
+                    'agricart-catalog-toolbar__search',
+                    'agricart-catalog-toolbar__search--segments' => ! empty($toolbar['segments']),
+                    'agricart-catalog-toolbar__search--expense-estimate' => ($toolbar['resourceSlug'] ?? '') === 'expenses',
+                    'agricart-catalog-toolbar__search--fx-center' => ! empty($toolbar['fxLearnRadarChrome']),
+                ])
+                @if (! empty($toolbar['toolsPurchaseSummaryChrome']) || ! empty($toolbar['toolsPendingPaymentsChrome']) || ! empty($toolbar['toolsReorderChrome']))
+                    x-show="screen === 'list'"
+                    x-cloak
+                @endif
+            >
                 @if (! empty($toolbar['segments']))
                     @include('filament.components.module.toolbar-segments', ['toolbar' => $toolbar, 'moduleKey' => $moduleKey])
                 @endif
@@ -501,7 +540,11 @@
                                     @if (filled($livewireComponent))
                                         x-on:input.debounce.300ms="Livewire.dispatchTo(@js($livewireComponent), @js($livewirePrefix . '-search'), { query: $event.target.value })"
                                     @else
-                                        x-on:input.debounce.300ms="window.Livewire.dispatch(@js($livewirePrefix . '-search'), { query: $event.target.value })"
+                                        x-on:input.debounce.300ms="
+                                            const query = $event.target.value;
+                                            window.dispatchEvent(new CustomEvent(@js($livewirePrefix . '-search-query'), { detail: { query } }));
+                                            window.Livewire?.dispatch(@js($livewirePrefix . '-search'), { query });
+                                        "
                                     @endif
                                 @endif
                         />

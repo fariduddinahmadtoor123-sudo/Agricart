@@ -1,8 +1,9 @@
 <style>
-    .agricart-catalog-toolbar--tools-ps{flex-wrap:nowrap;gap:.5rem .65rem;align-items:center}
+    .agricart-catalog-toolbar--tools-ps{flex-wrap:wrap;gap:.5rem .65rem;align-items:center}
     .agricart-catalog-toolbar--tools-ps .agricart-catalog-toolbar__search{flex:0 1 14rem;max-width:16rem;min-width:9rem}
-    .agricart-ps-toolbar-slot{flex:1 1 auto;min-width:0;display:flex;align-items:center}
-    .agricart-ps-toolbar-slot .agricart-ro-chrome{width:100%;margin:0;padding:0;gap:.4rem;align-items:center;flex-wrap:nowrap}
+    .agricart-ps-toolbar-slot{flex:1 1 18rem;min-width:12rem;display:flex;align-items:center}
+    .agricart-ps-toolbar-slot .agricart-ro-chrome{width:100%;margin:0;padding:0;gap:.4rem;align-items:center;flex-wrap:wrap}
+    .agricart-catalog-toolbar--tools-ps .agricart-catalog-toolbar__actions{flex-wrap:wrap}
     .agricart-ro-sheet-wrap{display:flex;flex-direction:column;align-items:center;gap:14px;padding:.35rem 0 1rem}
     .agricart-ro-sheet{width:210mm;max-width:100%;min-height:297mm;background:#fff;color:#111;border:1px solid rgba(15,23,42,.12);box-shadow:0 8px 24px rgba(15,23,42,.08);padding:3mm 3.5mm;font-family:Arial,sans-serif;display:flex;flex-direction:column;justify-content:flex-start;box-sizing:border-box}
     .agricart-ro-btn{appearance:none;border:1px solid #cbd5e1;background:#fff;color:#0f172a;font-size:11px;font-weight:700;padding:5px 9px;border-radius:6px;cursor:pointer}

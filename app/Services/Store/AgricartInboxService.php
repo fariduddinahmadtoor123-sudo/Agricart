@@ -479,6 +479,34 @@ class AgricartInboxService
         );
     }
 
+    public function notifyOrderCancelled(OnlineSaleOrder $order): void
+    {
+        if ($order->customer_id === null) {
+            return;
+        }
+
+        $previousLocale = app()->getLocale();
+        $orderLocale = in_array((string) $order->locale, ['en', 'ur'], true)
+            ? (string) $order->locale
+            : 'en';
+
+        try {
+            app()->setLocale($orderLocale);
+            $conversation = $this->conversationForOrder($order);
+            $this->appendSystemMessage(
+                $conversation,
+                __('agricart.inbox.system.order_cancelled', ['order' => $order->order_number]),
+                'order.cancelled',
+                [
+                    'online_sale_order_id' => $order->id,
+                    'cancellation_source' => $order->cancellation_source,
+                ],
+            );
+        } finally {
+            app()->setLocale($previousLocale);
+        }
+    }
+
     public function conversationForOrder(OnlineSaleOrder $order): AgricartConversation
     {
         $existing = AgricartConversation::query()

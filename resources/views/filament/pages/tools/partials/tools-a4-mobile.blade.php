@@ -1,28 +1,73 @@
 {{-- Screen-only: make External Apps A4 sheets usable on phones. Print CSS stays A4. --}}
 <style>
+    /* Active EN/UR language chip on tools toolbars */
+    .agricart-catalog-toolbar__action--lang-active {
+        background: #0f172a !important;
+        color: #fff !important;
+        border-color: #0f172a !important;
+        box-shadow: 0 0 0 1px #0f172a;
+    }
+    .agricart-catalog-toolbar__action--lang-active:hover {
+        background: #1e293b !important;
+        color: #fff !important;
+    }
+
     @media screen and (max-width: 900px) {
         /*
-         * Do NOT wrap the catalog toolbar (search + filters + actions) into a column —
-         * that row must stay one line. Only wrap the in-sheet entry chrome fields.
+         * Tools PS / PP / Reorder: allow the toolbar to stack so the speech /
+         * forward / pay entry chrome gets a full-width row on phones.
          */
         .agricart-catalog-toolbar--tools-reorder,
         .agricart-catalog-toolbar--tools-ps,
         .agricart-catalog-toolbar--tools-pp,
         .agricart-catalog-toolbar--tools-he {
-            flex-wrap: nowrap !important;
-            align-items: center !important;
+            flex-wrap: wrap !important;
+            align-items: stretch !important;
+            gap: .5rem !important;
+        }
+        .agricart-catalog-toolbar--tools-reorder > .agricart-catalog-toolbar__search,
+        .agricart-catalog-toolbar--tools-ps > .agricart-catalog-toolbar__search,
+        .agricart-catalog-toolbar--tools-pp > .agricart-catalog-toolbar__search {
+            flex: 1 1 100% !important;
+            max-width: none !important;
+            min-width: 0 !important;
+            order: 1;
+        }
+        .agricart-catalog-toolbar--tools-reorder > .agricart-catalog-toolbar__search .fi-input-wrp,
+        .agricart-catalog-toolbar--tools-ps > .agricart-catalog-toolbar__search .fi-input-wrp,
+        .agricart-catalog-toolbar--tools-pp > .agricart-catalog-toolbar__search .fi-input-wrp {
+            max-width: none !important;
+            width: 100% !important;
         }
         .agricart-ro-toolbar-slot,
         .agricart-ps-toolbar-slot,
         .agricart-pp-toolbar-slot,
         .agricart-he-toolbar-slot {
-            flex: 1 1 auto !important;
+            flex: 1 1 100% !important;
             min-width: 0 !important;
+            width: 100% !important;
+            max-width: none !important;
+            order: 2;
+            display: flex !important;
         }
+        .agricart-catalog-toolbar--tools-reorder > .agricart-catalog-toolbar__actions,
+        .agricart-catalog-toolbar--tools-ps > .agricart-catalog-toolbar__actions,
+        .agricart-catalog-toolbar--tools-pp > .agricart-catalog-toolbar__actions {
+            flex: 1 1 100% !important;
+            flex-wrap: wrap !important;
+            justify-content: flex-start !important;
+            order: 3;
+            gap: .35rem !important;
+        }
+
         .agricart-ro-chrome,
-        .agricart-pp-chrome {
+        .agricart-pp-chrome,
+        .agricart-ps-toolbar-slot .agricart-ro-chrome,
+        .agricart-pp-toolbar-slot .agricart-ro-chrome,
+        .agricart-ro-toolbar-slot .agricart-ro-chrome {
             flex-wrap: wrap !important;
             gap: .45rem !important;
+            width: 100% !important;
         }
         .agricart-ro-entry,
         .agricart-pp-entry {
@@ -42,6 +87,27 @@
             flex: 1 1 100% !important;
             max-width: none !important;
             min-width: 0 !important;
+        }
+        .agricart-pp-entry__owed,
+        .agricart-pp-entry__fwd,
+        .agricart-ro-entry__fwd {
+            flex: 1 1 auto !important;
+            min-width: 4.5rem !important;
+        }
+        .agricart-pp-paybox {
+            width: 100% !important;
+            max-width: 100% !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+        }
+        .agricart-pp-paybox input {
+            width: 100% !important;
+            max-width: none !important;
+        }
+        .agricart-pp-act-btns {
+            flex-direction: row !important;
+            flex-wrap: wrap !important;
+            justify-content: center !important;
         }
 
         /* Paper: fluid on screen (not crushed fixed-mm soup) */
@@ -158,6 +224,11 @@
         .agricart-ro-grid--ps-marks .agricart-ro-grid__mark { width: 10% !important; }
         .agricart-pp-grid__shop { width: 32% !important; }
         .agricart-pp-grid__pays { width: 24% !important; }
+        .agricart-pp-grid__act { width: 18% !important; }
         .agricart-pp-entry__owed { width: 100% !important; max-width: none !important; }
+        .agricart-pp-act-btns .agricart-pp-btn {
+            flex: 1 1 auto;
+            min-width: 3.25rem;
+        }
     }
 </style>

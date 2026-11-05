@@ -1,4 +1,9 @@
 <x-filament-panels::page>
+    <div
+        class="contents"
+        x-data
+        x-on:tools-pending-payments-search-query.window="$wire.updateSearch(($event.detail && $event.detail.query) || '')"
+    ></div>
     @include('filament.pages.tools.partials.pending-payments-styles')
     @include('filament.pages.tools.partials.tools-a4-mobile')
 
@@ -9,17 +14,20 @@
             $hNo = $formLang === 'ur' ? __('agricart.pages.tools.pp_grid_no_ur') : __('agricart.pages.tools.pp_grid_no_en');
             $hShop = $formLang === 'ur' ? __('agricart.pages.tools.pp_grid_shopkeeper_ur') : __('agricart.pages.tools.pp_grid_shopkeeper_en');
             $hOwed = $formLang === 'ur' ? __('agricart.pages.tools.pp_grid_owed_ur') : __('agricart.pages.tools.pp_grid_owed_en');
-            $hPays = $formLang === 'ur' ? __('agricart.pages.tools.pp_grid_payments_ur') : __('agricart.pages.tools.pp_grid_payments_en');
+            $hPays = $formLang === 'ur' ? __('agricart.pages.tools.pp_grid_ledger_ur') : __('agricart.pages.tools.pp_grid_ledger_en');
             $hRem = $formLang === 'ur' ? __('agricart.pages.tools.pp_grid_remaining_ur') : __('agricart.pages.tools.pp_grid_remaining_en');
+            $isChargeMode = $ledgerMode === 'charge';
         @endphp
 
         @if ($payRowKey !== '')
-            <div class="agricart-pp-paybox no-print" wire:key="pp-pay-{{ $payRowKey }}">
-                <strong>{{ __('agricart.pages.tools.pp_pay_title') }}</strong>
+            <div @class(['agricart-pp-paybox', 'no-print', 'is-charge' => $isChargeMode]) wire:key="pp-pay-{{ $payRowKey }}-{{ $ledgerMode }}">
+                <strong>{{ $isChargeMode ? __('agricart.pages.tools.pp_charge_title') : __('agricart.pages.tools.pp_pay_title') }}</strong>
                 <span dir="ltr">#{{ $payRowKey }} — {{ $this->cellRow($payRowKey)['shopkeeper'] }}</span>
                 <input type="text" wire:model="payDate" placeholder="{{ __('agricart.pages.tools.pp_pay_date') }}" dir="ltr" style="width:7rem" />
-                <input type="text" wire:model="payAmount" placeholder="{{ __('agricart.pages.tools.pp_pay_amount') }}" dir="ltr" style="width:7rem" />
-                <button type="button" class="agricart-pp-btn" wire:click="confirmPay">{{ __('agricart.pages.tools.pp_pay_confirm') }}</button>
+                <input type="text" wire:model="payAmount" placeholder="{{ $isChargeMode ? __('agricart.pages.tools.pp_charge_amount') : __('agricart.pages.tools.pp_pay_amount') }}" dir="ltr" style="width:7rem" />
+                <button type="button" class="agricart-pp-btn" wire:click="confirmPay">
+                    {{ $isChargeMode ? __('agricart.pages.tools.pp_charge_confirm') : __('agricart.pages.tools.pp_pay_confirm') }}
+                </button>
                 <button type="button" class="agricart-pp-btn" wire:click="cancelPayForm">{{ __('agricart.pages.tools.pp_pay_cancel') }}</button>
             </div>
         @endif
@@ -142,7 +150,7 @@
                                     <th class="agricart-pp-grid__pays">{{ $hPays }}</th>
                                     <th class="agricart-pp-grid__rem">{{ $hRem }}</th>
                                     @unless ($this->isViewMode())
-                                        <th class="agricart-pp-grid__act no-print">{{ __('agricart.pages.tools.pp_grid_pay') }}</th>
+                                        <th class="agricart-pp-grid__act no-print">{{ __('agricart.pages.tools.pp_grid_actions') }}</th>
                                     @endunless
                                 </tr>
                             </thead>
@@ -152,7 +160,7 @@
                                         $rowNo = $pageBase + $r + 1;
                                         $rowKey = (string) $rowNo;
                                         $cell = $this->cellRow($rowKey);
-                                        $filled = $cell['shopkeeper'] !== '' || $cell['owed'] !== '';
+                                        $filled = $this->cellIsFilled($cell);
                                     @endphp
                                     <tr wire:key="pp-row-{{ $page }}-{{ $rowNo }}">
                                         <td class="agricart-pp-grid__no">{{ $rowNo }}</td>
@@ -165,9 +173,9 @@
                                         </td>
                                         <td class="agricart-pp-grid__owed">
                                             @if ($this->isViewMode())
-                                                <span dir="ltr">{{ $cell['owed'] }}</span>
+                                                <span dir="ltr">{{ $this->rowOwedDisplay($cell) }}</span>
                                             @else
-                                                <input type="text" class="agricart-pp-inp" style="text-align:end" wire:model.blur="cells.{{ $rowKey }}.owed" dir="ltr" inputmode="decimal" />
+                                                <input type="text" class="agricart-pp-inp" style="text-align:end" wire:model.blur="cells.{{ $rowKey }}.owed" dir="ltr" inputmode="decimal" title="{{ __('agricart.pages.tools.pp_owed_opening_hint') }}" />
                                             @endif
                                         </td>
                                         <td class="agricart-pp-grid__pays" dir="ltr">{{ $this->paymentsLabel($cell) }}</td>
@@ -175,7 +183,10 @@
                                         @unless ($this->isViewMode())
                                             <td class="agricart-pp-grid__act no-print">
                                                 @if ($filled)
-                                                    <button type="button" class="agricart-pp-btn" wire:click="openPayForm('{{ $rowKey }}')">{{ __('agricart.pages.tools.pp_pay') }}</button>
+                                                    <div class="agricart-pp-act-btns">
+                                                        <button type="button" class="agricart-pp-btn" wire:click="openChargeForm('{{ $rowKey }}')">{{ __('agricart.pages.tools.pp_charge') }}</button>
+                                                        <button type="button" class="agricart-pp-btn" wire:click="openPayForm('{{ $rowKey }}')">{{ __('agricart.pages.tools.pp_pay') }}</button>
+                                                    </div>
                                                 @endif
                                             </td>
                                         @endunless
@@ -261,15 +272,20 @@
                                         <span>{{ __('agricart.pages.tools.pp_list_money_paid') }}: <strong>{{ $money['paid_display'] }}</strong></span>
                                         <span>{{ __('agricart.pages.tools.pp_list_money_remaining') }}: <strong>{{ $money['remaining_display'] }}</strong></span>
                                     </td>
-                                    <td>{{ $sheet->prepared_by ?: '—' }}</td>
+                                    <td>
+                                        {{ $sheet->prepared_by ?: '—' }}
+                                        @if ($this->canBrowseTeamSheets() && (int) $sheet->user_id !== (int) auth()->id())
+                                            <span style="display:block;font-size:11px;color:#64748b">{{ $sheet->user?->name ?: ('#'.$sheet->user_id) }}</span>
+                                        @endif
+                                    </td>
                                     <td dir="ltr">{{ optional($sheet->updated_at)->timezone(config('app.display_timezone', config('app.timezone')))->format('d-m-Y H:i') }}</td>
                                     <td>
                                         <div class="agricart-ro-list__actions">
                                             <x-filament::button size="sm" color="gray" outlined wire:click="openSheet({{ $sheet->id }})">{{ __('agricart.pages.tools.pp_list_open') }}</x-filament::button>
-                                            @unless ($isClosed)
+                                            @if (! $isClosed && (int) $sheet->user_id === (int) auth()->id())
                                                 <x-filament::button size="sm" color="primary" wire:click="editSheet({{ $sheet->id }})">{{ __('agricart.pages.tools.pp_list_edit') }}</x-filament::button>
                                                 <x-filament::button size="sm" color="warning" outlined wire:click="closeListedSheet({{ $sheet->id }})" wire:confirm="{{ __('agricart.pages.tools.pp_list_close_confirm') }}">{{ __('agricart.pages.tools.pp_list_close') }}</x-filament::button>
-                                            @endunless
+                                            @endif
                                         </div>
                                     </td>
                                 </tr>

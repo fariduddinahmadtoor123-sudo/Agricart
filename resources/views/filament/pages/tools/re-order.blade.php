@@ -1,14 +1,19 @@
 <x-filament-panels::page>
+    <div
+        class="contents"
+        x-data
+        x-on:tools-reorder-search-query.window="$wire.updateSearch(($event.detail && $event.detail.query) || '')"
+    ></div>
     @include('filament.pages.tools.partials.tools-a4-mobile')
     <style>
         /* Toolbar (works without Vite rebuild) */
-        .agricart-catalog-toolbar--tools-reorder{flex-wrap:nowrap;gap:.5rem .65rem;align-items:center}
+        .agricart-catalog-toolbar--tools-reorder{flex-wrap:wrap;gap:.5rem .65rem;align-items:center}
         .agricart-catalog-toolbar--tools-reorder .agricart-catalog-toolbar__search{flex:0 1 14rem;max-width:16rem;min-width:9rem}
         .agricart-catalog-toolbar--tools-reorder .agricart-catalog-toolbar__search .fi-input-wrp{width:100%;max-width:16rem}
         .agricart-catalog-toolbar--tools-reorder .agricart-catalog-toolbar__actions{flex:0 0 auto;flex-wrap:wrap;justify-content:flex-end;gap:.35rem}
-        .agricart-ro-toolbar-slot{flex:1 1 auto;min-width:0;display:flex;align-items:center}
+        .agricart-ro-toolbar-slot{flex:1 1 18rem;min-width:12rem;display:flex;align-items:center}
         .agricart-ro-toolbar-slot .agricart-ro-chrome{
-            width:100%;margin:0;padding:0;gap:.4rem;align-items:center;flex-wrap:nowrap;
+            width:100%;margin:0;padding:0;gap:.4rem;align-items:center;flex-wrap:wrap;
         }
         .agricart-ro-toolbar-slot .agricart-ro-chrome__purchaser{flex:0 0 9.5rem;max-width:9.5rem;min-width:8rem}
         .agricart-ro-toolbar-slot .agricart-ro-chrome__purchaser label{display:none}

@@ -24,7 +24,7 @@ class ActivityChangePresenter
             return $this->authRows($properties);
         }
 
-        if ($log->event === ActivityEvent::Converted) {
+        if ($log->event === ActivityEvent::Converted || $log->event === ActivityEvent::Cancelled) {
             return $this->scalarRows($properties);
         }
 

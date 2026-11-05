@@ -54,8 +54,11 @@ class PendingPaymentsPage extends BaseModulePage
 
     public string $payRowKey = '';
 
+    /** pay = reduce baqaya; charge = add goods / increase baqaya */
+    public string $ledgerMode = 'pay';
+
     /**
-     * @var array<string, array{shopkeeper: string, owed: string, payments: list<array{date: string, amount: string}>, status: string}|string>
+     * @var array<string, array{shopkeeper: string, owed: string, payments: list<array{date: string, amount: string}>, charges: list<array{date: string, amount: string}>, status: string}|string>
      */
     public array $cells = [];
 
@@ -80,9 +83,13 @@ class PendingPaymentsPage extends BaseModulePage
     public string $formMode = 'edit';
 
     #[On('tools-pending-payments-search')]
-    public function updateSearch(string $query): void
+    public function updateSearch(mixed $query = ''): void
     {
-        $this->search = $query;
+        if (is_array($query)) {
+            $query = $query['query'] ?? $query[0] ?? '';
+        }
+
+        $this->search = trim((string) $query);
     }
 
     public function isViewMode(): bool
@@ -172,20 +179,23 @@ class PendingPaymentsPage extends BaseModulePage
         Notification::make()->title(__('agricart.pages.tools.pp_cleared'))->success()->send();
     }
 
+    public function canBrowseTeamSheets(): bool
+    {
+        $user = auth()->user();
+
+        return $user instanceof \App\Models\User && $user->isSuperAdmin();
+    }
+
     public function openSheet(int $id): void
     {
-        $sheet = ToolsPendingPaymentSheet::query()
-            ->where('user_id', auth()->id())
-            ->whereKey($id)
-            ->firstOrFail();
-        $this->loadSheetIntoForm($id, $sheet->status === 'closed' ? 'view' : 'view');
+        $sheet = $this->accessibleSheetsQuery()->whereKey($id)->firstOrFail();
+        $this->loadSheetIntoForm($id, 'view');
     }
 
     public function editSheet(int $id): void
     {
         $this->authorizeCreate();
-        $sheet = ToolsPendingPaymentSheet::query()
-            ->where('user_id', auth()->id())
+        $sheet = $this->ownedSheetsQuery()
             ->whereKey($id)
             ->where('status', 'saved')
             ->firstOrFail();
@@ -195,8 +205,7 @@ class PendingPaymentsPage extends BaseModulePage
     public function closeListedSheet(int $id): void
     {
         $this->authorizeCreate();
-        $sheet = ToolsPendingPaymentSheet::query()
-            ->where('user_id', auth()->id())
+        $sheet = $this->ownedSheetsQuery()
             ->whereKey($id)
             ->where('status', 'saved')
             ->firstOrFail();
@@ -215,14 +224,12 @@ class PendingPaymentsPage extends BaseModulePage
 
     protected function loadSheetIntoForm(int $id, string $mode): void
     {
-        $sheet = ToolsPendingPaymentSheet::query()
-            ->where('user_id', auth()->id())
-            ->whereKey($id)
-            ->firstOrFail();
+        $sheet = $this->accessibleSheetsQuery()->whereKey($id)->firstOrFail();
         $this->applySheetRecord($sheet);
         $status = (string) $sheet->status;
         $this->persistStatus = in_array($status, ['saved', 'draft', 'closed'], true) ? $status : 'draft';
-        $this->formMode = $mode === 'view' || $status === 'closed' ? 'view' : 'edit';
+        $isOwner = (int) $sheet->user_id === (int) auth()->id();
+        $this->formMode = ($mode === 'view' || $status === 'closed' || ! $isOwner) ? 'view' : 'edit';
         $this->screen = 'form';
         $this->shopkeepersTick++;
         $this->emitSheetScreen('form');
@@ -233,8 +240,8 @@ class PendingPaymentsPage extends BaseModulePage
      */
     public function listedSheets()
     {
-        $query = ToolsPendingPaymentSheet::query()
-            ->where('user_id', auth()->id())
+        $query = $this->accessibleSheetsQuery()
+            ->with('user')
             ->whereIn('status', ['saved', 'closed'])
             ->latest('updated_at');
         $term = trim($this->search);
@@ -243,11 +250,36 @@ class PendingPaymentsPage extends BaseModulePage
             $query->where(function ($q) use ($like): void {
                 $q->where('sheet_no', 'like', $like)
                     ->orWhere('sheet_date', 'like', $like)
-                    ->orWhere('prepared_by', 'like', $like);
+                    ->orWhere('prepared_by', 'like', $like)
+                    ->orWhereHas('user', fn ($user) => $user->where('name', 'like', $like));
             });
         }
 
         return $query->limit(150)->get();
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Builder<ToolsPendingPaymentSheet>
+     */
+    protected function ownedSheetsQuery()
+    {
+        return ToolsPendingPaymentSheet::query()->where('user_id', auth()->id());
+    }
+
+    /**
+     * Super Admin can browse every staff sheet; others only their own.
+     *
+     * @return \Illuminate\Database\Eloquent\Builder<ToolsPendingPaymentSheet>
+     */
+    protected function accessibleSheetsQuery()
+    {
+        $query = ToolsPendingPaymentSheet::query();
+
+        if (! $this->canBrowseTeamSheets()) {
+            $query->where('user_id', auth()->id());
+        }
+
+        return $query;
     }
 
     public function autoSaveDraft(bool $skipRender = true): void
@@ -429,6 +461,16 @@ class PendingPaymentsPage extends BaseModulePage
 
     public function openPayForm(string $rowKey): void
     {
+        $this->openLedgerForm($rowKey, 'pay');
+    }
+
+    public function openChargeForm(string $rowKey): void
+    {
+        $this->openLedgerForm($rowKey, 'charge');
+    }
+
+    protected function openLedgerForm(string $rowKey, string $mode): void
+    {
         if ($this->isViewMode() || ! ctype_digit($rowKey)) {
             return;
         }
@@ -436,6 +478,7 @@ class PendingPaymentsPage extends BaseModulePage
         if (! $this->cellIsFilled($cell)) {
             return;
         }
+        $this->ledgerMode = in_array($mode, ['pay', 'charge'], true) ? $mode : 'pay';
         $this->payRowKey = $rowKey;
         $this->payDate = trim($this->sheetDate) !== ''
             ? $this->sheetDate
@@ -448,10 +491,17 @@ class PendingPaymentsPage extends BaseModulePage
         $this->payRowKey = '';
         $this->payDate = '';
         $this->payAmount = '';
+        $this->ledgerMode = 'pay';
     }
 
     public function confirmPay(): void
     {
+        if ($this->ledgerMode === 'charge') {
+            $this->confirmCharge();
+
+            return;
+        }
+
         if ($this->isViewMode()) {
             return;
         }
@@ -496,6 +546,43 @@ class PendingPaymentsPage extends BaseModulePage
             ? __('agricart.pages.tools.pp_pay_synced_new', ['summary' => $sync['summary_no']])
             : __('agricart.pages.tools.pp_pay_synced', ['summary' => $sync['summary_no']]);
         Notification::make()->title($msg)->success()->send();
+    }
+
+    public function confirmCharge(): void
+    {
+        if ($this->isViewMode()) {
+            return;
+        }
+        $this->authorizeCreate();
+        $rowKey = $this->payRowKey;
+        if (! ctype_digit($rowKey)) {
+            return;
+        }
+        $cell = $this->normalizeCellValue($this->cells[$rowKey] ?? []);
+        if (! $this->cellIsFilled($cell)) {
+            return;
+        }
+        $date = trim($this->payDate);
+        $amount = trim($this->payAmount);
+        if ($date === '' || $amount === '') {
+            Notification::make()->title(__('agricart.pages.tools.pp_charge_need_fields'))->warning()->send();
+
+            return;
+        }
+        $encoded = $this->encodeAmountValue($amount);
+        $charges = is_array($cell['charges']) ? $cell['charges'] : [];
+        $charges[] = ['date' => $date, 'amount' => $encoded];
+        $cell['charges'] = $charges;
+        $this->cells[$rowKey] = $cell;
+
+        $this->cancelPayForm();
+        if ($this->persistStatus === 'saved') {
+            $this->persistSavedSheetCells();
+        } else {
+            $this->autoSaveDraft(skipRender: false);
+        }
+
+        Notification::make()->title(__('agricart.pages.tools.pp_charge_saved'))->success()->send();
     }
 
     public function updated(string $name, mixed $value): void
@@ -543,7 +630,7 @@ class PendingPaymentsPage extends BaseModulePage
             if (! $this->cellIsFilled($row)) {
                 continue;
             }
-            $owed += $this->decodeAmountValue($row['owed'], $engine, $slots);
+            $owed += $this->rowOwedTotal($row, $engine, $slots);
             foreach ($row['payments'] as $p) {
                 $paid += $this->decodeAmountValue((string) ($p['amount'] ?? ''), $engine, $slots);
             }
@@ -580,7 +667,7 @@ class PendingPaymentsPage extends BaseModulePage
                 continue;
             }
             $lines++;
-            $owed += $this->decodeAmountValue($row['owed'], $engine, $slots);
+            $owed += $this->rowOwedTotal($row, $engine, $slots);
             foreach ($row['payments'] as $p) {
                 $paid += $this->decodeAmountValue((string) ($p['amount'] ?? ''), $engine, $slots);
             }
@@ -615,7 +702,7 @@ class PendingPaymentsPage extends BaseModulePage
     {
         $engine = app(SecretCodingEngine::class);
         $slots = $this->digitSlots();
-        $owed = $this->decodeAmountValue($cell['owed'] ?? '', $engine, $slots);
+        $owed = $this->rowOwedTotal($cell, $engine, $slots);
         $paid = 0.0;
         foreach ($cell['payments'] ?? [] as $p) {
             $paid += $this->decodeAmountValue((string) ($p['amount'] ?? ''), $engine, $slots);
@@ -624,16 +711,55 @@ class PendingPaymentsPage extends BaseModulePage
         return $this->displayAmount($owed - $paid, $engine, $slots);
     }
 
+    public function rowOwedDisplay(array $cell): string
+    {
+        $engine = app(SecretCodingEngine::class);
+        $slots = $this->digitSlots();
+        $opening = trim((string) ($cell['owed'] ?? ''));
+        $charges = is_array($cell['charges'] ?? null) ? $cell['charges'] : [];
+        if ($charges === []) {
+            return $opening;
+        }
+
+        $total = $this->rowOwedTotal($cell, $engine, $slots);
+
+        return $this->displayAmount($total, $engine, $slots);
+    }
+
+    /**
+     * Opening baqaya + goods charges.
+     *
+     * @param  array{shopkeeper?: string, owed?: string, payments?: list<array{date: string, amount: string}>, charges?: list<array{date: string, amount: string}>}  $cell
+     * @param  list<string>  $slots
+     */
+    protected function rowOwedTotal(array $cell, SecretCodingEngine $engine, array $slots): float
+    {
+        $total = $this->decodeAmountValue((string) ($cell['owed'] ?? ''), $engine, $slots);
+        foreach ($cell['charges'] ?? [] as $c) {
+            $total += $this->decodeAmountValue((string) ($c['amount'] ?? ''), $engine, $slots);
+        }
+
+        return $total;
+    }
+
     public function paymentsLabel(array $cell): string
     {
         $parts = [];
+        foreach ($cell['charges'] ?? [] as $c) {
+            $d = trim((string) ($c['date'] ?? ''));
+            $a = trim((string) ($c['amount'] ?? ''));
+            if ($d === '' && $a === '') {
+                continue;
+            }
+            $parts[] = '+'.trim($d.($d !== '' && $a !== '' ? ': ' : '').$a);
+        }
         foreach ($cell['payments'] ?? [] as $p) {
             $d = trim((string) ($p['date'] ?? ''));
             $a = trim((string) ($p['amount'] ?? ''));
             if ($d === '' && $a === '') {
                 continue;
             }
-            $parts[] = trim($d.($d !== '' && $a !== '' ? ': ' : '').$a);
+            $parts[] = '−'.trim($d.($d !== '' && $a !== '' ? ': ' : '').$a);
         }
 
         return implode(' · ', $parts);
@@ -737,6 +863,7 @@ class PendingPaymentsPage extends BaseModulePage
         $this->payRowKey = '';
         $this->payDate = '';
         $this->payAmount = '';
+        $this->ledgerMode = 'pay';
         $this->cells = [];
         $this->pageCount = 1;
         $this->draftFlash = '';
@@ -753,6 +880,7 @@ class PendingPaymentsPage extends BaseModulePage
         $this->entryOwed = '';
         $this->forwardTo = '';
         $this->payRowKey = '';
+        $this->ledgerMode = 'pay';
         $this->cells = is_array($sheet->cells) ? $sheet->cells : [];
         $this->normalizeCellsInPlace();
         $this->pageCount = max($this->pageCount, $this->pageCountForFilledRows($this->maxFilledRow()));
@@ -831,12 +959,12 @@ class PendingPaymentsPage extends BaseModulePage
     }
 
     /**
-     * @return array{shopkeeper: string, owed: string, payments: list<array{date: string, amount: string}>, status: string}
+     * @return array{shopkeeper: string, owed: string, payments: list<array{date: string, amount: string}>, charges: list<array{date: string, amount: string}>, status: string}
      */
     protected function normalizeCellValue(mixed $value): array
     {
         if (! is_array($value)) {
-            return ['shopkeeper' => '', 'owed' => '', 'payments' => [], 'status' => ''];
+            return ['shopkeeper' => '', 'owed' => '', 'payments' => [], 'charges' => [], 'status' => ''];
         }
         $payments = [];
         if (is_array($value['payments'] ?? null)) {
@@ -850,21 +978,34 @@ class PendingPaymentsPage extends BaseModulePage
                 ];
             }
         }
+        $charges = [];
+        if (is_array($value['charges'] ?? null)) {
+            foreach ($value['charges'] as $c) {
+                if (! is_array($c)) {
+                    continue;
+                }
+                $charges[] = [
+                    'date' => trim((string) ($c['date'] ?? '')),
+                    'amount' => trim((string) ($c['amount'] ?? '')),
+                ];
+            }
+        }
 
         return [
             'shopkeeper' => trim((string) ($value['shopkeeper'] ?? '')),
             'owed' => trim((string) ($value['owed'] ?? '')),
             'payments' => $payments,
+            'charges' => $charges,
             'status' => '',
         ];
     }
 
     /**
-     * @param  array{shopkeeper: string, owed: string, payments: list<array{date: string, amount: string}>, status: string}  $cell
+     * @param  array{shopkeeper: string, owed: string, payments: list<array{date: string, amount: string}>, charges: list<array{date: string, amount: string}>, status: string}  $cell
      */
-    protected function cellIsFilled(array $cell): bool
+    public function cellIsFilled(array $cell): bool
     {
-        return $cell['shopkeeper'] !== '' || $cell['owed'] !== '';
+        return $cell['shopkeeper'] !== '' || $cell['owed'] !== '' || ($cell['charges'] ?? []) !== [];
     }
 
     protected function findRowKeyByShopkeeper(string $shopkeeper): ?string
@@ -1010,9 +1151,10 @@ class PendingPaymentsPage extends BaseModulePage
     protected function emitSheetScreen(string $screen): void
     {
         $mode = $this->isViewMode() ? 'view' : 'edit';
-        $this->dispatch('tools-pending-payments-screen', screen: $screen, formMode: $mode);
+        $lang = $this->formLang;
+        $this->dispatch('tools-pending-payments-screen', screen: $screen, formMode: $mode, formLang: $lang);
         $this->js(
-            'window.dispatchEvent(new CustomEvent("tools-pending-payments-screen",{detail:{screen:'.json_encode($screen).',formMode:'.json_encode($mode).'}}))'
+            'window.dispatchEvent(new CustomEvent("tools-pending-payments-screen",{detail:{screen:'.json_encode($screen).',formMode:'.json_encode($mode).',formLang:'.json_encode($lang).'}}))'
         );
     }
 

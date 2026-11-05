@@ -1,4 +1,9 @@
 <x-filament-panels::page>
+    <div
+        class="contents"
+        x-data
+        x-on:tools-purchase-summary-search-query.window="$wire.updateSearch(($event.detail && $event.detail.query) || '')"
+    ></div>
     @include('filament.pages.tools.partials.purchase-summary-styles')
     @include('filament.pages.tools.partials.tools-a4-mobile')
 
@@ -472,18 +477,26 @@
                                         @endif
                                         <span style="display:block;font-size:11px;color:#64748b">{{ __('agricart.pages.tools.ps_list_lines', ['count' => $filledLines]) }}</span>
                                     </td>
-                                    <td>{{ $summary->prepared_by ?: '—' }}</td>
+                                    <td>
+                                        {{ $summary->prepared_by ?: '—' }}
+                                        @if ($this->canBrowseTeamSummaries() && (int) $summary->user_id !== (int) auth()->id())
+                                            <span style="display:block;font-size:11px;color:#64748b">{{ $summary->user?->name ?: ('#'.$summary->user_id) }}</span>
+                                        @endif
+                                    </td>
                                     <td dir="ltr">{{ optional($summary->updated_at)->timezone(config('app.display_timezone', config('app.timezone')))->format('d-m-Y H:i') }}</td>
                                     <td>
+                                        @php $isOwner = (int) $summary->user_id === (int) auth()->id(); @endphp
                                         <div class="agricart-ro-list__actions">
                                             <x-filament::button size="sm" color="gray" outlined wire:click="openSummary({{ $summary->id }})">{{ __('agricart.pages.tools.ps_list_open') }}</x-filament::button>
-                                            @if ($isClosed)
-                                                @if ($this->canUnlockClosed())
-                                                    <x-filament::button size="sm" color="warning" wire:click="unlockClosedSummary({{ $summary->id }})" wire:confirm="{{ __('agricart.pages.tools.ps_unlock_confirm') }}">{{ __('agricart.pages.tools.ps_list_unlock') }}</x-filament::button>
+                                            @if ($isOwner)
+                                                @if ($isClosed)
+                                                    @if ($this->canUnlockClosed())
+                                                        <x-filament::button size="sm" color="warning" wire:click="unlockClosedSummary({{ $summary->id }})" wire:confirm="{{ __('agricart.pages.tools.ps_unlock_confirm') }}">{{ __('agricart.pages.tools.ps_list_unlock') }}</x-filament::button>
+                                                    @endif
+                                                @else
+                                                    <x-filament::button size="sm" color="primary" wire:click="editSummary({{ $summary->id }})">{{ __('agricart.pages.tools.ps_list_edit') }}</x-filament::button>
+                                                    <x-filament::button size="sm" color="warning" outlined wire:click="closeListedSummary({{ $summary->id }})" wire:confirm="{{ __('agricart.pages.tools.ps_list_close_confirm') }}">{{ __('agricart.pages.tools.ps_list_close') }}</x-filament::button>
                                                 @endif
-                                            @else
-                                                <x-filament::button size="sm" color="primary" wire:click="editSummary({{ $summary->id }})">{{ __('agricart.pages.tools.ps_list_edit') }}</x-filament::button>
-                                                <x-filament::button size="sm" color="warning" outlined wire:click="closeListedSummary({{ $summary->id }})" wire:confirm="{{ __('agricart.pages.tools.ps_list_close_confirm') }}">{{ __('agricart.pages.tools.ps_list_close') }}</x-filament::button>
                                             @endif
                                         </div>
                                     </td>

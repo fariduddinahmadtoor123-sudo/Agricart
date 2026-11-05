@@ -67,6 +67,7 @@ class ToolsPageToolbar extends ClusterPageToolbar
                 $actions[] = [
                     'label' => 'EN',
                     'value' => 'lang-en',
+                    'lang' => 'en',
                     'outlined' => true,
                     'compact' => true,
                     'screen' => 'form',
@@ -74,6 +75,7 @@ class ToolsPageToolbar extends ClusterPageToolbar
                 $actions[] = [
                     'label' => 'UR',
                     'value' => 'lang-ur',
+                    'lang' => 'ur',
                     'outlined' => true,
                     'compact' => true,
                     'screen' => 'form',
@@ -153,6 +155,7 @@ class ToolsPageToolbar extends ClusterPageToolbar
                 $actions[] = [
                     'label' => 'EN',
                     'value' => 'lang-en',
+                    'lang' => 'en',
                     'outlined' => true,
                     'compact' => true,
                     'screen' => 'form',
@@ -160,6 +163,7 @@ class ToolsPageToolbar extends ClusterPageToolbar
                 $actions[] = [
                     'label' => 'UR',
                     'value' => 'lang-ur',
+                    'lang' => 'ur',
                     'outlined' => true,
                     'compact' => true,
                     'screen' => 'form',
@@ -239,6 +243,7 @@ class ToolsPageToolbar extends ClusterPageToolbar
                 $actions[] = [
                     'label' => 'EN',
                     'value' => 'lang-en',
+                    'lang' => 'en',
                     'outlined' => true,
                     'compact' => true,
                     'screen' => 'form',
@@ -246,6 +251,7 @@ class ToolsPageToolbar extends ClusterPageToolbar
                 $actions[] = [
                     'label' => 'UR',
                     'value' => 'lang-ur',
+                    'lang' => 'ur',
                     'outlined' => true,
                     'compact' => true,
                     'screen' => 'form',

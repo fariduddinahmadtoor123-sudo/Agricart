@@ -313,6 +313,56 @@
                 @endif
             </div>
 
+            @if ($this->isCancelled())
+                <div class="agricart-online-order__declared-payment">
+                    <h3 class="agricart-online-order__section-title">{{ __('online_sale_orders.sections.cancellation') }}</h3>
+                    <p class="agricart-online-order__meta-line">
+                        <strong>{{ __('online_sale_orders.fields.cancellation_source') }}:</strong>
+                        {{ filled($cancellation_source)
+                            ? __('online_sale_orders.cancel.sources.' . $cancellation_source)
+                            : '—' }}
+                    </p>
+                    <p class="agricart-online-order__meta-line">
+                        <strong>{{ __('online_sale_orders.fields.cancelled_by') }}:</strong>
+                        {{ filled($cancelled_by_name)
+                            ? $cancelled_by_name
+                            : __('online_sale_orders.cancel.system_actor') }}
+                        @if (filled($cancelled_at))
+                            <span class="agricart-purchase-form__party-sep" aria-hidden="true">·</span>
+                            {{ $cancelled_at }}
+                        @endif
+                    </p>
+                    @if (filled($cancellation_reason))
+                        <p class="agricart-online-order__meta-line">
+                            <strong>{{ __('online_sale_orders.fields.cancellation_reason') }}:</strong>
+                            {{ $cancellation_reason }}
+                        </p>
+                    @endif
+                </div>
+            @elseif ($this->canCancelOrder())
+                <div class="agricart-online-order__declared-payment">
+                    <h3 class="agricart-online-order__section-title">{{ __('online_sale_orders.sections.cancellation') }}</h3>
+                    <p class="agricart-online-order__meta-line">{{ __('online_sale_orders.hints.cancel_order') }}</p>
+                    <div class="agricart-online-order__reject-row">
+                        <input
+                            type="text"
+                            class="agricart-purchase-form__input agricart-purchase-form__input--compact"
+                            wire:model="cancellation_reason_input"
+                            placeholder="{{ __('online_sale_orders.hints.cancellation_reason') }}"
+                        />
+                        <button
+                            type="button"
+                            class="agricart-categories__action is-danger"
+                            wire:click="cancelOrder"
+                            wire:confirm="{{ __('online_sale_orders.hints.cancel_confirm') }}"
+                            wire:loading.attr="disabled"
+                        >
+                            {{ __('online_sale_orders.actions.cancel_order') }}
+                        </button>
+                    </div>
+                </div>
+            @endif
+
             @if ($hasCourierInfo)
                 <div class="agricart-online-order__ship-hints">
                     @if (filled($delivery_method_name) || filled($shipping_charge_mode_label))

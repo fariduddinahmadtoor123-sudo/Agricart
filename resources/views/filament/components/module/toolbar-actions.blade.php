@@ -72,6 +72,26 @@
         >
             {{ $action['label'] }}
         </x-filament::button>
+    @elseif (filled($action['lang'] ?? null))
+        <x-filament::button
+            :color="$action['color'] ?? 'gray'"
+            :outlined="($action['outlined'] ?? true) === true"
+            :icon="$action['icon'] ?? null"
+            tag="button"
+            type="button"
+            x-cloak
+            x-show="screen === @js($action['screen'] ?? 'form')"
+            x-bind:class="{
+                'agricart-catalog-toolbar__action--lang-active': formLang === @js($action['lang']),
+            }"
+            @class([
+                'agricart-catalog-toolbar__action',
+                'agricart-catalog-toolbar__action--compact-label' => ($action['compact'] ?? false) === true,
+            ])
+            x-on:click="{{ $clickHandler }}"
+        >
+            {{ $action['label'] }}
+        </x-filament::button>
     @elseif (filled($action['screen'] ?? null))
         <x-filament::button
             :color="$action['color'] ?? 'gray'"

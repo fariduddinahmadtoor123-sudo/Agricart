@@ -112,6 +112,11 @@ return Application::configure(basePath: dirname(__DIR__))
             ->dailyAt('03:50')
             ->timezone(config('app.display_timezone')));
 
+        $protect($schedule->command('online-orders:cancel-unpaid')
+            ->dailyAt('04:05')
+            ->timezone(config('app.display_timezone'))
+            ->when($databaseReachable));
+
         $protect($schedule->command('analytics:geoip-update')
             ->monthlyOn(2, '04:15')
             ->timezone(config('app.display_timezone')));

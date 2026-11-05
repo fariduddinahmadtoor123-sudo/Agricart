@@ -99,6 +99,16 @@ class Form extends Component
 
     public string $converted_at = '';
 
+    public string $cancelled_by_name = '';
+
+    public string $cancelled_at = '';
+
+    public string $cancellation_reason = '';
+
+    public string $cancellation_source = '';
+
+    public string $cancellation_reason_input = '';
+
     public string $queued_at_display = '';
 
     public string $queue_document = '';
@@ -373,13 +383,29 @@ class Form extends Component
 
     public function canConfirmPayment(): bool
     {
-        if ($this->orderId === null || $this->isLocked()) {
+        if ($this->orderId === null || $this->isLocked() || $this->isCancelled()) {
             return false;
         }
 
         $user = auth()->user();
 
         return $user instanceof User && OnlineSaleOrderPaymentAccess::canVerifyProof($user);
+    }
+
+    public function isCancelled(): bool
+    {
+        return $this->order_status === OnlineSaleOrder::STATUS_CANCELLED;
+    }
+
+    public function canCancelOrder(): bool
+    {
+        if ($this->orderId === null || $this->isLocked() || $this->isCancelled()) {
+            return false;
+        }
+
+        $user = auth()->user();
+
+        return $user instanceof User && OnlineSaleOrderPaymentAccess::canManageOrders($user, 'edit');
     }
 
     public function isInvoice(): bool
@@ -626,6 +652,41 @@ class Form extends Component
         }
     }
 
+    public function cancelOrder(): void
+    {
+        $user = auth()->user();
+        abort_unless($user instanceof User && OnlineSaleOrderPaymentAccess::canManageOrders($user, 'edit'), 403);
+
+        if (! $this->canCancelOrder() || ! $this->orderId) {
+            return;
+        }
+
+        $this->saving = true;
+        $this->dispatchBusyState();
+
+        try {
+            $order = OnlineSaleOrder::query()->findOrFail($this->orderId);
+            app(OnlineSaleOrderService::class)->cancelManually(
+                $order,
+                $user,
+                $this->cancellation_reason_input,
+            );
+            $this->cancellation_reason_input = '';
+            $this->setStatus(__('online_sale_orders.messages.cancelled', ['number' => $order->order_number]), 'success');
+            $this->loadOrder($this->orderId);
+            $this->dispatch('online-sale-orders-saved');
+            $this->dispatch('online-quotations-saved');
+        } catch (ValidationException $exception) {
+            $message = collect($exception->errors())->flatten()->first() ?? __('online_sale_orders.messages.save_failed');
+            $this->setStatus((string) $message, 'error');
+        } catch (\Throwable) {
+            $this->setStatus(__('online_sale_orders.messages.save_failed'), 'error');
+        } finally {
+            $this->saving = false;
+            $this->dispatchBusyState();
+        }
+    }
+
     private function persistAdmin(): bool
     {
         $user = auth()->user();
@@ -816,6 +877,11 @@ class Form extends Component
         $this->linked_sale_number = (string) $state['sale_number'];
         $this->converted_by_name = (string) ($state['converted_by_name'] ?? '');
         $this->converted_at = (string) ($state['converted_at'] ?? '');
+        $this->cancelled_by_name = (string) ($state['cancelled_by_name'] ?? '');
+        $this->cancelled_at = (string) ($state['cancelled_at'] ?? '');
+        $this->cancellation_reason = (string) ($state['cancellation_reason'] ?? '');
+        $this->cancellation_source = (string) ($state['cancellation_source'] ?? '');
+        $this->cancellation_reason_input = '';
         $this->queued_at_display = (string) ($state['queued_at'] ?? '');
         $this->queue_document = (string) ($state['queue_document'] ?? '');
         $this->selectedSupplierIds = array_map('intval', $state['supplier_assignment_ids'] ?? []);
@@ -976,6 +1042,11 @@ class Form extends Component
             'linked_sale_number',
             'converted_by_name',
             'converted_at',
+            'cancelled_by_name',
+            'cancelled_at',
+            'cancellation_reason',
+            'cancellation_source',
+            'cancellation_reason_input',
             'queued_at_display',
             'queue_document',
             'selectedSupplierIds',

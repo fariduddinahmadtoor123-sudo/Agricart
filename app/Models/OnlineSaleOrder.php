@@ -20,6 +20,16 @@ class OnlineSaleOrder extends Model
 
     public const STATUS_CANCELLED = 'cancelled';
 
+    public const CANCEL_SOURCE_MANUAL = 'manual';
+
+    public const CANCEL_SOURCE_AUTOMATIC = 'automatic';
+
+    /** @var list<string> */
+    public const CANCEL_SOURCES = [
+        self::CANCEL_SOURCE_MANUAL,
+        self::CANCEL_SOURCE_AUTOMATIC,
+    ];
+
     public const PROOF_NONE = 'none';
 
     public const PROOF_AWAITING = 'awaiting_receipt';
@@ -128,6 +138,10 @@ class OnlineSaleOrder extends Model
         'delivery_customer_notice_ur',
         'customer_notes',
         'admin_notes',
+        'cancelled_at',
+        'cancelled_by_id',
+        'cancellation_reason',
+        'cancellation_source',
         'converted_at',
         'queued_at',
         'queue_document',
@@ -154,6 +168,7 @@ class OnlineSaleOrder extends Model
             'shipping_charge_mode' => ShippingChargeMode::class,
             'converted_at' => 'datetime',
             'queued_at' => 'datetime',
+            'cancelled_at' => 'datetime',
             'notification_dispatched_at' => 'datetime',
             'shipping_customer_notified_at' => 'datetime',
             'delivered_at' => 'datetime',
@@ -364,9 +379,54 @@ class OnlineSaleOrder extends Model
         return $this->belongsTo(User::class, 'converted_by_id');
     }
 
+    public function cancelledBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'cancelled_by_id');
+    }
+
     public function assignedUser(): BelongsTo
     {
         return $this->belongsTo(User::class, 'assigned_user_id');
+    }
+
+    public function canBeCancelled(): bool
+    {
+        if ($this->isLocked()) {
+            return false;
+        }
+
+        return $this->order_status !== self::STATUS_CANCELLED;
+    }
+
+    /**
+     * Pending unpaid quotation with no verified (or in-review) payment proof,
+     * older than the configured unpaid window.
+     */
+    public function isEligibleForUnpaidAutoCancel(?int $days = null): bool
+    {
+        if (! $this->canBeCancelled()) {
+            return false;
+        }
+
+        if ($this->order_status !== self::STATUS_PENDING) {
+            return false;
+        }
+
+        if ((string) $this->payment_status !== 'unpaid') {
+            return false;
+        }
+
+        if (in_array((string) $this->customer_payment_proof_status, [
+            self::PROOF_SUBMITTED,
+            self::PROOF_VERIFIED,
+        ], true)) {
+            return false;
+        }
+
+        $days = max(1, $days ?? (int) config('agricart.online_store.unpaid_cancel_days', 7));
+        $createdAt = $this->created_at;
+
+        return $createdAt !== null && $createdAt->lte(now()->subDays($days));
     }
 
     public function paymentProofReviewedBy(): BelongsTo
