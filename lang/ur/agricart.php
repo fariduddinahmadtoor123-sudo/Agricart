@@ -408,7 +408,7 @@ return [
             'backups' => 'بیک اپ',
             'brand-review-messages' => 'ریویوز',
         ],
-        'docs' => ['overview' => 'جائزہ', 'guide' => 'یوزر گائیڈ'],
+        'docs' => ['overview' => 'جائزہ', 'app-guide' => 'مکمل ایپ گائیڈ', 'guide' => 'یوزر گائیڈ'],
         'vault' => [
             'my-box' => 'میرا باکس',
             'all-boxes' => 'تمام باکسز',

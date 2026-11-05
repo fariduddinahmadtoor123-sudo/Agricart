@@ -17,7 +17,7 @@ return [
                 'paragraphs' => [
                     'Docs Overview is the central entry point for documentation covering all Agricart modules. Status dots distinguish simple briefs, detailed guides, live pages, and planned pages.',
                     'Simple briefs serve owners, new staff, and AI handoffs. Detailed guides preserve routes, permissions, fields, services, and code-verified behaviour for developers.',
-                    'A plain-language full menu map (Urdu) is at docs/drops/agricart-general-map-ur.md — copy and keep it locally.',
+                    'Read the full-app plain guide at Docs → Full App Guide (Urdu / English). Source files: docs/drops/agricart-general-map-ur.md and agricart-general-map-en.md.',
                 ],
             ],
             [

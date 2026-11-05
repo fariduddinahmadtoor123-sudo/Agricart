@@ -90,9 +90,14 @@ return [
     ],
 
     'overview' => [
-        'intro' => 'Agricart Docs is a simple user guide. Each page has three parts: Overview (what it does and how to use it), AI Prompt (rebuild instructions), and Notes (future wishes you fill later).',
-        'structure' => 'Blue dots mark pages with a user guide. Pick a module, then a page, and switch English / Urdu for Overview and Notes. List and form guides can be selected separately.',
-        'open_guide' => 'Open User Guide',
+        'intro' => 'Docs now holds one simple full-app guide: menu list, then submenus, then what each page does.',
+        'structure' => 'The old multi-box brief/guide UI is hidden from the Docs menu. Day-to-day reading uses Full App Guide only.',
+        'open_guide' => 'Open Full App Guide',
+    ],
+
+    'app_guide' => [
+        'eyebrow' => 'Full-app document — A4 style for print or save',
+        'print' => 'Print / PDF',
     ],
 
     'pdf' => [

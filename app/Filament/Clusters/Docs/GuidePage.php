@@ -22,6 +22,17 @@ class GuidePage extends BaseModulePage
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMap;
 
+    /**
+     * Legacy per-module brief/guide UI — kept for old links, hidden from Docs chrome.
+     * Use AppGuidePage for the single full-app document.
+     */
+    protected static bool $shouldRegisterNavigation = false;
+
+    public static function registersInModuleChrome(): bool
+    {
+        return false;
+    }
+
     protected string $view = 'filament.pages.docs.guide';
 
     public static function guideUrl(string $moduleKey, string $pageKey, array $extra = []): string

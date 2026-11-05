@@ -334,7 +334,9 @@ class PermissionRegistry
             ],
             'docs' => [
                 'overview' => ['label_en' => 'Overview', 'label_ur' => 'جائزہ', 'actions' => $viewOnly],
-                'guide' => ['label_en' => 'Guide', 'label_ur' => 'گائیڈ', 'actions' => $viewOnly],
+                'app-guide' => ['label_en' => 'Full App Guide', 'label_ur' => 'مکمل ایپ گائیڈ', 'actions' => $viewOnly],
+                // Legacy deep-link (hidden from Docs chrome; kept for old bookmarks).
+                'guide' => ['label_en' => 'Guide (legacy)', 'label_ur' => 'گائیڈ (پرانا)', 'actions' => $viewOnly, 'form' => false],
             ],
             'tools' => [
                 'overview' => ['label_en' => 'Overview', 'label_ur' => 'جائزہ', 'actions' => $viewOnly],

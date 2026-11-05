@@ -409,7 +409,7 @@ return [
             'backups' => 'Backup',
             'brand-review-messages' => 'Reviews',
         ],
-        'docs' => ['overview' => 'Overview', 'guide' => 'User Guide'],
+        'docs' => ['overview' => 'Overview', 'app-guide' => 'Full App Guide', 'guide' => 'User Guide'],
         'vault' => [
             'my-box' => 'My Box',
             'all-boxes' => 'All Boxes',
