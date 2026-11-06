@@ -340,13 +340,26 @@
             .agricart-ro-grid thead th{height:6mm !important}
             .agricart-ro-unitpick__menu,
             .agricart-ro-phrasepick__menu{display:none !important}
-            .agricart-ro-grid thead th{
-                background:#374151 !important;color:#fff !important;
+            .agricart-ro-sheet,.agricart-ro-sheet *{
+                print-color-adjust:exact !important;-webkit-print-color-adjust:exact !important;
+                color:#000 !important;-webkit-text-fill-color:#000 !important;opacity:1 !important;
+            }
+            .agricart-ro-grid thead th,
+            .agricart-ro-grid thead th *{
+                background:#374151 !important;color:#fff !important;-webkit-text-fill-color:#fff !important;
                 print-color-adjust:exact;-webkit-print-color-adjust:exact;
+            }
+            .agricart-ro-head__addr,.agricart-ro-head__phones,.agricart-ro-meta__k,
+            .agricart-ro-strip__k,.agricart-ro-strip__phones,.agricart-ro-totals__k,.agricart-ro-totals__meta{
+                color:#000 !important;-webkit-text-fill-color:#000 !important;font-weight:700 !important;
             }
             .agricart-ro-grid__inp,.agricart-ro-unitpick__inp,.agricart-ro-foot__inp{
                 border:0 !important;background:transparent !important;-webkit-appearance:none;appearance:none;
-                color:#111 !important;box-shadow:none !important;
+                color:#000 !important;-webkit-text-fill-color:#000 !important;caret-color:#000 !important;
+                box-shadow:none !important;opacity:1 !important;font-weight:800 !important;
+            }
+            .agricart-ro-grid__no,.agricart-ro-totals__v,.agricart-ro-grid td,.agricart-ro-meta__v{
+                color:#000 !important;-webkit-text-fill-color:#000 !important;font-weight:800 !important;
             }
             /* Pencil boxes stay on print; colored dots/buttons stay screen-only */
             .agricart-ro-fulfill-banner,

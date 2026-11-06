@@ -142,16 +142,35 @@
             height:5.4mm!important;background:#374151!important;color:#fff!important;
             print-color-adjust:exact;-webkit-print-color-adjust:exact
         }
-        .agricart-ro-grid__inp,.agricart-ro-foot__inp{
+        .agricart-ro-sheet,.agricart-ro-sheet *{
+            print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important;
+            color:#000!important;-webkit-text-fill-color:#000!important;opacity:1!important
+        }
+        .agricart-ro-grid thead th,.agricart-ro-grid thead th *{
+            color:#fff!important;-webkit-text-fill-color:#fff!important
+        }
+        .agricart-ro-head__addr,.agricart-ro-head__phones,.agricart-ro-meta__k,.agricart-ro-totals__k,
+        .agricart-ps-pending__hint,.agricart-ps-pending__no,.agricart-ps-cleared__title{
+            color:#000!important;-webkit-text-fill-color:#000!important;font-weight:700!important
+        }
+        .agricart-ro-grid__inp,.agricart-ro-foot__inp,.agricart-ps-sources__table .agricart-ro-foot__inp{
             border:0!important;border-radius:0!important;background:transparent!important;
-            -webkit-appearance:none;appearance:none;color:#111!important;box-shadow:none!important;
-            font-size:13px!important
+            -webkit-appearance:none;appearance:none;box-shadow:none!important;
+            color:#000!important;-webkit-text-fill-color:#000!important;
+            caret-color:#000!important;opacity:1!important;
+            font-size:13px!important;font-weight:800!important
+        }
+        .agricart-ro-grid__no,.agricart-ro-totals__v,.agricart-ps-balance .agricart-ro-totals__v,
+        .agricart-ro-grid td,.agricart-ro-foot__write td,.agricart-ps-sources__table td,
+        .agricart-ps-pending,.agricart-ps-cleared__list{
+            color:#000!important;-webkit-text-fill-color:#000!important;font-weight:800!important
         }
         .agricart-ro-grid__mark{
-            display:table-cell!important;width:5%!important;border:1px solid #111!important;
-            background:#fff!important;color:#111!important;padding:0!important;overflow:hidden!important
+            display:table-cell!important;width:5%!important;border:1px solid #000!important;
+            background:#fff!important;color:#000!important;-webkit-text-fill-color:#000!important;
+            padding:0!important;overflow:hidden!important
         }
-        .agricart-ro-grid thead th.agricart-ro-grid__mark{background:#374151!important;color:#fff!important;font-size:10px!important}
+        .agricart-ro-grid thead th.agricart-ro-grid__mark{background:#374151!important;color:#fff!important;-webkit-text-fill-color:#fff!important;font-size:10px!important}
         .agricart-ro-row--done td,.agricart-ro-row--forward td{background:#fff!important}
         .agricart-ro-grid--ps-marks .agricart-ro-grid__shopkeeper{width:54%!important}
         .agricart-ro-grid--ps-marks .agricart-ro-grid__payment{width:16%!important}

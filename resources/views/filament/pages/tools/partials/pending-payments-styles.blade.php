@@ -61,11 +61,30 @@
         .agricart-pp-sheet-wrap{padding:0!important;gap:0!important;display:block!important}
         .agricart-pp-sheet{
             box-shadow:none!important;border:0!important;width:100%!important;max-width:none!important;
-            min-height:285mm!important;padding:2mm!important;page-break-after:always;break-after:page
+            min-height:285mm!important;padding:2mm!important;page-break-after:always;break-after:page;
+            print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important
         }
         .agricart-pp-sheet:last-child{page-break-after:auto;break-after:auto}
-        .agricart-pp-grid thead th{background:#374151!important;color:#fff!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-        .agricart-pp-inp{border:0!important;background:transparent!important;color:#111!important}
+        .agricart-pp-sheet,.agricart-pp-sheet *{
+            print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important;
+            color:#000!important;-webkit-text-fill-color:#000!important;opacity:1!important
+        }
+        .agricart-pp-grid thead th,.agricart-pp-grid thead th *{
+            background:#374151!important;color:#fff!important;-webkit-text-fill-color:#fff!important;
+            print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important
+        }
+        .agricart-pp-head__addr,.agricart-pp-head__phones,.agricart-pp-meta__k,.agricart-pp-totals__k{
+            color:#000!important;-webkit-text-fill-color:#000!important;font-weight:700!important
+        }
+        .agricart-pp-inp,.agricart-pp-grid input,.agricart-pp-grid textarea{
+            border:0!important;background:transparent!important;box-shadow:none!important;
+            color:#000!important;-webkit-text-fill-color:#000!important;caret-color:#000!important;
+            opacity:1!important;font-weight:800!important;font-size:12px!important
+        }
+        .agricart-pp-grid__no,.agricart-pp-grid__rem,.agricart-pp-grid__owed,.agricart-pp-totals__v,
+        .agricart-pp-meta__v,.agricart-pp-grid td{
+            color:#000!important;-webkit-text-fill-color:#000!important;font-weight:800!important
+        }
         .agricart-pp-grid__act{display:none!important}
     }
 </style>
