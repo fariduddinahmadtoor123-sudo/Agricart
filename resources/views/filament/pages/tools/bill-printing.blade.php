@@ -32,7 +32,11 @@
             color:#64748b;font-size:.875rem;background:rgba(248,250,252,.8)
         }
         .agricart-bp__folder-title{margin:0;font-size:1rem;font-weight:800;color:#0f172a}
-        .agricart-bp__print-root{display:none}
+        /* Keep print images in layout (off-screen) so the browser fully decodes them before print. */
+        .agricart-bp__print-root{
+            position:absolute;left:-99999px;top:0;width:210mm;height:auto;overflow:hidden;
+            pointer-events:none;z-index:-1
+        }
         .agricart-ro-list{display:flex;flex-direction:column;gap:.75rem}
         .agricart-ro-list__hint{font-size:.8125rem;color:#64748b}
         .agricart-ro-list__table-wrap{overflow:auto;border-radius:.75rem;background:#fff;border:1px solid rgba(15,23,42,.08)}
@@ -56,14 +60,26 @@
                 margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;
                 background:transparent!important;max-width:none!important;width:100%!important;overflow:visible!important
             }
-            .agricart-bp__print-root{display:block!important}
+            .agricart-bp__print-root{
+                position:static!important;left:auto!important;top:auto!important;width:auto!important;
+                height:auto!important;overflow:visible!important;pointer-events:auto!important;z-index:auto!important;
+                display:block!important
+            }
             .agricart-bp__print-page{
                 width:210mm;height:297mm;margin:0;padding:0;box-sizing:border-box;
                 page-break-after:always;break-after:page;
-                display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff
+                display:flex;align-items:center;justify-content:center;overflow:hidden;background:#fff!important;
+                print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important;color-adjust:exact!important
             }
             .agricart-bp__print-page:last-child{page-break-after:auto;break-after:auto}
-            .agricart-bp__print-page img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block}
+            .agricart-bp__print-page img{
+                max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;display:block;
+                background:#fff!important;opacity:1!important;
+                print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important;color-adjust:exact!important;
+                /* Browser ink-save lightens photos; nudge contrast so paper matches a direct image print. */
+                filter:contrast(1.28) brightness(0.9) saturate(1.08)!important;
+                -webkit-filter:contrast(1.28) brightness(0.9) saturate(1.08)!important
+            }
         }
     </style>
 
@@ -73,7 +89,19 @@
             class="agricart-bp"
             x-data
             x-init="window.dispatchEvent(new CustomEvent('tools-bill-printing-screen',{detail:{screen:'form',formMode:@js($this->isViewMode() ? 'view' : 'edit')}}))"
-            x-on:tools-bill-printing-print.window="window.print()"
+            x-on:tools-bill-printing-print.window="
+                const root = $el.querySelector('.agricart-bp__print-root');
+                const imgs = root ? Array.from(root.querySelectorAll('img')) : [];
+                Promise.all(imgs.map((img) => {
+                    if (img.complete && img.naturalWidth > 0) {
+                        return Promise.resolve();
+                    }
+                    return new Promise((resolve) => {
+                        img.addEventListener('load', resolve, { once: true });
+                        img.addEventListener('error', resolve, { once: true });
+                    });
+                })).then(() => setTimeout(() => window.print(), 80));
+            "
             wire:key="bp-form-{{ $editingFolderId ?? 0 }}-{{ $formMode }}-{{ count($rows) }}"
         >
             @unless ($this->isViewMode())
@@ -125,7 +153,7 @@
             <div class="agricart-bp__print-root" aria-hidden="true">
                 @foreach ($rows as $row)
                     <div class="agricart-bp__print-page">
-                        <img src="{{ $row['url'] }}" alt="{{ $row['name'] }}" />
+                        <img src="{{ $row['url'] }}" alt="{{ $row['name'] }}" loading="eager" decoding="sync" />
                     </div>
                 @endforeach
             </div>
